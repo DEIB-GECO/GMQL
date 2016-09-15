@@ -34,6 +34,8 @@ object Utilities {
     val dfs: String = System.getenv("GMQL_DFS_HOME")
     val exec: String = System.getenv("GMQL_EXEC")
 
+
+
     if (gmql == null) GMQLHOME = "/Users/abdulrahman/gmql_repository"
     else GMQLHOME = gmql
 
@@ -49,6 +51,7 @@ object Utilities {
     } else this.MODE = exec.toUpperCase
 
     RepoDir = GMQLHOME + "/data/"
+
 
     val coreConf: String = System.getenv("HADOOP_CONF_DIR")
     val hdfsConf: String = System.getenv("HADOOP_CONF_DIR")
