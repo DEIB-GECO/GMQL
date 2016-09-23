@@ -40,6 +40,7 @@ trait GmqlParsers extends JavaTokenParsers {
   val field_value:Parser[Any] = (stringLiteral ^^ {x=> x.drop(1).dropRight(1)})  |
     (floatingPointNumber ^^ (_.toDouble))
 
+  val ALLBUT:Parser[String] = """[a|A][l|L][l|L][b|B][u|U][t|T]""".r
   val IN:Parser[String] = """[i|I][n|N]""".r
   val AS:Parser[String] = """[a|A][s|S]""".r
   val OR:Parser[String] = """[o|O][r|R]""".r
@@ -193,11 +194,18 @@ trait GmqlParsers extends JavaTokenParsers {
     (((NOT ~ "(" )~> region_select_expr <~ ")") ^^
       {x=>it.polimi.genomics.core.DataStructures.RegionCondition.NOT(x)})
 
+  val allBut:Parser[Either[AllBut,List[SingleProjectOnRegion]]] = ALLBUT ~>
+    (fixed_field_position ^^ {x => Left(AllBut(FieldPosition(x)))} |
+      region_field_name ^^ {x => Left(AllBut(FieldName(x)))} )
+
   val single_region_project:Parser[SingleProjectOnRegion] =
     fixed_field_position ^^ {x => RegionProject(FieldPosition(x))} |
       region_field_name ^^ {x => RegionProject(FieldName(x))}
-  val region_project_list:Parser[List[SingleProjectOnRegion]] =
-    rep1sep(single_region_project, ",")
+
+  val region_project_list:Parser[Either[AllBut,List[SingleProjectOnRegion]]] =
+    rep1sep(single_region_project, ",") ^^ {x => Right(x)}
+
+  val region_project_cond:Parser[Either[AllBut,List[SingleProjectOnRegion]]] = allBut | region_project_list
 
   lazy val re_factor:Parser[RENode] = START ^^ {x=>RESTART()} |
     STOP ^^ {x => RESTOP()} | LEFT ^^ {x => RELEFT()} |
@@ -215,7 +223,9 @@ trait GmqlParsers extends JavaTokenParsers {
   val single_region_modifier:Parser[SingleProjectOnRegion] =
     ((RIGHT ^^ {x => FieldPosition(COORD_POS.RIGHT_POS)} |
       LEFT ^^ {x => FieldPosition(COORD_POS.LEFT_POS)} |
-      any_field_identifier) <~ AS) ~
+      ((START | STOP) ^^ {x =>
+        throw new CompilerException(x + " is not a valid name for region attribute")} |
+      any_field_identifier)) <~ AS) ~
       re_expr ^^ {x => RegionModifier(x._1,x._2)}
   val region_modifier_list:Parser[List[SingleProjectOnRegion]] = rep1sep(single_region_modifier, ",")
 
@@ -230,7 +240,7 @@ trait GmqlParsers extends JavaTokenParsers {
     ((DISTANCE ~> ("<" | "<=") ~> ("-" ~> wholeNumber) |
       DISTLESS ~> "(" ~> ("-" ~> wholeNumber)  <~ ")") ^^ {x => DistLess(-x.toLong)}) |
       ((DISTANCE ~> ("<" | "<=") ~> wholeNumber |
-        DISTLESS ~> "(" ~> wholeNumber <~ ")") ^^ {x => DistLess(x.toLong)})
+    DISTLESS ~> "(" ~> wholeNumber <~ ")") ^^ {x => DistLess(x.toLong)})
   val join_distgreater:Parser[AtomicCondition] = (DISTANCE ~> (">" | "=>") ~> wholeNumber |
     DISTGREATER ~> "(" ~> wholeNumber <~ ")") ^^ {x => DistGreater(x.toLong)}
   val join_atomic_condition:Parser[AtomicCondition] = join_up | join_down |
@@ -247,9 +257,9 @@ trait GmqlParsers extends JavaTokenParsers {
     ((metadata_attribute <~ AS)  ~ (ident <~ ("(" ~ ")"))) ^^ {
       x => RegionsToMetaTemp(x._2, None, Some(x._1))
     } |
-      (metadata_attribute <~ AS)  ~ ((ident <~ "(") ~ (any_field_identifier <~ ")")) ^^ {
-        x => RegionsToMetaTemp(x._2._1,Some(x._2._2),Some(x._1))
-      }
+    (metadata_attribute <~ AS)  ~ ((ident <~ "(") ~ (any_field_identifier <~ ")")) ^^ {
+      x => RegionsToMetaTemp(x._2._1,Some(x._2._2),Some(x._1))
+    }
 
   val extend_aggfun_list:Parser[List[RegionsToMetaTemp]] = rep1sep(extend_aggfun, ",")
 
@@ -277,11 +287,16 @@ trait GmqlParsers extends JavaTokenParsers {
   }
 
   val map_aggfun:Parser[RegionsToRegionTemp] =
-    ((region_field_name ^^ {FieldName(_)}) <~ AS).? ~ ((ident <~ "(") ~ (any_field_identifier <~ ")")) ^^ {
+    (((region_field_name ^^ {FieldName(_)}) <~ AS).? ~ ((ident <~ ("(" ~ ")"))) ^^ {
+      x => RegionsToRegionTemp(x._2,
+        None,
+        if(x._1.isDefined)  x._1 else Some(FieldName(x._2.toLowerCase())))
+    }) |
+  (((region_field_name ^^ {FieldName(_)}) <~ AS).? ~ ((ident <~ "(") ~ (any_field_identifier <~ ")")) ^^ {
       x => RegionsToRegionTemp(x._2._1,
-        x._2._2,
+        Some(x._2._2),
         if(x._1.isDefined)  x._1 else Some(FieldName(x._2._1.toLowerCase())))
-    }
+    })
 
   val map_aggfun_list:Parser[List[RegionsToRegionTemp]] = repsep(map_aggfun, ",")
 

@@ -1,6 +1,6 @@
 package it.polimi.genomics.core.DataStructures.RegionAggregate
 
-import it.polimi.genomics.core.GValue
+import it.polimi.genomics.core.{GDouble, GValue}
 
 
 trait RENode extends Serializable
