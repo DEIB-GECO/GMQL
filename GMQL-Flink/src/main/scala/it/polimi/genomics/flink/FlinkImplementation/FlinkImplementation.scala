@@ -70,6 +70,11 @@ class FlinkImplementation(val defaultBinSize : Long = 50000,
     dummy_implementation()
   }
 
+
+def stop(): Unit ={
+
+}
+
   def computeMetaFirst() : Seq[FlinkMetaType] = {
     logger.debug(" -- Executing MetaFirst on Apache Flink -- ")
     metaFirstImplementation()
