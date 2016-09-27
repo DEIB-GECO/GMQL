@@ -59,4 +59,9 @@ class GMQLSparkLauncher(sparkJob:GMQLJob) extends GMQLLauncher(sparkJob){
     launcherHandler.getAppId
   }
 
+  override def killJob() =
+  {
+    launcherHandler.kill();
+  }
+
 }

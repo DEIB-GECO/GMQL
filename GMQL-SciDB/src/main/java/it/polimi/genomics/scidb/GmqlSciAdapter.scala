@@ -27,6 +27,10 @@ class GmqlSciAdapter
     implementation.go()
   }
 
+  override def stop():Unit ={
+
+  }
+
 
   class FakeParser extends GMQLLoader[(Long,String), DataTypes.FlinkRegionType, (Long,String), DataTypes.FlinkMetaType]  {
     override def meta_parser(t : (Long, String)) = null

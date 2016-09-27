@@ -10,6 +10,8 @@ import it.polimi.genomics.manager.{GMQLJob, Status}
 
     def getAppName (): String
 
+    def killJob ()
+
   }
 
 //object GMQLLauncher {

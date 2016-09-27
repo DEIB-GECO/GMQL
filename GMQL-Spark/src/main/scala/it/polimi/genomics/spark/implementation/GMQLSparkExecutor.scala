@@ -51,6 +51,9 @@ class GMQLSparkExecutor(val defaultBinSize : Long = 50000, val maxBinDistance : 
     implementation()
   }
 
+  override def stop(): Unit = {
+    sc.stop()
+  }
   def main (args: Array[String]) {
     implementation()
   }

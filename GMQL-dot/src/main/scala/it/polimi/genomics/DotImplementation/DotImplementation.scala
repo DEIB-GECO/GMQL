@@ -41,6 +41,8 @@ class DotImplementation(dot_graph_path : String = "./file.dot",
     }
   }
 
+  override def stop(): Unit = ???
+
   def go(): Unit = {
     val dot_code = toDotGraph(to_be_materialized(0))
     Files.write(Paths.get(dot_graph_path), dot_code.getBytes(StandardCharsets.UTF_8))

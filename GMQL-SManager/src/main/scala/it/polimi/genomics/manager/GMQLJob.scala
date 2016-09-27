@@ -76,8 +76,15 @@ class GMQLJob(val implementation: Implementation,val binSize: Long,val scriptPat
       })
 
       inputDataSets = languageParserOperators.flatMap { x => x match {
-        case select: SelectOperator => select.input1 match {
+        case select: SelectOperator =>  println(select.op_pos,select.output,select.parameters); select.input1 match {
+          case p: VariablePath => println("hhhh",p.path);
+            if (Utilities.getInstance().checkDSNameinRepo(this.username, p.path)) {
+              val user = if (Utilities.getInstance().checkDSNameinPublic(p.path)) "public" else this.username
+              Some(p.path, getDSFolder(p.path, user))
+            }else {
+              logger.warn(p.name+" is not a dataset in the repository...error");None}
           case p: Variable =>
+            println(p)
             if (Utilities.getInstance().checkDSNameinRepo(this.username, p.name)) {
               val user = if (Utilities.getInstance().checkDSNameinPublic(p.name)) "public" else this.username
               Some(p.name, getDSFolder(p.name,user))
@@ -85,7 +92,7 @@ class GMQLJob(val implementation: Implementation,val binSize: Long,val scriptPat
               logger.warn(p.name+" is not a dataset in the repository...")
               None
             }
-          case p:Variable => None
+//          case p:Variable => None
         }
         case s: Operator => None
       }}.toMap
