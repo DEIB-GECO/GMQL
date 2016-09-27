@@ -37,8 +37,9 @@ case class MapOperator(op_pos : Position,
           None
         }
         val field_pos:Int = a.input_field_name match {
-          case FieldPosition(p) => {right_var_check_num_field(p);p}
-          case FieldName(n) => {right_var_get_field_name(n).get}
+          case Some(FieldPosition(p)) => {right_var_check_num_field(p);p}
+          case Some(FieldName(n)) => {right_var_get_field_name(n).get}
+          case None => 0
         }
 
         if(new_field_name.isDefined){
@@ -46,8 +47,11 @@ case class MapOperator(op_pos : Position,
         }
 
         try {
-          fun = status.get_server.implementation
-            .mapFunctionFactory.get(a.function_name,field_pos,new_field_name)
+          fun = a.input_field_name match {
+            case Some(_) =>  status.get_server.implementation
+              .mapFunctionFactory.get(a.function_name,field_pos,new_field_name)
+            case None => status.get_server.implementation
+              .mapFunctionFactory.get(a.function_name,new_field_name)}
           fun.function_identifier = a.function_name
           fun.input_index = field_pos
           fun.output_name = new_field_name
@@ -59,7 +63,6 @@ case class MapOperator(op_pos : Position,
         }
         fun
     }
-
     val dup_fields_name = refined_agg_function_list
       .map(x=>x.output_name.get)
       .groupBy(identity)

@@ -242,6 +242,7 @@ trait SingleProjectOnRegion
 case class RegionProject(field: FieldPositionOrName) extends SingleProjectOnRegion
 case class REFieldNameOrPosition(field: FieldPositionOrName) extends RENode
 case class RegionModifier(field: FieldPositionOrName, dag : RENode) extends SingleProjectOnRegion
+case class AllBut(field: FieldPositionOrName)
 
 trait CoverType extends Positional
 case class Cover() extends CoverType {override def toString() = "COVER"}
@@ -250,7 +251,7 @@ case class Flat() extends CoverType {override def toString() = "FLAT"}
 case class Summit() extends CoverType {override def toString() = "SUMMIT"}
 
 case class RegionsToRegionTemp(function_name : String,
-                               input_field_name : FieldPositionOrName,
+                               input_field_name : Option[FieldPositionOrName],
                                output_field_name : Option[FieldName])
 
 case class RegionsToMetaTemp(function_name : String,

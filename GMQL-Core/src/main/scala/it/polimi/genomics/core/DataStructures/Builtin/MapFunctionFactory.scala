@@ -12,7 +12,7 @@ trait MapFunctionFactory {
    * @param name name of the function
    * @return the aggregate function
    */
-  def get(name:String):RegionsToRegion
+  def get(name:String, output_name : Option[String]):RegionsToRegion
 
   /**
    * provides a unary map aggregation function
