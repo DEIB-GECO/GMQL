@@ -1,6 +1,6 @@
 package it.polimi.genomics.manager.Launchers
 
-import it.polimi.genomics.manager.{Status, GMQLJob}
+import it.polimi.genomics.manager.{GMQLJob, InvalidGMQLJobException, Status}
 import org.apache.spark.launcher.SparkAppHandle
 import org.slf4j.LoggerFactory
 
@@ -61,7 +61,15 @@ class GMQLSparkLauncher(sparkJob:GMQLJob) extends GMQLLauncher(sparkJob){
 
   override def killJob() =
   {
-    launcherHandler.kill();
+    try{
+      launcherHandler.stop()
+    }catch {
+      case e: IllegalStateException =>
+        e.getMessage() match{
+          case "Disconnected." => throw new InvalidGMQLJobException("Job is disconnected.")
+          case "Application is still not connected." => throw new InvalidGMQLJobException("Application is still not connected, please try again later.")
+        }
+    }
   }
 
 }
