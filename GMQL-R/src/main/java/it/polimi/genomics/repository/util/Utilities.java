@@ -75,8 +75,8 @@ public class Utilities {
         RepoDir = GMQLHOME + "/data/";
         String coreConf = System.getenv("HADOOP_CONF_DIR");
         String hdfsConf = System.getenv("HADOOP_CONF_DIR");
-        CoreConfigurationFiles = (coreConf == null?"/usr/local/Cellar/hadoop/2.7.2/libexec/etc/hadoop/"/*"/etc/hadoop/conf/"*/:coreConf) + "/core-site.xml";
-        HDFSConfigurationFiles = (hdfsConf == null?"/usr/local/Cellar/hadoop/2.7.2/libexec/etc/hadoop/"/*"/etc/hadoop/conf/"*/:hdfsConf) + "/hdfs-site.xml";
+        CoreConfigurationFiles = (coreConf == null?/*"/usr/local/Cellar/hadoop/2.7.2/libexec/etc/hadoop/"*/"/etc/hadoop/conf/":coreConf) + "/core-site.xml";
+        HDFSConfigurationFiles = (hdfsConf == null?/*"/usr/local/Cellar/hadoop/2.7.2/libexec/etc/hadoop/"*/"/etc/hadoop/conf/":hdfsConf) + "/hdfs-site.xml";
         logger.info(CoreConfigurationFiles);
         logger.info(HDFSConfigurationFiles);
 //System.out.println("\n\n\n\n\n\n\n"+gmql+"\t"+GMQLHOME+"\t"+exec+"\t"+MODE+"\t"+user+"\t"+USERNAME+"\n\n\n\n\n\n");
@@ -151,6 +151,8 @@ public class Utilities {
 
     public Configuration gethdfsConfiguration(){
         conf = new Configuration();
+//        System.out.println(CoreConfigurationFiles);
+//        System.out.println(HDFSConfigurationFiles);
         conf.addResource(new org.apache.hadoop.fs.Path(CoreConfigurationFiles));
         conf.addResource(new org.apache.hadoop.fs.Path(HDFSConfigurationFiles));
         conf.set("fs.hdfs.impl",

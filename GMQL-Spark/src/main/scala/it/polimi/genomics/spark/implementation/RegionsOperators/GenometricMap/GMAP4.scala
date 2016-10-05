@@ -18,7 +18,7 @@ object GMAP4 {
 
   @throws[SelectFormatException]
   def apply(aggregator : List[RegionAggregate.RegionsToRegion], flat : Boolean, summit:Boolean, ref : RDD[FlinkRegionType], exp : RDD[(Long, String, Long, Long, Char, Long, Array[GValue])], BINNING_PARAMETER : Long) : RDD[GRECORD] = {
-    logger.info("----------------GMAP2 executing..")
+    logger.info("----------------GMAP4 executing..")
     val expBinned = binDS(exp,aggregator,BINNING_PARAMETER)
     val refBinnedRep = binDS(ref,BINNING_PARAMETER)
 

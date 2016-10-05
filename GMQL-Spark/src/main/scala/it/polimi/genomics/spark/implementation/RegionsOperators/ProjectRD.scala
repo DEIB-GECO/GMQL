@@ -27,9 +27,29 @@ object ProjectRD {
         input.map(a  => (a._1,  projectedValues.get.foldLeft(Array[GValue]())((Acc, b) => Acc :+ a._2(b)) ))
     else input
 
-    if(tupleAggregator.isDefined) projectedInput.map{a => extendRegion(a, a,tupleAggregator.get)}
-    else projectedInput
+   if (tupleAggregator.isDefined) projectedInput.map { a =>
+//      var out = a;
+//      val r = a;
+//      tupleAggregator.get.foreach { agg =>
+//        out = agg.output_index match {
+//          case Some(COORD_POS.CHR_POS) => (new GRecordKey(out._1._1, computeFunction(r, agg).asInstanceOf[GString].v, out._1._3, out._1._4, out._1._5), out._2)
+//          case Some(COORD_POS.LEFT_POS) => (new GRecordKey(out._1._1, out._1._2, computeFunction(r, agg).asInstanceOf[GDouble].v.toLong, out._1._4, out._1._5), out._2)
+//          case Some(COORD_POS.RIGHT_POS) => (new GRecordKey(out._1._1, out._1._2, out._1._3, computeFunction(r, agg).asInstanceOf[GDouble].v.toLong, out._1._5), out._2)
+//          case Some(COORD_POS.STRAND_POS) => (new GRecordKey(out._1._1, out._1._2, out._1._3, out._1._4, computeFunction(r, agg).asInstanceOf[GString].v.charAt(0)), out._2)
+//          case Some(v: Int) => (out._1, {
+//            out._2.update(v, computeFunction(r, agg));
+//            out._2
+//          })
+//          case None => (out._1, out._2 :+ computeFunction(r, agg))
+//        }
+//      }
+//
+//
+//      out
 
+      extendRegion(a, a, tupleAggregator.get)
+    }.cache()
+    else projectedInput
   }
 
   def computeFunction(r : GRECORD, agg : RegionExtension) : GValue = {
@@ -50,14 +70,13 @@ object ProjectRD {
     } else {
       val agg = aggList.head
       agg.output_index match {
-        case Some(COORD_POS.CHR_POS) => extendRegion((new GRecordKey(out._1._1, computeFunction(r, agg).asInstanceOf[GString].v, out._1._3, out._1._4, out._1._5), out._2),r, aggList.drop(1))
-        case Some(COORD_POS.LEFT_POS) => extendRegion((new GRecordKey(out._1._1, out._1._2, computeFunction(r, agg).asInstanceOf[GDouble].v.toLong, out._1._4, out._1._5), out._2),r, aggList.drop(1))
-        case Some(COORD_POS.RIGHT_POS) => extendRegion((new GRecordKey(out._1._1, out._1._2, out._1._3, computeFunction(r, agg).asInstanceOf[GDouble].v.toLong, out._1._5), out._2),r, aggList.drop(1))
-        case Some(COORD_POS.STRAND_POS) => extendRegion((new GRecordKey(out._1._1, out._1._2, out._1._3, out._1._4, computeFunction(r, agg).asInstanceOf[GString].v.charAt(0)), out._2),r, aggList.drop(1))
-        case Some(v : Int) => extendRegion((out._1, {out._2.update(v, computeFunction(r, agg)); out._2} ),r, aggList.drop(1))
-        case None => extendRegion((out._1, out._2 :+ computeFunction(r, agg)),r, aggList.drop(1))
+        case Some(COORD_POS.CHR_POS) => extendRegion((new GRecordKey(out._1._1, computeFunction(r, agg).asInstanceOf[GString].v, out._1._3, out._1._4, out._1._5), out._2),r, aggList.tail)
+        case Some(COORD_POS.LEFT_POS) => extendRegion((new GRecordKey(out._1._1, out._1._2, computeFunction(r, agg).asInstanceOf[GDouble].v.toLong, out._1._4, out._1._5), out._2),r, aggList.tail)
+        case Some(COORD_POS.RIGHT_POS) => extendRegion((new GRecordKey(out._1._1, out._1._2, out._1._3, computeFunction(r, agg).asInstanceOf[GDouble].v.toLong, out._1._5), out._2),r, aggList.tail)
+        case Some(COORD_POS.STRAND_POS) => extendRegion((new GRecordKey(out._1._1, out._1._2, out._1._3, out._1._4, computeFunction(r, agg).asInstanceOf[GString].v.charAt(0)), out._2),r, aggList.tail)
+        case Some(v : Int) => extendRegion((out._1, {out._2.update(v, computeFunction(r, agg)); out._2} ),r, aggList.tail)
+        case None => extendRegion((out._1, out._2 :+ computeFunction(r, agg)),r, aggList.tail)
       }
     }
   }
-
 }

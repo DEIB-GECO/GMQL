@@ -65,8 +65,8 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
               val attValue = attVal(1).trim.substring(1, attVal(1).trim.length - 1)
 
               val value:GValue =b._2 match {
-                case ParsingType.DOUBLE => GDouble(attValue.toDouble)
-                case ParsingType.INTEGER => GDouble(attValue.toInt)
+                case ParsingType.DOUBLE => if(attValue.equals("null")) GDouble(0.0) else GDouble(attValue.toDouble)
+                case ParsingType.INTEGER => if(attValue.equals("null")) GDouble(0) else GDouble(attValue.toInt)
                 case ParsingType.STRING => GString(attValue.toString)
               }
               value

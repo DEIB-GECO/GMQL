@@ -33,9 +33,9 @@ object Project {
     val dataAsTheyAre = server READ ex_data_path USING BedScoreParser
     val optionalDS = server READ ex_data_path_optional USING BedScoreParser
 
-    val what = 1 // project MD
+//    val what = 1 // project MD
     // val what = 1 // project MD and aggregate something
-    // val what = 2 // project MD RD and extends tuple
+     val what = 2 // project MD RD and extends tuple
     // val what = 2 // project MD RD and aggregate something
 
 

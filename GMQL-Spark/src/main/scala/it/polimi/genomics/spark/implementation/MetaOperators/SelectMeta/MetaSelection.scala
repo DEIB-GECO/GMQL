@@ -52,7 +52,7 @@ trait MetaSelection {
   }
   @throws[SelectFormatException]
   def applyContainAttribute(name : String, input : RDD[MetaType]) : RDD[Long] = {
-    input.filter(_._2._1.equals(name)).distinct().map(v => v._1)
+    input.filter(_._2._1.endsWith(name)).distinct().map(v => v._1)
   }
 
   //Predicate evaluation methods
@@ -61,13 +61,13 @@ trait MetaSelection {
   def applyMetaPredicateEQ(predicate: Predicate, input: RDD[MetaType]): RDD[Long] = {
    castDoubleOrString(predicate.value) match {
       case value: Double =>
-        val inputFilteredAtt = input.filter(_._2._1.equals(predicate.attribute_name));
+        val inputFilteredAtt = input.filter(_._2._1.endsWith(predicate.attribute_name));
         println("\n\n\n\nhello"+value+"\n\n\n")
         if(value.equals(ALL)) inputFilteredAtt.keys.distinct()
         else inputFilteredAtt.filter{a  =>
         try{a._2._2.toDouble.equals(value)} catch {case _ : Throwable => false}
       }.keys.distinct()
-      case value: String => val inputFilteredAtt = input.filter(_._2._1.toLowerCase.equals(predicate.attribute_name.toLowerCase));
+      case value: String => val inputFilteredAtt = input.filter(_._2._1.toLowerCase.endsWith(predicate.attribute_name.toLowerCase));
         if(value.equals(ALL)) inputFilteredAtt.keys.distinct()
         else inputFilteredAtt.filter( _._2._2.toLowerCase().equals(value.toLowerCase())).keys
     }
@@ -76,9 +76,9 @@ trait MetaSelection {
   @throws[SelectFormatException]
   def applyMetaPredicateNOTEQ(predicate: Predicate, input: RDD[MetaType]): RDD[Long] = {
     castDoubleOrString(predicate.value) match {
-      case value: Double => input.filter(_._2._1.equals(predicate.attribute_name)).filter { a =>
+      case value: Double => input.filter(_._2._1.endsWith(predicate.attribute_name)).filter { a =>
         try {!a._2._2.toDouble.equals(value)} catch {case _: Throwable => false}}.keys
-      case value: String => input.filter(_._2._1.toLowerCase.equals(predicate.attribute_name.toLowerCase)).filter(!_._2._2.toLowerCase.equals(value.toLowerCase)).keys
+      case value: String => input.filter(_._2._1.toLowerCase.endsWith(predicate.attribute_name.toLowerCase)).filter(!_._2._2.toLowerCase.equals(value.toLowerCase)).keys
     }
   }
   //Predicate evaluation methods
@@ -86,7 +86,7 @@ trait MetaSelection {
   def applyMetaPredicateLT(predicate: Predicate, input: RDD[MetaType]): RDD[Long] = {
     castDoubleOrString(predicate.value) match {
       case value: Double =>
-        input.filter(_._2._1.equals(predicate.attribute_name)).filter{a =>
+        input.filter(_._2._1.endsWith(predicate.attribute_name)).filter{a =>
           try{a._2._2.toDouble < value} catch {case _ : Throwable => false}}.keys
       case value: String => throw SelectFormatException.create("Your SELECT statement cannot be executed: yuo are doing a < comparison between string. Attribute = " + predicate.value)
     }
@@ -95,7 +95,7 @@ trait MetaSelection {
   @throws[SelectFormatException]
   def applyMetaPredicateLTE(predicate: Predicate, input: RDD[MetaType]): RDD[Long] = {
     castDoubleOrString(predicate.value) match {
-      case value: Double => input.filter(_._2._1.equals(predicate.attribute_name)).filter{a=>
+      case value: Double => input.filter(_._2._1.endsWith(predicate.attribute_name)).filter{a=>
         try{a._2._2.toDouble <= value} catch {case _ : Throwable => false}}.keys
       case value: String => throw SelectFormatException.create("Your SELECT statement cannot be executed: yuo are doing a <= comparison between string. Attribute = " + predicate.value)
     }
@@ -105,7 +105,7 @@ trait MetaSelection {
   def applyMetaPredicateGT(predicate: Predicate, input: RDD[MetaType]): RDD[Long] = {
     castDoubleOrString(predicate.value) match {
       case value : Double =>
-        input.filter(_._2._1.equals(predicate.attribute_name)).filter{a =>
+        input.filter(_._2._1.endsWith(predicate.attribute_name)).filter{a =>
           try{a._2._2.toDouble > value} catch {case _ : Throwable => false}}.keys
       case value : String => throw SelectFormatException.create("Your SELECT statement cannot be executed: yuo are doing a > comparison between string. Attribute = " + predicate.value)
     }
@@ -114,7 +114,7 @@ trait MetaSelection {
   @throws[SelectFormatException]
   def applyMetaPredicateGTE(predicate: Predicate, input: RDD[MetaType]): RDD[Long] = {
     castDoubleOrString(predicate.value) match {
-      case value : Double => input.filter(_._2._1.equals(predicate.attribute_name)).filter{a  =>
+      case value : Double => input.filter(_._2._1.endsWith(predicate.attribute_name)).filter{a  =>
         try{a._2._2.toDouble >= value} catch {case _ : Throwable => false}}.keys
       case value : String => throw SelectFormatException.create("Your SELECT statement cannot be executed: yuo are doing a >= comparison between string. Attribute = " + predicate.value)
     }

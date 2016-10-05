@@ -19,7 +19,7 @@ object GMAP3 {
 
   @throws[SelectFormatException]
   def apply(aggregator : List[RegionAggregate.RegionsToRegion], flat : Boolean, ref : RDD[(Long, String, Long, Long, Char, Array[GValue])], exp : RDD[(Long, String, Long, Long, Char, Long, Array[GValue])], BINNING_PARAMETER : Long) : RDD[GRECORD] = {
-    logger.info("----------------GMAP2 executing..")
+    logger.info("----------------GMAP3 executing..")
     val refBinnedRep: RDD[((Long, String, Int), (Long, Long, Char, Array[GValue], Long))] =
       binDS(ref,BINNING_PARAMETER)
 

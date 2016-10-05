@@ -47,7 +47,7 @@ object Utilities {
 
     if (exec == null) {
       logger.error("Environment variable GMQL_EXEC is empty... execution set to LOCAL")
-      this.MODE = Utilities.LOCAL
+      this.MODE = Utilities.HDFS
     } else this.MODE = exec.toUpperCase
 
     RepoDir = GMQLHOME + "/data/"

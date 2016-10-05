@@ -65,8 +65,8 @@ object Loaders {
       val rdd = sc.newAPIHadoopRDD(conf, classOf[CombineTextFileWithPathInputFormat], classOf[Long], classOf[Text])
       //.repartition(20)
       val rddPartitioned =
-        if(rdd.partitions.size<8)
-          rdd//.repartition(8)
+        if(rdd.partitions.size<20)
+          rdd.repartition(40)
         else
           rdd
 

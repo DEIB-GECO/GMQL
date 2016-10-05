@@ -202,13 +202,17 @@ object gmqlc {
     val orders = "EXP = SELECT() data;\n" +
       "OUT = ORDER(region_order: signal, pvalue; region_topg: 7) EXP;\n " +
       "MATERIALIZE OUT into GH;"
+
+    val project = "A = SELECT( cell == 'K562' AND antibody == 'c-Jun' ) project;\n" +
+      "B = PROJECT( region_update: score AS score * 2)A;\n" +
+      "MATERIALIZE B INTO AddedDatasetPlusMinus2;"
     val execQuery = args(2) match {
       case "histo" => Histogram
       case "map" => Map_server
     }
     val test_double_select = ""
       try {
-        if (translator.phase2(translator.phase1(merge))) {
+        if (translator.phase2(translator.phase1(project))) {
           server.run()
           //server.getDotGraph()
         }
@@ -216,7 +220,7 @@ object gmqlc {
         case e: CompilerException => println(e.getMessage)
       }
 
-      println("\n\nQuery" +"\n" + merge + "\n\n")
+      println("\n\nQuery" +"\n" + project + "\n\n")
       // "open /Users/pietro/Desktop/test_gmql/output/".!
       //  Console.readLine()
   }

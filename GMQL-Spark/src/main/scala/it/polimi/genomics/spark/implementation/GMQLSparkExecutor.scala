@@ -6,7 +6,7 @@ package it.polimi.genomics.spark.implementation
  *
  */
 
-import java.io.{OutputStreamWriter, BufferedWriter, PrintWriter}
+import java.io.{BufferedWriter, OutputStreamWriter, PrintWriter}
 
 import it.polimi.genomics.GMQLServer.Implementation
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.Direction
@@ -27,12 +27,12 @@ import it.polimi.genomics.spark.implementation.MetaOperators.GroupOperator.{Meta
 import it.polimi.genomics.spark.implementation.MetaOperators.SelectMeta._
 import it.polimi.genomics.spark.implementation.MetaOperators._
 import it.polimi.genomics.spark.implementation.RegionsOperators.GenometricCover.GenometricCover1
-import it.polimi.genomics.spark.implementation.RegionsOperators.GenometricMap.{GenometricMap7, GenometricMap5, GenometricMap4, GenometricMap3}
+import it.polimi.genomics.spark.implementation.RegionsOperators.GenometricMap._
 import it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions.TestingReadRD
 import it.polimi.genomics.spark.implementation.RegionsOperators._
 import it.polimi.genomics.spark.implementation.loaders._
 import org.apache.hadoop.fs.Path
-import org.apache.spark.rdd.{ShuffledRDD, RDD}
+import org.apache.spark.rdd.{RDD, ShuffledRDD}
 import org.apache.spark.{HashPartitioner, Partitioner, SparkConf, SparkContext}
 import org.slf4j.LoggerFactory
 
@@ -129,15 +129,16 @@ class GMQLSparkExecutor(val defaultBinSize : Long = 50000, val maxBinDistance : 
           val outSample = "S"
 
 
+          val Ids = metaRDD.keys.distinct()
+          val regionsPartitioner = new HashPartitioner(Ids.count.toInt)
+
           val keyedRDD = if(!GTFoutput){
-             regionRDD.map(x => (outSample+"_"+x._1._1.toString+".gdm", x._1._2 + "\t" + x._1._3 + "\t" + x._1._4 + "\t" + x._1._5 + "\t" + x._2.mkString("\t")))
+             regionRDD.partitionBy(regionsPartitioner).map(x => (outSample+"_"+x._1._1.toString+".gdm", x._1._2 + "\t" + x._1._3 + "\t" + x._1._4 + "\t" + x._1._5 + "\t" + x._2.mkString("\t")))
           }else{
-
-
             val jobname = outputFolderName
             val score= variable.schema.zipWithIndex.filter(x=>x._1._1.toLowerCase().equals("score"))
             val scoreIndex = if(score.size>0) score(0)._2 else -1
-            regionRDD.map{x =>
+            regionRDD.partitionBy(regionsPartitioner).map{x =>
               val values = variable.schema.zip(x._2).flatMap{s=>if(s._1._1.equals("score")) None else Some(s._1._1+" \""+s._2+"\";")}.mkString(" ")
               (outSample+"_"+x._1._1.toString+".gtf",
                 x._1._2                                                                  //chrom
@@ -152,11 +153,7 @@ class GMQLSparkExecutor(val defaultBinSize : Long = 50000, val maxBinDistance : 
             }
           }
 
-          val Ids = keyedRDD.keys.distinct().collect()
-//          val paritioner = new IDPartitioner(Ids,Ids.length)
-            val partitionedRDD = keyedRDD.partitionBy(new HashPartitioner(Ids.length))
-//          val partitionedRDD = new ShuffledRDD[String,String,String](keyedRDD,paritioner)
-          writeMultiOutputFiles.saveAsMultipleTextFiles(partitionedRDD, RegionOutputPath)
+          writeMultiOutputFiles.saveAsMultipleTextFiles(keyedRDD, RegionOutputPath)
 
           val metaKeyValue = if(!GTFoutput){
             metaRDD.map(x => (outSample+"_"+x._1.toString + ".gdm.meta", x._2._1 + "\t" + x._2._2)).repartition(1).sortBy(x=>(x._1,x._2))
@@ -215,10 +212,10 @@ class GMQLSparkExecutor(val defaultBinSize : Long = 50000, val maxBinDistance : 
   @throws[SelectFormatException]
   def implement_md(mo: MetaOperator, sc : SparkContext) : RDD[DataTypes.MetaType] = {
     if(mo.intermediateResult.isDefined){
-      logger.info(" Spark ------------------ " + mo + " defined")
+//      logger.info(" Spark ------------------ " + mo + " defined")
       mo.intermediateResult.get.asInstanceOf[RDD[MetaType]]
     } else {
-      logger.info(" Spark ------------------ " + mo + " not defined")
+//      logger.info(" Spark ------------------ " + mo + " not defined")
       val res =
         mo match {
           case IRStoreMD(path, value,_) => StoreMD(this, path, value, sc)
@@ -256,10 +253,10 @@ class GMQLSparkExecutor(val defaultBinSize : Long = 50000, val maxBinDistance : 
   @throws[SelectFormatException]
   def implement_rd(ro : RegionOperator, sc : SparkContext) : RDD[DataTypes.GRECORD] = {
     if(ro.intermediateResult.isDefined){
-      logger.info(" Saprk Node ------------------ " + ro + " reached")
+//      logger.info(" Saprk Node ------------------ " + ro + " reached")
       ro.intermediateResult.get.asInstanceOf[RDD[GRECORD]]
     } else {
-      logger.info(" Spark Node ------------------ " + ro + " not reached before")
+//      logger.info(" Spark Node ------------------ " + ro + " not reached before")
       val res =
         ro match {
           case IRStoreRD(path, value,_) => StoreRD(this, path, value, sc)
@@ -298,8 +295,8 @@ class GMQLSparkExecutor(val defaultBinSize : Long = 50000, val maxBinDistance : 
           case IRMergeRD(dataset: RegionOperator, groups: Option[MetaGroupOperator]) => MergeRD(this, dataset, groups, sc)
           case IRGroupRD(groupingParameters: Option[List[GroupRDParameters.GroupingParameter]], aggregates: Option[List[RegionAggregate.RegionsToRegion]], regionDataset: RegionOperator) => GroupRD(this, groupingParameters, aggregates, regionDataset, sc)
           case IROrderRD(ordering: List[(Int, Direction)], topPar: TopParameter, inputDataset: RegionOperator) => OrderRD(this, ordering: List[(Int, Direction)], topPar, inputDataset, sc)
-          case irJoin:IRGenometricJoin => GenometricJoin4TopMin(this, irJoin.metajoin_condition, irJoin.join_condition, irJoin.region_builder, irJoin.left_dataset, irJoin.right_dataset,irJoin.binSize.getOrElse(defaultBinSize),/*irJoin.binSize.getOrElse(defaultBinSize)**/maxBinDistance, sc)
-          case irMap:IRGenometricMap => GenometricMap7(this, irMap.grouping, irMap.aggregates, irMap.reference, irMap.samples,irMap.binSize.getOrElse(defaultBinSize),REF_PARALLILISM, sc)
+          case irJoin:IRGenometricJoin => GenometricJoin4TopMin2(this, irJoin.metajoin_condition, irJoin.join_condition, irJoin.region_builder, irJoin.left_dataset, irJoin.right_dataset,irJoin.binSize.getOrElse(defaultBinSize),/*irJoin.binSize.getOrElse(defaultBinSize)**/maxBinDistance, sc)
+          case irMap:IRGenometricMap => GenometricMap71(this, irMap.grouping, irMap.aggregates, irMap.reference, irMap.samples,irMap.binSize.getOrElse(defaultBinSize),REF_PARALLILISM, sc)
           case IRDifferenceRD(metaJoin: OptionalMetaJoinOperator, leftDataset: RegionOperator, rightDataset: RegionOperator) => GenometricDifference(this, metaJoin, leftDataset, rightDataset, sc)
           case IRProjectRD(projectedValues: Option[List[Int]], tupleAggregator: Option[List[RegionExtension]], inputDataset: RegionOperator) => ProjectRD(this, projectedValues, tupleAggregator, inputDataset, sc)
 
