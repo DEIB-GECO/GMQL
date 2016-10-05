@@ -1,0 +1,99 @@
+<gmqltest>
+    <config>
+        <binsizes>
+        <binsize>2000</binsize>
+        </binsizes>
+    </config>
+    <datasets>
+        <dataset>
+            <name>annotations</name>
+            <type>RNASEQ</type>
+            <placeholder>#ANN#</placeholder>
+            <numfiles>1</numfiles>
+            <numchrom>6</numchrom>
+            <numregchrom>100</numregchrom>
+            <chromlen>10000</chromlen>
+            <minreglen>10</minreglen>
+            <maxreglen>500</maxreglen>
+            <nummeta>12</nummeta>
+            <minval>0.0</minval>
+            <maxval>1.0</maxval>
+            <namevalues>
+                <value>geneA</value>
+                <value>geneB</value>
+                <value>geneC</value>
+            </namevalues>
+        </dataset>
+        <dataset>
+            <name>beds</name>
+            <type>BEDSCORE</type>
+            <placeholder>#BED#</placeholder>
+            <numfiles>10</numfiles>
+            <numchrom>1</numchrom>
+            <numregchrom>20</numregchrom>
+            <chromlen>10000</chromlen>
+            <minreglen>5</minreglen>
+            <maxreglen>200</maxreglen>
+            <nummeta>12</nummeta>
+            <minval>0.0</minval>
+            <maxval>1.0</maxval>
+        </dataset>
+    </datasets>
+    <queries>
+        <query>
+            E = SELECT(NOT(leaveout=="something");parser:BedScoreParser)  #BED#;
+            C = COVER(1,2) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something");parser:BedScoreParser)  #BED#;
+            C = COVER(2,2) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something");parser:BedScoreParser)  #BED#;
+            C = COVER(1,ANY) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something");parser:BedScoreParser)  #BED#;
+            C = COVER(1,ALL) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something");parser:BedScoreParser)  #BED#;
+            C = COVER(ANY,ANY) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something");parser:BedScoreParser)  #BED#;
+            C = COVER(ANY,ALL) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something");parser:BedScoreParser)  #BED#;
+            C = COVER(ALL,ANY) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something");parser:BedScoreParser)  #BED#;
+            C = COVER(1,3;GROUPBY: antibody) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something");parser:BedScoreParser)  #BED#;
+            C = COVER(1,3; GROUPBY: antibody,cell) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something");parser:BedScoreParser)  #BED#;
+            C = COVER(1,3;GROUPBY: antibody,cell;aggregate: SUM(score)) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something");parser:BedScoreParser)  #BED#;
+            C = COVER(1,3;GROUPBY: antibody,cell;aggregate: SUM(score),MIN(score)) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+    </queries>
+</gmqltest>

@@ -68,7 +68,7 @@ object Compare {
 
     val docManager = new DocumentManager()
 
-    val test_conf = XML.loadFile(if (inputFile != "") inputFile else "conf/test_cover.xml")
+    val test_conf = XML.loadFile(if (inputFile != "") inputFile else "conf/test_map.xml")
     val binSizes = (test_conf \\ "config" \\ "binsizes" \\ "binsize").map(_.text.toInt)
 
     val datasets: Seq[(String, String)] = for (x <- (test_conf \\ "datasets" \\ "dataset")) yield {
