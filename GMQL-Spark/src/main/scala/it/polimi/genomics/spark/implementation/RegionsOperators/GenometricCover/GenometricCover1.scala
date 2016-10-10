@@ -59,7 +59,8 @@ object GenometricCover1 {
       if(min.isInstanceOf[ALL] || max.isInstanceOf[ALL]){
         if(groups.isDefined){
           // SWITCH (sampleID, GroupID) to (GroupID,SampleID) THEN GROUP BY GROUPID AND COUNT THE SAMPLES IN EACH GROUP
-          groups.get.value.map(x=>(x._2,x._1)).groupBy(_._1).map(x=>(x._1,x._2.size))
+          groups.get.value.groupBy(_._2).map(x=>(x._1,x._2.size))
+
         }else{
           val samplesCount = groupedDs.map(x=>x._6).distinct().count.toInt
           groupIds.map(v => ((v, samplesCount))).foldRight(new HashMap[Long, Int])((a,z) => z + a)
