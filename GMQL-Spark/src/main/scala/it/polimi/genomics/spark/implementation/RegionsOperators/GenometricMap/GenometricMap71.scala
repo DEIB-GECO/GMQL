@@ -16,7 +16,8 @@ import scala.collection.Map
 
 /**
  * Created by abdulrahman kaitoua on 08/08/15.
-  * same as version 7 but with join on the ids for the reference and the regions and extra partitioner.
+  *The main bottle neck is in line 191, takes hours to repliocate the reference for every experiment
+  *  same as version 7 but with join on the ids for the reference and the regions and extra partitioner.
  */
 object GenometricMap71 {
   private final val logger = LoggerFactory.getLogger(this.getClass);
@@ -187,7 +188,7 @@ object GenometricMap71 {
       }
 
     def binDS(bin: Long,Bgroups: RDD[(Long, Long)],partitioner: Partitioner ): RDD[((Long, String, Int), (Long, Long, Long, Char, Array[GValue]))] =
-        rdd.partitionBy(partitioner ). keyBy(x=>x._1._1).join(Bgroups, partitioner).flatMap { x =>
+        rdd.partitionBy(partitioner). keyBy(x=>x._1._1).join(Bgroups, partitioner).flatMap { x =>
         if (bin > 0) {
             val startbin = (x._2._1._1._3 / bin).toInt
             val stopbin = (x._2._1._1._4 / bin).toInt

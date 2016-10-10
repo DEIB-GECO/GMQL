@@ -6,13 +6,12 @@ import it.polimi.genomics.core.DataTypes._
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.core.{GDouble, GRecordKey, GValue}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
-import org.apache.spark.{HashPartitioner, Partitioner, SparkContext}
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
+import org.apache.spark.{HashPartitioner, Partitioner, SparkContext}
 import org.slf4j.LoggerFactory
 
 import scala.collection.Map
-import scala.collection.immutable.Iterable
 
 
 /**
@@ -20,7 +19,7 @@ import scala.collection.immutable.Iterable
   * more memory consumption, we run on a group ID not a couple of samples.
   * same partitioner for both refernece and experiment
  */
-object GenometricMap9 {
+object GenometricMap10 {
   private final val logger = LoggerFactory.getLogger(this.getClass);
   private final type groupType = Array[((Long, String), Array[Long])]
 
@@ -38,9 +37,9 @@ object GenometricMap9 {
 
   @throws[SelectFormatException]
   def execute(executor : GMQLSparkExecutor, grouping : OptionalMetaJoinOperator, aggregator : List[RegionAggregate.RegionsToRegion], ref: RDD[GRECORD], exp: RDD[GRECORD], BINNING_PARAMETER:Long, REF_PARALLILISM:Int,sc : SparkContext) : RDD[GRECORD] = {
-    val groups = executor.implement_mjd(grouping, sc)
+    val groups: Broadcast[Map[Long, Iterable[Long]]] = sc.broadcast( executor.implement_mjd(grouping, sc)
       .flatMap{x=>
-        val ha = Hashing.md5.newHasher.putLong(x._1); x._2.foreach{SID => ha.putLong(SID)}; val group = ha.hash().asLong(); (x._1,group) :: x._2.map(s=>(s,group)).toList}
+        val ha = Hashing.md5.newHasher.putLong(x._1); x._2.foreach{SID => ha.putLong(SID)}; val group = ha.hash().asLong(); (x._1,group) :: x._2.map(s=>(s,group)).toList}.groupByKey.collectAsMap())
 
 //    groups.foreach(println(_))
 
@@ -49,25 +48,28 @@ object GenometricMap9 {
       case (None) => new HashPartitioner(exp.partitions.length)
     }
 
+    logger.info("Reference: "+ref.count)
     val expBinned = exp.binDS(BINNING_PARAMETER,aggregator,groups,expDataPartitioner)
     val refBinnedRep = ref.binDS(BINNING_PARAMETER,groups,expDataPartitioner).cache()
+
+    logger.info("reference Binned: "+expBinned.count())
+      logger.info("experiments Binned: "+refBinnedRep.count)
 //    println(expBinned.first())
 //    println(refBinnedRep.first())
 
     val RefExpJoined: RDD[(Long, (GRecordKey, Array[GValue], Array[GValue], Int))] = refBinnedRep.cogroup(expBinned)
       .flatMap { grouped => val key: (Long, String, Int) = grouped._1;
-        val refList = grouped._2._1.toList.groupBy(ex => ex._1).map(ex=>(ex._1,ex._2.sortBy(x=>(x._1,x._2,x._3))))
+        val ref = grouped._2._1.toList.sortBy(x=>(x._2,x._3))
         val expList = grouped._2._2.toList.groupBy(ex => ex._1).map(ex=>(ex._1,ex._2.sortBy(x=>(x._1,x._2,x._3))))
-        expList.flatMap { exp => /*println(exp._1,key._2,key._3);*/
-          refList.flatMap { ref =>
-//            println("-----0-------");
-            sweep((exp._1, key._2, key._3), ref._2.iterator, exp._2.iterator, BINNING_PARAMETER,aggregator).toList;
-//            println("done");
-//            println(s.size);
-          }
-//          println("Total", dddd.size)
+        val sss= expList.flatMap { exp => /*println(exp._1,key._2,key._3);*/
+            val s = sweep((exp._1, key._2, key._3), ref.iterator, exp._2.iterator, BINNING_PARAMETER,aggregator).toList;
+            logger.info("sweep: "+s.size);
+            s
         }
+        logger.info("TT:"+ sss.size)
+        sss
       }.cache()
+    logger.info("TTT:"+RefExpJoined.count())
 
 //    RefExpJoined.foreach(println _)
 //    RefExpJoined.map(x=>(x._2._1,x._2._3 :+ GDouble(x._2._4)))
@@ -83,7 +85,7 @@ object GenometricMap9 {
           r._3
         else l._3
       (l._1,l._2,values,l._4+r._4)
-    }.cache()
+    }//cache()
 
 //    RefExpJoined.unpersist(true)
     //Aggregate Exp Values (reduced)
@@ -96,6 +98,7 @@ object GenometricMap9 {
 
 //    reduced.unpersist()
 
+    logger.info("output: "+ output.count)
     output
 //    RefExpJoined.map(x=>(x._2._1,x._2._3 :+ GDouble(x._2._4)))
   }
@@ -113,8 +116,8 @@ object GenometricMap9 {
     else
       logger.debug(s"Experiment got empty while it was not !!!")
 
-    //println(ref_regions.size)
-    ref_regions.map{ref_region =>
+    logger.info("ref_Bin_size: "+ref_regions.size)
+   val dd = ref_regions.map{ref_region =>
       //clear the intersection list
       intersectings = List.empty;
       temp = List.empty;
@@ -190,6 +193,9 @@ object GenometricMap9 {
         (aggregation, (new GRecordKey(newID, key._2, ref_region._2, ref_region._3, ref_region._4), ref_region._5, Array[GValue](), 0))
 
     }
+
+    logger.info("ref_Bin_size out: "+dd.size)
+    dd
   }
 
   def checkBINCompatible(rStart:Long,eStart:Long,binSize:Long,bin:Int): Boolean ={
@@ -199,43 +205,59 @@ object GenometricMap9 {
   }
 
   implicit class Binning(rdd: RDD[GRECORD]) {
-    def binDS(bin: Long,aggregator: List[RegionAggregate.RegionsToRegion], Bgroups: RDD[(Long, Long)], partitioner: Partitioner): RDD[((Long, String, Int), (Long, Long, Long, Char, Array[GValue]))] =
-      rdd.keyBy(x=>x._1._1).join(Bgroups/*,new HashPartitioner(Bgroups.count.toInt)*/).flatMap { x =>
+    def binDS(bin: Long,aggregator: List[RegionAggregate.RegionsToRegion], Bgroups: Broadcast[Map[Long, Iterable[Long]]], partitioner: Partitioner): RDD[((Long, String, Int), (Long, Long, Long, Char, Array[GValue]))] =
+      rdd.flatMap { x =>
+        val sampleKey = x._1
         if (bin > 0) {
-          val startbin = (x._2._1._1._3 / bin).toInt
-          val stopbin = (x._2._1._1._4 / bin).toInt
+          val startbin = (sampleKey._3 / bin).toInt
+          val stopbin = (sampleKey._4 / bin).toInt
           val newVal: Array[GValue] = aggregator
             .map((f: RegionAggregate.RegionsToRegion) => {
-              x._2._1._2(f.index)
-            }).toArray
-          //          println (newVal.mkString("/"))
-            for (i <- startbin to stopbin)
-              yield ((x._2._2, x._2._1._1._2, i), (x._2._1._1._1, x._2._1._1._3, x._2._1._1._4, x._2._1._1._5, newVal))
-
-        } else {
-          val newVal: Array[GValue] = aggregator
-            .map((f: RegionAggregate.RegionsToRegion) => {
-              x._2._1._2(f.index)
+              x._2(f.index)
             }).toArray
           //          println (newVal.mkString("/"))
 
-          Some((x._2._2, x._2._1._1._2, 0), (x._2._1._1._1, x._2._1._1._3, x._2._1._1._4, x._2._1._1._5, newVal))
-
-        }
-      }//.partitionBy(partitioner)
-
-    def binDS(bin: Long,Bgroups: RDD[(Long, Long)],partitioner: Partitioner )
-    : RDD[((Long, String, Int), (Long, Long, Long, Char, Array[GValue]))] =
-      rdd.keyBy(x=>x._1._1).join(Bgroups/*,new HashPartitioner(Bgroups.count.toInt)*/).flatMap { x =>
-        if (bin > 0) {
-          val startbin = (x._2._1._1._3 / bin).toInt
-          val stopbin = (x._2._1._1._4 / bin).toInt
-               (startbin to stopbin).map(i =>
-                 ((x._2._2, x._2._1._1._2, i), (x._2._1._1._1, x._2._1._1._3, x._2._1._1._4, x._2._1._1._5, x._2._1._2))
+          val group = Bgroups.value.get(x._1._1)
+          if (group.isDefined)
+            (startbin to stopbin).flatMap(i =>
+              group.get.map(id => ((id, sampleKey._2, i), (sampleKey._1, sampleKey._3, sampleKey._4, sampleKey._5, newVal))
               )
+            )
+          else None
+        } else {
+
+          val newVal: Array[GValue] = aggregator
+            .map((f: RegionAggregate.RegionsToRegion) => {
+              x._2(f.index)
+            }).toArray
+          //          println (newVal.mkString("/"))
+
+          val group = Bgroups.value.get(x._1._1)
+          if (group.isDefined)
+            group.get.map(id => ((id, sampleKey._2, 0), (sampleKey._1, sampleKey._3, sampleKey._4, sampleKey._5, newVal)))
+          else None
+        }
+      }
+
+    def binDS(bin: Long,Bgroups: Broadcast[Map[Long, Iterable[Long]]],partitioner: Partitioner )
+    : RDD[((Long, String, Int), (Long, Long, Long, Char, Array[GValue]))] =
+      rdd.flatMap { x =>
+        if (bin > 0) {
+          val startbin = (x._1._3 / bin).toInt
+          val stopbin = (x._1._4 / bin).toInt
+          val group = Bgroups.value.get(x._1._1)
+          if (group.isDefined)
+            (startbin to stopbin).flatMap(i =>
+              group.get.map(id => ((id, x._1._2, i), (x._1._1, x._1._3, x._1._4, x._1._5, x._2))
+              )
+            )else None
         }else
         {
-              Some(((x._2._2, x._2._1._1._2, 0), (x._2._1._1._1, x._2._1._1._3, x._2._1._1._4, x._2._1._1._5, x._2._1._2)))
+          val group = Bgroups.value.get(x._1._1)
+          if (group.isDefined)
+            group.get.map(id =>  (((id, x._1._2, 0), (x._1._1, x._1._3, x._1._4, x._1._5, x._2)))
+            )
+          else None
         }
       }//.partitionBy(partitioner)
   }

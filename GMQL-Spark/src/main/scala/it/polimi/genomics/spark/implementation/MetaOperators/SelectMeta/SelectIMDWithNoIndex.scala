@@ -88,7 +88,7 @@ object SelectIMDWithNoIndex {
         indexing = false
         val fs = Utilities.getInstance().getFileSystem
         val res = URIs.flatMap { dirInput =>
-          println ("dir: ",dirInput,fs.exists(new Path(dirInput)))
+//          println ("dir: ",dirInput,fs.exists(new Path(dirInput)))
           if (new java.io.File(dirInput).isDirectory && URIs.size == 1)
             new java.io.File(dirInput).listFiles.filter{p => new File(p+".meta").exists()}.map(x => x.getPath)
           else if(fs.exists(new Path(dirInput))&& URIs.size == 1) {

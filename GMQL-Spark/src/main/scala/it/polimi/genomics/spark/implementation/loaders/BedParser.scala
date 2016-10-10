@@ -50,7 +50,7 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
 
       val other = parsingType match {
         case GTF => {
-          val score = if (!s(5).trim.equals(".")) // When the values is not present it is considered . and we cast it into 0.0
+          val score = if (!s(5).trim.equals(".") && !s(5).trim.equals("null")) // When the values is not present it is considered . and we cast it into 0.0
             GDouble(s(5).trim.toDouble)
           else
             GDouble(0.0)
@@ -65,8 +65,12 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
               val attValue = attVal(1).trim.substring(1, attVal(1).trim.length - 1)
 
               val value:GValue =b._2 match {
-                case ParsingType.DOUBLE => if(attValue.equals("null")) GDouble(0.0) else GDouble(attValue.toDouble)
-                case ParsingType.INTEGER => if(attValue.equals("null")) GDouble(0) else GDouble(attValue.toInt)
+                case ParsingType.DOUBLE => if(attValue.equals("null")) {
+                  GDouble(0.0)
+                } else GDouble(attValue.toDouble)
+                case ParsingType.INTEGER => if(attValue.equals("null")) {
+                  GDouble(0)
+                } else GDouble(attValue.toInt)
                 case ParsingType.STRING => GString(attValue.toString)
               }
               value
@@ -101,7 +105,9 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
 
       ), other))
     } catch {
-      case e: Throwable => logger.debug("Chrom: " + chrPos + "\tStart: " + startPos + "\tStop: " + stopPos + "\tstrand: " + strandPos);
+      case e: Throwable =>
+        logger.warn(e.getMessage)
+        logger.warn("Chrom: " + chrPos + "\tStart: " + startPos + "\tStop: " + stopPos + "\tstrand: " + strandPos);
         logger.warn("Values: " + otherPos.getOrElse(Array[(Int, ParsingType.PARSING_TYPE)]()).map(x => "(" + x._1 + "," + x._2 + ")").mkString("\t") + "\n" +
           "This line can not be casted (check the spacing): \n\t\t" + t);
         None //throw ParsingException.create(t._2, e)

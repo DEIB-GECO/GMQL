@@ -50,12 +50,18 @@ object Loaders {
 
     }
 
-    def LoadRegionsCombineFiles(parser:((Long,String))=>Option[GRECORD],lineFilter:((RegionCondition,GRECORD)=> Boolean),regionPredicate:Option[RegionCondition]): RDD[( GRecordKey,Array[GValue])] = {
-      sc
+    def LoadRegionsCombineFiles(parser: ((Long, String)) => Option[GRECORD], lineFilter: ((RegionCondition, GRECORD) => Boolean), regionPredicate: Option[RegionCondition]): RDD[(GRecordKey, Array[GValue])] = {
+      val rdd = sc
         .newAPIHadoopRDD(conf, classOf[CombineTextFileWithPathInputFormat], classOf[Long], classOf[Text])
-        .flatMap{x => val gRecord = parser(x._1,x._2.toString);
-        gRecord match{
-          case Some(reg) => if (regionPredicate.isDefined) {if (lineFilter(regionPredicate.get,reg)) gRecord else None} else gRecord
+      val rddPartitioned = if (rdd.partitions.size < 20)
+        rdd.repartition(40)
+      else
+        rdd
+      rddPartitioned.flatMap { x => val gRecord = parser(x._1, x._2.toString);
+        gRecord match {
+          case Some(reg) => if (regionPredicate.isDefined) {
+            if (lineFilter(regionPredicate.get, reg)) gRecord else None
+          } else gRecord
           case None => None
         }
       }

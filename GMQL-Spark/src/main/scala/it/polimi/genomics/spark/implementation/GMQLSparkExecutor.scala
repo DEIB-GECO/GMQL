@@ -133,12 +133,12 @@ class GMQLSparkExecutor(val defaultBinSize : Long = 50000, val maxBinDistance : 
           val regionsPartitioner = new HashPartitioner(Ids.count.toInt)
 
           val keyedRDD = if(!GTFoutput){
-             regionRDD.partitionBy(regionsPartitioner).map(x => (outSample+"_"+x._1._1.toString+".gdm", x._1._2 + "\t" + x._1._3 + "\t" + x._1._4 + "\t" + x._1._5 + "\t" + x._2.mkString("\t")))
+             regionRDD.partitionBy(regionsPartitioner).map(x => (outSample+"_"+x._1._1.toString+".gdm", x._1._2 + "\t" + x._1._3 + "\t" + x._1._4 + "\t" + x._1._5 + "\t" + x._2.mkString("\t"))).partitionBy(regionsPartitioner)
           }else{
             val jobname = outputFolderName
             val score= variable.schema.zipWithIndex.filter(x=>x._1._1.toLowerCase().equals("score"))
             val scoreIndex = if(score.size>0) score(0)._2 else -1
-            regionRDD.partitionBy(regionsPartitioner).map{x =>
+            regionRDD.map{x =>
               val values = variable.schema.zip(x._2).flatMap{s=>if(s._1._1.equals("score")) None else Some(s._1._1+" \""+s._2+"\";")}.mkString(" ")
               (outSample+"_"+x._1._1.toString+".gtf",
                 x._1._2                                                                  //chrom
@@ -150,7 +150,7 @@ class GMQLSparkExecutor(val defaultBinSize : Long = 50000, val maxBinDistance : 
                   +"."                                                                  //frame
                   + "\t" + values
                 )
-            }
+            }.partitionBy(regionsPartitioner)
           }
 
           writeMultiOutputFiles.saveAsMultipleTextFiles(keyedRDD, RegionOutputPath)
