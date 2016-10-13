@@ -245,13 +245,13 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
     new IRVariable(new_meta_dag, new_region_dag,this.schema)
   }
 
-  def UNION(right_dataset : IRVariable) : IRVariable = {
+  def UNION(right_dataset : IRVariable, left_name : String = "left", right_name : String = "right") : IRVariable = {
 
     val schema_reformatting : List[Int] = for (f <- this.schema) yield {
       right_dataset.get_field_by_name(f._1).getOrElse(-1)
     }
 
-    new IRVariable(IRUnionMD(right_dataset.metaDag, this.metaDag),
+    new IRVariable(IRUnionMD(right_dataset.metaDag, this.metaDag, left_name, right_name),
       IRUnionRD(schema_reformatting, right_dataset.regionDag, this.regionDag),
       this.schema)
 
