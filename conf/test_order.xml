@@ -1,0 +1,94 @@
+<gmqltest>
+    <config>
+        <binsize>2000</binsize>
+    </config>
+    <datasets>
+        <dataset>
+            <name>annotations</name>
+            <type>RNASEQ</type>
+            <placeholder>#ANN#</placeholder>
+            <numfiles>1</numfiles>
+            <numchrom>6</numchrom>
+            <numregchrom>100</numregchrom>
+            <chromlen>10000</chromlen>
+            <minreglen>10</minreglen>
+            <maxreglen>500</maxreglen>
+            <nummeta>12</nummeta>
+            <minval>0.0</minval>
+            <maxval>1.0</maxval>
+            <namevalues>
+                <value>geneA</value>
+                <value>geneB</value>
+                <value>geneC</value>
+            </namevalues>
+        </dataset>
+        <dataset>
+            <name>beds</name>
+            <type>BEDSCORE</type>
+            <placeholder>#BED#</placeholder>
+            <numfiles>10</numfiles>
+            <numchrom>1</numchrom>
+            <numregchrom>20</numregchrom>
+            <chromlen>10000</chromlen>
+            <minreglen>5</minreglen>
+            <maxreglen>200</maxreglen>
+            <nummeta>12</nummeta>
+            <minval>0.0</minval>
+            <maxval>1.0</maxval>
+        </dataset>
+    </datasets>
+    <queries>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            O = ORDER(average ASC) E;
+            MATERIALIZE O into #OUTPUT#;
+        </query>
+        <!--<query>-->
+            <!--E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;-->
+            <!--O = ORDER(average DESC) E;-->
+            <!--MATERIALIZE O into #OUTPUT#;-->
+        <!--</query>-->
+
+        <!--<query>-->
+            <!--E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;-->
+            <!--O = ORDER(; score ASC) E;-->
+            <!--MATERIALIZE O into #OUTPUT#;-->
+        <!--</query>-->
+        <!--<query>-->
+            <!--E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;-->
+            <!--O = ORDER(; score DESC) E;-->
+            <!--MATERIALIZE O into #OUTPUT#;-->
+        <!--</query>-->
+        <!--<query>-->
+            <!--E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;-->
+            <!--O = ORDER(average ASC; score DESC) E;-->
+            <!--MATERIALIZE O into #OUTPUT#;-->
+        <!--</query>-->
+
+        <!--<query>-->
+            <!--E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;-->
+            <!--O = ORDER(average ASC; TOP 1 ) E;-->
+            <!--MATERIALIZE O into #OUTPUT#;-->
+        <!--</query>-->
+        <!--<query>-->
+            <!--E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;-->
+            <!--O = ORDER(average ASC; TOP 2 ) E;-->
+            <!--MATERIALIZE O into #OUTPUT#;-->
+        <!--</query>-->
+        <!--<query>-->
+            <!--E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;-->
+            <!--O = ORDER(average ASC; TOPG 2 ) E;-->
+            <!--MATERIALIZE O into #OUTPUT#;-->
+        <!--</query>-->
+        <!--<query>-->
+            <!--E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;-->
+            <!--O = ORDER(; score DESC; TOP 2) E;-->
+            <!--MATERIALIZE O into #OUTPUT#;-->
+        <!--</query>-->
+        <!--<query>-->
+            <!--E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;-->
+            <!--O = ORDER(; score DESC; TOPG 2) E;-->
+            <!--MATERIALIZE O into #OUTPUT#;-->
+        <!--</query>-->
+    </queries>
+</gmqltest>

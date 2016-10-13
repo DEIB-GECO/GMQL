@@ -44,6 +44,9 @@ abstract class Implementation {
   /** Starts the execution */
   def go()
 
+  /** stop GMQL implementation (kill a job)*/
+  def stop()
+
   /** given the name of a parser, returns it. It must at least provide a parser for the "default" name */
   def getParser(name : String,dataset:String) : GMQLLoaderBase
 

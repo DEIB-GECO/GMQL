@@ -30,4 +30,6 @@ class GMQLLocalLauncher (localJob:GMQLJob)  extends GMQLLauncher(localJob){
   {
     launcherHandler.jobId
   }
+
+  override def killJob() = launcherHandler.implementation.stop()
 }

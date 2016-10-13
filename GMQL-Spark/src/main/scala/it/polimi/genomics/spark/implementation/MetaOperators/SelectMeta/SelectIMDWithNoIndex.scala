@@ -84,11 +84,11 @@ object SelectIMDWithNoIndex {
           case e: Exception => logger.error(e.getMessage); List[String]()
         }
       } else {
-println ("hello",URIs.mkString("\n"))
+//println ("hello",URIs.mkString("\n"))
         indexing = false
         val fs = Utilities.getInstance().getFileSystem
         val res = URIs.flatMap { dirInput =>
-          println ("dir: ",dirInput,fs.exists(new Path(dirInput)))
+//          println ("dir: ",dirInput,fs.exists(new Path(dirInput)))
           if (new java.io.File(dirInput).isDirectory && URIs.size == 1)
             new java.io.File(dirInput).listFiles.filter{p => new File(p+".meta").exists()}.map(x => x.getPath)
           else if(fs.exists(new Path(dirInput))&& URIs.size == 1) {
@@ -123,20 +123,21 @@ println ("hello",URIs.mkString("\n"))
 
     // lazly read meta files for operations like greater than and less than, Cache the read for another predicates
     def parser(x: (Long, String)) = loader.asInstanceOf[GMQLLoader[(Long, String), Option[DataTypes.GRECORD], (Long, String), Option[DataTypes.MetaType]]].meta_parser(x)
-      logger.debug("input files count: "+files.size)
+//      logger.debug("input files count: "+files.size)
 //        files.map(x=>x+".meta").foreach(x=>logger.debug(x))
 
     val input = sc forPath (files.map(x => x + ".meta").mkString(",")) LoadMetaCombineFiles (parser) cache
 
-        logger.info("abdoo\t"+indexing+"\t"+input.count)
+//        logger.info("abdoo\t"+indexing+"\t"+input.count)
     // join the result of the selection with the input
 //    println("metacondition\t"+metaCondition)
 //    println("input size: "+ input.count)
     val ids = sc.broadcast(if (indexing) MetaSelectionIndex.applyMetaSelect(metaCondition, input).collect else metaSelection.applyMetaSelect(metaCondition, input).collect)
 //    logger.info("meta ID size: "+ids.value.size)
     ids.value.foreach(x=>logger.debug("selected IDs: "+x ))
+    logger.info(new File(URIs(0)).getName +" Selected: "+ids.value.size)
     val s = input.flatMap(x => if (ids.value.contains(x._1)) Some(x) else None).cache()
-    logger.debug("number of selected regions "+s.count())
+//    logger.debug("number of selected regions "+s.count())
     s
   }
 

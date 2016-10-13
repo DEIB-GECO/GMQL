@@ -212,16 +212,16 @@ class GMQLDataSetXML(val dataSet: IRDataSet) {
     var line: String = null
     for (url <- samples) {
       try {
-        println(url.meta)
+//        println(url.meta)
         val file: Path = Paths.get(url.meta)
         val reader: BufferedReader = Files.newBufferedReader(file, Charset.defaultCharset)
-        if (url.ID.toInt == 0) {
-          LuceneIndex.buildIndex(Utilities.RepoDir + this.userName + "/indexes/" + this.DSname + "/",
-            url.meta, url.ID.toInt, true, false);
-        } else {
-          LuceneIndex.addSampletoIndex(Utilities.RepoDir + this.userName + "/indexes/" + this.DSname + "/",
-            url.meta, url.ID.toInt, false);
-        }
+//        if (url.ID.toInt == 0) {
+//          LuceneIndex.buildIndex(Utilities.RepoDir + this.userName + "/indexes/" + this.DSname + "/",
+//            url.meta, url.ID.toInt, true, false);
+//        } else {
+//          LuceneIndex.addSampletoIndex(Utilities.RepoDir + this.userName + "/indexes/" + this.DSname + "/",
+//            url.meta, url.ID.toInt, false);
+//        }
         while ( {
           line = reader.readLine;
           line

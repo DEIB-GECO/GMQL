@@ -32,7 +32,7 @@ class GMQLExecute (){
   def registerJob(scriptPath:String, script:String,executionType:String,binSize:Long, username:String,jobid:String = "",sc:SparkContext = null,GTFoutput:Boolean = false): GMQLJob ={
 
     logger.info("Execution Platform is set to "+executionType)
-    logger.info("execType = \t"+executionType+",scriptPath = \t"+scriptPath+",username = \t"+username)
+    logger.info("execType = "+executionType+"\t,scriptPath = "+scriptPath+"\t,username = "+username)
 
     val job = if(executionType.toLowerCase() == GMQLExecute.SPARK){
       new GMQLJob(new GMQLSparkExecutor(sc=sc,GTFoutput = GTFoutput),binSize,scriptPath,script,username,outputFormat = if(GTFoutput) "gtf" else "tab")

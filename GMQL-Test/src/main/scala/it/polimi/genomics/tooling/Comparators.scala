@@ -21,6 +21,7 @@ object Comparators {
     val spark_meta = read_spark_results(spark_path + "/exp").sorted
 
 //    flink_meta.zip(spark_meta).foreach(x=>if(x._1 != x._2) println(x._1+"///"+x._2,false)else println(x._1+"///"+x._2,true) )
+//    println (flink_meta.size, spark_meta.size)
     flink_meta==spark_meta
   }
 

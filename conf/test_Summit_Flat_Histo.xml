@@ -1,0 +1,210 @@
+<gmqltest>
+    <config>
+        <binsizes>
+        <binsize>5000</binsize>
+        </binsizes>
+    </config>
+    <datasets>
+        <dataset>
+            <name>annotations</name>
+            <type>RNASEQ</type>
+            <placeholder>#ANN#</placeholder>
+            <numfiles>1</numfiles>
+            <numchrom>6</numchrom>
+            <numregchrom>100</numregchrom>
+            <chromlen>10000</chromlen>
+            <minreglen>10</minreglen>
+            <maxreglen>500</maxreglen>
+            <nummeta>12</nummeta>
+            <minval>0.0</minval>
+            <maxval>1.0</maxval>
+            <namevalues>
+                <value>geneA</value>
+                <value>geneB</value>
+                <value>geneC</value>
+            </namevalues>
+        </dataset>
+        <dataset>
+            <name>beds</name>
+            <type>BEDSCORE</type>
+            <placeholder>#BED#</placeholder>
+            <numfiles>10</numfiles>
+            <numchrom>1</numchrom>
+            <numregchrom>20</numregchrom>
+            <chromlen>10000</chromlen>
+            <minreglen>5</minreglen>
+            <maxreglen>200</maxreglen>
+            <nummeta>12</nummeta>
+            <minval>0.0</minval>
+            <maxval>1.0</maxval>
+        </dataset>
+    </datasets>
+    <queries>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = SUMMIT(1,2) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = SUMMIT(2,2) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = SUMMIT(1,ANY) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = SUMMIT(1,ALL) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = SUMMIT(ANY,ANY) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = SUMMIT(ANY,ALL) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = SUMMIT(ALL,ANY) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = SUMMIT(GROUPBY antibody;1,3) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = SUMMIT(GROUPBY antibody,cell;1,3) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = SUMMIT(GROUPBY antibody,cell;1,3;SUM(score)) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = SUMMIT(GROUPBY antibody,cell;1,3;SUM(score),MIN(score)) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = FLAT(1,2) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = FLAT(2,2) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = FLAT(1,ANY) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = FLAT(1,ALL) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = FLAT(ANY,ANY) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = FLAT(ANY,ALL) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = FLAT(ALL,ANY) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = FLAT(GROUPBY antibody;1,3) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = FLAT(GROUPBY antibody,cell;1,3) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = FLAT(GROUPBY antibody,cell;1,3;SUM(score)) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = FLAT(GROUPBY antibody,cell;1,3;SUM(score),MIN(score)) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = HISTOGRAM(1,2) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = HISTOGRAM(2,2) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = HISTOGRAM(1,ANY) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = HISTOGRAM(1,ALL) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = HISTOGRAM(ANY,ANY) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = HISTOGRAM(ANY,ALL) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = HISTOGRAM(ALL,ANY) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = HISTOGRAM(GROUPBY antibody;1,3) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = HISTOGRAM(GROUPBY antibody,cell;1,3) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = HISTOGRAM(GROUPBY antibody,cell;1,3;SUM(score)) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+        <query>
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            C = HISTOGRAM(GROUPBY antibody,cell;1,3;SUM(score),MIN(score)) E;
+            MATERIALIZE C into #OUTPUT#;
+        </query>
+
+    </queries>
+</gmqltest>

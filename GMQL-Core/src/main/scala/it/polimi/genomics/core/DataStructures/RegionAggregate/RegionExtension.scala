@@ -32,7 +32,7 @@ trait RegionFunction extends Serializable {
   def output_name : Option[String] = None
 }
 
-trait RegionExtension extends RegionFunction {
+trait   RegionExtension extends RegionFunction {
   val fun : Array[GValue] => GValue
 }
 

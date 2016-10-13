@@ -15,9 +15,9 @@ import scala.collection.Map
 
 
 /**
- * Created by abdulrahman kaitoua on 08/08/15.
+ * Created by abdulrahman kaitoua on 29/09/16.
  */
-object GenometricMap7 {
+object GenometricMap8 {
   private final val logger = LoggerFactory.getLogger(this.getClass);
   private final type groupType = Array[((Long, String), Array[Long])]
 
@@ -30,22 +30,51 @@ object GenometricMap7 {
     val exp: RDD[(GRecordKey, Array[GValue])] =
       executor.implement_rd(experiments, sc)
 
-    execute(executor, grouping, aggregator, ref, exp, BINNING_PARAMETER, REF_PARALLILISM, sc)
+    execute(executor, grouping, aggregator, ref, exp, 0l, REF_PARALLILISM, sc)
   }
 
   @throws[SelectFormatException]
   def execute(executor : GMQLSparkExecutor, grouping : OptionalMetaJoinOperator, aggregator : List[RegionAggregate.RegionsToRegion], ref: RDD[GRECORD], exp: RDD[GRECORD], BINNING_PARAMETER:Long, REF_PARALLILISM:Int,sc : SparkContext) : RDD[GRECORD] = {
-    val groups: Map[Long, Array[Long]] = executor.implement_mjd(grouping, sc).collectAsMap()
-    val refGroups: Option[Broadcast[Map[Long, Array[Long]]]] = if(groups.isEmpty)None; else Some(sc.broadcast(groups))
-    val expBinned = exp.binDS(BINNING_PARAMETER,aggregator)
-    val refBinnedRep = ref.binDS(BINNING_PARAMETER,refGroups)
+    val groups: Map[Long, Array[Long]] = executor.implement_mjd(grouping, sc).flatMap(x=>x._2.map(SID => (SID,x._1)).groupBy(g=>g._1)).mapValues(s=>s.map(a=>a._2)).collectAsMap()
 
-    val RefExpJoined: RDD[(Long, (GRecordKey, Array[GValue], Array[GValue], Int))] = refBinnedRep.cogroup(expBinned)
-      .flatMap { grouped => val key: (Long, String, Int) = grouped._1;
-        val ref: Iterable[(Long, Long, Long, Char, Array[GValue])] = grouped._2._1.toList.sortBy(x=>(x._1,x._2,x._3));
-        val exp: Iterable[(Long, Long, Char, Array[GValue])] = grouped._2._2.toList.sortBy(x=>(x._1,x._2))
-        sweep(key,ref.iterator,exp.iterator,BINNING_PARAMETER)
-      } //.cache()
+    val refGroups: Option[Broadcast[Map[Long, Array[Long]]]] = if(groups.isEmpty)None; else Some(sc.broadcast(groups))
+
+    val expBinned = exp.binDS(BINNING_PARAMETER,aggregator)
+    val refBinnedRep = ref.binDS(BINNING_PARAMETER)
+
+    val broadcastedRef = sc.broadcast(refBinnedRep.groupByKey.collect.map(x=>(x._1,x._2.toList.sortBy(it=>(it._1,it._2,it._3)))).toMap)
+
+    val RefExpJoined: RDD[(Long, (GRecordKey, Array[GValue], Array[GValue], Int))] =
+      expBinned.groupByKey().mapPartitions({ (iter: Iterator[((Long, String, Int), Iterable[(Long, Long, Char, Array[GValue])])]) =>
+
+     iter.flatMap { expBin =>
+        val key: (Long, String, Int) = expBin._1
+        val exp: Iterable[(Long, Long, Char, Array[GValue])] = expBin._2.toList.sortBy(x => (x._1, x._2))
+        if (!refGroups.isDefined) {
+          broadcastedRef.value.flatMap(ref => sweep(key, ref._2.iterator, exp.iterator, BINNING_PARAMETER)).iterator
+        }
+        else {
+          val referencesIDs = refGroups.get.value.get(key._1)
+          if (referencesIDs.isDefined)
+            referencesIDs.get.flatMap { rID =>
+              val refBin = broadcastedRef.value.get((rID, key._2, key._3))
+              if (refBin.isDefined)
+                sweep(key, refBin.get.iterator, exp.iterator, BINNING_PARAMETER)
+              else None
+            }.iterator
+          else None
+        }
+      }
+    }, preservesPartitioning = true)
+
+
+
+//    val RefExpJoined: RDD[(Long, (GRecordKey, Array[GValue], Array[GValue], Int))] = refBinnedRep.cogroup(expBinned)
+//      .flatMap { grouped => val key: (Long, String, Int) = grouped._1;
+//        val ref: Iterable[(Long, Long, Long, Char, Array[GValue])] = grouped._2._1.toList.sortBy(x=>(x._1,x._2,x._3));
+//        val exp: Iterable[(Long, Long, Char, Array[GValue])] = grouped._2._2.toList.sortBy(x=>(x._1,x._2))
+//        sweep(key,ref.iterator,exp.iterator,BINNING_PARAMETER)
+//      } .cache()
 
     val reduced  = RefExpJoined.reduceByKey{(l,r)=>
       val values: Array[GValue] =
@@ -59,7 +88,7 @@ object GenometricMap7 {
           r._3
         else l._3
       (l._1,l._2,values,l._4+r._4)
-    }//cache()
+    }.cache()
 
 //    RefExpJoined.unpersist(true)
     //Aggregate Exp Values (reduced)
@@ -74,6 +103,7 @@ object GenometricMap7 {
 
     output
   }
+
   def sweep(key:(Long, String, Int),ref_regions:Iterator[(Long, Long, Long, Char, Array[GValue])],iExp:Iterator[(Long, Long, Char, Array[GValue])]
                     ,bin:Long ):Iterator[(Long, (GRecordKey, Array[GValue], Array[GValue], Int))] = {
 
@@ -157,7 +187,7 @@ object GenometricMap7 {
   }
 
   implicit class Binning(rdd: RDD[GRECORD]) {
-    def binDS(bin: Long,aggregator: List[RegionAggregate.RegionsToRegion]): RDD[((Long, String, Int), (Long, Long, Char, Array[GValue]))] =
+    def binDS(bin: Long,aggregator: List[RegionAggregate.RegionsToRegion]): RDD[(( Long, String, Int), (Long, Long, Char, Array[GValue]))] =
       rdd.flatMap { x =>
         if (bin > 0) {
           val startbin = (x._1._3 / bin).toInt
@@ -166,45 +196,30 @@ object GenometricMap7 {
             .map((f: RegionAggregate.RegionsToRegion) => {
               x._2(f.index)
             }).toArray
-          //          println (newVal.mkString("/"))
           for (i <- startbin to stopbin)
-            yield ((x._1._1, x._1._2, i), (x._1._3, x._1._4, x._1._5, newVal))
+            yield (( x._1._1, x._1._2, i), (x._1._3, x._1._4, x._1._5, newVal))
         } else
           {
             val newVal: Array[GValue] = aggregator
               .map((f: RegionAggregate.RegionsToRegion) => {
                 x._2(f.index)
               }).toArray
-            //          println (newVal.mkString("/"))
-              Some((x._1._1, x._1._2, 0), (x._1._3, x._1._4, x._1._5, newVal))
+              Some(( x._1._1, x._1._2, 0), (x._1._3, x._1._4, x._1._5, newVal))
           }
       }
 
-    def binDS(bin: Long,Bgroups: Option[Broadcast[Map[Long, Array[Long]]]] ): RDD[((Long, String, Int), (Long, Long, Long, Char, Array[GValue]))] =
+    def binDS(bin: Long): RDD[((Long, String, Int), ( Long, Long, Long, Char, Array[GValue]))] =
       rdd.flatMap { x =>
-
-
         if (bin > 0) {
-          if (Bgroups.isDefined) {
             val startbin = (x._1._3 / bin).toInt
             val stopbin = (x._1._4 / bin).toInt
-            val group = Bgroups.get.value.get(x._1._1)
-            if (group.isDefined)
-              (startbin to stopbin).flatMap(i =>
-                group.get.map(id => (((id, x._1._2, i), (x._1._1, x._1._3, x._1._4, x._1._5, x._2))))
+              (startbin to stopbin).map(i =>
+                  (((x._1._1,x._1._2, i), ( x._1._1,x._1._3, x._1._4, x._1._5, x._2)))
               )
-            else None
-          }
-          else None
+
         }else
         {
-          if (Bgroups.isDefined) {
-            val group = Bgroups.get.value.get(x._1._1)
-            if (group.isDefined)
-              group.get.map(id => (((id, x._1._2, 0), (x._1._1, x._1._3, x._1._4, x._1._5, x._2))))
-            else None
-          }
-          else None
+               Some(((( x._1._1,x._1._2,0), ( x._1._1,x._1._3, x._1._4, x._1._5, x._2))))
         }
       }
   }

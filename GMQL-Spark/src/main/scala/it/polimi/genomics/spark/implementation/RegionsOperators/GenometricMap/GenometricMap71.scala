@@ -6,7 +6,7 @@ import it.polimi.genomics.core.DataTypes._
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.core.{GDouble, GRecordKey, GValue}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
-import org.apache.spark.SparkContext
+import org.apache.spark.{HashPartitioner, Partitioner, SparkContext}
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import org.slf4j.LoggerFactory
@@ -16,14 +16,16 @@ import scala.collection.Map
 
 /**
  * Created by abdulrahman kaitoua on 08/08/15.
+  *The main bottle neck is in line 191, takes hours to repliocate the reference for every experiment
+  *  same as version 7 but with join on the ids for the reference and the regions and extra partitioner.
  */
-object GenometricMap7 {
+object GenometricMap71 {
   private final val logger = LoggerFactory.getLogger(this.getClass);
   private final type groupType = Array[((Long, String), Array[Long])]
 
   @throws[SelectFormatException]
   def apply(executor : GMQLSparkExecutor, grouping : OptionalMetaJoinOperator, aggregator : List[RegionAggregate.RegionsToRegion], reference : RegionOperator, experiments : RegionOperator, BINNING_PARAMETER:Long,REF_PARALLILISM:Int,sc : SparkContext) : RDD[GRECORD] = {
-    logger.info("----------------MAP executing -------------")
+    logger.info("----------------MAP71 executing -------------")
     //creating the datasets
     val ref: RDD[(GRecordKey, Array[GValue])] =
       executor.implement_rd(reference, sc)
@@ -35,10 +37,15 @@ object GenometricMap7 {
 
   @throws[SelectFormatException]
   def execute(executor : GMQLSparkExecutor, grouping : OptionalMetaJoinOperator, aggregator : List[RegionAggregate.RegionsToRegion], ref: RDD[GRECORD], exp: RDD[GRECORD], BINNING_PARAMETER:Long, REF_PARALLILISM:Int,sc : SparkContext) : RDD[GRECORD] = {
-    val groups: Map[Long, Array[Long]] = executor.implement_mjd(grouping, sc).collectAsMap()
-    val refGroups: Option[Broadcast[Map[Long, Array[Long]]]] = if(groups.isEmpty)None; else Some(sc.broadcast(groups))
+    val groups = executor.implement_mjd(grouping, sc).flatMap{x=>x._2.map(s=>(x._1,s))}
+
+    val refGroups: RDD[(Long, Long)] = groups
+    val expDataPartitioner: Partitioner = exp.partitioner match {
+      case (Some(p)) => p
+      case (None) => new HashPartitioner(exp.partitions.length)
+    }
     val expBinned = exp.binDS(BINNING_PARAMETER,aggregator)
-    val refBinnedRep = ref.binDS(BINNING_PARAMETER,refGroups)
+    val refBinnedRep = ref.binDS(BINNING_PARAMETER,refGroups,expDataPartitioner)
 
     val RefExpJoined: RDD[(Long, (GRecordKey, Array[GValue], Array[GValue], Int))] = refBinnedRep.cogroup(expBinned)
       .flatMap { grouped => val key: (Long, String, Int) = grouped._1;
@@ -180,33 +187,18 @@ object GenometricMap7 {
           }
       }
 
-    def binDS(bin: Long,Bgroups: Option[Broadcast[Map[Long, Array[Long]]]] ): RDD[((Long, String, Int), (Long, Long, Long, Char, Array[GValue]))] =
-      rdd.flatMap { x =>
-
-
+    def binDS(bin: Long,Bgroups: RDD[(Long, Long)],partitioner: Partitioner ): RDD[((Long, String, Int), (Long, Long, Long, Char, Array[GValue]))] =
+        rdd.partitionBy(partitioner). keyBy(x=>x._1._1).join(Bgroups, partitioner).flatMap { x =>
         if (bin > 0) {
-          if (Bgroups.isDefined) {
-            val startbin = (x._1._3 / bin).toInt
-            val stopbin = (x._1._4 / bin).toInt
-            val group = Bgroups.get.value.get(x._1._1)
-            if (group.isDefined)
-              (startbin to stopbin).flatMap(i =>
-                group.get.map(id => (((id, x._1._2, i), (x._1._1, x._1._3, x._1._4, x._1._5, x._2))))
+            val startbin = (x._2._1._1._3 / bin).toInt
+            val stopbin = (x._2._1._1._4 / bin).toInt
+              (startbin to stopbin).map(i =>
+                ((x._2._2, x._2._1._1._2, i), (x._2._1._1._1, x._2._1._1._3, x._2._1._1._4, x._2._1._1._5, x._2._1._2))
               )
-            else None
-          }
-          else None
         }else
-        {
-          if (Bgroups.isDefined) {
-            val group = Bgroups.get.value.get(x._1._1)
-            if (group.isDefined)
-              group.get.map(id => (((id, x._1._2, 0), (x._1._1, x._1._3, x._1._4, x._1._5, x._2))))
-            else None
-          }
-          else None
-        }
+             Some((x._2._2, x._2._1._1._2, 0), (x._2._1._1._1, x._2._1._1._3, x._2._1._1._4, x._2._1._1._5, x._2._1._2))
       }
+
   }
 
 }

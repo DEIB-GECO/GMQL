@@ -124,4 +124,14 @@ class GMQLLivyLauncher (livyJob:GMQLJob)  extends GMQLLauncher(livyJob){
   {
     ""
   }
+
+  override def killJob() = {
+    def deleteHolder = {
+      wsAPI.url(baseUrl+"/"+livyJobID.get)
+        .withHeaders("Accept" -> "application/json")
+        .withRequestTimeout(10000)
+    }
+
+    deleteHolder.delete()
+  }
 }

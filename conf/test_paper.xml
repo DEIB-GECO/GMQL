@@ -1,0 +1,97 @@
+<gmqltest>
+    <config>
+        <binsizes>
+            <binsize>200</binsize>
+            <binsize>500</binsize>
+            <binsize>1000</binsize>
+            <!---->
+            <binsize>2000</binsize>
+            <binsize>5000</binsize>
+            <binsize>10000</binsize>
+            <binsize>50000</binsize>
+            <binsize>100000</binsize>
+            <binsize>500000</binsize>
+            <binsize>1000000</binsize>
+            <binsize>5000000</binsize>
+            <binsize>10000000</binsize>
+        </binsizes>
+    </config>
+    <datasets>
+        <dataset>
+            <name>annotations</name>
+            <type>RNASEQ</type>
+            <placeholder>#ANN#</placeholder>
+            <numfiles>1</numfiles>
+            <numchrom>2</numchrom>
+            <numregchrom>1600</numregchrom>
+            <chromlen>250000000</chromlen>
+            <minreglen>40</minreglen>
+            <maxreglen>500000</maxreglen>
+            <nummeta>10</nummeta>
+            <minval>0.0</minval>
+            <maxval>1.0</maxval>
+            <namevalues>
+                <value>geneA</value>
+                <value>geneB</value>
+                <value>geneC</value>
+            </namevalues>
+        </dataset>
+        <dataset>
+            <name>beds</name>
+            <type>BEDSCORE</type>
+            <placeholder>#BED#</placeholder>
+            <numfiles>20</numfiles>
+            <numchrom>2</numchrom>
+            <numregchrom>500000</numregchrom>
+            <chromlen>250000000</chromlen>
+            <minreglen>40</minreglen>
+            <maxreglen>500</maxreglen>
+            <nummeta>10</nummeta>
+            <minval>0.0</minval>
+            <maxval>1.0</maxval>
+        </dataset>
+    </datasets>
+    <queries>
+        <query>
+            R = SELECT(NOT(leaveout=="something")) [RnaSeqParser]#ANN#;
+            E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;
+            M = MAP() R E;
+            MATERIALIZE M into #OUTPUT#;
+        </query>
+        <query>
+            S = SELECT(NOT(leaveout=="something")) [BedScoreParser]#BED#;
+            A = SELECT(NOT(leaveout=="something")) [RnaSeqParser]#ANN#;
+            J = JOIN(distance &lt; 1000; left) S A;
+            MATERIALIZE J into #OUTPUT#;
+        </query>
+        <query>
+            S = SELECT(NOT(leaveout=="something")) [BedScoreParser]#BED#;
+            A = SELECT(NOT(leaveout=="something")) [RnaSeqParser]#ANN#;
+            J = JOIN(minDistance(1); right) S A;
+            MATERIALIZE J into #OUTPUT#;
+        </query>
+        <query>
+            S = SELECT(NOT(leaveout=="something")) [BedScoreParser]#BED#;
+            A = SELECT(NOT(leaveout=="something")) [RnaSeqParser]#ANN#;
+            J = JOIN(distance &gt; 250,minDistance(1); right) S A;
+            MATERIALIZE J into #OUTPUT#;
+        </query>
+
+        <query>
+            S = SELECT(NOT(leaveout=="something")) [BedScoreParser]#BED#;
+            A = SELECT(NOT(leaveout=="something")) [RnaSeqParser]#ANN#;
+            J = JOIN(distance &lt; 1000,distance &gt; 100; right) S A;
+            MATERIALIZE J into #OUTPUT#;
+        </query>
+        <!--<query>-->
+            <!--E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;-->
+            <!--C = COVER(1,2) E;-->
+            <!--MATERIALIZE C into #OUTPUT#;-->
+        <!--</query>-->
+        <!--<query>-->
+            <!--E = SELECT(NOT(leaveout=="something"))  [BedScoreParser]#BED#;-->
+            <!--C = HISTOGRAM(1,2) E;-->
+            <!--MATERIALIZE C into #OUTPUT#;-->
+        <!--</query>-->
+    </queries>
+</gmqltest>
