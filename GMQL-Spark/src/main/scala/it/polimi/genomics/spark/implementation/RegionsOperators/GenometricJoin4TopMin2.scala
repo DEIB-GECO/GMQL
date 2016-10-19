@@ -258,7 +258,7 @@ object GenometricJoin4TopMin2 {
   ////////////////////////////////////////////////////
 
   def assignRegionGroups(ds: RDD[GRECORD], Bgroups:RDD[(Long, Long)]): RDD[( Long, Long, String, Long, Long, Char, Array[GValue]/*, Long*/)] = {
-    if (!ds.isEmpty()) ds.keyBy(x=>x._1._1).join(Bgroups,new HashPartitioner(Bgroups.count.toInt)).map { x =>
+    if (!ds.isEmpty()) ds.partitionBy(new HashPartitioner(Bgroups.keys.distinct().count.toInt)).keyBy(x=>x._1._1).join(Bgroups,new HashPartitioner(Bgroups.count.toInt)).map { x =>
       val region = x._2._1
       (x._2._2, region._1._1, region._1._2, region._1._3, region._1._4, region._1._5, region._2 /*, aggregationId*/)
     }else ds.partitionBy(new HashPartitioner(Bgroups.count.toInt)).flatMap(region=>

@@ -36,7 +36,9 @@ case class UnionOperator(op_pos : Position,
   def translate_operator(status : CompilerStatus):CompilerDefinedVariable = {
 
     val unified = super_variable_left.get.UNION(
-      super_variable_right.get)
+      super_variable_right.get,
+      input1.name,
+      input2.get.name)
 
     CompilerDefinedVariable(output.name,output.pos,unified)
   }

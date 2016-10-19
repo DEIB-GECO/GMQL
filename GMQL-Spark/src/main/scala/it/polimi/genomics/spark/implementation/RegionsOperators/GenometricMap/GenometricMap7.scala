@@ -44,7 +44,7 @@ object GenometricMap7 {
       .flatMap { grouped => val key: (Long, String, Int) = grouped._1;
         val ref: Iterable[(Long, Long, Long, Char, Array[GValue])] = grouped._2._1.toList.sortBy(x=>(x._1,x._2,x._3));
         val exp: Iterable[(Long, Long, Char, Array[GValue])] = grouped._2._2.toList.sortBy(x=>(x._1,x._2))
-        sweap(key,ref.iterator,exp.iterator,BINNING_PARAMETER)
+        sweep(key,ref.iterator,exp.iterator,BINNING_PARAMETER)
       } //.cache()
 
     val reduced  = RefExpJoined.reduceByKey{(l,r)=>
@@ -74,7 +74,7 @@ object GenometricMap7 {
 
     output
   }
-  def sweap(key:(Long, String, Int),ref_regions:Iterator[(Long, Long, Long, Char, Array[GValue])],iExp:Iterator[(Long, Long, Char, Array[GValue])]
+  def sweep(key:(Long, String, Int),ref_regions:Iterator[(Long, Long, Long, Char, Array[GValue])],iExp:Iterator[(Long, Long, Char, Array[GValue])]
                     ,bin:Long ):Iterator[(Long, (GRecordKey, Array[GValue], Array[GValue], Int))] = {
 
     //init empty list for caching regions
