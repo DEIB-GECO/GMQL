@@ -9,6 +9,16 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>GMQL-Importer</artifactId>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>it.polimi.genomics</groupId>
+            <artifactId>GMQL-Repository</artifactId>
+            <version>1.0</version>
+        </dependency>
+
+    </dependencies>
     <build>
         <plugins>
 
