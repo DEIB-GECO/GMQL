@@ -1,6 +1,6 @@
 package it.polimi.genomics.importer.ENCODEImporter
 
-import java.io._
+import java.io.{File, _}
 import java.util.zip.GZIPInputStream
 
 import com.google.common.io.Files
@@ -31,9 +31,10 @@ object ENCODETransformer extends GMQLTransformer {
     logger.info("Starting transformation for: " + source.outputFolder)
     source.datasets.foreach(dataset => {
       logger.info("Transformation for dataset: " + dataset.outputFolder)
-      val folder = new File(source.outputFolder + "/" + dataset.outputFolder + "/Transformations")
+      val folder = new File(
+        source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Transformations")
       if (!folder.exists()) {
-        logger.debug("Folder created: "+folder)
+        logger.debug("Folder created: " + folder)
         folder.mkdirs()
       }
       transformData(source, dataset)
@@ -47,24 +48,28 @@ object ENCODETransformer extends GMQLTransformer {
     * also saves in the Transform log, so when the Loader reads it,
     * knows if the data should be updated, deleted or added.
     *
-    * @param source contains specific download and sorting info.
-    * @param dataset     refers to the actual dataset being added
+    * @param source  contains specific download and sorting info.
+    * @param dataset refers to the actual dataset being added
     */
   private def transformData(source: GMQLSource, dataset: GMQLDataset): Unit = {
-    val logDownload = new FileLogger(source.outputFolder + "/" + dataset.outputFolder + "/Downloads")
-    val logTransform = new FileLogger(source.outputFolder + "/" + dataset.outputFolder + "/Transformations")
+    val logDownload = new FileLogger(
+      source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Downloads")
+    val logTransform = new FileLogger(
+      source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Transformations")
     logTransform.markAsOutdated()
-    logDownload.filesToUpdate().foreach(file =>{
+    logDownload.filesToUpdate().foreach(file => {
       //this is to take out the ".gz"
       val name = file.name.substring(0, file.name.lastIndexOf("."))
       //should get file size, for the moment I pass the origin size just to have a value.
       if (logTransform.checkIfUpdate(name, file.name, file.originSize, file.lastUpdate)) {
         logger.debug("Start unGzipping: " + file.name)
         unGzipIt(
-          source.outputFolder + "/" + dataset.outputFolder + "/Downloads/" + file.name,
-          source.outputFolder + "/" + dataset.outputFolder + "/Transformations/" + name)
+          source.outputFolder + File.separator + dataset.outputFolder +
+            File.separator + "Downloads" + File.separator + file.name,
+          source.outputFolder + File.separator + dataset.outputFolder +
+            File.separator + "Transformations" + File.separator + name)
         logTransform.markAsUpdated(name)
-        logger.info("UnGzipping: " + file.name+" DONE")
+        logger.info("UnGzipping: " + file.name + " DONE")
       }
     })
     logDownload.markAsProcessed()
@@ -75,26 +80,27 @@ object ENCODETransformer extends GMQLTransformer {
   /**
     * splits the metadata file into many .meta files as many rows the file has.
     *
-    * @param source contains specific download and sorting info.
-    * @param dataset     refers to the actual dataset being added
+    * @param source  contains specific download and sorting info.
+    * @param dataset refers to the actual dataset being added
     */
   private def transformMeta(source: GMQLSource, dataset: GMQLDataset): Unit = {
     logger.info("Splitting ENCODE metadata for dataset: " + dataset.outputFolder)
     val header = Source.fromFile(
-      source.outputFolder + "/" +
-        dataset.outputFolder + "/Downloads/" +
+      source.outputFolder + File.separator +
+        dataset.outputFolder + File.separator + "Downloads" + File.separator +
         dataset.outputFolder + ".tsv").getLines().next().split("\t")
 
     //this "File download URL" maybe should be in the parameters of the XML.
     val url = header.lastIndexOf("File download URL")
     Source.fromFile(
-      source.outputFolder + "/" + dataset.outputFolder +
-        "/Downloads/" + dataset.outputFolder + ".tsv").getLines().drop(1).foreach(f = line => {
+      source.outputFolder + File.separator + dataset.outputFolder + File.separator +
+        "Downloads" + File.separator + dataset.outputFolder + ".tsv").getLines().drop(1).foreach(f = line => {
       //create file .meta
       val fields = line.split("\t")
-      val aux1 = fields(url).split("/").last
+      val aux1 = fields(url).split(File.separator).last
       val aux2 = aux1.substring(0, aux1.lastIndexOf(".")) + ".meta" //this is the meta name
-      val file = new File(source.outputFolder + "/" + dataset.outputFolder + "/Transformations/" + aux2)
+      val file = new File(source.outputFolder + File.separator +
+        dataset.outputFolder + File.separator + "Transformations" + File.separator + aux2)
 
       val writer = new PrintWriter(file)
       for (i <- 0 until fields.size) {
@@ -102,7 +108,8 @@ object ENCODETransformer extends GMQLTransformer {
           writer.write(header(i) + "\t" + fields(i) + "\n")
       }
       writer.close()
-      logger.debug("File Created: " + source.outputFolder + "/" + dataset.outputFolder + "/Transformations/" + aux2)
+      logger.debug("File Created: " + source.outputFolder + File.separator + dataset.outputFolder + File.separator +
+        "Transformations" + File.separator + aux2)
     })
   }
 
@@ -117,22 +124,20 @@ object ENCODETransformer extends GMQLTransformer {
     val buffer = new Array[Byte](bufferSize)
 
     try {
-
-      //Gzip files are meant to be single files.
       val zis = new GZIPInputStream(new BufferedInputStream(new FileInputStream(gzipFile))) //gzip
       val newFile = new File(outputPath)
       val fos = new FileOutputStream(newFile)
 
-      var ze: Int = zis.read(buffer) //gzip
+      var ze: Int = zis.read(buffer)
       while (ze >= 0) {
-        //gzip
+
         fos.write(buffer, 0, ze)
-        ze = zis.read(buffer) //gzip
+        ze = zis.read(buffer)
       }
       fos.close()
       zis.close()
     } catch {
-      case e: IOException => logger.error("Couldnt UnGzip the file: " + outputPath,e)
+      case e: IOException => logger.error("Couldnt UnGzip the file: " + outputPath, e)
     }
   }
 
@@ -143,21 +148,21 @@ object ENCODETransformer extends GMQLTransformer {
     * ENCODE schema file is not provided in the same folder as the data
     * for the moment the schemas have to be given locally.
     *
-    *  @param source contains specific download and sorting info.
+    * @param source contains specific download and sorting info.
     */
   override def organize(source: GMQLSource): Unit = {
     source.datasets.foreach(dataset => {
       if (dataset.schemaLocation == SCHEMA_LOCATION.LOCAL) {
         val src = new File(dataset.schema)
-        val dest = new File(source.outputFolder + "/" + dataset.outputFolder +
-          "/Transformations/" + dataset.outputFolder + ".schema")
+        val dest = new File(source.outputFolder + "/" + dataset.outputFolder + File.separator +
+          "Transformations" + File.separator + dataset.outputFolder + ".schema")
 
         try {
-          Files.copy(src,dest)
+          Files.copy(src, dest)
           logger.info("Schema copied from: " + src.getAbsolutePath + " to " + dest.getAbsolutePath)
         }
         catch {
-          case e: IOException => logger.error("could not copy the file "+
+          case e: IOException => logger.error("could not copy the file " +
             src.getAbsolutePath + " to " + dest.getAbsolutePath)
         }
       }
