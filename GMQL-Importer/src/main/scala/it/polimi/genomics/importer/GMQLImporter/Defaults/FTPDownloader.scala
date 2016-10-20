@@ -23,9 +23,25 @@ object FTPDownloader extends GMQLDownloader {
     }
     val ftp = new FTP()
 
+    //the mark to compare is done here because the iteration on ftp is based on ftp folders and not
+    //on the source datasets.
+    source.datasets.foreach(dataset=>{
+      val outputPath = source.outputFolder + "/" + dataset.outputFolder + "/Downloads"
+      val log = new FileLogger(outputPath)
+      log.markToCompare()
+      log.saveTable()
+    })
+
     if(ftp.connectWithAuth(source.url, source.parameters.filter(_._1 == "username").head._2 , source.parameters.filter(_._1 == "password").head._2).getOrElse(false)){
       recursiveDownload(ftp,source)
       ftp.disconnect()
+
+      source.datasets.foreach(dataset=>{
+        val outputPath = source.outputFolder + "/" + dataset.outputFolder + "/Downloads"
+        val log = new FileLogger(outputPath)
+        log.markAsOutdated()
+        log.saveTable()
+      })
     }
     else
       println("ftp connection with "+source.url+" couldn't be handled.","username:"+source.parameters.filter(_._1 == "username").head._2,"password:"+source.parameters.filter(_._1 == "password").head._2)
@@ -49,22 +65,22 @@ object FTPDownloader extends GMQLDownloader {
     * @param source configuration for downloader, folders for input and output by regex and also for files
     */
   private def checkFolderForDownloads(ftp: FTP, source: GMQLSource): Unit = {
-    for (dataset <- source.datasets)
+    for (dataset <- source.datasets) {
       if (ftp.workingDirectory().matches(dataset.parameters.filter(_._1 == "folder_regex").head._2)) {
+        val outputPath = source.outputFolder + "/" + dataset.outputFolder + "/Downloads"
+        val log = new FileLogger(outputPath)
+
         println("Directory: " + ftp.workingDirectory())
-        val outputPath = source.outputFolder + "/" + dataset.outputFolder +"/Downloads"
         if (!new java.io.File(outputPath).exists) {
           new java.io.File(outputPath).mkdirs()
         }
 
-        val log = new FileLogger(outputPath)
-        log.markAsOutdated()
         val files = ftp.listFiles().filter(_.isFile).filter(_.getName.matches(dataset.parameters.filter(_._1 == "files_regex").head._2))
 
         for (file <- files) {
           if (log.checkIfUpdate(
             file.getName,
-            ftp.workingDirectory()+"/"+file.getName,
+            ftp.workingDirectory() + "/" + file.getName,
             file.getSize.toString,
             file.getTimestamp.getTime.toString)) {
 
@@ -75,9 +91,11 @@ object FTPDownloader extends GMQLDownloader {
               downloaded = ftp.downloadFile(file.getName, outputPath + "/" + file.getName)
               timesTried += 1
             }
-            if (!downloaded)
+            if (!downloaded) {
               println(" FAILED")
-            else{
+              log.markAsFailed(file.getName)
+            }
+            else {
               println(" DONE")
               log.markAsUpdated(file.getName)
             }
@@ -85,6 +103,7 @@ object FTPDownloader extends GMQLDownloader {
         }
         log.saveTable()
       }
+    }
   }
 
   /**

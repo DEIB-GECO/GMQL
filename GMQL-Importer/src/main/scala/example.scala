@@ -3,11 +3,20 @@ import it.polimi.genomics.importer.GMQLImporter.utils.SCHEMA_LOCATION
 import it.polimi.genomics.importer.GMQLImporter.Defaults.{FTPDownloader, NULLTransformer}
 import it.polimi.genomics.importer.ENCODEImporter.{ENCODEDownloader, ENCODETransformer}
 import scala.xml.XML
-
+import org.slf4j._
 object example {
+  val logger = LoggerFactory.getLogger(example.getClass)
 
   def main(args: Array[String]): Unit = {
+    org.slf4j.LoggerFactory.getLogger(example.getClass).debug("hello")
+    try{
+      throw new Exception("asd")
+    }
+    catch {
+      case e:Exception => logger.warn("ARIF!",e)
+    }
     runDemo()
+
   }
   /**
     * Starts a demonstration of the functionality of GMQL-Importer,
@@ -17,6 +26,7 @@ object example {
   def runDemo(): Unit = {
     val sources = (XML.loadFile("GMQL-Importer/Example/xml/ExampleConfiguration.xml")\\"source_list"\"source").map(source=> {
       GMQLSource(
+        (source \ "@name").text,
         (source \ "url").text,
         (source \ "output_folder").text,
         (source \ "gmql_user").text,

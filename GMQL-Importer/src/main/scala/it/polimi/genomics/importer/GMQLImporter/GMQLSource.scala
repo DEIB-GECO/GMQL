@@ -19,6 +19,7 @@ package it.polimi.genomics.importer.GMQLImporter
   * @param datasets datasets to be downloaded/transformed/loaded
   */
 case class GMQLSource(
+                        name:String,
                         url:String,
                         outputFolder:String,
                         gmqlUser:String,

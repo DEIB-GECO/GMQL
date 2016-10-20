@@ -40,6 +40,9 @@ object ENCODEDownloader extends GMQLDownloader{
         new java.io.File(outputPath).mkdirs()
       }
       val indexAndMetaUrl = generateDownloadIndexAndMetaUrl(source,dataset)
+      //here I should log the .meta file with FileLogger but I dont know how to know the
+      //parameters needed prior to download the file. also, this file should always be downloaded,
+      //so there is no need of checking it, ENCODE always provide the last version of this .meta file.
       if(urlExists(indexAndMetaUrl)){
         downloadFileFromURL(
           indexAndMetaUrl,
@@ -116,11 +119,10 @@ object ENCODEDownloader extends GMQLDownloader{
     val url = header.lastIndexOf("File download URL")
 
     val log = new FileLogger(source.outputFolder + "/" + dataset.outputFolder + "/Downloads")
-    /*I will check all the server files against the local ones so i mark as outdated,
+    /*I will check all the server files against the local ones so i mark as to compare,
     * the files will change their state while I check each one of them. If there is
-    * a file deleted from the server will be marked as OUTDATED*/
-    log.markAsOutdated()
-
+    * a file deleted from the server will be marked as OUTDATED before saving the table back*/
+    log.markToCompare()
     Source.fromFile(
       source.outputFolder + "/" +
         dataset.outputFolder + "/Downloads/" +
@@ -130,14 +132,16 @@ object ENCODEDownloader extends GMQLDownloader{
       if (urlExists(fields(url))) {
         if (log.checkIfUpdate(filename, fields(url), fields(originSize), fields(originLastUpdate))) {
           //MUST BE DONE: handle if the file is not downloaded.
+          //if not downloaded use log.markAsFailed(filename)
           downloadFileFromURL(fields(url), source.outputFolder + "/" + dataset.outputFolder + "/Downloads/" + filename)
           log.markAsUpdated(filename)
         }
       }
       else
         println("could not download " + filename + " from " + dataset.outputFolder)
-      log.saveTable()
     })
+    log.markAsOutdated()
+    log.saveTable()
   }
   /**
     * checks if the given URL exists

@@ -7,7 +7,7 @@
         <transformer>NULLTransformer</transformer>
         <download_enabled>TRUE</download_enabled>
         <transform_enabled>TRUE</transform_enabled>
-        <load_enabled>FALSE</load_enabled>
+        <load_enabled>TRUE</load_enabled>
         <parameter_list>
             <parameter>
                 <key>username</key>
@@ -56,8 +56,8 @@
         <downloader>ENCODEDownloader</downloader>
         <transformer>ENCODETransformer</transformer>
         <download_enabled>TRUE</download_enabled>
-        <transform_enabled>TRUE</transform_enabled>
-        <load_enabled>FALSE</load_enabled>
+            <transform_enabled>TRUE</transform_enabled>
+        <load_enabled>TRUE</load_enabled>
         <parameter_list>
             <parameter>
                 <key>metadata_suffix</key>

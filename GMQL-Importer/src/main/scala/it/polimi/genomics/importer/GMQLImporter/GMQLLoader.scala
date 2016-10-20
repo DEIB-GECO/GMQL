@@ -52,7 +52,7 @@ object GMQLLoader {
         //if repo exists I do ADD/DELETE
         //ELSE IMPORT
         repo.importDs(
-          source.outputFolder+"-"+dataset.outputFolder,
+          source.name+" "+dataset.outputFolder,
           source.gmqlUser,
           listAdd,
           source.outputFolder+"/"+dataset.outputFolder+"/Transformations/"+dataset.outputFolder+".schema")
