@@ -8,15 +8,7 @@ object example {
   val logger = LoggerFactory.getLogger(example.getClass)
 
   def main(args: Array[String]): Unit = {
-    org.slf4j.LoggerFactory.getLogger(example.getClass).debug("hello")
-    try{
-      throw new Exception("asd")
-    }
-    catch {
-      case e:Exception => logger.warn("ARIF!",e)
-    }
     runDemo()
-
   }
   /**
     * Starts a demonstration of the functionality of GMQL-Importer,
