@@ -1,11 +1,13 @@
 package it.polimi.genomics.importer.ENCODEImporter
 
-import java.io.{BufferedInputStream, File, FileInputStream, FileOutputStream, IOException, PrintWriter}
+import java.io._
 import java.util.zip.GZIPInputStream
 
-import it.polimi.genomics.importer.GMQLImporter.{GMQLTransformer,GMQLSource,GMQLDataset}
-import it.polimi.genomics.importer.GMQLImporter.utils.SCHEMA_LOCATION
+import com.google.common.io.Files
 import it.polimi.genomics.importer.FileLogger.FileLogger
+import it.polimi.genomics.importer.GMQLImporter.utils.SCHEMA_LOCATION
+import it.polimi.genomics.importer.GMQLImporter.{GMQLDataset, GMQLSource, GMQLTransformer}
+import org.slf4j.LoggerFactory
 
 import scala.io.Source
 
@@ -17,7 +19,7 @@ import scala.io.Source
   *   - .gz data files downloaded from ENCODE.
   */
 object ENCODETransformer extends GMQLTransformer {
-
+  val logger = LoggerFactory.getLogger(this.getClass)
 
   /**
     * ENCODE data comes in .gz containers and metadata comes all together in a single file
@@ -26,11 +28,12 @@ object ENCODETransformer extends GMQLTransformer {
     * @param source contains specific download and sorting info.
     */
   override def transform(source: GMQLSource): Unit = {
-    println("Starting transform for: " + source.outputFolder)
+    logger.info("Starting transformation for: " + source.outputFolder)
     source.datasets.foreach(dataset => {
-      println("Transform for dataset: " + dataset.outputFolder)
+      logger.info("Transformation for dataset: " + dataset.outputFolder)
       val folder = new File(source.outputFolder + "/" + dataset.outputFolder + "/Transformations")
       if (!folder.exists()) {
+        logger.debug("Folder created: "+folder)
         folder.mkdirs()
       }
       transformData(source, dataset)
@@ -56,12 +59,12 @@ object ENCODETransformer extends GMQLTransformer {
       val name = file.name.substring(0, file.name.lastIndexOf("."))
       //should get file size, for the moment I pass the origin size just to have a value.
       if (logTransform.checkIfUpdate(name, file.name, file.originSize, file.lastUpdate)) {
-        print("unGzipping: " + file.name)
+        logger.debug("Start unGzipping: " + file.name)
         unGzipIt(
           source.outputFolder + "/" + dataset.outputFolder + "/Downloads/" + file.name,
           source.outputFolder + "/" + dataset.outputFolder + "/Transformations/" + name)
         logTransform.markAsUpdated(name)
-        println(" DONE")
+        logger.info("UnGzipping: " + file.name+" DONE")
       }
     })
     logDownload.markAsProcessed()
@@ -76,7 +79,7 @@ object ENCODETransformer extends GMQLTransformer {
     * @param dataset     refers to the actual dataset being added
     */
   private def transformMeta(source: GMQLSource, dataset: GMQLDataset): Unit = {
-    println("Splitting ENCODE metadata for dataset: " + dataset.outputFolder)
+    logger.info("Splitting ENCODE metadata for dataset: " + dataset.outputFolder)
     val header = Source.fromFile(
       source.outputFolder + "/" +
         dataset.outputFolder + "/Downloads/" +
@@ -99,6 +102,7 @@ object ENCODETransformer extends GMQLTransformer {
           writer.write(header(i) + "\t" + fields(i) + "\n")
       }
       writer.close()
+      logger.debug("File Created: " + source.outputFolder + "/" + dataset.outputFolder + "/Transformations/" + aux2)
     })
   }
 
@@ -128,7 +132,7 @@ object ENCODETransformer extends GMQLTransformer {
       fos.close()
       zis.close()
     } catch {
-      case e: IOException => println("exception caught: " + e.getMessage)
+      case e: IOException => logger.error("Couldnt UnGzip the file: " + outputPath,e)
     }
   }
 
@@ -144,12 +148,18 @@ object ENCODETransformer extends GMQLTransformer {
   override def organize(source: GMQLSource): Unit = {
     source.datasets.foreach(dataset => {
       if (dataset.schemaLocation == SCHEMA_LOCATION.LOCAL) {
-        import java.io.{File, FileInputStream, FileOutputStream}
         val src = new File(dataset.schema)
-        val dest = new File(source.outputFolder + "/" + dataset.outputFolder + "/Transformations/" + dataset.outputFolder + ".schema")
-        new FileOutputStream(dest) getChannel() transferFrom(
-          new FileInputStream(src) getChannel, 0, Long.MaxValue)
-        println("Schema copied from: " + src + " to " + dest)
+        val dest = new File(source.outputFolder + "/" + dataset.outputFolder +
+          "/Transformations/" + dataset.outputFolder + ".schema")
+
+        try {
+          Files.copy(src,dest)
+          logger.info("Schema copied from: " + src.getAbsolutePath + " to " + dest.getAbsolutePath)
+        }
+        catch {
+          case e: IOException => logger.error("could not copy the file "+
+            src.getAbsolutePath + " to " + dest.getAbsolutePath)
+        }
       }
     })
   }

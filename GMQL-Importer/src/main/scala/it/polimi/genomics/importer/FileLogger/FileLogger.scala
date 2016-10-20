@@ -2,6 +2,8 @@ package it.polimi.genomics.importer.FileLogger
 
 import java.util.Calendar
 
+import org.slf4j.LoggerFactory
+
 import scala.xml.XML
 /**
   * Created by Nacho on 16/09/2016.
@@ -26,6 +28,7 @@ import scala.xml.XML
   * @param path working folder.
   */
 class FileLogger(path: String){
+  val logger = LoggerFactory.getLogger(this.getClass)
 
   if (!new java.io.File(path).exists) {
     new java.io.File(path).mkdirs()
@@ -85,8 +88,9 @@ class FileLogger(path: String){
     }
     //is a new file, i have to add it to the log
     else {
+      logger.debug(filename + "added to the log " + path)
       //I initiate the status as FAILED to indicate the file has not been downloaded, then should be marked as update
-      files = files :+ FileLogElement(filename, "", FILE_STATUS.FAILED,origin,originSize,originLastUpdate,"")
+      files = files :+ FileLogElement(filename, "", FILE_STATUS.FAILED, origin, originSize, originLastUpdate, "")
       true
     }
   }
@@ -126,6 +130,7 @@ class FileLogger(path: String){
       )}
       </file_list>
     XML.save(path + "/" + "FileLog.xml", log)
+    logger.debug("log saved in "+ path + "with "+ files.size + "files.")
   }
 
 

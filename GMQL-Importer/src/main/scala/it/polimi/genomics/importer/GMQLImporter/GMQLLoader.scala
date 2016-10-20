@@ -3,12 +3,14 @@ package it.polimi.genomics.importer.GMQLImporter
 import it.polimi.genomics.importer.FileLogger.FileLogger
 import it.polimi.genomics.repository.FSRepository.LFSRepository
 import it.polimi.genomics.repository.GMQLRepository.GMQLSample
+import org.slf4j.LoggerFactory
 
 /**
   * Created by Nacho on 10/17/16.
   */
 object GMQLLoader {
 
+  val logger = LoggerFactory.getLogger(this.getClass)
   /**
     * using information in the information, will insert into GMQLRepository the files
     * already downloaded, transformed and organized.
@@ -41,9 +43,9 @@ object GMQLLoader {
 
       if(listAdd.size()>0 || listDelete.size()>0) {
         val text = "GMQLDataset: " + dataset.outputFolder+", User: "+source.gmqlUser +
-          (if(listAdd.size()>0){ ". Trying to add "+listAdd.size()+" samples" }else "") +
-          (if(listDelete.size()>0){ ". Trying to delete "+listDelete.size()+" samples" }else "")
-        println(text)
+          (if(listAdd.size()>0){ ". Trying to add "+listAdd.size()+" samples" }else "")
+          //+ (if(listDelete.size()>0){ ". Trying to delete "+listDelete.size()+" samples" }else "")
+        logger.info(text)
         //If the dataset exists already, I have to add sample instead of importing the whole dataset.
         //I have to use GMQLRepository.DSExists
         val repo = new LFSRepository
@@ -56,7 +58,7 @@ object GMQLLoader {
           source.gmqlUser,
           listAdd,
           source.outputFolder+"/"+dataset.outputFolder+"/Transformations/"+dataset.outputFolder+".schema")
-        println("import completed")
+        logger.info("import completed")
       }
       log.markAsProcessed()
       log.saveTable()
