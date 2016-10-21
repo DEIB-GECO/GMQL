@@ -7,7 +7,10 @@
 [GMQL-Importer](https://github.com/akaitoua/GMQL/new/master/GMQL-Importer) is meant to be the interface between the [GMQL-Repository](https://github.com/akaitoua/GMQL/tree/master/GMQL-Repository) and the different sources used in the [GMQL Project](https://github.com/akaitoua/GMQL), these different sources can have many data formats and procedures to obtain them
 
 ## Repository Structure
-TO BE DONE =)
+
+  * [GMQLImporter Base Components](https://github.com/akaitoua/GMQL/tree/master/GMQL-Importer/src/main/scala/it/polimi/genomics/importer/GMQLImporter)
+
+  * TO BE COMPLETED...
 
 ## Installation
 
