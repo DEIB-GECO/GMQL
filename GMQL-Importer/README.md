@@ -2,11 +2,12 @@
 
 [GMQL-Importer](https://github.com/akaitoua/GMQL/new/master/GMQL-Importer) gathers information from heterogeneous datasources and integrates them into the [Genomic Data Model (GDM)](http://www.sciencedirect.com/science/article/pii/S1046202316303012) for further processing using [GenoMetric Query Language (GMQL)](http://www.bioinformatics.deib.polimi.it/genomic_computing/)
 
-[//]: # (## Code Example)
-
 ## Motivation
 
 [GMQL-Importer](https://github.com/akaitoua/GMQL/new/master/GMQL-Importer) is meant to be the interface between the [GMQL-Repository](https://github.com/akaitoua/GMQL/tree/master/GMQL-Repository) and the different sources used in the [GMQL Project](https://github.com/akaitoua/GMQL), these different sources can have many data formats and procedures to obtain them
+
+## Repository Structure
+TO BE DONE =)
 
 ## Installation
 
@@ -21,12 +22,8 @@ Depending on the size of the project, if it is small and simple enough the refer
 
 Once you have downloaded and installed [GMQL Project](https://github.com/akaitoua/GMQL) inside the [Source Folder](https://github.com/akaitoua/GMQL/tree/master/GMQL-Importer/src/main/scala), there is an example to run and check the basic functionallity of [GMQL-Importer](https://github.com/akaitoua/GMQL/new/master/GMQL-Importer)
 
-[##]: # (Describe and show how to run the tests with code examples.)
 
 ## Contributors
-
-Main contributor is [Nacho](https://github.com/nachodox) who started it as part of his master's thesis at [PoliMI](http://www.polimi.it/)
-
-[##]: # (Let people know how they can dive into the project, include important links to things like issue trackers, irc, twitter accounts if applicable.)
-
-[##]: # ( License)
+                                                                                                  | username                                                       | talk to me about...                               |
+--------------------------------------------------------------------------------------------------|----------------------------------------------------------------|---------------------------------------------------|
+ <img src="https://avatars.githubusercontent.com/nachodox"      height="50px" title="Nacho Vera"/>        | [`@NachoVera`](https://github.com/nachodox)           | Everything related to the GMQL-Importer for now, documentation, bugs, procedures |
