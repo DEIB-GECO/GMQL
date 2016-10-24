@@ -14,12 +14,4 @@ trait GMQLTransformer {
     * @param source contains specific download and sorting info.
     */
   def transform(source: GMQLSource):Unit
-
-  /**
-    * using information in the loader should arrange the files into a single folder
-    * where data and metadata are paired as (file,file.meta) and should put also
-    * the schema file inside the folder.
-    * @param source contains specific download and sorting info.
-    */
-  def organize(source: GMQLSource):Unit
 }

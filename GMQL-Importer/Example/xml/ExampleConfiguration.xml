@@ -3,11 +3,11 @@
         <url>bioinf.iasi.cnr.it</url>
         <output_folder>GMQL-Importer/Example/TCGA2BED</output_folder>
         <gmql_user>public</gmql_user>
-        <downloader>FTPDownloader</downloader>
-        <transformer>NULLTransformer</transformer>
-        <download_enabled>TRUE</download_enabled>
-        <transform_enabled>TRUE</transform_enabled>
-        <load_enabled>TRUE</load_enabled>
+        <downloader>it.polimi.genomics.importer.DefaultImporter.FTPDownloader</downloader>
+        <transformer>it.polimi.genomics.importer.DefaultImporter.NULLTransformer</transformer>
+        <download_enabled>FALSE</download_enabled>
+        <transform_enabled>FALSE</transform_enabled>
+        <load_enabled>FALSE</load_enabled>
         <parameter_list>
             <parameter>
                 <key>username</key>
@@ -53,8 +53,8 @@
         <url>https://www.encodeproject.org/metadata/</url>
         <output_folder>GMQL-Importer/Example/ENCODE</output_folder>
         <gmql_user>public</gmql_user>
-        <downloader>ENCODEDownloader</downloader>
-        <transformer>ENCODETransformer</transformer>
+        <downloader>it.polimi.genomics.importer.ENCODEImporter.ENCODEDownloader</downloader>
+        <transformer>it.polimi.genomics.importer.ENCODEImporter.ENCODETransformer</transformer>
         <download_enabled>TRUE</download_enabled>
             <transform_enabled>TRUE</transform_enabled>
         <load_enabled>TRUE</load_enabled>

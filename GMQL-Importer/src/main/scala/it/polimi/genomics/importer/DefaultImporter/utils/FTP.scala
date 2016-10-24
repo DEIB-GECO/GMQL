@@ -1,4 +1,4 @@
-package it.polimi.genomics.importer.GMQLImporter.Defaults.utils
+package it.polimi.genomics.importer.DefaultImporter.utils
 
 //https://gist.github.com/owainlewis/06e8bdfa6c42acec2ef9dec756c05c2f
 //I use as interface for FTP client.

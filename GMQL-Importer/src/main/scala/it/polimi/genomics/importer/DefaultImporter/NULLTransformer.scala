@@ -1,7 +1,6 @@
-package it.polimi.genomics.importer.GMQLImporter.Defaults
+package it.polimi.genomics.importer.DefaultImporter
 
-import java.io.File
-import java.io.IOException
+import java.io.{File, IOException}
 
 import com.google.common.io.Files
 import it.polimi.genomics.importer.FileLogger.FileLogger
@@ -12,7 +11,7 @@ import org.slf4j.LoggerFactory
 /**
   * Created by Nacho on 10/13/16.
   */
-object NULLTransformer extends GMQLTransformer {
+class NULLTransformer extends GMQLTransformer {
   val logger = LoggerFactory.getLogger(this.getClass)
 
   /**
@@ -79,7 +78,7 @@ object NULLTransformer extends GMQLTransformer {
     *
     * @param source contains all required information for organizing the data and metadata
     */
-  override def organize(source: GMQLSource): Unit = {
+  def organize(source: GMQLSource): Unit = {
     source.datasets.foreach(dataset => {
       if (dataset.schemaLocation == SCHEMA_LOCATION.LOCAL) {
         import java.io.{File, FileInputStream, FileOutputStream}

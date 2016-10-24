@@ -1,11 +1,9 @@
-import it.polimi.genomics.importer.GMQLImporter.{GMQLSource,GMQLDataset,GMQLLoader}
+import it.polimi.genomics.importer.GMQLImporter.{GMQLDataset, GMQLLoader, GMQLSource, GMQLDownloader, GMQLTransformer}
 import it.polimi.genomics.importer.GMQLImporter.utils.SCHEMA_LOCATION
-import it.polimi.genomics.importer.GMQLImporter.Defaults.{FTPDownloader, NULLTransformer}
-import it.polimi.genomics.importer.ENCODEImporter.{ENCODEDownloader, ENCODETransformer}
 import scala.xml.XML
 import org.slf4j._
 object example {
-  val logger = LoggerFactory.getLogger(example.getClass)
+  val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
   def main(args: Array[String]): Unit = {
     runDemo()
@@ -43,21 +41,13 @@ object example {
       )
     })
     sources.foreach(source =>{
-      if(source.download){
-        source.downloader match{
-          case "FTPDownloader" => FTPDownloader.download(source)
-          case "ENCODEDownloader" => ENCODEDownloader.download(source)
-          case _ => println("no downlaoder")
-        }
+      if(source.download_enabled){
+        Class.forName(source.downloader).newInstance.asInstanceOf[GMQLDownloader].download(source)
       }
-      if(source.transform){
-        source.transformer match {
-          case "NULLTransformer" => NULLTransformer.transform(source)
-          case "ENCODETransformer" => ENCODETransformer.transform(source)
-          case _ => println("no transformer")
-        }
+      if(source.transform_enabled){
+        Class.forName(source.transformer).newInstance.asInstanceOf[GMQLTransformer].transform(source)
       }
-      if(source.load){
+      if(source.load_enabled){
         GMQLLoader.loadIntoGMQL(source)
       }
     })

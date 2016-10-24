@@ -1,17 +1,17 @@
-package it.polimi.genomics.importer.GMQLImporter.Defaults
+package it.polimi.genomics.importer.DefaultImporter
 
 import java.io.File
 
-import it.polimi.genomics.importer.GMQLImporter.{GMQLDataset, GMQLDownloader, GMQLSource}
-import it.polimi.genomics.importer.GMQLImporter.utils.SCHEMA_LOCATION
 import it.polimi.genomics.importer.FileLogger.FileLogger
-import it.polimi.genomics.importer.GMQLImporter.Defaults.utils.FTP
+import it.polimi.genomics.importer.DefaultImporter.utils.FTP
+import it.polimi.genomics.importer.GMQLImporter.utils.SCHEMA_LOCATION
+import it.polimi.genomics.importer.GMQLImporter.{GMQLDataset, GMQLDownloader, GMQLSource}
 import org.slf4j.LoggerFactory
 
 /**
   * Created by Nacho on 10/13/16.
   */
-object FTPDownloader extends GMQLDownloader {
+class FTPDownloader extends GMQLDownloader {
   val logger = LoggerFactory.getLogger(this.getClass)
 
   /**

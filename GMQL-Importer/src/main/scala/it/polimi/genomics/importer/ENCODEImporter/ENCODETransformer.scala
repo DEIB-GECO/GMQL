@@ -18,7 +18,7 @@ import scala.io.Source
   *   - metadata file downloaded from ENCODE (1 single file for all the samples)
   *   - .gz data files downloaded from ENCODE.
   */
-object ENCODETransformer extends GMQLTransformer {
+class ENCODETransformer extends GMQLTransformer {
   val logger = LoggerFactory.getLogger(this.getClass)
 
   /**
@@ -150,7 +150,7 @@ object ENCODETransformer extends GMQLTransformer {
     *
     * @param source contains specific download and sorting info.
     */
-  override def organize(source: GMQLSource): Unit = {
+  def organize(source: GMQLSource): Unit = {
     source.datasets.foreach(dataset => {
       if (dataset.schemaLocation == SCHEMA_LOCATION.LOCAL) {
         val src = new File(dataset.schema)

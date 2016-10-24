@@ -13,7 +13,7 @@ import scala.io.Source
 /**
   * Created by Nacho on 10/13/16.
   */
-object ENCODEDownloader extends GMQLDownloader {
+class ENCODEDownloader extends GMQLDownloader {
   val logger = LoggerFactory.getLogger(this.getClass)
 
   /**
@@ -100,7 +100,7 @@ object ENCODEDownloader extends GMQLDownloader {
     * @param path destination file path and name.
     */
   def downloadFileFromURL(url: String, path: String): Unit = {
-    logger.debug("Downloading: " + path + " from: " + url)
+    //logger.debug("Downloading: " + path + " from: " + url)
     //I have to recheck if this is safe
     new URL(url) #> new File(path) !!;
     logger.info("Downloading: " + path + " from: " + url + " DONE")
