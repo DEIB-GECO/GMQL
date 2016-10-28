@@ -358,6 +358,8 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
 
     var status: CompilerStatus = new CompilerStatus(server)
 
+    var has_materialize : Boolean = false
+
     for (s <- list_statements) {
       s.check_input_number()
       s.check_input_variables(status)
@@ -368,14 +370,16 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
           build_op.check_output_variable(status)
           build_op.preprocess_operator(status)
           val new_var = build_op.translate_operator(status)
-          println(new_var)
           status.add_variable(new_var.name, new_var.pos, new_var.payload)
         }
         case m: MaterializeOperator => {
+          has_materialize = true
           m.translate_operator(status)
         }
       }
     }
+
+    if (!has_materialize) throw new CompilerException("At list one MATERIALIZE statement is required in order to run the query")
 
     true
 

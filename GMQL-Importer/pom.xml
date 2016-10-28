@@ -9,6 +9,35 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>GMQL-Importer</artifactId>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>it.polimi.genomics</groupId>
+            <artifactId>GMQL-Repository</artifactId>
+            <version>1.0</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/com.h2database/h2 -->
+        <!-- <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>1.4.192</version>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.slick</groupId>
+            <artifactId>slick_2.11</artifactId>
+            <version>3.0.0</version>
+        </dependency> -->
+
+        <!-- http://mvnrepository.com/artifact/org.slf4j/slf4j-log4j12 -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>1.7.21</version>
+        </dependency>
+
+
+    </dependencies>
     <build>
         <plugins>
 

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gmqlSchemaCollection name="GLOBAL_SCHEMAS" xmlns="http://genomic.elet.polimi.it/entities">
+	<gmqlSchema type="tab">
+		<field type="STRAND">strand</field>
+		<field type="INTEGER">Num_Probes</field>
+		<field type="FLOAT">Segment_Mean</field>
+		<field type="STRING">is_nocnv</field>
+	</gmqlSchema>
+</gmqlSchemaCollection>

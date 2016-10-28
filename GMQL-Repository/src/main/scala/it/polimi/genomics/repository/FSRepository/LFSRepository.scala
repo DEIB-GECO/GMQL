@@ -57,7 +57,7 @@ class LFSRepository extends GMQLRepository{
   @throws(classOf[GMQLUserNotFound])
   override def importDs(dataSetName: String, userName: String, Samples: java.util.List[GMQLSample], schemaPath: String): Unit = {
     if (Utilities.validate(schemaPath)) {
-      val xmlFile = XML.load(GMQLRepository.Utilities.RepoDir + userName + "/schema/" + dataSetName + ".schema")
+      val xmlFile = XML.load(schemaPath)
       val cc = (xmlFile \\ "field")
       val schemaType = (xmlFile \\ "gmqlSchema").head.attribute("type").get.head.text
       val schema = cc.map { x => (x.text.trim, attType(x.attribute("type").get.head.text)) }.toList.asJava

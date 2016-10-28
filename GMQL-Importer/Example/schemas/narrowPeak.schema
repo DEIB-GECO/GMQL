@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<gmqlSchemaCollection name="job_filename_nachodox_20161017_140108_perro" xmlns="http://genomic.elet.polimi.it/entities">
+<gmqlSchema type="GTF">
+           <field type="STRING">seqname</field>
+           <field type="STRING">source</field>
+           <field type="STRING">feature</field>
+           <field type="LONG">start</field>
+           <field type="LONG">end</field>
+           <field type="DOUBLE">score</field>
+           <field type="CHAR">strand</field>
+           <field type="STRING">frame</field>
+           <field type="STRING">name</field>
+           <field type="DOUBLE">signal</field>
+           <field type="DOUBLE">pvalue</field>
+           <field type="DOUBLE">qvalue</field>
+           <field type="DOUBLE">peak</field>
+</gmqlSchema>
+</gmqlSchemaCollection>
