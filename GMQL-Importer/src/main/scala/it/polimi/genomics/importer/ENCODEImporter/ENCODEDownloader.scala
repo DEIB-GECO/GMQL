@@ -50,7 +50,7 @@ class ENCODEDownloader extends GMQLDownloader {
           new java.io.File(outputPath).mkdirs()
         }
         val indexAndMetaUrl = generateDownloadIndexAndMetaUrl(source, dataset)
-        val reportUrl = generateReportUrl(source, dataset)
+        //val reportUrl = generateReportUrl(source, dataset)
         //here I should log the .meta file with FileLogger but I dont know how to know the
         //parameters needed prior to download the file. also, this file should always be downloaded,
         //so there is no need of checking it, ENCODE always provide the last version of this .meta file.
@@ -70,7 +70,7 @@ class ENCODEDownloader extends GMQLDownloader {
             Calendar.getInstance.getTime.toString)
           log.markAsUpdated("metadata.tsv")
 
-          downloadFileFromURL(
+          /*downloadFileFromURL(
             reportUrl,
             outputPath + File.separator + "report" + ".tsv")
           log.checkIfUpdate(
@@ -78,7 +78,8 @@ class ENCODEDownloader extends GMQLDownloader {
             reportUrl,
             new File(outputPath + File.separator + "report" + ".tsv").getTotalSpace.toString,
             Calendar.getInstance.getTime.toString)
-          log.markAsUpdated("report.tsv")
+          log.markAsUpdated("report.tsv")*/
+          //this is commented as we changed to json instead of report.
 
           log.saveTable()
           downloadFilesFromMetadataFile(source, dataset)
@@ -102,9 +103,9 @@ class ENCODEDownloader extends GMQLDownloader {
   def generateDownloadIndexAndMetaUrl(source: GMQLSource, dataset: GMQLDataset): String = {
     source.url + source.parameters.filter(_._1.equalsIgnoreCase("metadata_prefix")).head._2 + generateParameterSet(dataset) + source.parameters.filter(_._1 == "metadata_suffix").head._2
   }
-  def generateReportUrl(source: GMQLSource, dataset: GMQLDataset): String ={
+  /*def generateReportUrl(source: GMQLSource, dataset: GMQLDataset): String ={
     source.url + source.parameters.filter(_._1.equalsIgnoreCase("report_prefix")).head._2 + generateParameterSet(dataset) + "&" + generateFieldSet(source)
-  }
+  }*/
   def generateFieldSet(source: GMQLSource): String ={
     val file: Elem = XML.loadFile(source.parameters.filter(_._1.equalsIgnoreCase("encode_metadata_configuration")).head._2)
     var set = ""
@@ -166,6 +167,7 @@ class ENCODEDownloader extends GMQLDownloader {
 
     val originLastUpdate = header.lastIndexOf("Experiment date released")
     val originSize = header.lastIndexOf("Size")
+    val experimentAccession = header.lastIndexOf("Experiment accession")
     //to be used
     //val md5sum = header.lastIndexOf("md5sum")
     val url = header.lastIndexOf("File download URL")
@@ -184,7 +186,17 @@ class ENCODEDownloader extends GMQLDownloader {
         }
       }
       else
-        logger.error("could not download " + filename + " from " + dataset.outputFolder)
+        logger.error("could not download " + filename + " from " + dataset.outputFolder +"path does not exist")
+      //example of json url https://www.encodeproject.org/experiments/ENCSR570HXV/?frame=embedded&format=json
+      val urlExperimentJson = source.url+"experiments"+File.separator+fields(experimentAccession)+File.separator+"?frame=embedded&format=json"
+      if(urlExists(urlExperimentJson)){
+        if(log.checkIfUpdate(filename+".json", urlExperimentJson, fields(originSize), fields(originLastUpdate))) {
+          //MUST BE DONE: handle if the file is not downloaded.
+          //if not downloaded use log.markAsFailed(filename)
+          downloadFileFromURL(urlExperimentJson, path + File.separator + filename + ".json")
+          log.markAsUpdated(filename)
+        }
+      }
     })
     log.markAsOutdated()
     log.saveTable()
