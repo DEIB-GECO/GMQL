@@ -16,7 +16,7 @@ class FTPDownloader extends GMQLDownloader {
 
   /**
     * downloads the files from the source defined in the information
-    * into the folder defined in the information
+    * into the folder defined in the source
     *
     * @param source contains specific download and sorting info.
     */
@@ -30,10 +30,12 @@ class FTPDownloader extends GMQLDownloader {
     //the mark to compare is done here because the iteration on ftp is based on ftp folders and not
     //on the source datasets.
     source.datasets.foreach(dataset => {
-      val outputPath = source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Downloads"
-      val log = new FileLogger(outputPath)
-      log.markToCompare()
-      log.saveTable()
+      if(dataset.downloadEnabled) {
+        val outputPath = source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Downloads"
+        val log = new FileLogger(outputPath)
+        log.markToCompare()
+        log.saveTable()
+      }
     })
     logger.debug("trying to connect to FTP: " + source.url +
       " - username: " + source.parameters.filter(_._1 == "username").head._2 +
@@ -48,10 +50,12 @@ class FTPDownloader extends GMQLDownloader {
       ftp.disconnect()
 
       source.datasets.foreach(dataset => {
-        val outputPath = source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Downloads"
-        val log = new FileLogger(outputPath)
-        log.markAsOutdated()
-        log.saveTable()
+        if(dataset.downloadEnabled) {
+          val outputPath = source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Downloads"
+          val log = new FileLogger(outputPath)
+          log.markAsOutdated()
+          log.saveTable()
+        }
       })
     }
     else
@@ -82,42 +86,44 @@ class FTPDownloader extends GMQLDownloader {
     */
   private def checkFolderForDownloads(ftp: FTP, source: GMQLSource): Unit = {
     for (dataset <- source.datasets) {
-      if (ftp.workingDirectory().matches(dataset.parameters.filter(_._1 == "folder_regex").head._2)) {
-        val outputPath = source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Downloads"
-        val log = new FileLogger(outputPath)
+      if(dataset.downloadEnabled) {
+        if (ftp.workingDirectory().matches(dataset.parameters.filter(_._1 == "folder_regex").head._2)) {
+          val outputPath = source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Downloads"
+          val log = new FileLogger(outputPath)
 
-        logger.info("Searching: " + ftp.workingDirectory())
-        if (!new java.io.File(outputPath).exists) {
-          new java.io.File(outputPath).mkdirs()
-        }
+          logger.info("Searching: " + ftp.workingDirectory())
+          if (!new java.io.File(outputPath).exists) {
+            new java.io.File(outputPath).mkdirs()
+          }
 
-        val files = ftp.listFiles().filter(_.isFile).filter(_.getName.matches(
-          dataset.parameters.filter(_._1 == "files_regex").head._2))
+          val files = ftp.listFiles().filter(_.isFile).filter(_.getName.matches(
+            dataset.parameters.filter(_._1 == "files_regex").head._2))
 
-        for (file <- files) {
-          if (log.checkIfUpdate(
-            file.getName,
-            ftp.workingDirectory() + File.separator + file.getName,
-            file.getSize.toString,
-            file.getTimestamp.getTime.toString)) {
-            logger.debug("Starting download of: " + ftp.workingDirectory() + File.separator + file.getName)
-            var downloaded = ftp.downloadFile(file.getName, outputPath + File.separator + file.getName)
-            var timesTried = 0
-            while (!downloaded && timesTried < 4) {
-              downloaded = ftp.downloadFile(file.getName, outputPath + File.separator + file.getName)
-              timesTried += 1
-            }
-            if (!downloaded) {
-              logger.error("Downloading: " + ftp.workingDirectory() + File.separator + file.getName + " FAILED")
-              log.markAsFailed(file.getName)
-            }
-            else {
-              logger.info("Downloading: " + ftp.workingDirectory() + File.separator + file.getName + " DONE")
-              log.markAsUpdated(file.getName)
+          for (file <- files) {
+            if (log.checkIfUpdate(
+              file.getName,
+              ftp.workingDirectory() + File.separator + file.getName,
+              file.getSize.toString,
+              file.getTimestamp.getTime.toString)) {
+              logger.debug("Starting download of: " + ftp.workingDirectory() + File.separator + file.getName)
+              var downloaded = ftp.downloadFile(file.getName, outputPath + File.separator + file.getName)
+              var timesTried = 0
+              while (!downloaded && timesTried < 4) {
+                downloaded = ftp.downloadFile(file.getName, outputPath + File.separator + file.getName)
+                timesTried += 1
+              }
+              if (!downloaded) {
+                logger.error("Downloading: " + ftp.workingDirectory() + File.separator + file.getName + " FAILED")
+                log.markAsFailed(file.getName)
+              }
+              else {
+                logger.info("Downloading: " + ftp.workingDirectory() + File.separator + file.getName + " DONE")
+                log.markAsUpdated(file.getName)
+              }
             }
           }
+          log.saveTable()
         }
-        log.saveTable()
       }
     }
   }
