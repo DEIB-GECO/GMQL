@@ -32,16 +32,24 @@ object GenometricMap10 {
     val exp: RDD[(GRecordKey, Array[GValue])] =
       executor.implement_rd(experiments, sc)
 
-    execute(executor, grouping, aggregator, ref, exp, BINNING_PARAMETER, REF_PARALLILISM, sc)
+    execute(executor, grouping, aggregator, ref, exp, 100, REF_PARALLILISM, sc)
   }
 
   @throws[SelectFormatException]
   def execute(executor : GMQLSparkExecutor, grouping : OptionalMetaJoinOperator, aggregator : List[RegionAggregate.RegionsToRegion], ref: RDD[GRECORD], exp: RDD[GRECORD], BINNING_PARAMETER:Long, REF_PARALLILISM:Int,sc : SparkContext) : RDD[GRECORD] = {
-    val groups: Broadcast[Map[Long, Iterable[Long]]] = sc.broadcast( executor.implement_mjd(grouping, sc)
-      .flatMap{x=>
-        val ha = Hashing.md5.newHasher.putLong(x._1); x._2.foreach{SID => ha.putLong(SID)}; val group = ha.hash().asLong(); (x._1,group) :: x._2.map(s=>(s,group)).toList}.groupByKey.collectAsMap())
+    val g = executor.implement_mjd(grouping, sc)
 
-//    groups.foreach(println(_))
+    val expIDs: List[Long] = g.flatMap(_._2).distinct().collect().toList
+
+    val groups: Broadcast[Map[Long, Iterable[Long]]] =
+      sc.broadcast(
+        g.flatMap { x =>
+          val ha = Hashing.md5.newHasher.putLong(x._1);
+          x._2.foreach { SID => ha.putLong(SID) };
+          val group = ha.hash().asLong();
+          (x._1, group) :: x._2.map(s => (s, group)).toList
+        }.groupByKey.collectAsMap()
+      )
 
     val expDataPartitioner: Partitioner = exp.partitioner match {
       case (Some(p)) => p
@@ -49,6 +57,10 @@ object GenometricMap10 {
     }
 
     logger.info("Reference: "+ref.count)
+    logger.info("experiments: "+exp.count)
+    groups.value.foreach(x=>logger.info(x._1+","+x._2.mkString("\t")))
+    logger.info(groups.value.size.toString)
+
     val expBinned = exp.binDS(BINNING_PARAMETER,aggregator,groups,expDataPartitioner)
     val refBinnedRep = ref.binDS(BINNING_PARAMETER,groups,expDataPartitioner).cache()
 
@@ -59,16 +71,33 @@ object GenometricMap10 {
 
     val RefExpJoined: RDD[(Long, (GRecordKey, Array[GValue], Array[GValue], Int))] = refBinnedRep.cogroup(expBinned)
       .flatMap { grouped => val key: (Long, String, Int) = grouped._1;
-        val ref = grouped._2._1.toList.sortBy(x=>(x._2,x._3))
-        val expList = grouped._2._2.toList.groupBy(ex => ex._1).map(ex=>(ex._1,ex._2.sortBy(x=>(x._1,x._2,x._3))))
-        val sss= expList.flatMap { exp => /*println(exp._1,key._2,key._3);*/
-            val s = sweep((exp._1, key._2, key._3), ref.iterator, exp._2.iterator, BINNING_PARAMETER,aggregator).toList;
-            logger.info("sweep: "+s.size);
-            s
+        val ref: List[(Long, Long, Long, Char, Array[GValue])] = grouped._2._1.toList.sortBy(x=>(x._2,x._3))
+        val expList = grouped._2._2.toList.groupBy(ex => ex._1).toList.map(ex=>(ex._1,ex._2.sortBy(x=>(x._1,x._2,x._3))))
+
+
+        val sss=
+          if(!expList.isEmpty)
+            expList.flatMap { exp => /*println(exp._1,key._2,key._3);*/
+            val ref_maped_exp = sweep((exp._1, key._2, key._3), ref, exp._2, BINNING_PARAMETER,aggregator);
+              val outIDs = ref_maped_exp.map(_._2._1._1).distinct
+              if(outIDs.size < expIDs.size) {
+                 val extracted =  expIDs diff outIDs
+                println("extracted: ",expIDs.mkString("\t"), outIDs.mkString("\t"),extracted.mkString("\t"))
+                extracted.flatMap(id => sweep((id, key._2, key._3), ref, List(), BINNING_PARAMETER, aggregator))
+              }
+              else
+//            logger.info("sweep: "+ref_maped_exp.size);
+                ref_maped_exp
         }
-        logger.info("TT:"+ sss.size)
+        else {
+            val rr = expIDs.flatMap(id => sweep((id, key._2, key._3), ref, List(), BINNING_PARAMETER, aggregator))
+            rr
+        }
+//        logger.info("TT:"+ sss.size)
+        if(expList.isEmpty)logger.info("ref size: "+ref.size+",exp list: "+expList.size+",exp size: "+0+" , TT:"+ sss.size)
+        else logger.info("ref size: "+ref.size+",exp list: "+expList.size+",exp size: "+expList.head._2.size+" , TT:"+ sss.size)
         sss
-      }.cache()
+      }//.cache()
     logger.info("TTT:"+RefExpJoined.count())
 
 //    RefExpJoined.foreach(println _)
@@ -102,21 +131,27 @@ object GenometricMap10 {
     output
 //    RefExpJoined.map(x=>(x._2._1,x._2._3 :+ GDouble(x._2._4)))
   }
-  def sweep(key:(Long, String, Int),ref_regions:Iterator[(Long, Long, Long, Char, Array[GValue])],iExp:Iterator[(Long, Long, Long, Char, Array[GValue])]
-            ,bin:Long , aggregator : List[RegionAggregate.RegionsToRegion]): Iterator[(Long, (GRecordKey, Array[GValue], Array[GValue], Int))] = {
+  def sweep(key:(Long, String, Int),ref_regions:List[(Long, Long, Long, Char, Array[GValue])],expBin:List[(Long, Long, Long, Char, Array[GValue])]
+            ,bin:Long , aggregator : List[RegionAggregate.RegionsToRegion]): List[(Long, (GRecordKey, Array[GValue], Array[GValue], Int))] = {
 
     //init empty list for caching regions
     var RegionCache= List[(Long, Long, Long, Char, Array[GValue])]();
     var temp = List[(Long, Long, Long, Char, Array[GValue])]() ;
     var intersectings = List[(Long, Long, Long, Char, Array[GValue])]();
 
-    var exp_region:(Long, Long, Long, Char, Array[GValue]) = (0l,0l,0l,'*',Array[GValue]())
-    if(iExp.hasNext)
-      exp_region = iExp.next;
-    else
-      logger.debug(s"Experiment got empty while it was not !!!")
+    val iExp = if(expBin.isEmpty) Iterator.empty else expBin.iterator
+    var exp_region:(Long, Long, Long, Char, Array[GValue]) = if(iExp.hasNext) {
+      val dd = iExp.next;logger.info(s"full  !!!"+ dd);
+      dd;
+    } else{
+      logger.info(s"Experiment got empty  !!!");
+      null
+    }
+
 
     logger.info("ref_Bin_size: "+ref_regions.size)
+    logger.info("exp_Bin_size: "+expBin.size)
+
    val dd = ref_regions.map{ref_region =>
       //clear the intersection list
       intersectings = List.empty;
@@ -187,7 +222,6 @@ object GenometricMap10 {
             else l._5
           (l._1,l._2,l._3,l._4,values)
         }
-
         (aggregation, (new GRecordKey(newID, key._2, ref_region._2, ref_region._3, ref_region._4), ref_region._5, intersect._5, intersectings.size))
       }else
         (aggregation, (new GRecordKey(newID, key._2, ref_region._2, ref_region._3, ref_region._4), ref_region._5, Array[GValue](), 0))

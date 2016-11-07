@@ -82,7 +82,9 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
         case _ => {
           if (otherPos.isDefined) otherPos.get.foldLeft(new Array[GValue](0))((a, b) => a :+ {
             b._2 match {
-              case ParsingType.DOUBLE => GDouble(s(b._1).trim.toDouble)
+              case ParsingType.DOUBLE => if(s(b._1).trim.equals("null") || s(b._1).trim.equals(".")) {
+                GDouble(0.0)
+              } else GDouble(s(b._1).trim.toDouble)
               case ParsingType.STRING => GString(s(b._1).trim.toString)
             }
           })

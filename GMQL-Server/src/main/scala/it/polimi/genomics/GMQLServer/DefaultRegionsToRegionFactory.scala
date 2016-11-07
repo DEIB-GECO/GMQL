@@ -88,7 +88,7 @@ object DefaultRegionsToRegionFactory extends MapFunctionFactory{
       (line) =>
         val len = line.size.toDouble
         if(len != 0)
-          GDouble((line.map((gvalue) => gvalue.asInstanceOf[GDouble].v).reduce(_ + _))/len)
+          GDouble((line.map((gvalue) => gvalue.asInstanceOf[GDouble].v).reduce(_ + _))/*/len*/)
         else
           GDouble(0)
     }}
