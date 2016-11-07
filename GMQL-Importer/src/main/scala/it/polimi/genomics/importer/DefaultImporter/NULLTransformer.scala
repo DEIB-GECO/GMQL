@@ -23,12 +23,14 @@ class NULLTransformer extends GMQLTransformer {
   override def transform(source: GMQLSource): Unit = {
     logger.info("Starting transformation for: " + source.outputFolder)
     source.datasets.foreach(dataset => {
-      logger.info("Transformation for dataset: " + dataset.outputFolder)
-      val folder = new File(source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Transformations")
-      if (!folder.exists()) {
-        folder.mkdirs()
+      if(dataset.transformEnabled) {
+        logger.info("Transformation for dataset: " + dataset.outputFolder)
+        val folder = new File(source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Transformations")
+        if (!folder.exists()) {
+          folder.mkdirs()
+        }
+        transformData(source, dataset)
       }
-      transformData(source, dataset)
     })
     organize(source)
   }
@@ -47,7 +49,7 @@ class NULLTransformer extends GMQLTransformer {
     val logTransform = new FileLogger(
       source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Transformations")
     logTransform.markAsOutdated()
-    logDownload.filesToUpdate().foreach(file => {
+    logDownload.files.foreach(file => {
       if (logTransform.checkIfUpdate(file.name, file.name, file.originSize, file.lastUpdate)) {
         try {
           Files.copy(new File(source.outputFolder + File.separator + dataset.outputFolder +
@@ -80,14 +82,16 @@ class NULLTransformer extends GMQLTransformer {
     */
   def organize(source: GMQLSource): Unit = {
     source.datasets.foreach(dataset => {
-      if (dataset.schemaLocation == SCHEMA_LOCATION.LOCAL) {
-        import java.io.{File, FileInputStream, FileOutputStream}
-        val src = new File(dataset.schema)
-        val dest = new File(source.outputFolder + File.separator + dataset.outputFolder + File.separator +
-          "Transformations" + File.separator + dataset.outputFolder + ".schema")
-        new FileOutputStream(dest) getChannel() transferFrom(
-          new FileInputStream(src) getChannel, 0, Long.MaxValue)
-        logger.info("Schema copied into " + dest)
+      if(dataset.transformEnabled) {
+        if (dataset.schemaLocation == SCHEMA_LOCATION.LOCAL) {
+          import java.io.{File, FileInputStream, FileOutputStream}
+          val src = new File(dataset.schema)
+          val dest = new File(source.outputFolder + File.separator + dataset.outputFolder + File.separator +
+            "Transformations" + File.separator + dataset.outputFolder + ".schema")
+          new FileOutputStream(dest) getChannel() transferFrom(
+            new FileInputStream(src) getChannel, 0, Long.MaxValue)
+          logger.info("Schema copied into " + dest)
+        }
       }
     })
   }
