@@ -1,0 +1,384 @@
+<encode_metadata_config>
+	<parameter_list name="encode_report_tsv">
+		<parameter include="true">
+			<key>field</key>
+			<value>%40id</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>biosample_summary</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>description</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>replicates.antibody.accession</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>replicates.library.biosample.treatments.treatment_term_id</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>replicates.library.biosample.treatments.concentration</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>replicates.library.biosample.treatments.concentration_units</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>replicates.library.biosample.treatments.duration</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>replicates.library.biosample.treatments.duration_units</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>replicates.library.biosample.post_synchronization_time</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>replicates.library.biosample.post_synchronization_time_units</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>replicates.%40id</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>submitter_comment</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>assay_term_id</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>documents</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>references</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>dbxrefs</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>schema_version</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>internal_tags</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>date_created</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>submitted_by</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>award</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>aliases</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>alternate_accessions</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>possible_controls</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>supersedes</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>related_files</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>internal_status</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>developmental_slims</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>superseded_by</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>type_slims</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>original_files</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>replication_type</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>system_slims</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>objective_slims</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>organ_slims</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>contributing_files</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>related_series</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>biosample_synonyms</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>category_slims</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>files</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>assay_synonyms</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>assay_slims</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>revoked_files</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>month_released</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>hub</value>
+		</parameter>
+	</parameter_list>
+	<parameter_list name="encode_metadata_tsv">
+		<parameter include="true">
+			<key>field</key>
+			<value>File accession</value>
+		</parameter>	
+		<parameter include="true">
+			<key>field</key>
+			<value>File format</value>
+		</parameter>	
+		<parameter include="true">
+			<key>field</key>
+			<value>Output type</value>
+		</parameter>	
+			<parameter include="true">
+			<key>field</key>
+			<value>Experiment accession</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Assay</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Biosample term id</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Biosample term name</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Biosample type</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Biosample life stage</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Biosample sex</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Biosample organism</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Biosample treatments</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Biosample subcellular fraction term name</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Biosample phase</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Biosample synchronization stage</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Experiment target</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Antibody accession</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Library made from</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Library depleted in</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Library extraction method</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Library lysis method</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Library crosslinking method</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Experiment date released</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Project</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>RBNS protein concentration</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Library fragmentation method</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Library size range</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Biosample Age</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Biological replicate(s)</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Technical replicate</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Read length</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Mapped read length</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Run type</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Paired end</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Paired with</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Derived from</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Size</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Lab</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>md5sum</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>File download URL</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Assembly</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Platform</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Controlled by</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>File Status</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Audit WARNING</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Audit INTERNAL_ACTION</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Audit NOT_COMPLIANT</value>
+		</parameter>
+		<parameter include="true">
+			<key>field</key>
+			<value>Audit ERROR</value>
+		</parameter>	
+	</parameter_list>
+</encode_metadata_config>
+
+
