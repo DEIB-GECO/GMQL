@@ -1,6 +1,7 @@
 package it.polimi.genomics.importer.ENCODEImporter
 
 import java.io.{File, _}
+import java.util.Calendar
 import java.util.zip.GZIPInputStream
 
 import com.google.common.io.Files
@@ -9,7 +10,9 @@ import it.polimi.genomics.importer.GMQLImporter.utils.SCHEMA_LOCATION
 import it.polimi.genomics.importer.GMQLImporter.{GMQLDataset, GMQLSource, GMQLTransformer}
 import org.slf4j.LoggerFactory
 
+import scala.Seq
 import scala.io.Source
+import scala.xml.{Elem, XML}
 
 /**
   * Created by Nacho on 10/13/16.
@@ -30,15 +33,23 @@ class ENCODETransformer extends GMQLTransformer {
   override def transform(source: GMQLSource): Unit = {
     logger.info("Starting transformation for: " + source.outputFolder)
     source.datasets.foreach(dataset => {
-      logger.info("Transformation for dataset: " + dataset.outputFolder)
-      val folder = new File(
-        source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Transformations")
-      if (!folder.exists()) {
-        logger.debug("Folder created: " + folder)
-        folder.mkdirs()
+      val datasetOutputFolder = source.outputFolder + File.separator + dataset.outputFolder + File.separator
+      val report = new File (datasetOutputFolder + "Downloads"+ File.separator + "report.tsv")
+      val metadata = new File(datasetOutputFolder + "Downloads"+ File.separator + "metadata.tsv")
+      if(dataset.transformEnabled) {
+        if(report.exists() && metadata.exists()) {
+          logger.info("Transformation for dataset: " + dataset.name)
+          val folder = new File(datasetOutputFolder + "Transformations")
+          if (!folder.exists()) {
+            folder.mkdirs()
+            logger.debug("Folder created: " + folder)
+          }
+          transformData(source, dataset)
+          transformMeta(source, dataset)
+        }
+        else
+          logger.warn("Transformation for dataset: " +dataset.name +" cannot be done. Metadata files have not been downloaded")
       }
-      transformData(source, dataset)
-      transformMeta(source, dataset)
     })
     organize(source)
   }
@@ -57,7 +68,7 @@ class ENCODETransformer extends GMQLTransformer {
     val logTransform = new FileLogger(
       source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Transformations")
     logTransform.markAsOutdated()
-    logDownload.filesToUpdate().foreach(file => {
+    logDownload.files.filter(_.name.endsWith(".gz")).foreach(file => {
       //this is to take out the ".gz"
       val name = file.name.substring(0, file.name.lastIndexOf("."))
       //should get file size, for the moment I pass the origin size just to have a value.
@@ -85,32 +96,68 @@ class ENCODETransformer extends GMQLTransformer {
     */
   private def transformMeta(source: GMQLSource, dataset: GMQLDataset): Unit = {
     logger.info("Splitting ENCODE metadata for dataset: " + dataset.outputFolder)
-    val header = Source.fromFile(
-      source.outputFolder + File.separator +
-        dataset.outputFolder + File.separator + "Downloads" + File.separator +
-        dataset.outputFolder + ".tsv").getLines().next().split("\t")
+
+    val file: Elem = XML.loadFile(source.parameters.filter(_._1.equalsIgnoreCase("encode_metadata_configuration")).head._2)
+    val metadataToInclude: Seq[String] = ((file\\"encode_metadata_config"\"parameter_list").filter(list =>
+      (list\"@name").text.equalsIgnoreCase("encode_metadata_tsv"))\"parameter").filter(field =>
+      (field\"@include").text.equalsIgnoreCase("true") && (field\"key").text.equalsIgnoreCase("field")).map(field =>{
+      (field\\"value").text
+    })
+    val reportPath = source.outputFolder + File.separator + dataset.outputFolder +
+      File.separator + "Downloads"+ File.separator + "report.tsv"
+    val reportFile = Source.fromFile(reportPath).getLines()
+    val reportFileWithoutHeader = reportFile.drop(1)
+    val reportFileWithoutHeaderMapped: Iterator[(String, Array[String])] = reportFileWithoutHeader.map(line => (line.split("\t").head, line.split("\t")))
+    val report: Seq[(String, Array[String])] = reportFileWithoutHeaderMapped.toSeq
+    val reportHeader: Array[String] = Source.fromFile(reportPath).getLines().next().split("\t")
+
+    val metadataPath = source.outputFolder + File.separator + dataset.outputFolder +
+      File.separator + "Downloads"+ File.separator + "metadata.tsv"
+    val transformationPath = source.outputFolder + File.separator + dataset.outputFolder +
+      File.separator + "Transformations"
+
+    val header = Source.fromFile(metadataPath).getLines().next().split("\t")
+    val experimentAccession = header.lastIndexOf("Experiment accession")
 
     //this "File download URL" maybe should be in the parameters of the XML.
     val url = header.lastIndexOf("File download URL")
-    Source.fromFile(
-      source.outputFolder + File.separator + dataset.outputFolder + File.separator +
-        "Downloads" + File.separator + dataset.outputFolder + ".tsv").getLines().drop(1).foreach(f = line => {
+    //I have to implement log also here.
+    val log = new FileLogger(transformationPath)
+    Source.fromFile(metadataPath).getLines().drop(1).foreach(f = line => {
       //create file .meta
-      val fields = line.split("\t")
-      val aux1 = fields(url).split(File.separator).last
-      val aux2 = aux1.substring(0, aux1.lastIndexOf(".")) + ".meta" //this is the meta name
-      val file = new File(source.outputFolder + File.separator +
-        dataset.outputFolder + File.separator + "Transformations" + File.separator + aux2)
+      val fields: Array[String] = line.split("\t")
+      val fileName = fields(url).split(File.separator).last
+      val metadataName = fileName.substring(0, fileName.lastIndexOf(".")) + ".meta" //this is the meta name
 
+      //here have to change the log to receive Seq[String] as origin
+      log.checkIfUpdate(
+        metadataName,
+        metadataPath,
+        new File(metadataPath).getTotalSpace.toString,
+        Calendar.getInstance.getTime.toString)
+
+      val file = new File(transformationPath + File.separator + metadataName)
       val writer = new PrintWriter(file)
-      for (i <- 0 until fields.size) {
-        if (fields(i).nonEmpty)
-          writer.write(header(i) + "\t" + fields(i) + "\n")
+
+      for (i <- fields.indices) {
+        if (fields(i).nonEmpty && metadataToInclude.contains(header(i)))
+          writer.write(header(i).replace(" ","_") + "\t" + fields(i) + "\n")
+      }
+      val aux1 = fields(experimentAccession)
+      val aux2 = report.filter(_._1.contains(aux1))
+      val reportFields: Array[String] = aux2.head._2
+
+      for(i <- reportFields.indices){
+        if(reportFields(i).nonEmpty)
+          writer.write(reportHeader(i).replace(" ","_") + "\t" + reportFields(i)+"\n")
       }
       writer.close()
+      log.markAsUpdated(metadataName)
+
       logger.debug("File Created: " + source.outputFolder + File.separator + dataset.outputFolder + File.separator +
-        "Transformations" + File.separator + aux2)
+        "Transformations" + File.separator + metadataName)
     })
+    log.saveTable()
   }
 
   /**
@@ -152,18 +199,20 @@ class ENCODETransformer extends GMQLTransformer {
     */
   def organize(source: GMQLSource): Unit = {
     source.datasets.foreach(dataset => {
-      if (dataset.schemaLocation == SCHEMA_LOCATION.LOCAL) {
-        val src = new File(dataset.schema)
-        val dest = new File(source.outputFolder + "/" + dataset.outputFolder + File.separator +
-          "Transformations" + File.separator + dataset.outputFolder + ".schema")
+      if(dataset.transformEnabled) {
+        if (dataset.schemaLocation == SCHEMA_LOCATION.LOCAL) {
+          val src = new File(dataset.schema)
+          val dest = new File(source.outputFolder + "/" + dataset.outputFolder + File.separator +
+            "Transformations" + File.separator + dataset.outputFolder + ".schema")
 
-        try {
-          Files.copy(src, dest)
-          logger.info("Schema copied from: " + src.getAbsolutePath + " to " + dest.getAbsolutePath)
-        }
-        catch {
-          case e: IOException => logger.error("could not copy the file " +
-            src.getAbsolutePath + " to " + dest.getAbsolutePath)
+          try {
+            Files.copy(src, dest)
+            logger.info("Schema copied from: " + src.getAbsolutePath + " to " + dest.getAbsolutePath)
+          }
+          catch {
+            case e: IOException => logger.error("could not copy the file " +
+              src.getAbsolutePath + " to " + dest.getAbsolutePath)
+          }
         }
       }
     })
