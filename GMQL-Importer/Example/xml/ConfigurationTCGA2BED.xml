@@ -1,0 +1,236 @@
+<root>
+    <settings>
+        <output_folder>ROOT PATH TO BE DEFINED</output_folder>
+        <download_enabled>TRUE</download_enabled>
+        <transform_enabled>FALSE</transform_enabled>
+        <load_enabled>FALSE</load_enabled>        
+    </settings>
+    <source_list>
+        <source name="TCGA2BED">
+            <url>bioinf.iasi.cnr.it</url>
+            <output_folder>SOURCE PATH TO BE DEFINED</output_folder>
+            <gmql_user>public</gmql_user>
+            <downloader>it.polimi.genomics.importer.DefaultImporter.FTPDownloader</downloader>
+            <transformer>it.polimi.genomics.importer.DefaultImporter.NULLTransformer</transformer>
+            <download_enabled>TRUE</download_enabled>
+            <transform_enabled>FALSE</transform_enabled>
+            <load_enabled>FALSE</load_enabled>
+            <parameter_list>
+                <parameter>
+                    <key>username</key>
+                    <value>anonymous</value>
+                </parameter>
+                <parameter>
+                    <key>password</key>
+                    <value/>
+                </parameter>
+            </parameter_list>
+            <dataset_list>
+                <dataset name="CNV">
+                    <output_folder>cnv</output_folder>
+                    <schema location="LOCAL">SCHEMA PATH TO BE DEFINED/cnv.schema</schema>
+                    <download_enabled>TRUE</download_enabled>
+                    <transform_enabled>FALSE</transform_enabled>
+                    <load_enabled>FALSE</load_enabled>   
+                    <parameter_list>
+                        <parameter>
+                            <key>folder_regex</key>
+                            <value>^/bed/.*/cnv</value>
+                        </parameter>
+                        <parameter>
+                            <key>files_regex</key>
+                            <value>.*\.bed(\.meta)?$</value>
+                        </parameter>
+                    </parameter_list>
+                </dataset>
+                <dataset name="DNAMethylation">
+                    <output_folder>dnamethylation</output_folder>
+                    <schema location="LOCAL">SCHEMA PATH TO BE DEFINED/dnamethylation.schema</schema>
+                    <download_enabled>TRUE</download_enabled>
+                    <transform_enabled>FALSE</transform_enabled>
+                    <load_enabled>FALSE</load_enabled>   
+                    <parameter_list>
+                        <parameter>
+                            <key>folder_regex</key>
+                            <value>^/bed/.*/dnamethylation</value>
+                        </parameter>
+                        <parameter>
+                            <key>files_regex</key>
+                            <value>.*\.bed(\.meta)?$</value>
+                        </parameter>
+                    </parameter_list>
+                </dataset>
+                <dataset name="DNASEQ">
+                    <output_folder>dnaseq</output_folder>
+                    <schema location="LOCAL">SCHEMA PATH TO BE DEFINED/dnaseq.schema</schema>
+                    <download_enabled>TRUE</download_enabled>
+                    <transform_enabled>FALSE</transform_enabled>
+                    <load_enabled>FALSE</load_enabled>   
+                    <parameter_list>
+                        <parameter>
+                            <key>folder_regex</key>
+                            <value>^/bed/.*/dnaseq</value>
+                        </parameter>
+                        <parameter>
+                            <key>files_regex</key>
+                            <value>.*\.bed(\.meta)?$</value>
+                        </parameter>
+                    </parameter_list>
+                </dataset>
+                <dataset name="MIRNASEQ_iso">
+                    <output_folder>mirnaseq_isoform</output_folder>
+                    <schema location="LOCAL">SCHEMA PATH TO BE DEFINED/mirnaseq_isoform.schema</schema>
+                    <download_enabled>TRUE</download_enabled>
+                    <transform_enabled>FALSE</transform_enabled>
+                    <load_enabled>FALSE</load_enabled>   
+                    <parameter_list>
+                        <parameter>
+                            <key>folder_regex</key>
+                            <value>^/bed/.*/mirnaseq/isoform.quantification</value>
+                        </parameter>
+                        <parameter>
+                            <key>files_regex</key>
+                            <value>.*\.bed(\.meta)?$</value>
+                        </parameter>
+                    </parameter_list>
+                </dataset>
+                <dataset name="MIRNASEQ_mirna">
+                    <output_folder>mirnaseq_mirna</output_folder>
+                    <schema location="LOCAL">SCHEMA PATH TO BE DEFINED/mirnaseq_mirna.schema</schema>
+                    <download_enabled>TRUE</download_enabled>
+                    <transform_enabled>FALSE</transform_enabled>
+                    <load_enabled>FALSE</load_enabled>   
+                    <parameter_list>
+                        <parameter>
+                            <key>folder_regex</key>
+                            <value>^/bed/.*/mirnaseq/mirna.quantification</value>
+                        </parameter>
+                        <parameter>
+                            <key>files_regex</key>
+                            <value>.*\.bed(\.meta)?$</value>
+                        </parameter>
+                    </parameter_list>
+                </dataset>
+                <dataset name="RNASEQ_exon">
+                    <output_folder>rnaseq_exon</output_folder>
+                    <schema location="LOCAL">SCHEMA PATH TO BE DEFINED/rnaseq_exon.schema</schema>
+                    <download_enabled>TRUE</download_enabled>
+                    <transform_enabled>FALSE</transform_enabled>
+                    <load_enabled>FALSE</load_enabled>   
+                    <parameter_list>
+                        <parameter>
+                            <key>folder_regex</key>
+                            <value>^/bed/.*/rnaseq/exon.quantification</value>
+                        </parameter>
+                        <parameter>
+                            <key>files_regex</key>
+                            <value>.*\.bed(\.meta)?$</value>
+                        </parameter>
+                    </parameter_list>
+                </dataset>
+                <dataset name="RNASEQ_gene">
+                    <output_folder>rnaseq_gene</output_folder>
+                    <schema location="LOCAL">SCHEMA PATH TO BE DEFINED/rnaseq_gene.schema</schema>
+                    <download_enabled>TRUE</download_enabled>
+                    <transform_enabled>FALSE</transform_enabled>
+                    <load_enabled>FALSE</load_enabled>   
+                    <parameter_list>
+                        <parameter>
+                            <key>folder_regex</key>
+                            <value>^/bed/.*/rnaseq/gene.quantification</value>
+                        </parameter>
+                        <parameter>
+                            <key>files_regex</key>
+                            <value>.*\.bed(\.meta)?$</value>
+                        </parameter>
+                    </parameter_list>
+                </dataset>
+                <dataset name="RNASEQ_spljxn">
+                    <output_folder>rnaseq_spljxn</output_folder>
+                    <schema location="LOCAL">SCHEMA PATH TO BE DEFINED/rnaseq_spljxn.schema</schema>
+                    <download_enabled>TRUE</download_enabled>
+                    <transform_enabled>FALSE</transform_enabled>
+                    <load_enabled>FALSE</load_enabled>   
+                    <parameter_list>
+                        <parameter>
+                            <key>folder_regex</key>
+                            <value>^/bed/.*/rnaseq/spljxn.quantification</value>
+                        </parameter>
+                        <parameter>
+                            <key>files_regex</key>
+                            <value>.*\.bed(\.meta)?$</value>
+                        </parameter>
+                    </parameter_list>
+                </dataset>
+                <dataset name="RNASEQv2_exon">
+                    <output_folder>rnaseqv2_exon</output_folder>
+                    <schema location="LOCAL">SCHEMA PATH TO BE DEFINED/rnaseqv2_exon.schema</schema>
+                    <download_enabled>TRUE</download_enabled>
+                    <transform_enabled>FALSE</transform_enabled>
+                    <load_enabled>FALSE</load_enabled>   
+                    <parameter_list>
+                        <parameter>
+                            <key>folder_regex</key>
+                            <value>^/bed/.*/rnaseqv2/exon.quantification</value>
+                        </parameter>
+                        <parameter>
+                            <key>files_regex</key>
+                            <value>.*\.bed(\.meta)?$</value>
+                        </parameter>
+                    </parameter_list>
+                </dataset>
+                <dataset name="RNASEQv2_gene">
+                    <output_folder>rnaseqv2_gene</output_folder>
+                    <schema location="LOCAL">SCHEMA PATH TO BE DEFINED/rnaseqv2_gene.schema</schema>
+                    <download_enabled>TRUE</download_enabled>
+                    <transform_enabled>FALSE</transform_enabled>
+                    <load_enabled>FALSE</load_enabled>   
+                    <parameter_list>
+                        <parameter>
+                            <key>folder_regex</key>
+                            <value>^/bed/.*/rnaseqv2/gene.quantification</value>
+                        </parameter>
+                        <parameter>
+                            <key>files_regex</key>
+                            <value>.*\.bed(\.meta)?$</value>
+                        </parameter>
+                    </parameter_list>
+                </dataset>
+                <dataset name="RNASEQv2_iso">
+                    <output_folder>rnaseqv2_isoform</output_folder>
+                    <schema location="LOCAL">SCHEMA PATH TO BE DEFINED/rnaseqv2_isoform.schema</schema>
+                    <download_enabled>TRUE</download_enabled>
+                    <transform_enabled>FALSE</transform_enabled>
+                    <load_enabled>FALSE</load_enabled>   
+                    <parameter_list>
+                        <parameter>
+                            <key>folder_regex</key>
+                            <value>^/bed/.*/rnaseqv2/isoform.quantification</value>
+                        </parameter>
+                        <parameter>
+                            <key>files_regex</key>
+                            <value>.*\.bed(\.meta)?$</value>
+                        </parameter>
+                    </parameter_list>
+                </dataset>
+                <dataset name="RNASEQv2_spljxn">
+                    <output_folder>rnaseqv2_spljxn</output_folder>
+                    <schema location="LOCAL">SCHEMA PATH TO BE DEFINED/rnaseqv2_spljxn.schema</schema>
+                    <download_enabled>TRUE</download_enabled>
+                    <transform_enabled>FALSE</transform_enabled>
+                    <load_enabled>FALSE</load_enabled>   
+                    <parameter_list>
+                        <parameter>
+                            <key>folder_regex</key>
+                            <value>^/bed/.*/rnaseqv2/spljxn.quantification</value>
+                        </parameter>
+                        <parameter>
+                            <key>files_regex</key>
+                            <value>.*\.bed(\.meta)?$</value>
+                        </parameter>
+                    </parameter_list>
+                </dataset>
+            </dataset_list>
+        </source>
+    </source_list>
+</root>
