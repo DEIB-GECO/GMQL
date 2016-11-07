@@ -60,16 +60,17 @@ class FileLogger(path: String){
     //if the file already exists
     if (files.exists(_.name == filename)) {
       val oldFile = files.filter(_.name == filename).head
-      //here I compare if size or modification date are different, but should compare hashs
-      //also I check if the file already has an UPDATE or ADD status.
-      if (oldFile.status == FILE_STATUS.UPDATE ||
-        oldFile.status == FILE_STATUS.ADD ||
-        oldFile.status == FILE_STATUS.FAILED ||
-        oldFile.status == FILE_STATUS.OUTDATED)
+      //ADD or UPDATE indicates that file was put on the download folder and marked as update
+      if(oldFile.status == FILE_STATUS.ADD || oldFile.status == FILE_STATUS.UPDATE)
+        false
+      //FAILED indicates that the file was not put in the folder, OUTDATED means the file was deleted from the server
+      else if (oldFile.status == FILE_STATUS.FAILED || oldFile.status == FILE_STATUS.OUTDATED)
         true
+      //here SHOULD BE HASH COMPARISON, but for now if size or date change, we update the file
       else if(oldFile.originSize != originSize ||
         oldFile.originLastUpdate != originLastUpdate)
         true
+      //any other case whilst COMPARE, shouldn't be downloaded
       else {
         //while comparing the files, if the file is ok and does not have to be changed or deleted, is set to NOTHING.
         files = files.map(file =>
@@ -94,24 +95,6 @@ class FileLogger(path: String){
       true
     }
   }
-
-
-  /**
-    * returns a list with all the files to be updated by the next process.
-    * returns files with status ADD or UPDATE
-    * @return list with files that should be updated.
-    */
-  def filesToUpdate(): List[FileLogElement] ={
-    files.filter(file => file.status == FILE_STATUS.ADD || file.status == FILE_STATUS.UPDATE)
-  }
-  /**
-    * returns a list with all the files to be outdated by the next process.
-    * returns files with status OUTDATE
-    * @return list with files that should be outdated.
-    */
-  def filesToOutdate(): List[FileLogElement] ={
-    files.filter(file => file.status == FILE_STATUS.ADD || file.status == FILE_STATUS.UPDATE)
-  }
   /**
     * saves the full log into the FileLog.xml.
     */
@@ -130,7 +113,7 @@ class FileLogger(path: String){
       )}
       </file_list>
     XML.save(path + "/" + "FileLog.xml", log)
-    logger.debug("log saved in "+ path + "with "+ files.size + "files.")
+    logger.debug("log saved in "+ path + " with "+ files.size + " files.")
   }
 
 
@@ -211,7 +194,7 @@ class FileLogger(path: String){
     */
   def markAsProcessed(): Unit ={
     files = files.map(file =>
-      if(file.status == FILE_STATUS.ADD || file.status == FILE_STATUS.UPDATE)
+      if(file.status == FILE_STATUS.ADD || file.status == FILE_STATUS.UPDATE || file.status == FILE_STATUS.NOTHING)
         FileLogElement(file.name,
           file.lastUpdate,
           FILE_STATUS.NOTHING,
