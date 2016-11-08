@@ -21,48 +21,50 @@ class FTPDownloader extends GMQLDownloader {
     * @param source contains specific download and sorting info.
     */
   override def download(source: GMQLSource): Unit = {
-    logger.info("Starting download for: " + source.url)
-    if (!new java.io.File(source.outputFolder).exists) {
-      new java.io.File(source.outputFolder).mkdirs()
-    }
-    val ftp = new FTP()
-
-    //the mark to compare is done here because the iteration on ftp is based on ftp folders and not
-    //on the source datasets.
-    source.datasets.foreach(dataset => {
-      if(dataset.downloadEnabled) {
-        val outputPath = source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Downloads"
-        val log = new FileLogger(outputPath)
-        log.markToCompare()
-        log.saveTable()
+    if(source.downloadEnabled) {
+      logger.info("Starting download for: " + source.url)
+      if (!new java.io.File(source.outputFolder).exists) {
+        new java.io.File(source.outputFolder).mkdirs()
       }
-    })
-    logger.debug("trying to connect to FTP: " + source.url +
-      " - username: " + source.parameters.filter(_._1 == "username").head._2 +
-      " - password: " + source.parameters.filter(_._1 == "password").head._2)
-    if (ftp.connectWithAuth(
-      source.url,
-      source.parameters.filter(_._1 == "username").head._2,
-      source.parameters.filter(_._1 == "password").head._2).getOrElse(false)) {
+      val ftp = new FTP()
 
-      logger.info("Connected to ftp: " + source.url)
-      recursiveDownload(ftp, source)
-      ftp.disconnect()
-
+      //the mark to compare is done here because the iteration on ftp is based on ftp folders and not
+      //on the source datasets.
       source.datasets.foreach(dataset => {
-        if(dataset.downloadEnabled) {
+        if (dataset.downloadEnabled) {
           val outputPath = source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Downloads"
           val log = new FileLogger(outputPath)
-          log.markAsOutdated()
+          log.markToCompare()
           log.saveTable()
         }
       })
-    }
-    else
-      logger.error("ftp connection with " + source.url + " couldn't be handled." +
-        "username:" + source.parameters.filter(_._1 == "username").head._2 +
-        "password:" + source.parameters.filter(_._1 == "password").head._2)
 
+      logger.debug("trying to connect to FTP: " + source.url +
+        " - username: " + source.parameters.filter(_._1 == "username").head._2 +
+        " - password: " + source.parameters.filter(_._1 == "password").head._2)
+      if (ftp.connectWithAuth(
+        source.url,
+        source.parameters.filter(_._1 == "username").head._2,
+        source.parameters.filter(_._1 == "password").head._2).getOrElse(false)) {
+
+        logger.info("Connected to ftp: " + source.url)
+        recursiveDownload(ftp, source)
+        ftp.disconnect()
+
+        source.datasets.foreach(dataset => {
+          if (dataset.downloadEnabled) {
+            val outputPath = source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Downloads"
+            val log = new FileLogger(outputPath)
+            log.markAsOutdated()
+            log.saveTable()
+          }
+        })
+      }
+      else
+        logger.error("ftp connection with " + source.url + " couldn't be handled." +
+          "username:" + source.parameters.filter(_._1 == "username").head._2 +
+          "password:" + source.parameters.filter(_._1 == "password").head._2)
+    }
   }
 
   /**
