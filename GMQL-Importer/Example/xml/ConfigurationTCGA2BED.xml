@@ -1,5 +1,6 @@
 <root>
     <settings>
+        <!--BASE WORKING FOLDER FOR THE IMPORTER-->
         <output_folder>ROOT PATH TO BE DEFINED</output_folder>
         <download_enabled>TRUE</download_enabled>
         <transform_enabled>FALSE</transform_enabled>
@@ -8,7 +9,7 @@
     <source_list>
         <source name="TCGA2BED">
             <url>bioinf.iasi.cnr.it</url>
-            <output_folder>SOURCE PATH TO BE DEFINED</output_folder>
+            <output_folder>TCGA2BED</output_folder>
             <gmql_user>public</gmql_user>
             <downloader>it.polimi.genomics.importer.DefaultImporter.FTPDownloader</downloader>
             <transformer>it.polimi.genomics.importer.DefaultImporter.NULLTransformer</transformer>
@@ -17,16 +18,19 @@
             <load_enabled>FALSE</load_enabled>
             <parameter_list>
                 <parameter>
+                    <description>for logging in ftp on tcga2bed need this anonymous user</description>
                     <key>username</key>
                     <value>anonymous</value>
                 </parameter>
                 <parameter>
+                    <description>and also the corresponding null password</description>
                     <key>password</key>
                     <value/>
                 </parameter>
             </parameter_list>
             <dataset_list>
-                <dataset name="CNV">
+                <!--THE SCHEMA PATH HAS TO BE FULL PATH EX: /HOME/USER/.../schema.xml-->
+                <dataset name="cnv">
                     <output_folder>cnv</output_folder>
                     <schema location="LOCAL">SCHEMA PATH TO BE DEFINED/cnv.schema</schema>
                     <download_enabled>TRUE</download_enabled>
@@ -43,7 +47,7 @@
                         </parameter>
                     </parameter_list>
                 </dataset>
-                <dataset name="DNAMethylation">
+                <dataset name="Dnamethylation">
                     <output_folder>dnamethylation</output_folder>
                     <schema location="LOCAL">SCHEMA PATH TO BE DEFINED/dnamethylation.schema</schema>
                     <download_enabled>TRUE</download_enabled>
@@ -60,7 +64,7 @@
                         </parameter>
                     </parameter_list>
                 </dataset>
-                <dataset name="DNASEQ">
+                <dataset name="Dnaseq">
                     <output_folder>dnaseq</output_folder>
                     <schema location="LOCAL">SCHEMA PATH TO BE DEFINED/dnaseq.schema</schema>
                     <download_enabled>TRUE</download_enabled>
@@ -77,7 +81,7 @@
                         </parameter>
                     </parameter_list>
                 </dataset>
-                <dataset name="MIRNASEQ_iso">
+                <dataset name="mirnaseq_isoform">
                     <output_folder>mirnaseq_isoform</output_folder>
                     <schema location="LOCAL">SCHEMA PATH TO BE DEFINED/mirnaseq_isoform.schema</schema>
                     <download_enabled>TRUE</download_enabled>
@@ -94,7 +98,7 @@
                         </parameter>
                     </parameter_list>
                 </dataset>
-                <dataset name="MIRNASEQ_mirna">
+                <dataset name="mirnaseq_mirna">
                     <output_folder>mirnaseq_mirna</output_folder>
                     <schema location="LOCAL">SCHEMA PATH TO BE DEFINED/mirnaseq_mirna.schema</schema>
                     <download_enabled>TRUE</download_enabled>
@@ -111,7 +115,7 @@
                         </parameter>
                     </parameter_list>
                 </dataset>
-                <dataset name="RNASEQ_exon">
+                <dataset name="rnaseq_exon">
                     <output_folder>rnaseq_exon</output_folder>
                     <schema location="LOCAL">SCHEMA PATH TO BE DEFINED/rnaseq_exon.schema</schema>
                     <download_enabled>TRUE</download_enabled>
@@ -128,7 +132,7 @@
                         </parameter>
                     </parameter_list>
                 </dataset>
-                <dataset name="RNASEQ_gene">
+                <dataset name="rnaseq_gene">
                     <output_folder>rnaseq_gene</output_folder>
                     <schema location="LOCAL">SCHEMA PATH TO BE DEFINED/rnaseq_gene.schema</schema>
                     <download_enabled>TRUE</download_enabled>
@@ -145,7 +149,7 @@
                         </parameter>
                     </parameter_list>
                 </dataset>
-                <dataset name="RNASEQ_spljxn">
+                <dataset name="rnaseq_spljxn">
                     <output_folder>rnaseq_spljxn</output_folder>
                     <schema location="LOCAL">SCHEMA PATH TO BE DEFINED/rnaseq_spljxn.schema</schema>
                     <download_enabled>TRUE</download_enabled>
@@ -162,7 +166,7 @@
                         </parameter>
                     </parameter_list>
                 </dataset>
-                <dataset name="RNASEQv2_exon">
+                <dataset name="rnaseqv2_exon">
                     <output_folder>rnaseqv2_exon</output_folder>
                     <schema location="LOCAL">SCHEMA PATH TO BE DEFINED/rnaseqv2_exon.schema</schema>
                     <download_enabled>TRUE</download_enabled>
@@ -179,7 +183,7 @@
                         </parameter>
                     </parameter_list>
                 </dataset>
-                <dataset name="RNASEQv2_gene">
+                <dataset name="rnaseqv2_gene">
                     <output_folder>rnaseqv2_gene</output_folder>
                     <schema location="LOCAL">SCHEMA PATH TO BE DEFINED/rnaseqv2_gene.schema</schema>
                     <download_enabled>TRUE</download_enabled>
@@ -196,7 +200,7 @@
                         </parameter>
                     </parameter_list>
                 </dataset>
-                <dataset name="RNASEQv2_iso">
+                <dataset name="rnaseqv2_iso">
                     <output_folder>rnaseqv2_isoform</output_folder>
                     <schema location="LOCAL">SCHEMA PATH TO BE DEFINED/rnaseqv2_isoform.schema</schema>
                     <download_enabled>TRUE</download_enabled>
@@ -213,7 +217,7 @@
                         </parameter>
                     </parameter_list>
                 </dataset>
-                <dataset name="RNASEQv2_spljxn">
+                <dataset name="rnaseqv2_spljxn">
                     <output_folder>rnaseqv2_spljxn</output_folder>
                     <schema location="LOCAL">SCHEMA PATH TO BE DEFINED/rnaseqv2_spljxn.schema</schema>
                     <download_enabled>TRUE</download_enabled>

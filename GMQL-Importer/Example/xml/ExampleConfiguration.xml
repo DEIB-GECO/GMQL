@@ -1,26 +1,28 @@
 <root>
     <settings>
-        <output_folder>GMQL-Importer/Example</output_folder>
-        <download_enabled>FALSE</download_enabled>
+        <output_folder>/home/nachon/git-repos/GMQL/GMQL-Importer/Example</output_folder>
+        <download_enabled>TRUE</download_enabled>
         <transform_enabled>TRUE</transform_enabled>
-        <load_enabled>TRUE</load_enabled>
+        <load_enabled>FALSE</load_enabled>
     </settings>
     <source_list>
         <source name="TCGA2BED">
             <url>bioinf.iasi.cnr.it</url>
-            <output_folder>GMQL-Importer/Example/TCGA2BED</output_folder>
+            <output_folder>TCGA2BED</output_folder>
             <gmql_user>public</gmql_user>
             <downloader>it.polimi.genomics.importer.DefaultImporter.FTPDownloader</downloader>
             <transformer>it.polimi.genomics.importer.DefaultImporter.NULLTransformer</transformer>
-            <download_enabled>FALSE</download_enabled>
-            <transform_enabled>FALSE</transform_enabled>
-            <load_enabled>FALSE</load_enabled>
+            <download_enabled>TRUE</download_enabled>
+            <transform_enabled>TRUE</transform_enabled>
+            <load_enabled>TRUE</load_enabled>
             <parameter_list>
                 <parameter>
+                    <description>for logging in ftp on tcga2bed need this anonymous user</description>
                     <key>username</key>
                     <value>anonymous</value>
                 </parameter>
                 <parameter>
+                    <description>and also the corresponding null password</description>
                     <key>password</key>
                     <value/>
                 </parameter>
@@ -28,10 +30,10 @@
             <dataset_list>
                 <dataset name="cnv">
                     <output_folder>ExampleCNV</output_folder>
-                    <schema location="LOCAL">GMQL-Importer/Example/schemas/cnv.schema</schema>
-                    <download_enabled>FALSE</download_enabled>
-                    <transform_enabled>FALSE</transform_enabled>
-                    <load_enabled>FALSE</load_enabled>
+                    <schema location="LOCAL">/home/nachon/git-repos/GMQL/GMQL-Importer/Example/schemas/cnv.schema</schema>
+                    <download_enabled>TRUE</download_enabled>
+                    <transform_enabled>TRUE</transform_enabled>
+                    <load_enabled>TRUE</load_enabled>
                     <parameter_list>
                         <parameter>
                             <key>folder_regex</key>
@@ -45,16 +47,18 @@
                 </dataset>
                 <dataset name="dnaseq">
                     <output_folder>ExampleDNASEQ</output_folder>
-                    <schema location="LOCAL">GMQL-Importer/Example/schemas/dnaseq.schema</schema>
-                    <download_enabled>FALSE</download_enabled>
-                    <transform_enabled>FALSE</transform_enabled>
-                    <load_enabled>FALSE</load_enabled>
+                    <schema location="LOCAL">/home/nachon/git-repos/GMQL/GMQL-Importer/Example/schemas/dnaseq.schema</schema>
+                    <download_enabled>TRUE</download_enabled>
+                    <transform_enabled>TRUE</transform_enabled>
+                    <load_enabled>TRUE</load_enabled>
                     <parameter_list>
                         <parameter>
+                            <description>this downloads all the dnaseq folders from tcga2bed.</description>
                             <key>folder_regex</key>
                             <value>^/bed/.*/dnaseq</value>
                         </parameter>
                         <parameter>
+                            <description>the regex for filtering the files inside each folder.</description>
                             <key>files_regex</key>
                             <value>.*11D-A30X-08\.bed(\.meta)?$</value>
                         </parameter>
@@ -73,43 +77,71 @@
             <load_enabled>TRUE</load_enabled>
             <parameter_list>
                 <parameter>
+                    <description>for downloading the .tsv from encode we need to add this at the end of the url</description>
                     <key>metadata_prefix</key>
                     <value>metadata/</value>
                 </parameter>
                 <parameter>
+                    <description>after all the filters is needed this suffix to download de .tsv</description>
                     <key>metadata_suffix</key>
                     <value>/metadata.tsv</value>
                 </parameter>
                 <parameter>
+                    <description>as we download the json for the experiment, here is specified</description>
                     <key>json_prefix</key>
                     <value>experiments/</value>
                 </parameter>
                 <parameter>
+                    <description>we specified frame embedded and format json in encode for importing metadata</description>
                     <key>json_suffix</key>
                     <value>/?frame=embedded&amp;format=json/</value>
                 </parameter>
                 <parameter>
-                    <key>encode_metadata_configuration</key>
-                    <value>GMQL-Importer/Example/xml/encodeMetadataConfig.xml</value>
+                    <description>Found this field to be not useful and too many fields</description>
+                    <key>encode_metadata_exclusion</key>
+                    <value>^contributing_files.*$</value>
+                </parameter>
+                <parameter>
+                    <description>also creates a huge mess to include this metadata and is not useful</description>
+                    <key>encode_metadata_exclusion</key>
+                    <value>^original_files.*$</value>
+                </parameter>
+                <parameter>
+                    <description>not useful</description>
+                    <key>encode_metadata_exclusion</key>
+                    <value>^.*analysis_step_version.*$</value>
+                </parameter>
+                <parameter>
+                    <description>not useful metadata</description>
+                    <key>encode_metadata_exclusion</key>
+                    <value>^.*derived_from.*$</value>
+                </parameter>
+                <parameter>
+                    <description>For metadata key replacement have to refer another file. Should be big file and would not be useful</description>
+                    <key>metadata_replacement</key>
+                    <value>/home/nachon/git-repos/GMQL/GMQL-Importer/Example/xml/metadataReplacement.xml</value>
                 </parameter>
             </parameter_list>
             <dataset_list>
                 <dataset name="exampleNarrowPeak">
                     <output_folder>ExampleNARROWPEAK</output_folder>
-                    <schema location="LOCAL">GMQL-Importer/Example/schemas/narrowPeak.schema</schema>
+                    <schema location="LOCAL">/home/nachon/git-repos/GMQL/GMQL-Importer/Example/schemas/narrowPeak.schema</schema>
                     <download_enabled>TRUE</download_enabled>
                     <transform_enabled>TRUE</transform_enabled>
                     <load_enabled>TRUE</load_enabled>
                     <parameter_list>
                         <parameter>
+                            <description>always should be experiment, but could be another type</description>
                             <key>type</key>
                             <value>Experiment</value>
                         </parameter>
                         <parameter>
+                            <description>for now we are using just narrowpeak format, broadpeak should be added in other parameter</description>
                             <key>files.file_type</key>
                             <value>bed+narrowPeak</value>
                         </parameter>
                         <parameter>
+                            <description>this ones are to reduce the downloaded files</description>
                             <key>organ_slims</key>
                             <value>liver</value>
                         </parameter>
