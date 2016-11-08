@@ -3,14 +3,23 @@ import it.polimi.genomics.importer.GMQLImporter.utils.SCHEMA_LOCATION
 
 import scala.xml.{Elem, XML}
 import java.io.File
+
 import org.slf4j._
+
+import scala.collection.immutable.Seq
 object example {
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
   def main(args: Array[String]): Unit = {
     runTest("GMQL-Importer/Example/xml/ExampleConfiguration.xml")
+//    demoReplaceMeta()
   }
-
+  /*
+  def demoReplaceMeta(): Unit ={
+    val file: Elem = XML.loadFile("GMQL-Importer/Example/xml/metadataReplacement.xml")
+    val metadataChanges: Seq[(String, String)] = (file\\"metadata_replace_list"\"metadata_replace").map(replacement => ((replacement\"regex").text,(replacement\"replace").text))
+    new it.polimi.genomics.importer.DefaultImporter.NULLTransformer().changeMetadataKeys(metadataChanges,"GMQL-Importer/Example/change.meta")
+  }*/
   def runTest(xmlConfigPath: String): Unit = {
     //general settings
     val file: Elem = XML.loadFile(xmlConfigPath)
