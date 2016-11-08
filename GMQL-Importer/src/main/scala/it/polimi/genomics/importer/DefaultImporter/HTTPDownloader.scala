@@ -37,10 +37,13 @@ class HTTPDownloader extends GMQLDownloader {
     * @param path destination file path and name.
     */
   def downloadFileFromURL(url: String, path: String): Unit = {
-    //logger.debug("Downloading: " + path + " from: " + url)
-    //I have to recheck if this is safe
-    new URL(url) #> new File(path) !!;
-    logger.info("Downloading: " + path + " from: " + url + " DONE")
+    try {
+      new URL(url) #> new File(path) !!;
+      logger.info("Downloading: " + path + " from: " + url + " DONE")
+    }
+    catch{
+      case e: Throwable => logger.error("Downloading: " + path + " from: " + url + " failed: ")
+    }
   }
   /**
     * downloads the files from the source defined in the information
@@ -50,7 +53,6 @@ class HTTPDownloader extends GMQLDownloader {
     */
   override def download(source: GMQLSource): Unit = {
     if (urlExists(source.url)) {
-
       //same as FTP the mark to compare is done here because the iteration on http is based on http folders and not
       //on the source datasets.
       source.datasets.foreach(dataset => {
