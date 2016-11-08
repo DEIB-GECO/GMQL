@@ -4,13 +4,12 @@ import java.io.File
 import java.net.URL
 import java.util.Calendar
 
-import it.polimi.genomics.importer.GMQLImporter.{GMQLDataset, GMQLDownloader, GMQLSource}
 import it.polimi.genomics.importer.FileLogger.FileLogger
+import it.polimi.genomics.importer.GMQLImporter.{GMQLDataset, GMQLDownloader, GMQLSource}
 import org.slf4j.LoggerFactory
 
-import scala.collection.immutable.Seq
-import scala.sys.process._
 import scala.io.Source
+import scala.sys.process._
 import scala.xml.{Elem, XML}
 
 /**
@@ -189,12 +188,13 @@ class ENCODEDownloader extends GMQLDownloader {
         logger.error("could not download " + filename + " from " + dataset.outputFolder +"path does not exist")
       //example of json url https://www.encodeproject.org/experiments/ENCSR570HXV/?frame=embedded&format=json
       val urlExperimentJson = source.url+"experiments"+File.separator+fields(experimentAccession)+File.separator+"?frame=embedded&format=json"
+      val jsonName= filename+".json"
       if(urlExists(urlExperimentJson)){
-        if(log.checkIfUpdate(filename+".json", urlExperimentJson, fields(originSize), fields(originLastUpdate))) {
+        if(log.checkIfUpdate(jsonName, urlExperimentJson, fields(originSize), fields(originLastUpdate))) {
           //MUST BE DONE: handle if the file is not downloaded.
           //if not downloaded use log.markAsFailed(filename)
-          downloadFileFromURL(urlExperimentJson, path + File.separator + filename + ".json")
-          log.markAsUpdated(filename)
+          downloadFileFromURL(urlExperimentJson, path + File.separator + jsonName)
+          log.markAsUpdated(jsonName)
         }
       }
     })
