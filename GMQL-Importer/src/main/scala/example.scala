@@ -8,7 +8,7 @@ object example {
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
   def main(args: Array[String]): Unit = {
-    runTest("GMQL-Importer/Example/xml/ConfigurationTCGA2BED.xml")
+    runTest("GMQL-Importer/Example/xml/ExampleConfiguration.xml")
   }
 
   def runTest(xmlConfigPath: String): Unit = {
