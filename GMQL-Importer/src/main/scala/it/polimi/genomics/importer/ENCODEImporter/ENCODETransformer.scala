@@ -166,7 +166,7 @@ class ENCODETransformer extends GMQLTransformer {
     */
   def transformMetaFromJson(metadataJsonFileName: String, metadataFileName: String, fileId: String): Unit ={
     val jsonFile = new File(metadataJsonFileName)
-    if(!jsonFile.exists()) {
+    if(jsonFile.exists()) {
       val f = new MappingJsonFactory()
       val jp: JsonParser = f.createJsonParser(jsonFile)
 
