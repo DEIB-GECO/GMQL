@@ -1,5 +1,6 @@
 package it.polimi.genomics.importer.FileLogger
 
+import java.io.File
 import java.util.Calendar
 
 import org.slf4j.LoggerFactory
@@ -33,11 +34,11 @@ class FileLogger(path: String){
   if (!new java.io.File(path).exists) {
     new java.io.File(path).mkdirs()
   }
-  if (!new java.io.File(path+ "/" + "FileLog.xml").exists()) {
+  if (!new java.io.File(path+ File.separator + "FileLog.xml").exists()) {
     val elem = <file_list></file_list>
-    XML.save(path + "/" + "FileLog.xml", elem)
+    XML.save(path + File.separator + "FileLog.xml", elem)
   }
-  var files: List[FileLogElement] = (XML.loadFile(path+ "/" + "FileLog.xml")\\"file").map(file =>
+  var files: List[FileLogElement] = (XML.loadFile(path+ File.separator + "FileLog.xml")\\"file").map(file =>
     FileLogElement(
       (file\"name").text,
       (file\"last_update").text,
@@ -112,7 +113,7 @@ class FileLogger(path: String){
         </file>}
       )}
       </file_list>
-    XML.save(path + "/" + "FileLog.xml", log)
+    XML.save(path + File.separator + "FileLog.xml", log)
     logger.debug("log saved in "+ path + " with "+ files.size + " files.")
   }
 
