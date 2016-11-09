@@ -29,7 +29,7 @@
                 </parameter>
             </parameter_list>
             <dataset_list>
-                <!--THE SCHEMA PATH HAS TO BE FULL PATH EX: /HOME/USER/.../schema.xml-->
+                <!--THE SCHEMA PATH HAS TO BE REFERRED FROM ROOT PATH EX: ROOT PATH/SCHEMA PATH/schema.xml-->
                 <dataset name="cnv">
                     <output_folder>cnv</output_folder>
                     <schema location="LOCAL">SCHEMA PATH TO BE DEFINED/cnv.schema</schema>

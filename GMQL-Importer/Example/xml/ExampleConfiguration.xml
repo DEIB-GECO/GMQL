@@ -30,7 +30,7 @@
             <dataset_list>
                 <dataset name="cnv">
                     <output_folder>ExampleCNV</output_folder>
-                    <schema location="LOCAL">/home/nachon/git-repos/GMQL/GMQL-Importer/Example/schemas/cnv.schema</schema>
+                    <schema location="LOCAL">schemas/cnv.schema</schema>
                     <download_enabled>TRUE</download_enabled>
                     <transform_enabled>TRUE</transform_enabled>
                     <load_enabled>TRUE</load_enabled>
@@ -47,7 +47,7 @@
                 </dataset>
                 <dataset name="dnaseq">
                     <output_folder>ExampleDNASEQ</output_folder>
-                    <schema location="LOCAL">/home/nachon/git-repos/GMQL/GMQL-Importer/Example/schemas/dnaseq.schema</schema>
+                    <schema location="LOCAL">schemas/dnaseq.schema</schema>
                     <download_enabled>TRUE</download_enabled>
                     <transform_enabled>TRUE</transform_enabled>
                     <load_enabled>TRUE</load_enabled>
@@ -119,13 +119,13 @@
                 <parameter>
                     <description>For metadata key replacement have to refer another file. Should be big file and would not be useful</description>
                     <key>metadata_replacement</key>
-                    <value>/home/nachon/git-repos/GMQL/GMQL-Importer/Example/xml/metadataReplacement.xml</value>
+                    <value>xml/metadataReplacement.xml</value>
                 </parameter>
             </parameter_list>
             <dataset_list>
                 <dataset name="exampleNarrowPeak">
                     <output_folder>ExampleNARROWPEAK</output_folder>
-                    <schema location="LOCAL">/home/nachon/git-repos/GMQL/GMQL-Importer/Example/schemas/narrowPeak.schema</schema>
+                    <schema location="LOCAL">schemas/narrowPeak.schema</schema>
                     <download_enabled>TRUE</download_enabled>
                     <transform_enabled>TRUE</transform_enabled>
                     <load_enabled>TRUE</load_enabled>

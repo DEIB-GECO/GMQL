@@ -42,7 +42,7 @@ object program {
             GMQLDataset(
               (dataset \ "@name").text,
               (dataset \ "output_folder").text,
-              (dataset \ "schema").text,
+              outputFolder + File.separator +(dataset \ "schema").text,
               SCHEMA_LOCATION.withName((dataset \ "schema" \ "@location").text),
               if ((dataset \ "download_enabled").text.toLowerCase == "true") true else false,
               if ((dataset \ "transform_enabled").text.toLowerCase == "true") true else false,
