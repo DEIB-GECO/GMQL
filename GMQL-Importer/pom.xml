@@ -17,17 +17,26 @@
             <artifactId>GMQL-Repository</artifactId>
             <version>1.0</version>
         </dependency>
+<!--
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-nop</artifactId>
+            <version>1.6.4</version>
+        </dependency>
+-->
         <!-- https://mvnrepository.com/artifact/com.h2database/h2 -->
-        <!-- <dependency>
+        <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <version>1.4.192</version>
+            <version>1.4.187</version>
         </dependency>
+
         <dependency>
             <groupId>com.typesafe.slick</groupId>
-            <artifactId>slick_2.11</artifactId>
+            <artifactId>slick_2.10</artifactId>
             <version>3.0.0</version>
-        </dependency> -->
+        </dependency>
         <!-- https://mvnrepository.com/artifact/org.jsoup/jsoup -->
         <dependency>
             <groupId>org.jsoup</groupId>
