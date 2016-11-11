@@ -16,6 +16,12 @@
             <groupId>it.polimi.genomics</groupId>
             <artifactId>GMQL-Repository</artifactId>
             <version>1.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-classic</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 <!--
 
@@ -61,6 +67,12 @@
             <version>1.9.13</version>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/log4j/log4j -->
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.17</version>
+        </dependency>
 
 
     </dependencies>

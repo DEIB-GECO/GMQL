@@ -1,4 +1,0 @@
-<!-- for now I use default config -->
-<configuration>
-    <logger name = "example$" level ="OFF"></logger>
-</configuration>
