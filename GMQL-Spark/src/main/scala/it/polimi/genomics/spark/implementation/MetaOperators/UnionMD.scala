@@ -17,7 +17,7 @@ object UnionMD {
   private final val logger = LoggerFactory.getLogger(UnionMD.getClass);
 
   @throws[SelectFormatException]
-  def apply(executor : GMQLSparkExecutor, leftDataset : MetaOperator, rightDataset : MetaOperator,leftTag: String = "left", rightTag :String = "right", sc : SparkContext) = {
+  def apply(executor : GMQLSparkExecutor, rightDataset : MetaOperator, leftDataset : MetaOperator,leftTag: String = "left", rightTag :String = "right", sc : SparkContext) = {
 
     logger.info("----------------UnionMD executing..")
 
