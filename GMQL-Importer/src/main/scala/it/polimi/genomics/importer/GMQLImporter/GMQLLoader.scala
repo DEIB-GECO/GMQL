@@ -4,7 +4,7 @@ import it.polimi.genomics.importer.FileLogger.FileLogger
 import it.polimi.genomics.repository.FSRepository.LFSRepository
 import it.polimi.genomics.repository.GMQLRepository.GMQLSample
 import org.slf4j.LoggerFactory
-
+import java.io.File
 /**
   * Created by Nacho on 10/17/16.
   */
@@ -25,43 +25,51 @@ object GMQLLoader {
     * @param source contains files location and datasets organization
     */
   def loadIntoGMQL(source: GMQLSource): Unit = {
+    val repo = new LFSRepository
+    logger.debug("Preparing for loading datasets into GMQL")
     source.datasets.foreach(dataset =>{
-      val log = new FileLogger(source.outputFolder + "/" + dataset.outputFolder + "/Transformations")
+      logger.trace("dataset "+dataset.name)
+      if(dataset.loadEnabled) {
+        val path = source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Transformations"
+        val log = new FileLogger(path)
 
-      val listAdd = new java.util.ArrayList[GMQLSample]()
-      val listDelete = new java.util.ArrayList[GMQLSample]()
+        val listAdd = new java.util.ArrayList[GMQLSample]()
 
-      log.filesToUpdate().filterNot(_.name.endsWith(".meta")).foreach(file => listAdd.add(GMQLSample(
-        source.outputFolder + "/" + dataset.outputFolder + "/Transformations/" + file.name,
-        source.outputFolder + "/" + dataset.outputFolder + "/Transformations/" + file.name+".meta",
-        null)))
+        log.files.filter(_.name.endsWith(".meta")).foreach(file => {
+          try {
+            listAdd.add(GMQLSample(
+              path + File.separator + file.name.substring(0, file.name.lastIndexOf(".meta")),
+              path + File.separator + file.name,
+              null))
+          }catch {
+            case e: Throwable => logger.warn("data or metadata files missing: "+ path + File.separator + file.name + ". more details: "+e.getMessage)
+          }
+          })
 
-      log.filesToOutdate().filterNot(_.name.endsWith(".meta")).foreach(file => listDelete.add(GMQLSample(
-        source.outputFolder + "/" + dataset.outputFolder + "/Transformations/" + file.name,
-        source.outputFolder + "/" + dataset.outputFolder + "/Transformations/" + file.name+".meta",
-        null)))
-
-      if(listAdd.size()>0 || listDelete.size()>0) {
-        val text = "GMQLDataset: " + dataset.outputFolder+", User: "+source.gmqlUser +
-          (if(listAdd.size()>0){ ". Trying to add "+listAdd.size()+" samples" }else "")
-          //+ (if(listDelete.size()>0){ ". Trying to delete "+listDelete.size()+" samples" }else "")
-        logger.info(text)
-        //If the dataset exists already, I have to add sample instead of importing the whole dataset.
-        //I have to use GMQLRepository.DSExists
-        val repo = new LFSRepository
-        //val repo = new DFSRepository
-        //if(repo.DSExists())
-        //if repo exists I do ADD/DELETE
-        //ELSE IMPORT
-        repo.importDs(
-          source.name+" "+dataset.outputFolder,
-          source.gmqlUser,
-          listAdd,
-          source.outputFolder+"/"+dataset.outputFolder+"/Transformations/"+dataset.outputFolder+".schema")
-        logger.info("import completed")
+        if (listAdd.size() > 0) {
+          logger.debug("Trying to add " + dataset.name +" to user: "+ source.gmqlUser)
+          //if repo exists I do DELETE THEN ADD
+          //if(repo.DSExists())
+          //  repo.DeleteDS(source.name + " " + dataset.outputFolder,source.gmqlUser)
+          try {
+            repo.importDs(
+              source.name + "_" + dataset.name,
+              source.gmqlUser,
+              listAdd,
+              path + File.separator + dataset.outputFolder + ".schema")
+            logger.info("import for dataset "+dataset.name+" completed")
+          }
+          catch {
+            case e: Throwable => logger.error("import failed: " + e.getMessage)
+          }
+          log.markAsProcessed()
+          log.saveTable()
+        }
+        else
+          logger.debug("dataset "+dataset.name+" has no files to be loaded")
       }
-      log.markAsProcessed()
-      log.saveTable()
+      else
+        logger.trace("dataset "+dataset.name+" not included to load.")
     })
   }
 }
