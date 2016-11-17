@@ -23,6 +23,9 @@ final class FTP() {
   def connect(host: String): Try[Unit] = Try {
     client.connect(host)
     client.enterLocalPassiveMode()
+    client.setControlKeepAliveTimeout(300)
+    client.setBufferSize(1024*1024)
+    client.setFileType(FTP.BINARY_FILE_TYPE)
   }
 
   def connected: Boolean = client.isConnected
@@ -44,10 +47,14 @@ final class FTP() {
   def connectWithAuth(host: String,
                       username: String = "anonymous",
                       password: String = "") : Try[Boolean] = {
-    for {
+    val result = for {
       connection <- connect(host)
       login      <- login(username, password)
     } yield login
+    client.setControlKeepAliveTimeout(300)
+    client.setBufferSize(1024*1024)
+    client.setFileType(FTP.BINARY_FILE_TYPE)
+    result
   }
 
   def cd(path: String): Boolean =
@@ -67,7 +74,9 @@ final class FTP() {
 
   def downloadFile(remote: String, local: String): Boolean = {
     val os = new FileOutputStream(new File(local))
-    client.retrieveFile(remote, os)
+    val res = client.retrieveFile(remote, os)
+    os.close()
+    res
   }
 
   def uploadFile(remote: String, input: InputStream): Boolean =
