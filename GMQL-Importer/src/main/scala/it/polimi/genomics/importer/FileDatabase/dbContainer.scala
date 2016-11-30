@@ -366,6 +366,21 @@ case class dbContainer() {
       ("FileDoesNotExist", -1)
   }
   /**
+    * returns hash, size and last update.
+    * @param fileId identifier of the file.
+    * @return hash, size and last update.
+    */
+  def getFileDetails(fileId: Int): (String,String,String) ={
+    val query = (for (f <- files.filter(f => f.id === fileId)) yield (f.hash, f.size, f.lastUpdate)).result
+    val execution = database.run(query)
+    val result = Await.result(execution, Duration.Inf)
+
+    if (result.nonEmpty)
+      result.head
+    else
+      ("file","does not","exist")
+  }
+  /**
     * By receiving a candidate name returns a unique name inside the dataset.
     * @param fileId id for the file.
     * @param name candidate name.
@@ -470,14 +485,14 @@ case class dbContainer() {
   }
 
   /**
-    * returns all the non outdated files
+    * returns all the non outdated files with its copy number.
     * @param datasetId dataset from where files are required.
     * @return non outdated files with its correspondent copy number.
     */
-  def getFilesToProcess(datasetId: Int, stage: String):Seq[(String,Int)]={
+  def getFilesToProcess(datasetId: Int, stage: String):Seq[(Int,String,Int)]={
     val query = (for (f <- files.filter(f => f.datasetId === datasetId && f.stage === stage &&
       (f.status === FILE_STATUS.UPDATE.toString || f.status === FILE_STATUS.NOTHING.toString))
-    ) yield (f.name,f.copyNumber)).result
+    ) yield (f.id,f.name,f.copyNumber)).result
     val execution = database.run(query)
     Await.result(execution, Duration.Inf)
   }

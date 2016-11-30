@@ -220,7 +220,7 @@ class ENCODEDownloader extends GMQLDownloader {
           val filePath = path + File.separator + jsonName
           //As I dont have the metadata for the json file i use the same as the region data.
           if(FileDatabase.checkIfUpdateFile(fileId,fields(md5sum),fields(originSize),fields(originLastUpdate))){
-            downloadFileFromURL(fields(url), filePath)
+            downloadFileFromURL(urlExperimentJson, filePath)
             val file = new File(filePath)
             //cannot check the correctness of the download for the json.
             FileDatabase.markAsUpdated(fileId,file.getTotalSpace.toString)

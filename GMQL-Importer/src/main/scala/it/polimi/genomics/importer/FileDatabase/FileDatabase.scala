@@ -151,6 +151,15 @@ object FileDatabase {
   }
 
   /**
+    * returns hash, size and last update.
+    * @param fileId identifier of the file.
+    * @return hash, size and last update.
+    */
+  def getFileDetails(fileId: Int): (String,String,String) ={
+    db.getFileDetails(fileId)
+  }
+
+  /**
     * indicates which is the maximum copy number for the same filename inside the same dataset.
     * @param datasetId datast where the file belongs
     * @param fileName original file name
@@ -174,11 +183,11 @@ object FileDatabase {
   }
 
   /**
-    * returns all the non outdated files
+    * returns all the non outdated files with its copy number
     * @param datasetId dataset from where files are required.
-    * @return non outdated files
+    * @return non outdated files id, name, copy number
     */
-  def getFilesToProcess(datasetId: Int, stage: String):Seq[(String,Int)]={
+  def getFilesToProcess(datasetId: Int, stage: String):Seq[(Int,String,Int)]={
     db.getFilesToProcess(datasetId, stage)
   }
   /**
