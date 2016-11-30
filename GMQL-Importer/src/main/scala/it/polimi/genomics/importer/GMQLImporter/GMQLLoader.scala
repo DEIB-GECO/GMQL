@@ -1,8 +1,8 @@
 package it.polimi.genomics.importer.GMQLImporter
 
 import it.polimi.genomics.importer.FileLogger.FileLogger
-import it.polimi.genomics.repository.FSRepository.LFSRepository
-import it.polimi.genomics.repository.GMQLRepository.GMQLSample
+import it.polimi.genomics.repository.FSRepository.{DFSRepository, LFSRepository}
+import it.polimi.genomics.repository.GMQLRepository.{GMQLDSNotFound, GMQLSample}
 import org.slf4j.LoggerFactory
 import java.io.File
 /**
@@ -25,7 +25,7 @@ object GMQLLoader {
     * @param source contains files location and datasets organization
     */
   def loadIntoGMQL(source: GMQLSource): Unit = {
-    val repo = new LFSRepository
+    val repo = new DFSRepository
     logger.debug("Preparing for loading datasets into GMQL")
     source.datasets.foreach(dataset =>{
       logger.trace("dataset "+dataset.name)
@@ -48,12 +48,18 @@ object GMQLLoader {
 
         if (listAdd.size() > 0) {
           logger.debug("Trying to add " + dataset.name +" to user: "+ source.gmqlUser)
+          val datasetName = source.name + "_" + dataset.name
           //if repo exists I do DELETE THEN ADD
           //if(repo.DSExists())
-          //  repo.DeleteDS(source.name + " " + dataset.outputFolder,source.gmqlUser)
+          try{
+            repo.DeleteDS(datasetName,source.gmqlUser)
+          }catch {
+            case e:GMQLDSNotFound => logger.debug("Dataset " + datasetName + " is not defined before!!")
+          }
+
           try {
             repo.importDs(
-              source.name + "_" + dataset.name,
+              datasetName,
               source.gmqlUser,
               listAdd,
               path + File.separator + dataset.outputFolder + ".schema")

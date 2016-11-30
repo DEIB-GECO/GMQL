@@ -113,7 +113,7 @@ class FTPDownloader extends GMQLDownloader {
                 file.getSize.toString,
                 file.getTimestamp.getTime.toString)) {
                 logger.debug("Starting download of: " + ftp.workingDirectory() + File.separator + file.getName)
-                var downloaded = true//ftp.downloadFile(file.getName, outputPath + File.separator + file.getName)
+                var downloaded = ftp.downloadFile(file.getName, outputPath + File.separator + file.getName)
                 var timesTried = 0
                 while (!downloaded && timesTried < 4) {
                   downloaded = ftp.downloadFile(file.getName, outputPath + File.separator + file.getName)
@@ -152,6 +152,7 @@ class FTPDownloader extends GMQLDownloader {
       source.parameters.filter(_._1 == "username").head._2,
       source.parameters.filter(_._1 == "password").head._2).getOrElse(false)) {
       ftp.cd(workingDirectory)
+      logger.info("working directory: " + workingDirectory)
       val directories = ftp.listDirectories()
       ftp.disconnect()
       directories.foreach(directory => {

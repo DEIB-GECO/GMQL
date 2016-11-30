@@ -12,9 +12,9 @@
             <gmql_user>public</gmql_user>
             <downloader>it.polimi.genomics.importer.DefaultImporter.FTPDownloader</downloader>
             <transformer>it.polimi.genomics.importer.DefaultImporter.NULLTransformer</transformer>
-            <download_enabled>TRUE</download_enabled>
-            <transform_enabled>TRUE</transform_enabled>
-            <load_enabled>TRUE</load_enabled>
+            <download_enabled>FALSE</download_enabled>
+            <transform_enabled>FALSE</transform_enabled>
+            <load_enabled>FALSE</load_enabled>
             <parameter_list>
                 <parameter>
                     <description>for logging in ftp on tcga2bed need this anonymous user</description>
@@ -41,7 +41,8 @@
                         </parameter>
                         <parameter>
                             <key>files_regex</key>
-                            <value>.*10A-01D-A393-01\.bed(\.meta)?$</value>
+                            <value>.*\.bed(\.meta)?$</value>
+                            <!--<value>.*10A-01D-A393-01\.bed(\.meta)?$</value>-->
                         </parameter>
                     </parameter_list>
                 </dataset>
@@ -126,7 +127,7 @@
                 <dataset name="exampleNarrowPeak">
                     <output_folder>ExampleNARROWPEAK</output_folder>
                     <schema location="LOCAL">schemas/narrowPeak.schema</schema>
-                    <download_enabled>TRUE</download_enabled>
+                    <download_enabled>FALSE</download_enabled>
                     <transform_enabled>TRUE</transform_enabled>
                     <load_enabled>TRUE</load_enabled>
                     <parameter_list>
@@ -155,6 +156,63 @@
                         </parameter>
                     </parameter_list>
                 </dataset>
+                <dataset name="exampleBroadPeak">
+                    <output_folder>ExampleBROADPEAK</output_folder>
+                    <schema location="LOCAL">schemas/broadPeak.schema</schema>
+                    <download_enabled>FALSE</download_enabled>
+                    <transform_enabled>FALSE</transform_enabled>
+                    <load_enabled>FALSE</load_enabled>
+                    <parameter_list>
+                        <parameter>
+                            <description>always should be experiment, but could be another type</description>
+                            <key>type</key>
+                            <value>Experiment</value>
+                        </parameter>
+                        <parameter>
+                            <description>trying now with broadpeaks to merge</description>
+                            <key>files.file_type</key>
+                            <value>bed+broadPeak</value>
+                        </parameter>
+                        <parameter>
+                            <description>this ones are to reduce the downloaded files</description>
+                            <key>assay_title</key>
+                            <value>RIP-seq</value>
+                        </parameter>
+                    </parameter_list>
+                </dataset>
+                <dataset name="exampleBroadPeak2">
+                    <output_folder>ExampleBROADPEAK</output_folder>
+                    <schema location="LOCAL">schemas/broadPeak.schema</schema>
+                    <download_enabled>FALSE</download_enabled>
+                    <transform_enabled>FALSE</transform_enabled>
+                    <load_enabled>FALSE</load_enabled>
+                    <parameter_list>
+                        <parameter>
+                            <description>always should be experiment, but could be another type</description>
+                            <key>type</key>
+                            <value>Experiment</value>
+                        </parameter>
+                        <parameter>
+                            <description>trying now with broadpeaks to merge</description>
+                            <key>files.file_type</key>
+                            <value>bed+broadPeak</value>
+                        </parameter>
+                        <parameter>
+                            <description>this ones are to reduce the downloaded files</description>
+                            <key>assay_title</key>
+                            <value>RIP-seq</value>
+                        </parameter>
+                    </parameter_list>
+                </dataset>
+                <merged_dataset name="peaks">
+                    <output_folder>peaks</output_folder>
+                    <merge_enabled>FALSE</merge_enabled>
+                    <load_enabled>FALSE</load_enabled>
+                    <origin_dataset_list>
+                        <origin_dataset>exampleNarrowPeak</origin_dataset>
+                        <origin_dataset>exampleBroadPeak</origin_dataset>
+                    </origin_dataset_list>
+                </merged_dataset>
             </dataset_list>
         </source>
     </source_list>

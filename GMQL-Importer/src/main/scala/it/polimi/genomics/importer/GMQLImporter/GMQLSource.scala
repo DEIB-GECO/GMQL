@@ -22,6 +22,7 @@ case class GMQLSource(
                         name:String,
                         url:String,
                         outputFolder:String,
+                        rootOutputFolder:String,
                         gmqlUser:String,
                         downloader:String,
                         transformer:String,
@@ -29,6 +30,7 @@ case class GMQLSource(
                         transformEnabled: Boolean,
                         loadEnabled: Boolean,
                         parameters: Seq[(String,String)],
-                        datasets:Seq[GMQLDataset]
+                        datasets:Seq[GMQLDataset],
+                        mergedDatasets:Seq[GMQLDataset]
                       ) {
 }
