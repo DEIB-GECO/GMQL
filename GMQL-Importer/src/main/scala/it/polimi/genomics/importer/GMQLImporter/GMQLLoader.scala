@@ -1,6 +1,6 @@
 package it.polimi.genomics.importer.GMQLImporter
 
-import it.polimi.genomics.importer.FileLogger.FileLogger
+import it.polimi.genomics.importer.FileDatabase.FileDatabase
 import it.polimi.genomics.repository.FSRepository.{DFSRepository, LFSRepository}
 import it.polimi.genomics.repository.GMQLRepository.{GMQLDSNotFound, GMQLSample}
 import org.slf4j.LoggerFactory
@@ -26,33 +26,39 @@ object GMQLLoader {
     */
   def loadIntoGMQL(source: GMQLSource): Unit = {
     val repo = new DFSRepository
+    val gmqlUser = source.parameters.filter(_._1=="gmql_user").head._2
+    val stage = "Transform"
     logger.debug("Preparing for loading datasets into GMQL")
     source.datasets.foreach(dataset =>{
       logger.trace("dataset "+dataset.name)
       if(dataset.loadEnabled) {
         val path = source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Transformations"
-        val log = new FileLogger(path)
 
         val listAdd = new java.util.ArrayList[GMQLSample]()
 
-        log.files.filter(_.name.endsWith(".meta")).foreach(file => {
+        val datasetId = FileDatabase.datasetId(FileDatabase.sourceId(source.name),dataset.name)
+
+        FileDatabase.getFilesToProcess(datasetId,stage).filter(_._1.endsWith(".meta")).foreach(file => {
+          val maxCopyNumber = FileDatabase.getMaxCopyNumber(datasetId,file._1,stage)
+          val fileName = if(file._2 == 0) file._1 else file._1.replaceFirst(".","_"+file._2+".")
           try {
             listAdd.add(GMQLSample(
-              path + File.separator + file.name.substring(0, file.name.lastIndexOf(".meta")),
-              path + File.separator + file.name,
+              path + File.separator + fileName.substring(0, fileName.lastIndexOf(".meta")),
+              path + File.separator + fileName,
               null))
           }catch {
-            case e: Throwable => logger.warn("data or metadata files missing: "+ path + File.separator + file.name + ". more details: "+e.getMessage)
+            case e: Throwable => logger.warn("data or metadata files missing: "+ path + File.separator + fileName + ". more details: "+e.getMessage)
           }
-          })
+        })
 
         if (listAdd.size() > 0) {
-          logger.debug("Trying to add " + dataset.name +" to user: "+ source.gmqlUser)
+          //CHANGE GMQLUSER TO SOURCE PARAMETERS
+          logger.debug("Trying to add " + dataset.name +" to user: "+ gmqlUser)
           val datasetName = source.name + "_" + dataset.name
           //if repo exists I do DELETE THEN ADD
           //if(repo.DSExists())
           try{
-            repo.DeleteDS(datasetName,source.gmqlUser)
+            repo.DeleteDS(datasetName,gmqlUser)
           }catch {
             case e:GMQLDSNotFound => logger.debug("Dataset " + datasetName + " is not defined before!!")
           }
@@ -60,7 +66,7 @@ object GMQLLoader {
           try {
             repo.importDs(
               datasetName,
-              source.gmqlUser,
+              gmqlUser,
               listAdd,
               path + File.separator + dataset.outputFolder + ".schema")
             logger.info("import for dataset "+dataset.name+" completed")
@@ -68,8 +74,7 @@ object GMQLLoader {
           catch {
             case e: Throwable => logger.error("import failed: " + e.getMessage)
           }
-          log.markAsProcessed()
-          log.saveTable()
+          FileDatabase.markAsProcessed(datasetId,stage)
         }
         else
           logger.debug("dataset "+dataset.name+" has no files to be loaded")
