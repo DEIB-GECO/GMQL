@@ -130,7 +130,7 @@ class LFSRepository extends GMQLRepository{
     * @throws it.polimi.genomics.repository.GMQLRepository.GMQLUserNotFound
     */
   override def ListAllDSs(userName: String): java.util.List[IRDataSet] = {
-    val dSs = new File(it.polimi.genomics.repository.GMQLRepository.Utilities.RepoDir + userName+"/datasets/").listFiles(new FilenameFilter() {
+    val dSs = new File(it.polimi.genomics.repository.GMQLRepository.Utilities().RepoDir + userName+"/datasets/").listFiles(new FilenameFilter() {
       def accept(dir: File, name: String): Boolean = {
         return name.endsWith(".xml")
       }
@@ -177,7 +177,7 @@ class LFSRepository extends GMQLRepository{
     * @return
     */
   override def ListResultDSSamples(dataSetName:String , userName: String): java.util.List[GMQLSample] = {
-    new java.io.File(GMQLRepository.Utilities.RepoDir + dataSetName).listFiles(
+    new java.io.File(GMQLRepository.Utilities().RepoDir + dataSetName).listFiles(
       new FileFilter() {
         @Override def accept(pathname: java.io.File) = !pathname.getName.startsWith("_") && !pathname.getName.startsWith(".") && !pathname.getName.endsWith(".meta");
       }
@@ -241,9 +241,9 @@ class LFSRepository extends GMQLRepository{
   }
 
   def getSchema(dataSetName: String, userName:String): java.util.List[(String,PARSING_TYPE)] = {
-    val gtfFields = List("seqname","source","feature","start","end","score","strand","frame")
+    val gtfFields = List("seqname","source","feature","start","end","strand","frame")
     val tabFields = List("chr","left","right","strand")
-    val xmlFile = XML.load(GMQLRepository.Utilities.RepoDir + userName + "/schema/" + new File(dataSetName).getParent + ".schema")
+    val xmlFile = XML.load(GMQLRepository.Utilities().RepoDir + userName + "/schema/" + new File(dataSetName).getParent + ".schema")
     val cc = (xmlFile \\ "field")
     cc.flatMap{x => if(gtfFields.contains(x.text.trim)||tabFields.contains(x.text.trim)) None else Some(x.text.trim, attType(x.attribute("type").get.head.text))}.toList.asJava
   }

@@ -21,11 +21,11 @@ import scala.concurrent.Await
   * Created by abdulrahman on 26/05/16.
   */
 object testLFSRepository {
-  val uri1 = "/Users/abdulrahman/Downloads/job_histogram_abdulrahman_20160519_184225_data/S_-2986345875652195707.gtf"
-  val uri2 = "/Users/abdulrahman/Downloads/job_histogram_abdulrahman_20160519_184225_data/S_-4536275001140494738.gtf"
+  val uri1 = "/Users/abdulrahman/Downloads/job_anna_guest82_20161115_134822_res/S_-5234164291634323936.gtf"
+  val uri2 = "/Users/abdulrahman/Downloads/job_anna_guest82_20161115_134822_res/S_2393272046931699582"
   val S1 = new GMQLSample(uri1,uri1+".meta")
   val S2 = new GMQLSample(uri2,uri2+".meta")
-  val sch = List[(String,PARSING_TYPE)](("score",ParsingType.DOUBLE))
+  val sch = List[(String,PARSING_TYPE)](("name",ParsingType.STRING),("score",ParsingType.DOUBLE))
   import scala.collection.JavaConverters._
   val irDS = new IRDataSet("LFStest11",sch.asJava)
   val username = "abdulrahman"
@@ -38,7 +38,7 @@ object testLFSRepository {
 
 //        testCreateDS();
 //        new LFSRepository().exportDsToLocal(irDS.position,username,"/Users/abdulrahman/Downloads/ddd/")
-    println(new LFSRepository().ListAllDSs("abdulrahman"))
+    new LFSRepository().ListAllDSs("abdulrahman").asScala.foreach(x=>println(x.position))
   }
 
   def testCreateDS() ={

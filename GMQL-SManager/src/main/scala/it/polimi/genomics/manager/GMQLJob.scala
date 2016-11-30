@@ -160,7 +160,7 @@ class GMQLJob(val implementation: Implementation,val binSize: Long,val scriptPat
         while (status.equals(Status.RUNNING)){
           Thread.sleep(500l)
           status = getExecJobStatus
-          logger.info(jobId+"\t"+status)
+          println(jobId+"\t"+status)
         }
         elapsedTime.executionTime = ((System.currentTimeMillis() - timestamp) / 1000).toString
 

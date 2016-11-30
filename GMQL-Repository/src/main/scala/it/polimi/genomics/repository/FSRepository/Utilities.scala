@@ -10,11 +10,9 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.slf4j.LoggerFactory
 import javax.xml.transform.stream.StreamSource
-import javax.xml.validation.Schema
 import javax.xml.validation.SchemaFactory
-import javax.xml.validation.{Validator => JValidator}
 
-import it.polimi.genomics.repository.GMQLRepository.Utilities._
+import it.polimi.genomics.repository.GMQLRepository
 import org.xml.sax.SAXException
 
 /**
@@ -34,7 +32,7 @@ object Utilities {
     }
   }
   def validate(xmlFile: String): Boolean = {
-    val xsdFile =  GMQLHOME+"/conf/gmqlSchemaCollection.xsd"
+    val xsdFile =  GMQLRepository.Utilities().GMQLHOME+"/conf/gmqlSchemaCollection.xsd"
 
     try {
       val schemaLang = "http://www.w3.org/2001/XMLSchema"

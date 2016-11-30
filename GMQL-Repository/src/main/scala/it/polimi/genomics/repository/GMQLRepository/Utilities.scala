@@ -15,7 +15,7 @@ import java.util.concurrent.ExecutionException
   *
   * @author abdulrahman kaitoua <abdulrahman dot kaitoua at polimi dot it>
   */
-object Utilities {
+class Utilities() {
   private val logger: Logger = LoggerFactory.getLogger(Utilities.getClass)
   var USERNAME: String = "abdulrahman"
   val HDFS: String = "MAPREDUCE"
@@ -28,7 +28,7 @@ object Utilities {
    var HDFSConfigurationFiles: String = null
    var GMQLHOME: String = null
 
-  def apply() {
+  def apply() = {
     val gmql: String = System.getenv("GMQL_HOME")
     val user: String = System.getenv("USER")
     val dfs: String = System.getenv("GMQL_DFS_HOME")
@@ -36,31 +36,31 @@ object Utilities {
 
 
 
-    if (gmql == null) GMQLHOME = "/Users/abdulrahman/gmql_repository"
-    else GMQLHOME = gmql
+    if (gmql == null) this.GMQLHOME = "/Users/abdulrahman/gmql_repository"
+    else this.GMQLHOME = gmql
 
-    if (user == null) Utilities.USERNAME = "gmql_user"
-    else Utilities.USERNAME = user
+    if (user == null) this.USERNAME = "gmql_user"
+    else this.USERNAME = user
 
     if (dfs == null) this.HDFSRepoDir = "/user/akaitoua/gmql_repo/"
     else this.HDFSRepoDir = dfs
 
     if (exec == null) {
       logger.error("Environment variable GMQL_EXEC is empty... execution set to LOCAL")
-      this.MODE = Utilities.HDFS
+      this.MODE = this.HDFS
     } else this.MODE = exec.toUpperCase
 
-    RepoDir = GMQLHOME + "/data/"
+    RepoDir = this.GMQLHOME + "/data/"
 
 
     val coreConf: String = System.getenv("HADOOP_CONF_DIR")
     val hdfsConf: String = System.getenv("HADOOP_CONF_DIR")
     CoreConfigurationFiles = (if (coreConf == null) "/usr/local/Cellar/hadoop/2.7.2/libexec/etc/hadoop/" else coreConf) + "/core-site.xml"
     HDFSConfigurationFiles = (if (hdfsConf == null) "/usr/local/Cellar/hadoop/2.7.2/libexec/etc/hadoop/" else hdfsConf) + "/hdfs-site.xml"
-    logger.debug("GMQLHOME = " + gmql + "," + GMQLHOME)
-    logger.debug("HDFS Repository = " + dfs + "," + HDFSRepoDir)
-    logger.debug("MODE = " + exec + "," + MODE)
-    logger.debug("user = " + user + "," + Utilities.USERNAME)
+    logger.debug("GMQLHOME = " + gmql + "," + this.GMQLHOME)
+    logger.debug("HDFS Repository = " + dfs + "," + this.HDFSRepoDir)
+    logger.debug("MODE = " + exec + "," + this.MODE)
+    logger.debug("user = " + user + "," + this.USERNAME)
   }
 
   def deleteFromLocalFSRecursive(dir: File) {
@@ -75,5 +75,12 @@ object Utilities {
       dir.delete
     }
     else dir.delete
+  }
+}
+object Utilities{
+  var instance:Utilities = null
+  def apply(): Utilities ={
+    if(instance == null){instance = new Utilities(); instance.apply()}
+    instance
   }
 }
