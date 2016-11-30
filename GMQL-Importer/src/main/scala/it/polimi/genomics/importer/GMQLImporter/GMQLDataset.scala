@@ -8,7 +8,7 @@ import it.polimi.genomics.importer.GMQLImporter.utils.SCHEMA_LOCATION
 /**
   * represents a dataset from a source
   * @param outputFolder working subdirectory for the dataset
-  * @param schema .schema file location
+  * @param schemaUrl .schema file location
   * @param schemaLocation indicates if the schema is on local or remote location
   * @param downloadEnabled indicates whether download or not the datasets.
   * @param transformEnabled indicates whether transform or not the datasets.
@@ -18,11 +18,11 @@ import it.polimi.genomics.importer.GMQLImporter.utils.SCHEMA_LOCATION
 case class GMQLDataset(
                         name:String,
                         outputFolder:String,
-                        schema:String,
+                        schemaUrl:String,
                         schemaLocation: SCHEMA_LOCATION.Value,
                         downloadEnabled: Boolean,
                         transformEnabled: Boolean,
                         loadEnabled: Boolean,
-                        parameters: Seq[(String,String)]
+                        parameters: Seq[(String,String,String)]
                       ) {
 }

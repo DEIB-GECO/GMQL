@@ -41,10 +41,11 @@ object FileDatabase {
     * @param datasetId file owner's id.
     * @param url origin url for the file.
     * @param stage stage of the process the file is used Download/Transform.
+    * @param candidateName the name the file should have.
     * @return id of the file.
     */
-  def fileId(datasetId: Int, url: String, stage: String): Int = {
-    db.fileId(datasetId, url, stage)
+  def fileId(datasetId: Int, url: String, stage: String, candidateName: String): Int = {
+    db.fileId(datasetId, url, stage, candidateName)
   }
 
   /**
@@ -143,11 +144,10 @@ object FileDatabase {
   /**
     * By receiving a candidate name returns a unique name inside the dataset.
     * @param fileId id for the file.
-    * @param name candidate name.
     * @return unique name among the dataset's files. -1 as the Int indicates the file should not exist.
     */
-  def getFileNameAndCopyNumber(fileId: Int, name: String): (String,Int) ={
-    db.getFileNameAndCopyNumber(fileId, name)
+  def getFileNameAndCopyNumber(fileId: Int): (String,Int) ={
+    db.getFileNameAndCopyNumber(fileId)
   }
 
   /**

@@ -2,7 +2,7 @@ package it.polimi.genomics.importer.DefaultImporter
 
 import java.io.File
 
-import it.polimi.genomics.importer.FileLogger.FileLogger
+import it.polimi.genomics.importer.FileDatabase.FileLogger
 import it.polimi.genomics.importer.DefaultImporter.utils.FTP
 import it.polimi.genomics.importer.GMQLImporter.utils.SCHEMA_LOCATION
 import it.polimi.genomics.importer.GMQLImporter.{GMQLDataset, GMQLDownloader, GMQLSource}
@@ -184,9 +184,9 @@ class FTPDownloader extends GMQLDownloader {
       ftp.connectWithAuth(source.url,
         source.parameters.filter(_._1 == "username").head._2,
         source.parameters.filter(_._1 == "password").head._2).getOrElse(false)) {
-      if (!ftp.downloadFile(dataset.schema, source.outputFolder +
+      if (!ftp.downloadFile(dataset.schemaUrl, source.outputFolder +
         File.separator + dataset.outputFolder + File.separator + dataset.outputFolder + ".schema"))
-        logger.error("File: " + dataset.schema + " Couldn't be downloaded")
+        logger.error("File: " + dataset.schemaUrl + " Couldn't be downloaded")
       ftp.disconnect()
     }
     else

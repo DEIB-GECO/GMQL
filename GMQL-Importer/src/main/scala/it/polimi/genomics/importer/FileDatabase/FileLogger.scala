@@ -1,4 +1,4 @@
-package it.polimi.genomics.importer.FileLogger
+package it.polimi.genomics.importer.FileDatabase
 
 import java.io.File
 import java.util.Calendar
@@ -16,7 +16,7 @@ import scala.xml.XML
   * How to use it properly:
   *   1- Instantiate the class by passing the objective dataset folder (path/Downloads or path/Transformations).
   *   2- Set the dataset into comparision mode by using markToCompare() method.
-  *   3- For each file, the FileLogger will tell you if needs using checkIfUpdate(...) method.
+  *   3- For each file, the FileDatabase will tell you if needs using checkIfUpdate(...) method.
   *     3.1- After you update the file (if you have to) use markAsUpdated(...) method to indicate that was updated.
   *     3.2- If the update process was not correct, use markAsFailed(...) method to indicate that was an error.
   *   4- After modifications have been done, use method markAsOutdated() to log which files are not kept in the source.
@@ -37,6 +37,14 @@ class FileLogger(path: String){
   if (!new java.io.File(path+ File.separator + "FileLog.xml").exists()) {
     val elem = <file_list></file_list>
     XML.save(path + File.separator + "FileLog.xml", elem)
+  }
+
+  /**
+    * returns all the non outdated files
+    * @return non outdated files
+    */
+  def getFiles:List[FileLogElement]={
+    files.filterNot(file =>file.status==FILE_STATUS.OUTDATED || file.status==FILE_STATUS.FAILED || file.status == FILE_STATUS.COMPARE)
   }
   var files: List[FileLogElement] = (XML.loadFile(path+ File.separator + "FileLog.xml")\\"file").map(file =>
     FileLogElement(
@@ -62,7 +70,7 @@ class FileLogger(path: String){
     if (files.exists(_.name == filename)) {
       val oldFile = files.filter(_.name == filename).head
       //ADD or UPDATE indicates that file was put on the download folder and marked as update
-      if(oldFile.status == FILE_STATUS.ADD || oldFile.status == FILE_STATUS.UPDATE)
+      if(oldFile.status == FILE_STATUS.UPDATE)
         false
       //FAILED indicates that the file was not put in the folder, OUTDATED means the file was deleted from the server
       else if (oldFile.status == FILE_STATUS.FAILED || oldFile.status == FILE_STATUS.OUTDATED)
@@ -127,10 +135,10 @@ class FileLogger(path: String){
       if (file.name == filename)
         FileLogElement(
           file.name,
-          if (file.status == FILE_STATUS.UPDATE || file.status == FILE_STATUS.ADD)
+          if (file.status == FILE_STATUS.UPDATE)
             file.lastUpdate
           else Calendar.getInstance.getTime.toString,
-          if (file.lastUpdate == "") FILE_STATUS.ADD else FILE_STATUS.UPDATE,
+          FILE_STATUS.UPDATE,
           file.origin,
           file.originSize,
           file.originLastUpdate,
@@ -177,7 +185,7 @@ class FileLogger(path: String){
     */
   def markToCompare(): Unit ={
     files = files.map(file =>
-      if(file.status == FILE_STATUS.UPDATE || file.status == FILE_STATUS.ADD) file
+      if(file.status == FILE_STATUS.UPDATE) file
       else FileLogElement(
         file.name,
         file.lastUpdate,
@@ -195,7 +203,7 @@ class FileLogger(path: String){
     */
   def markAsProcessed(): Unit ={
     files = files.map(file =>
-      if(file.status == FILE_STATUS.ADD || file.status == FILE_STATUS.UPDATE || file.status == FILE_STATUS.NOTHING)
+      if(file.status == FILE_STATUS.UPDATE || file.status == FILE_STATUS.NOTHING)
         FileLogElement(file.name,
           file.lastUpdate,
           FILE_STATUS.NOTHING,

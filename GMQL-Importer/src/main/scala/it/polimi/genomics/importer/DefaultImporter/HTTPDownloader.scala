@@ -2,7 +2,7 @@ package it.polimi.genomics.importer.DefaultImporter
 import java.io.File
 import java.net.URL
 
-import it.polimi.genomics.importer.FileLogger.FileLogger
+import it.polimi.genomics.importer.FileDatabase.FileLogger
 import it.polimi.genomics.importer.GMQLImporter.{GMQLDownloader, GMQLSource}
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document

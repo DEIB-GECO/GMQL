@@ -1,4 +1,4 @@
-package it.polimi.genomics.importer.FileLogger
+package it.polimi.genomics.importer.FileDatabase
 
 /**
   * class to represent each file in the folder for the FileLog

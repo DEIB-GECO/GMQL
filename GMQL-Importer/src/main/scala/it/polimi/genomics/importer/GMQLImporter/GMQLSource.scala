@@ -10,7 +10,6 @@ package it.polimi.genomics.importer.GMQLImporter
   *
   * @param url source url
   * @param outputFolder working directory for the source
-  * @param gmqlUser user for whom datasets are
   * @param downloader package and name of the downloader to be used for this source
   * @param transformer package and name of the transformer to be used for this source
   * @param downloadEnabled indicates whether download or not the datasets.
@@ -23,13 +22,13 @@ case class GMQLSource(
                         url:String,
                         outputFolder:String,
                         rootOutputFolder:String,
-                        gmqlUser:String,
-                        downloader:String,
-                        transformer:String,
                         downloadEnabled: Boolean,
+                        downloader:String,
                         transformEnabled: Boolean,
+                        transformer:String,
                         loadEnabled: Boolean,
-                        parameters: Seq[(String,String)],
+                        loader:String,
+                        parameters: Seq[(String,String,String)],
                         datasets:Seq[GMQLDataset],
                         mergedDatasets:Seq[GMQLDataset]
                       ) {
