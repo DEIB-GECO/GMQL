@@ -5,7 +5,7 @@ import java.util
 import java.util.zip.GZIPInputStream
 
 import com.google.common.io.Files
-import it.polimi.genomics.importer.FileDatabase.FileLogger
+import it.polimi.genomics.importer.FileDatabase.FileDatabase
 import it.polimi.genomics.importer.GMQLImporter.utils.SCHEMA_LOCATION
 import it.polimi.genomics.importer.GMQLImporter.{GMQLDataset, GMQLSource, GMQLTransformer}
 import org.codehaus.jackson.map.MappingJsonFactory
@@ -35,13 +35,13 @@ class ENCODETransformer extends GMQLTransformer {
     logger.info("Starting transformation for: " + source.outputFolder)
     source.datasets.foreach(dataset => {
       if(dataset.transformEnabled) {
-        var logTransform = new FileLogger(
-          source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Transformations")
-        logTransform.markToCompare()
-        logTransform.saveTable()
+        val datasetId = FileDatabase.datasetId(FileDatabase.sourceId(source.name),dataset.name)
+
+        FileDatabase.markToCompare(datasetId,"Transform")
 
         val datasetOutputFolder = source.outputFolder + File.separator + dataset.outputFolder + File.separator
-        val metadata = new File(datasetOutputFolder + "Downloads"+ File.separator + "metadata.tsv")
+        val metadataFileName = "metadata.tsv"
+        val metadata = new File(datasetOutputFolder + "Downloads"+ File.separator + metadataFileName)
         if(metadata.exists()) {
           logger.info("Transformation for dataset: " + dataset.name)
           val folder = new File(datasetOutputFolder + "Transformations")
@@ -55,15 +55,9 @@ class ENCODETransformer extends GMQLTransformer {
         else
           logger.warn("Transformation for dataset: " +dataset.name +" cannot be done. Metadata files have not been downloaded")
 
-        logTransform = new FileLogger(
-          source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Transformations")
-        logTransform.markAsOutdated()
-        logTransform.saveTable()
+        FileDatabase.markAsOutdated(datasetId,"Transform")
 
-        val logDownload = new FileLogger(
-          source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Downloads")
-        logDownload.markAsProcessed()
-        logDownload.saveTable()
+        FileDatabase.markAsProcessed(datasetId,"Download")
       }
     })
     organize(source)
@@ -78,26 +72,41 @@ class ENCODETransformer extends GMQLTransformer {
     * @param dataset refers to the actual dataset being added
     */
   private def transformData(source: GMQLSource, dataset: GMQLDataset): Unit = {
-    val logDownload = new FileLogger(
-      source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Downloads")
-    val logTransform = new FileLogger(
-      source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Transformations")
-    logDownload.getFiles.filter(_.name.endsWith(".gz")).foreach(file => {
+
+    val datasetId = FileDatabase.datasetId(FileDatabase.sourceId(source.name),dataset.name)
+
+    FileDatabase.getFilesToProcess(datasetId,"Download").filter(_._2.endsWith(".gz")).map(fileNameAndCopyNumber=>{(
+      fileNameAndCopyNumber._1,
+      if(fileNameAndCopyNumber._3==0)fileNameAndCopyNumber._2
+      else fileNameAndCopyNumber._2.replaceFirst(".","_"+fileNameAndCopyNumber._2+".")
+      )
+    }).foreach(file => {
+      val downloadFolder = source.outputFolder + File.separator +
+        dataset.outputFolder + File.separator + "Downloads"
+      val transformFolder = source.outputFolder + File.separator +
+        dataset.outputFolder + File.separator + "Transformations"
+
       //this is to take out the ".gz"
-      val name = file.name.substring(0, file.name.lastIndexOf("."))
+      val candidateName = file._2.substring(0, file._2.lastIndexOf("."))
       //should get file size, for the moment I pass the origin size just to have a value.
-      if (logTransform.checkIfUpdate(name, file.name, file.originSize, file.lastUpdate)) {
-        logger.debug("Start unGzipping: " + file.name)
+      val fileId = FileDatabase.fileId(datasetId,downloadFolder+File.separator+file._2,"Transform",candidateName)
+
+      val fileNameAndCopyNumber = FileDatabase.getFileNameAndCopyNumber(fileId)
+
+      val name =
+        if(fileNameAndCopyNumber._2==0)fileNameAndCopyNumber._1
+        else fileNameAndCopyNumber._1.replaceFirst(".","_"+fileNameAndCopyNumber._2+".")
+
+      val originDetails = FileDatabase.getFileDetails(file._1)
+      if(FileDatabase.checkIfUpdateFile(fileId,originDetails._1,originDetails._2,originDetails._3)) {
+        logger.debug("Start unGzipping: " + file._2)
         unGzipIt(
-          source.outputFolder + File.separator + dataset.outputFolder +
-            File.separator + "Downloads" + File.separator + file.name,
-          source.outputFolder + File.separator + dataset.outputFolder +
-            File.separator + "Transformations" + File.separator + name)
-        logTransform.markAsUpdated(name)
-        logger.info("UnGzipping: " + file.name + " DONE")
+          downloadFolder + File.separator + file._2,
+          transformFolder + File.separator + name)
+        FileDatabase.markAsUpdated(fileId, new File(transformFolder + File.separator + name).getTotalSpace.toString)
+        logger.info("UnGzipping: " + file._2 + " DONE")
       }
     })
-    logTransform.saveTable()
   }
   //---------------------------------------METADATA CREATION SECTION---------------------------------------------
   /**
@@ -120,41 +129,57 @@ class ENCODETransformer extends GMQLTransformer {
     val transformationPath = source.outputFolder + File.separator + dataset.outputFolder +
       File.separator + "Transformations"
 
-    val logDownloads = new FileLogger(downloadPath)
 
-    val logTransformation = new FileLogger(transformationPath)
+    val datasetId = FileDatabase.datasetId(FileDatabase.sourceId(source.name),dataset.name)
 
-    logDownloads.getFiles.filter(_.name.endsWith(".gz.json")).foreach(file => {
-      val fileId = file.name.split('.').head
-      val metadataName = file.name.replace(".gz.json", ".meta")
-      val metadataDownloadPath = downloadPath + File.separator + file.name
-      val transform = logTransformation.checkIfUpdate(
-        metadataName,
-        metadataDownloadPath,
-        new File(metadataDownloadPath).getTotalSpace.toString,
-        new File(metadataDownloadPath).lastModified().toString)
-      if (transform) {
-        logger.debug("Start metadata transformation: " + metadataName)
-        val metadataDestinationPath = transformationPath+File.separator+metadataName
-        transformMetaFromJson(metadataDownloadPath,metadataDestinationPath,fileId)
-        logTransformation.markAsUpdated(metadataName)
+    FileDatabase.getFilesToProcess(datasetId,"Download").filter(_._2.endsWith(".gz.json")).map(fileNameAndCopyNumber=>{(
+      fileNameAndCopyNumber._1,
+      if(fileNameAndCopyNumber._3==0)fileNameAndCopyNumber._2
+      else fileNameAndCopyNumber._2.replaceFirst(".","_"+fileNameAndCopyNumber._2+"."),
+      fileNameAndCopyNumber._3,
+      FileDatabase.getMaxCopyNumber(datasetId,fileNameAndCopyNumber._2,"Download")
+      )})
+      .foreach(file => {
 
-        //here I replace the keys from the metadata.
 
-        try {
-          val config: Elem = XML.loadFile(source.rootOutputFolder+File.separator+source.parameters.filter(_._1.equalsIgnoreCase("metadata_replacement")).head._2)
-          new it.polimi.genomics.importer.DefaultImporter.NULLTransformer().changeMetadataKeys(
-            (config\\"metadata_replace_list"\"metadata_replace").map(replacement =>
-              ((replacement\"regex").text,(replacement\"replace").text))
-            ,metadataDestinationPath)
-          logger.debug("File Created: " + metadataDestinationPath)
+        val metadataCandidateName = file._2.replace(".gz.json", ".meta")
+        val metadataDownloadPath = downloadPath + File.separator + file._2
+        val fileId = FileDatabase.fileId(datasetId,metadataDownloadPath,"Transform",metadataCandidateName)
+
+        val fileNameAndCopyNumber = FileDatabase.getFileNameAndCopyNumber(fileId)
+
+        val metadataName =
+          if(fileNameAndCopyNumber._2==0)fileNameAndCopyNumber._1
+          else fileNameAndCopyNumber._1.replaceFirst(".","_"+fileNameAndCopyNumber._2+".")
+        val metadataTransformationPath = transformationPath + File.separator + metadataName
+
+
+        val originDetails = FileDatabase.getFileDetails(file._1)
+        val transform = FileDatabase.checkIfUpdateFile(fileId,originDetails._1,originDetails._2,originDetails._3)
+        if (transform) {
+          logger.debug("Start metadata transformation: " + metadataName)
+          val jsonFileId = metadataName.split('.').head
+          val metadataDestinationPath = transformationPath + File.separator + metadataName
+          transformMetaFromJson(metadataDownloadPath, metadataTransformationPath, jsonFileId,(file._3,file._4))
+
+          FileDatabase.markAsUpdated(fileId,
+            new File(transformationPath+File.separator+metadataName).getTotalSpace.toString)
+
+          //here I replace the keys from the metadata.
+
+          try {
+            val config: Elem = XML.loadFile(source.rootOutputFolder + File.separator + source.parameters.filter(_._1.equalsIgnoreCase("metadata_replacement")).head._2)
+            new it.polimi.genomics.importer.DefaultImporter.NULLTransformer().changeMetadataKeys(
+              (config \\ "metadata_replace_list" \ "metadata_replace").map(replacement =>
+                ((replacement \ "regex").text, (replacement \ "replace").text))
+              , metadataDestinationPath)
+            logger.debug("File Created: " + metadataDestinationPath)
+          }
+          catch {
+            case e: IOException => logger.error("not valid metadata replacement xml file: ")
+          }
         }
-        catch {
-          case e: IOException => logger.error("not valid metadata replacement xml file: ")
-        }
-      }
-    })
-    logTransformation.saveTable()
+      })
   }
   //----------------------------------------METADATA FROM JSON SECTION-----------------------------------
   /**
@@ -163,8 +188,9 @@ class ENCODETransformer extends GMQLTransformer {
     * @param metadataJsonFileName origin json file
     * @param metadataFileName destination .meta file
     * @param fileId id of the file being converted.
+    * @param copyNumbers pair (copy number, number of copies)
     */
-  def transformMetaFromJson(metadataJsonFileName: String, metadataFileName: String, fileId: String): Unit ={
+  def transformMetaFromJson(metadataJsonFileName: String, metadataFileName: String, fileId: String, copyNumbers: (Int, Int)): Unit ={
     val jsonFile = new File(metadataJsonFileName)
     if(jsonFile.exists()) {
       val f = new MappingJsonFactory()
@@ -178,6 +204,10 @@ class ENCODETransformer extends GMQLTransformer {
         val file = new File(metadataFileName)
         val writer = new PrintWriter(file)
         try {
+          if(copyNumbers._2>0) {
+            writer.write("number_of_copies\t"+copyNumbers._1+"\n")
+            writer.write("copy_number\t"+copyNumbers._2+"\n")
+          }
           //this is the one that could throw an exception
           val node: JsonNode = jp.readValueAsTree()
 

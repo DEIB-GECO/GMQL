@@ -38,9 +38,8 @@ object GMQLLoader {
 
         val datasetId = FileDatabase.datasetId(FileDatabase.sourceId(source.name),dataset.name)
 
-        FileDatabase.getFilesToProcess(datasetId,stage).filter(_._1.endsWith(".meta")).foreach(file => {
-          val maxCopyNumber = FileDatabase.getMaxCopyNumber(datasetId,file._1,stage)
-          val fileName = if(file._2 == 0) file._1 else file._1.replaceFirst(".","_"+file._2+".")
+        FileDatabase.getFilesToProcess(datasetId,stage).filter(_._2.endsWith(".meta")).foreach(file => {
+          val fileName = if(file._3 == 0) file._2 else file._2.replaceFirst(".","_"+file._3+".")
           try {
             listAdd.add(GMQLSample(
               path + File.separator + fileName.substring(0, fileName.lastIndexOf(".meta")),
@@ -68,7 +67,7 @@ object GMQLLoader {
               datasetName,
               gmqlUser,
               listAdd,
-              path + File.separator + dataset.outputFolder + ".schema")
+              path + File.separator + dataset.name + ".schema")
             logger.info("import for dataset "+dataset.name+" completed")
           }
           catch {
