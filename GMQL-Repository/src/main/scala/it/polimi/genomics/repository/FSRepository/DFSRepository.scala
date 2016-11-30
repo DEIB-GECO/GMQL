@@ -35,10 +35,10 @@ class DFSRepository extends GMQLRepository{
     */
   override def createDs(dataSet:IRDataSet, userName: String, Samples: java.util.List[GMQLSample], GMQLScriptPaht: String,schemaType:GMQLSchemaTypes.Value): Unit = {
     import it.polimi.genomics.repository.GMQLRepository.Utilities._
-    new File(GMQLRepository.Utilities.GMQLHOME+"/tmp/"+userName+"/"+dataSet.position+"_/").mkdirs()
+    new File(GMQLRepository.Utilities().GMQLHOME+"/tmp/"+userName+"/"+dataSet.position+"_/").mkdirs()
     val samples = Samples.asScala.map{x=>
-      val metaFile= GMQLRepository.Utilities.GMQLHOME+"/tmp/"+userName+"/"+dataSet.position+"_/"+new File(x.name+".meta").getName
-      Utilities.copyfiletoLocal(HDFSRepoDir + userName + "/regions/" + x.name+".meta", metaFile)
+      val metaFile= GMQLRepository.Utilities().GMQLHOME+"/tmp/"+userName+"/"+dataSet.position+"_/"+new File(x.name+".meta").getName
+      Utilities.copyfiletoLocal(GMQLRepository.Utilities().HDFSRepoDir + userName + "/regions/" + x.name+".meta", metaFile)
       new GMQLSample(x.name, metaFile,x.ID)
     }.toList
     val gMQLDataSetXML = new GMQLDataSetXML(dataSet,userName,samples,GMQLScriptPaht, schemaType,"GENERATED_HDFS")
@@ -69,7 +69,7 @@ class DFSRepository extends GMQLRepository{
      gMQLDataSetXML.Create()
 
      // Move data into HDFS
-     Samples.asScala.map(x => Utilities.copyfiletoHDFS(x.name, GMQLRepository.Utilities.HDFSRepoDir + userName + "/regions/" + x.name))
+     Samples.asScala.map(x => Utilities.copyfiletoHDFS(x.name, GMQLRepository.Utilities().HDFSRepoDir + userName + "/regions/" + x.name))
    }else {
       logger.info("The dataset schema does not confirm the schema style (XSD)")
    }
@@ -105,7 +105,7 @@ class DFSRepository extends GMQLRepository{
     val dataset = new GMQLDataSetXML(dataSetName,userName).loadDS()
     val conf = Utilities.gethdfsConfiguration()
     val fs = FileSystem.get(conf)
-    val hdfspath = conf.get("fs.defaultFS") +GMQLRepository.Utilities.HDFSRepoDir+ userName + "/regions/"
+    val hdfspath = conf.get("fs.defaultFS") +GMQLRepository.Utilities().HDFSRepoDir+ userName + "/regions/"
     dataset.samples.map{x=> fs.delete(new Path(hdfspath+x.name),true);fs.delete(new Path(hdfspath+x.meta),true)}
     dataset.Delete()
   }
@@ -128,7 +128,7 @@ class DFSRepository extends GMQLRepository{
     * @throws it.polimi.genomics.repository.GMQLRepository.GMQLUserNotFound
     */
   override def ListAllDSs(userName: String): java.util.List[IRDataSet] = {
-    val dSs = new File(it.polimi.genomics.repository.GMQLRepository.Utilities.RepoDir + userName+"/datasets/").listFiles(new FilenameFilter() {
+    val dSs = new File(it.polimi.genomics.repository.GMQLRepository.Utilities().RepoDir + userName+"/datasets/").listFiles(new FilenameFilter() {
       def accept(dir: File, name: String): Boolean = {
         return name.endsWith(".xml")
       }
@@ -172,7 +172,7 @@ class DFSRepository extends GMQLRepository{
   override def ListResultDSSamples(dataSetName:String , userName: String): java.util.List[GMQLSample] = {
     val conf = Utilities.gethdfsConfiguration()
     val fs = FileSystem.get(conf);
-    fs.listStatus(new Path(conf.get("fs.defaultFS") +GMQLRepository.Utilities.HDFSRepoDir+ userName + "/regions/" + dataSetName))
+    fs.listStatus(new Path(conf.get("fs.defaultFS") +GMQLRepository.Utilities().HDFSRepoDir+ userName + "/regions/" + dataSetName))
         .flatMap(x => {
           if (fs.exists(new Path(x.getPath.toString+".meta")) ) {
             Some(new GMQLSample(dataSetName+x.getPath.getName))
@@ -204,7 +204,7 @@ class DFSRepository extends GMQLRepository{
     dest.mkdir()
 
     gMQLDataSetXML.samples.map { x =>
-      Utilities.copyfiletoLocal(HDFSRepoDir + userName + "/regions/" + x.name, localDir + "/" + new File(x.name).getName)
+      Utilities.copyfiletoLocal(GMQLRepository.Utilities().HDFSRepoDir + userName + "/regions/" + x.name, localDir + "/" + new File(x.name).getName)
     }
 
     val srcSchema = new File(gMQLDataSetXML.schemaDir)
@@ -225,9 +225,9 @@ class DFSRepository extends GMQLRepository{
 
 
   def getSchema(dataSetName: String, userName:String): java.util.List[(String,PARSING_TYPE)] = {
-    val gtfFields = List("seqname","source","feature","start","end","score","strand","frame")
+    val gtfFields = List("seqname","source","feature","start","end","strand","frame")
     val tabFields = List("chr","left","right","strand")
-    val xmlFile = XML.load(GMQLRepository.Utilities.RepoDir + userName + "/schema/" + (new File(dataSetName)).getParent + ".schema")
+    val xmlFile = XML.load(GMQLRepository.Utilities().RepoDir + userName + "/schema/" + (new File(dataSetName)).getParent + ".schema")
     val cc = (xmlFile \\ "field")
     cc.flatMap{x => if(gtfFields.contains(x.text.trim)||tabFields.contains(x.text.trim)) None else Some(x.text.trim, attType(x.attribute("type").get.head.text))}.toList.asJava
   }
