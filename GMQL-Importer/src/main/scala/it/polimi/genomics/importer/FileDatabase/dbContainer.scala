@@ -39,36 +39,61 @@ import scala.concurrent.duration.Duration
 case class dbContainer() {
   //------------------------------------------------testing space-------------------------------------------------------
   def printWholeDatabase(): Unit = {
-    Await.result(database.run((for (r<- runs) yield (r.id,r.datetimeStart,r.datetimeEnd,r.downloadEnabled,r.transformEnabled,r.loadEnabled,r.outputFolder)).result),Duration.Inf).foreach(run=>{
+    Await.result(database.run((for (r<- runs) yield (
+      r.id,r.datetimeStart,r.datetimeEnd,r.downloadEnabled,r.transformEnabled,r.loadEnabled,r.outputFolder))
+      .result),Duration.Inf).foreach(run=>{
       println("Run: " + run._1 +"\t"+run._2 +"\t"+run._3 +"\t"+run._4 +"\t"+run._5 +"\t"+run._6 +"\t"+run._7)
     })
     Await.result(database.run((for (s <- sources) yield (s.id, s.name)).result), Duration.Inf).foreach(source => {
       println("Source: " + source._1 + "-" + source._2)
       println("\tRunSources:")
-      Await.result(database.run((for (rs <- runSources.filter(_.sourceId === source._1)) yield (rs.id, rs.runId, rs.sourceId, rs.url, rs.outputFolder, rs.downloadEnabled, rs.downloader, rs.transformEnabled, rs.transformer, rs.loadEnabled, rs.loader)).result), Duration.Inf).foreach(runSource => {
-        println("\t\tRunSource: " + runSource._1 + "\t" + runSource._2 + "\t" + runSource._3 + "\t" + runSource._4 + "\t" + runSource._5 + "\t" + runSource._6 + "\t" + runSource._7 + "\t" + runSource._8 + "\t" + runSource._9 + "\t" + runSource._10 + "\t" + runSource._11)
+      Await.result(database.run((for (rs <- runSources.filter(_.sourceId === source._1)) yield (
+        rs.id, rs.runId, rs.sourceId, rs.url, rs.outputFolder, rs.downloadEnabled, rs.downloader, rs.transformEnabled,
+        rs.transformer, rs.loadEnabled, rs.loader)).result), Duration.Inf).foreach(runSource => {
+        println("\t\tRunSource: " + runSource._1 + "\t" + runSource._2 + "\t" + runSource._3 + "\t" + runSource._4 +
+          "\t" + runSource._5 + "\t" + runSource._6 + "\t" + runSource._7 + "\t" + runSource._8 + "\t" + runSource._9 +
+          "\t" + runSource._10 + "\t" + runSource._11)
         println("\t\t\tRunSourceParameters:")
-        Await.result(database.run((for (rsp <- runSourceParameters.filter(_.runSourceId === runSource._1)) yield (rsp.id, rsp.runSourceId, rsp.description, rsp.key, rsp.value)).result), Duration.Inf).foreach(runSourceParameter => {
-          println("\t\t\t\tRunSourceParameter: " + runSourceParameter._1 + "\t" + runSourceParameter._2 + "\t" + runSourceParameter._3 + "\t" + runSourceParameter._4 + "\t" + runSourceParameter._5)
+        Await.result(database.run((for (rsp <- runSourceParameters.filter(_.runSourceId === runSource._1)) yield (
+          rsp.id, rsp.runSourceId, rsp.description, rsp.key, rsp.value)).result), Duration.Inf)
+          .foreach(runSourceParameter => {
+            println("\t\t\t\tRunSourceParameter: " + runSourceParameter._1 + "\t" + runSourceParameter._2 + "\t" +
+              runSourceParameter._3 + "\t" + runSourceParameter._4 + "\t" + runSourceParameter._5)
         })
       })
       println("\tDatasets:")
-      Await.result(database.run((for (d <- datasets.filter(_.sourceId === source._1)) yield (d.id, d.sourceId, d.name)).result), Duration.Inf).foreach(dataset => {
+      Await.result(database.run((for (d <- datasets.filter(_.sourceId === source._1)) yield (d.id, d.sourceId, d.name))
+        .result), Duration.Inf).foreach(dataset => {
         println("\t\tDataset: " + dataset._1 + "\t" + dataset._2 + "\t" + dataset._3)
         println("\t\t\tRunDatasets:")
-        Await.result(database.run((for (rd <- runDatasets.filter(_.datasetId === dataset._1)) yield (rd.id, rd.runId, rd.datasetId, rd.outputFolder, rd.downloadEnabled, rd.transformEnabled, rd.loadEnabled, rd.schemaLocation, rd.schemaUrl)).result), Duration.Inf).foreach(runDataset => {
-          println("\t\t\t\tRunDataset: " + runDataset._1 + "\t" + runDataset._2 + "\t" + runDataset._3 + "\t" + runDataset._4 + "\t" + runDataset._5 + "\t" + runDataset._6 + "\t" + runDataset._7 + "\t" + runDataset._8 + "\t" + runDataset._9)
+        Await.result(database.run((for (rd <- runDatasets.filter(_.datasetId === dataset._1)) yield (
+          rd.id, rd.runId, rd.datasetId, rd.outputFolder, rd.downloadEnabled, rd.transformEnabled, rd.loadEnabled,
+          rd.schemaLocation, rd.schemaUrl)).result), Duration.Inf).foreach(runDataset => {
+          println("\t\t\t\tRunDataset: " + runDataset._1 + "\t" + runDataset._2 + "\t" + runDataset._3 + "\t" +
+            runDataset._4 + "\t" + runDataset._5 + "\t" + runDataset._6 + "\t" + runDataset._7 + "\t" +
+            runDataset._8 + "\t" + runDataset._9)
           println("\t\t\t\t\tRunDatasetPatameters:")
-          Await.result(database.run((for (rdp <- runDatasetParameters.filter(_.runDatasetId === runDataset._1)) yield (rdp.id, rdp.runDatasetId, rdp.description, rdp.key, rdp.value)).result), Duration.Inf).foreach(runDatasetParameter => {
-            println("\t\t\t\t\t\tRunDatasetParameter: " + runDatasetParameter._1 + "\t" + runDatasetParameter._2 + "\t" ++ runDatasetParameter._3 + "\t" ++ runDatasetParameter._4 + "\t" ++ runDatasetParameter._5)
+          Await.result(database.run((for (rdp <- runDatasetParameters.filter(_.runDatasetId === runDataset._1)) yield (
+            rdp.id, rdp.runDatasetId, rdp.description, rdp.key, rdp.value)).result), Duration.Inf)
+            .foreach(runDatasetParameter => {
+            println("\t\t\t\t\t\tRunDatasetParameter: " + runDatasetParameter._1 + "\t" + runDatasetParameter._2 +
+              "\t" + runDatasetParameter._3 + "\t" + runDatasetParameter._4 + "\t" + runDatasetParameter._5)
           })
         })
         println("\t\t\tFiles:")
-        Await.result(database.run((for (f <- files.filter(_.datasetId === dataset._1)) yield (f.id, f.datasetId, f.url, f.name, f.stage, f.status, f.size, f.lastUpdate, f.hash, f.originSize, f.originLastUpdate, f.dateProcessed, f.copyNumber)).result), Duration.Inf).foreach(file => {
-          println("\t\t\t\tFile: " + file._1 + "\t" + file._2 + "\t" + file._3 + "\t" + file._4 + "\t" + file._5 + "\t" + file._6 + "\t" + file._7 + "\t" + file._8 + "\t" + file._9 + "\t" + file._10 + "\t" + file._11 + "\t" + file._12 + "\t" + file._13)
+        Await.result(database.run((for (f <- files.filter(_.datasetId === dataset._1)) yield (
+          f.id, f.datasetId, f.url, f.name, f.stage, f.status, f.size, f.lastUpdate, f.hash, f.originSize,
+          f.originLastUpdate, f.dateProcessed, f.copyNumber)).result), Duration.Inf).foreach(file => {
+          println("\t\t\t\tFile: " + file._1 + "\t" + file._2 + "\t" + file._3 + "\t" + file._4 + "\t" + file._5 +
+            "\t" + file._6 + "\t" + file._7 + "\t" + file._8 + "\t" + file._9 + "\t" + file._10 + "\t" + file._11 +
+            "\t" + file._12 + "\t" + file._13)
           println("\t\t\t\t\tRunFiles:")
-          Await.result(database.run((for (rf <- runFiles.filter(_.fileId === file._1)) yield (rf.id, rf.runId, rf.fileId, rf.status, rf.size, rf.lastUpdate, rf.hash, rf.originSize, rf.originLastUpdate, rf.dateProcessed)).result), Duration.Inf).foreach(runFile => {
-            println("\t\t\t\t\t\tRunFile: " + runFile._1 + "\t" + runFile._2 + "\t" + runFile._3 + "\t" + runFile._4 + "\t" + runFile._5 + "\t" + runFile._6 + "\t" + runFile._7 + "\t" + runFile._8 + "\t" + runFile._9 + "\t" + runFile._10 + "\t")
+          Await.result(database.run((for (rf <- runFiles.filter(_.fileId === file._1)) yield (
+            rf.id, rf.runId, rf.fileId, rf.status, rf.size, rf.lastUpdate, rf.hash, rf.originSize,
+            rf.originLastUpdate, rf.dateProcessed)).result), Duration.Inf).foreach(runFile => {
+            println("\t\t\t\t\t\tRunFile: " + runFile._1 + "\t" + runFile._2 + "\t" + runFile._3 + "\t" +
+              runFile._4 + "\t" + runFile._5 + "\t" + runFile._6 + "\t" + runFile._7 + "\t" + runFile._8 + "\t" +
+              runFile._9 + "\t" + runFile._10 + "\t")
           })
         })
       })
@@ -486,10 +511,14 @@ case class dbContainer() {
     * @param stage indicates whether refers to download or transformed files.
     */
   def markAsOutdated(datasetId: Int, stage: String): Unit ={
-    val queryIds = Await.result(database.run((for(f<- files.filter(f => f.datasetId === datasetId && f.status === FILE_STATUS.COMPARE.toString && f.stage === stage))yield f.id).result),Duration.Inf)
+    val queryIds = Await.result(database.run((for(f<- files.filter(f => f.datasetId === datasetId &&
+      f.status === FILE_STATUS.COMPARE.toString && f.stage === stage))yield f.id).result),Duration.Inf)
 
-    val query = (for (f <- files.filter(f => f.datasetId === datasetId && f.status === FILE_STATUS.COMPARE.toString && f.stage === stage)
-    )yield f.status).update(FILE_STATUS.OUTDATED.toString)
+    val query = (
+      for (f <- files.filter(
+        f => f.datasetId === datasetId && f.status === FILE_STATUS.COMPARE.toString && f.stage === stage
+      ))yield f.status).update(FILE_STATUS.OUTDATED.toString)
+
     val execution = database.run(query)
     Await.result(execution, Duration.Inf)
 
@@ -516,11 +545,16 @@ case class dbContainer() {
     * @param stage indicates whether refers to download or transformed files.
     */
   def markAsProcessed(datasetId: Int, stage: String): Unit ={
+    val queryIds = Await.result(database.run((for (f <- files.filter(f => f.datasetId === datasetId &&
+      f.status === FILE_STATUS.UPDATE.toString && f.stage === stage))yield f.id).result),Duration.Inf)
+
     val query = (for (f <- files.filter(f => f.datasetId === datasetId &&
       f.status === FILE_STATUS.UPDATE.toString && f.stage === stage)
     )yield (f.status,f.dateProcessed)).update(FILE_STATUS.NOTHING.toString,DateTime.now().toString)
     val execution = database.run(query)
     Await.result(execution, Duration.Inf)
+
+    queryIds.map(runFileId)
   }
 
   //------------------------------DATABASE BASIC OPERATIONS OPEN/CLOSE--------------------------------------------------
