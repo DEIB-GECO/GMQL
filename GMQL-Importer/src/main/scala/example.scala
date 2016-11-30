@@ -5,79 +5,22 @@ import scala.xml.{Elem, XML}
 import java.io.File
 
 import org.slf4j._
-
 import slick.driver.H2Driver.api._
+import slick.jdbc.meta.MTable
 
 import scala.concurrent.ExecutionContext.Implicits.global
-
-import scala.collection.immutable.Seq
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.Await
+import it.polimi.genomics.importer.FileLogger.FileDatabase
 
 object example {
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
   def main(args: Array[String]): Unit = {
-//    runTest("GMQL-Importer/Example/xml/ExampleConfiguration.xml")
-    testh2()
-  }
-  // Definition of the SUPPLIERS table
-  class Suppliers(tag: Tag) extends Table[(Int, String, String, String, String, String)](tag, "SUPPLIERS") {
-    def id = column[Int]("SUP_ID", O.PrimaryKey) // This is the primary key column
-    def name = column[String]("SUP_NAME")
-    def street = column[String]("STREET")
-    def city = column[String]("CITY")
-    def state = column[String]("STATE")
-    def zip = column[String]("ZIP")
-    // Every table needs a * projection with the same type as the table's type parameter
-    def * = (id, name, street, city, state, zip)
-  }
-  val suppliers = TableQuery[Suppliers]
-
-  // Definition of the COFFEES table
-  class Coffees(tag: Tag) extends Table[(String, Int, Double, Int, Int)](tag, "COFFEES") {
-    def name = column[String]("COF_NAME", O.PrimaryKey)
-    def supID = column[Int]("SUP_ID")
-    def price = column[Double]("PRICE")
-    def sales = column[Int]("SALES")
-    def total = column[Int]("TOTAL")
-    def * = (name, supID, price, sales, total)
-    // A reified foreign key relation that can be navigated to create a join
-    def supplier = foreignKey("SUP_FK", supID, suppliers)(_.id)
-  }
-  val coffees = TableQuery[Coffees]
-  def testh2(): Unit ={
-    val db = Database.forConfig("h2mem1")
-    val setup = DBIO.seq(
-      // Create the tables, including primary and foreign keys
-      (suppliers.schema ++ coffees.schema).create,
-
-      // Insert some suppliers
-      suppliers += (101, "Acme, Inc.",      "99 Market Street", "Groundsville", "CA", "95199"),
-      suppliers += ( 49, "Superior Coffee", "1 Party Place",    "Mendocino",    "CA", "95460"),
-      suppliers += (150, "The High Ground", "100 Coffee Lane",  "Meadows",      "CA", "93966"),
-      // Equivalent SQL code:
-      // insert into SUPPLIERS(SUP_ID, SUP_NAME, STREET, CITY, STATE, ZIP) values (?,?,?,?,?,?)
-
-      // Insert some coffees (using JDBC's batch insert feature, if supported by the DB)
-      coffees ++= Seq(
-        ("Colombian",         101, 7.99, 0, 0),
-        ("French_Roast",       49, 8.99, 0, 0),
-        ("Espresso",          150, 9.99, 0, 0),
-        ("Colombian_Decaf",   101, 8.99, 0, 0),
-        ("French_Roast_Decaf", 49, 9.99, 0, 0)
-      )
-      // Equivalent SQL code:
-      // insert into COFFEES(COF_NAME, SUP_ID, PRICE, SALES, TOTAL) values (?,?,?,?,?)
-    )
-
-    val setupFuture = db.run(setup)
-    println("Coffees:")
-    db.run(coffees.result).map(_.foreach {
-      case (name, supID, price, sales, total) =>
-        println("  " + name + "\t" + supID + "\t" + price + "\t" + sales + "\t" + total)
-    })
-    try {
-      // ...
-    } finally db.close
+    runTest("GMQL-Importer/Example/xml/ExampleConfiguration.xml")
+//    FileDatabase.setDatabase("/home/nachon/git-repos/GMQL/GMQL-Importer/Example")
+    //FileDatabase.dummies()
+//    FileDatabase.test()
   }
   /*
   def demoReplaceMeta(): Unit ={
@@ -98,6 +41,7 @@ object example {
         (source \ "@name").text,
         (source \ "url").text,
         outputFolder+File.separator+(source \ "output_folder").text,
+        outputFolder,
         (source \ "gmql_user").text,
         (source \ "downloader").text,
         (source \ "transformer").text,

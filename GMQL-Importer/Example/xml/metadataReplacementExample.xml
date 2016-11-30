@@ -1,0 +1,14 @@
+<metadata_replace_list>
+    <metadata_replace>
+        <regex>^file.file_type</regex>
+        <replace>File_type</replace>
+    </metadata_replace>
+    <metadata_replace>
+        <regex>.*pi.*</regex>
+        <replace>totalRegex</replace>
+    </metadata_replace>
+    <metadata_replace>
+        <regex>lab.*</regex>
+        <replace>prefixRegex</replace>
+    </metadata_replace>
+</metadata_replace_list>
