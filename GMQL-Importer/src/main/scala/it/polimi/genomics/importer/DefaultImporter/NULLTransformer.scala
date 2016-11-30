@@ -3,7 +3,7 @@ package it.polimi.genomics.importer.DefaultImporter
 import java.io.{File, IOException, PrintWriter}
 
 import com.google.common.io.Files
-import it.polimi.genomics.importer.FileLogger.FileLogger
+import it.polimi.genomics.importer.FileDatabase.FileLogger
 import it.polimi.genomics.importer.GMQLImporter.utils.SCHEMA_LOCATION
 import it.polimi.genomics.importer.GMQLImporter.{GMQLDataset, GMQLSource, GMQLTransformer}
 import org.slf4j.LoggerFactory
@@ -53,7 +53,7 @@ class NULLTransformer extends GMQLTransformer {
     val logTransform = new FileLogger(transformPath)
 
     logTransform.markAsOutdated()
-    logDownload.files.foreach(file => {
+    logDownload.getFiles.foreach(file => {
       if (logTransform.checkIfUpdate(file.name, file.name, file.originSize, file.lastUpdate)) {
         try {
           Files.copy(new File(downloadPath + File.separator + file.name),
@@ -83,9 +83,9 @@ class NULLTransformer extends GMQLTransformer {
     source.datasets.foreach(dataset => {
       if(dataset.transformEnabled) {
         if (dataset.schemaLocation == SCHEMA_LOCATION.LOCAL) {
-          val src = new File(dataset.schema)
+          val src = new File(dataset.schemaUrl)
           val dest = new File(source.outputFolder + File.separator + dataset.outputFolder + File.separator +
-            "Transformations" + File.separator + dataset.outputFolder + ".schema")
+            "Transformations" + File.separator + dataset.name + ".schema")
           try {
             Files.copy(src, dest)
             logger.info("Schema copied into " + dest)

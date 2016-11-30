@@ -5,7 +5,7 @@ import java.util
 import java.util.zip.GZIPInputStream
 
 import com.google.common.io.Files
-import it.polimi.genomics.importer.FileLogger.FileLogger
+import it.polimi.genomics.importer.FileDatabase.FileLogger
 import it.polimi.genomics.importer.GMQLImporter.utils.SCHEMA_LOCATION
 import it.polimi.genomics.importer.GMQLImporter.{GMQLDataset, GMQLSource, GMQLTransformer}
 import org.codehaus.jackson.map.MappingJsonFactory
@@ -82,7 +82,7 @@ class ENCODETransformer extends GMQLTransformer {
       source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Downloads")
     val logTransform = new FileLogger(
       source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Transformations")
-    logDownload.files.filter(_.name.endsWith(".gz")).foreach(file => {
+    logDownload.getFiles.filter(_.name.endsWith(".gz")).foreach(file => {
       //this is to take out the ".gz"
       val name = file.name.substring(0, file.name.lastIndexOf("."))
       //should get file size, for the moment I pass the origin size just to have a value.
@@ -124,7 +124,7 @@ class ENCODETransformer extends GMQLTransformer {
 
     val logTransformation = new FileLogger(transformationPath)
 
-    logDownloads.files.filter(_.name.endsWith(".gz.json")).foreach(file => {
+    logDownloads.getFiles.filter(_.name.endsWith(".gz.json")).foreach(file => {
       val fileId = file.name.split('.').head
       val metadataName = file.name.replace(".gz.json", ".meta")
       val metadataDownloadPath = downloadPath + File.separator + file.name
@@ -142,7 +142,7 @@ class ENCODETransformer extends GMQLTransformer {
         //here I replace the keys from the metadata.
 
         try {
-          val config: Elem = XML.loadFile(source.parameters.filter(_._1.equalsIgnoreCase("metadata_replacement")).head._2)
+          val config: Elem = XML.loadFile(source.rootOutputFolder+File.separator+source.parameters.filter(_._1.equalsIgnoreCase("metadata_replacement")).head._2)
           new it.polimi.genomics.importer.DefaultImporter.NULLTransformer().changeMetadataKeys(
             (config\\"metadata_replace_list"\"metadata_replace").map(replacement =>
               ((replacement\"regex").text,(replacement\"replace").text))
@@ -176,26 +176,22 @@ class ENCODETransformer extends GMQLTransformer {
       }
       else {
         val file = new File(metadataFileName)
-        if(!file.exists()) {
-          val writer = new PrintWriter(file)
-          try {
-            //this is the one that could throw an exception
-            val node: JsonNode = jp.readValueAsTree()
+        val writer = new PrintWriter(file)
+        try {
+          //this is the one that could throw an exception
+          val node: JsonNode = jp.readValueAsTree()
 
-            val metadataList = new java.util.ArrayList[String]()
-            //here I handle the exceptions as "files" and "replicates"
-            val replicateIds: List[String] = getReplicatesAndWriteFile(node, writer, fileId, metadataList)
-            writeReplicates(node, writer, replicateIds, metadataList)
-            //here is the regular case
-            printTree(node, "", writer, metadataList)
-          }
-          catch {
-            case e: IOException => logger.error("couldn't read the json tree: "+e.getMessage)
-          }
-          writer.close()
+          val metadataList = new java.util.ArrayList[String]()
+          //here I handle the exceptions as "files" and "replicates"
+          val replicateIds: List[String] = getReplicatesAndWriteFile(node, writer, fileId, metadataList)
+          writeReplicates(node, writer, replicateIds, metadataList)
+          //here is the regular case
+          printTree(node, "", writer, metadataList)
         }
-        else
-          logger.warn("metadata file not found file not found: "+metadataFileName)
+        catch {
+          case e: IOException => logger.error("couldn't read the json tree: " + e.getMessage)
+        }
+        writer.close()
       }
     }
     else
@@ -252,7 +248,7 @@ class ENCODETransformer extends GMQLTransformer {
         while (replicates.hasNext){
           val replicate = replicates.next()
           if(replicate.has("biological_replicate_number") && replicateIds.contains(replicate.get("biological_replicate_number").asText()))
-            printTree(replicate,"replicates."+replicate.get("biological_replicate_number").asText(),writer,metaList)
+            printTree(replicate,"replicates",writer,metaList)
         }
       }
     }
@@ -332,9 +328,9 @@ class ENCODETransformer extends GMQLTransformer {
     source.datasets.foreach(dataset => {
       if(dataset.transformEnabled) {
         if (dataset.schemaLocation == SCHEMA_LOCATION.LOCAL) {
-          val src = new File(dataset.schema)
-          val dest = new File(source.outputFolder + "/" + dataset.outputFolder + File.separator +
-            "Transformations" + File.separator + dataset.outputFolder + ".schema")
+          val src = new File(dataset.schemaUrl)
+          val dest = new File(source.outputFolder + File.separator + dataset.outputFolder + File.separator +
+            "Transformations" + File.separator + dataset.name + ".schema")
 
           try {
             Files.copy(src, dest)
@@ -415,7 +411,7 @@ import scala.io.Source
     //this "File download URL" maybe should be in the parameters of the XML.
     val url = header.lastIndexOf("File download URL")
     //I have to implement log also here.
-    val log = new FileLogger(transformationPath)
+    val log = new FileDatabase(transformationPath)
     Source.fromFile(metadataPath).getLines().drop(1).foreach(f = line => {
       //create file .meta
       val fields: Array[String] = line.split("\t")
