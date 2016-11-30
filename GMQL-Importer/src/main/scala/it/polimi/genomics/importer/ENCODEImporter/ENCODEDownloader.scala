@@ -2,13 +2,16 @@ package it.polimi.genomics.importer.ENCODEImporter
 
 import java.io.File
 import java.net.URL
-import java.util.Calendar
 
-import it.polimi.genomics.importer.FileLogger.FileLogger
+import com.google.common.hash.Hashing
+import com.google.common.io.Files
+import it.polimi.genomics.importer.FileDatabase.FileDatabase
 import it.polimi.genomics.importer.GMQLImporter.{GMQLDataset, GMQLDownloader, GMQLSource}
+import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
 
 import scala.io.Source
+import scala.language.postfixOps
 import scala.sys.process._
 import scala.xml.{Elem, XML}
 
@@ -26,7 +29,7 @@ class ENCODEDownloader extends GMQLDownloader {
     * @param source contains specific download and sorting info.
     */
   override def download(source: GMQLSource): Unit = {
-    logger.info("Starting download for: " + source.outputFolder)
+    logger.info("Starting download for: " + source.name)
     if (!new java.io.File(source.outputFolder).exists) {
       logger.debug("file " + source.outputFolder + " created")
       new java.io.File(source.outputFolder).mkdirs()
@@ -44,6 +47,8 @@ class ENCODEDownloader extends GMQLDownloader {
   private def downloadIndexAndMeta(source: GMQLSource): Unit = {
     source.datasets.foreach(dataset => {
       if(dataset.downloadEnabled) {
+        val datasetId = FileDatabase.datasetId(FileDatabase.sourceId(source.name),dataset.name)
+        val stage = "Download"
         val outputPath = source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Downloads"
         if (!new java.io.File(outputPath).exists) {
           new java.io.File(outputPath).mkdirs()
@@ -51,27 +56,25 @@ class ENCODEDownloader extends GMQLDownloader {
         val indexAndMetaUrl = generateDownloadIndexAndMetaUrl(source, dataset)
         //ENCODE always provides the last version of this .meta file.
         if (urlExists(indexAndMetaUrl)) {
-          val log = new FileLogger(outputPath)
           /*I will check all the server files against the local ones so i mark as to compare,
             * the files will change their state while I check each one of them. If there is
             * a file deleted from the server will be marked as OUTDATED before saving the table back*/
-          log.markToCompare()
+          FileDatabase.markToCompare(datasetId,stage)
 
+          val metadataCandidateName = "metadata.tsv"
           downloadFileFromURL(
             indexAndMetaUrl,
-            outputPath + File.separator + "metadata" + ".tsv")
+            outputPath + File.separator + metadataCandidateName)
 
-          val file = new File(outputPath + File.separator + "metadata" + ".tsv")
+          val file = new File(outputPath + File.separator + metadataCandidateName)
           if(file.exists()) {
-            log.checkIfUpdate(
-              "metadata.tsv",
-              indexAndMetaUrl,
-              file.getTotalSpace.toString,
-              Calendar.getInstance.getTime.toString)
+            val fileId = FileDatabase.fileId(datasetId,indexAndMetaUrl,stage,metadataCandidateName)
 
-            log.markAsUpdated("metadata.tsv")
+            val hash = Files.hash(file,Hashing.md5()).toString
 
-            log.saveTable()
+            FileDatabase.checkIfUpdateFile(fileId,hash,file.getTotalSpace.toString,DateTime.now.toString)
+
+            FileDatabase.markAsUpdated(fileId,file.getTotalSpace.toString)
 
             downloadFilesFromMetadataFile(source, dataset)
             logger.info("download for " + dataset.outputFolder + " completed")
@@ -162,43 +165,69 @@ class ENCODEDownloader extends GMQLDownloader {
     val path = source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Downloads"
     val file = Source.fromFile(path + File.separator + "metadata" + ".tsv")
     if(file.hasNext) {
+      val datasetId = FileDatabase.datasetId(FileDatabase.sourceId(source.name),dataset.name)
+      val stage = "Download"
+
       val header = file.getLines().next().split("\t")
 
       val originLastUpdate = header.lastIndexOf("Experiment date released")
       val originSize = header.lastIndexOf("Size")
       val experimentAccession = header.lastIndexOf("Experiment accession")
       //to be used
-      //val md5sum = header.lastIndexOf("md5sum")
+      val md5sum = header.lastIndexOf("md5sum")
       val url = header.lastIndexOf("File download URL")
 
-      val log = new FileLogger(path)
       Source.fromFile(path + File.separator + "metadata.tsv").getLines().drop(1).foreach(line => {
         val fields = line.split("\t")
-        val filename = fields(url).split(File.separator).last
+        //this is the region data part.
         if (urlExists(fields(url))) {
-          if (log.checkIfUpdate(filename, fields(url), fields(originSize), fields(originLastUpdate))) {
-            //MUST BE DONE: handle if the file is not downloaded.
-            //if not downloaded use log.markAsFailed(filename)
-            downloadFileFromURL(fields(url), path + File.separator + filename)
-            log.markAsUpdated(filename)
+          val candidateName = fields(url).split(File.separator).last
+          val fileId = FileDatabase.fileId(datasetId,fields(url),stage,candidateName)
+          val fileNameAndCopyNumber = FileDatabase.getFileNameAndCopyNumber(fileId)
+
+          val filename =
+            if(fileNameAndCopyNumber._2==0)fileNameAndCopyNumber._1
+            else fileNameAndCopyNumber._1.replaceFirst(".","_"+fileNameAndCopyNumber._2+".")
+
+          val filePath = path + File.separator + filename
+          if(FileDatabase.checkIfUpdateFile(fileId,fields(md5sum),fields(originSize),fields(originLastUpdate))){
+            downloadFileFromURL(fields(url), filePath)
+            val file = new File(filePath)
+            var hash = Files.hash(file,Hashing.md5()).toString
+
+            var timesTried = 0
+            while (hash != fields(md5sum) && timesTried < 4) {
+              downloadFileFromURL(fields(url), filePath)
+              hash = Files.hash(file, Hashing.md5()).toString
+              timesTried += 1
+            }
+            FileDatabase.markAsUpdated(fileId,file.getTotalSpace.toString)
           }
         }
         else
-          logger.error("could not download " + filename + " from " + dataset.outputFolder + "path does not exist")
+          logger.error("could not download " + fields(url) + "path does not exist")
+        //this is the metadata part.
         //example of json url https://www.encodeproject.org/experiments/ENCSR570HXV/?frame=embedded&format=json
         val urlExperimentJson = source.url + "experiments" + File.separator + fields(experimentAccession) + File.separator + "?frame=embedded&format=json"
-        val jsonName = filename + ".json"
         if (urlExists(urlExperimentJson)) {
-          if (log.checkIfUpdate(jsonName, urlExperimentJson, fields(originSize), fields(originLastUpdate))) {
-            //MUST BE DONE: handle if the file is not downloaded.
-            //if not downloaded use log.markAsFailed(filename)
-            downloadFileFromURL(urlExperimentJson, path + File.separator + jsonName)
-            log.markAsUpdated(jsonName)
+          val candidateName = fields(url).split(File.separator).last+".json"
+          val fileId = FileDatabase.fileId(datasetId,urlExperimentJson,stage,candidateName)
+          val fileNameAndCopyNumber = FileDatabase.getFileNameAndCopyNumber(fileId)
+          val jsonName =
+            if(fileNameAndCopyNumber._2==0)fileNameAndCopyNumber._1
+            else fileNameAndCopyNumber._1.replaceFirst(".","_"+fileNameAndCopyNumber._2+".")
+
+          val filePath = path + File.separator + jsonName
+          //As I dont have the metadata for the json file i use the same as the region data.
+          if(FileDatabase.checkIfUpdateFile(fileId,fields(md5sum),fields(originSize),fields(originLastUpdate))){
+            downloadFileFromURL(fields(url), filePath)
+            val file = new File(filePath)
+            //cannot check the correctness of the download for the json.
+            FileDatabase.markAsUpdated(fileId,file.getTotalSpace.toString)
           }
         }
       })
-      log.markAsOutdated()
-      log.saveTable()
+      FileDatabase.markAsOutdated(datasetId,stage)
     }
     else
       logger.debug("metadata.tsv file is empty")
