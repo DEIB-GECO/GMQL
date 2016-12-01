@@ -44,7 +44,7 @@ object FileDatabase {
     * @param candidateName the name the file should have.
     * @return id of the file.
     */
-  def fileId(datasetId: Int, url: String, stage: String, candidateName: String): Int = {
+  def fileId(datasetId: Int, url: String, stage: STAGE.Value, candidateName: String): Int = {
     db.fileId(datasetId, url, stage, candidateName)
   }
 
@@ -166,7 +166,7 @@ object FileDatabase {
     * @param stage indicates whether download/transform
     * @return max copy number
     */
-  def getMaxCopyNumber(datasetId: Int, fileName: String, stage: String): Int ={
+  def getMaxCopyNumber(datasetId: Int, fileName: String, stage: STAGE.Value): Int ={
     db.getMaxCopyNumber(datasetId, fileName, stage)
   }
 
@@ -187,7 +187,7 @@ object FileDatabase {
     * @param datasetId dataset from where files are required.
     * @return non outdated files id, name, copy number
     */
-  def getFilesToProcess(datasetId: Int, stage: String):Seq[(Int,String,Int)]={
+  def getFilesToProcess(datasetId: Int, stage: STAGE.Value):Seq[(Int,String,Int)]={
     db.getFilesToProcess(datasetId, stage)
   }
   /**
@@ -211,7 +211,7 @@ object FileDatabase {
     * @param datasetId identifier for the dataset.
     * @param stage indicates whether refers to download or transformed files.
     */
-  def markAsOutdated(datasetId: Int, stage: String): Unit ={
+  def markAsOutdated(datasetId: Int, stage: STAGE.Value): Unit ={
     db.markAsOutdated(datasetId, stage)
   }
   /**
@@ -220,7 +220,7 @@ object FileDatabase {
     * @param datasetId identifier for the dataset.
     * @param stage indicates whether refers to download or transformed files.
     */
-  def markToCompare(datasetId: Int, stage: String): Unit ={
+  def markToCompare(datasetId: Int, stage: STAGE.Value): Unit ={
     db.markToCompare(datasetId, stage)
   }
   /**
@@ -230,7 +230,7 @@ object FileDatabase {
     * @param datasetId identifier for the dataset.
     * @param stage indicates whether refers to download or transformed files.
     */
-  def markAsProcessed(datasetId: Int, stage: String): Unit ={
+  def markAsProcessed(datasetId: Int, stage: STAGE.Value): Unit ={
     db.markAsProcessed(datasetId,stage)
   }
 }

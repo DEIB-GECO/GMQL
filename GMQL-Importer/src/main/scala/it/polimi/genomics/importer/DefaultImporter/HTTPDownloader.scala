@@ -2,12 +2,13 @@ package it.polimi.genomics.importer.DefaultImporter
 import java.io.File
 import java.net.URL
 
-import it.polimi.genomics.importer.FileDatabase.FileLogger
+import it.polimi.genomics.importer.FileDatabase.{FileDatabase,STAGE}
 import it.polimi.genomics.importer.GMQLImporter.{GMQLDownloader, GMQLSource}
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.slf4j.LoggerFactory
 
+import scala.language.postfixOps
 import scala.sys.process._
 
 /**
@@ -55,14 +56,14 @@ class HTTPDownloader extends GMQLDownloader {
     if (urlExists(source.url)) {
       //same as FTP the mark to compare is done here because the iteration on http is based on http folders and not
       //on the source datasets.
+      val sourceId = FileDatabase.sourceId(source.name)
       source.datasets.foreach(dataset => {
         if(dataset.downloadEnabled) {
+          val datasetId = FileDatabase.datasetId(sourceId,dataset.name)
           val outputPath = source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Downloads"
           if (!new File(outputPath).exists())
             new File(outputPath).mkdirs()
-          val log = new FileLogger(outputPath)
-          log.markToCompare()
-          log.saveTable()
+          FileDatabase.markToCompare(datasetId,STAGE.DOWNLOAD)
         }
       })
 
@@ -70,10 +71,8 @@ class HTTPDownloader extends GMQLDownloader {
 
       source.datasets.foreach(dataset => {
         if(dataset.downloadEnabled) {
-          val outputPath = source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Downloads"
-          val log = new FileLogger(outputPath)
-          log.markAsOutdated()
-          log.saveTable()
+          val datasetId = FileDatabase.datasetId(sourceId,dataset.name)
+          FileDatabase.markAsOutdated(datasetId,STAGE.DOWNLOAD)
         }
       })
     }
@@ -104,8 +103,10 @@ class HTTPDownloader extends GMQLDownloader {
     * @param source   contains download information
     */
   def checkFolderForDownloads(path: String, document: Document, source: GMQLSource): Unit = {
+    val sourceId = FileDatabase.sourceId(source.name)
     for (dataset <- source.datasets) {
       if(dataset.downloadEnabled) {
+        val datasetId = FileDatabase.datasetId(sourceId,dataset.name)
         //If the container is table, I got the rows, if not I look for anchor tags to navigate the site
         val elements = if (source.parameters.filter(_._1.toLowerCase == "table").head._2.equalsIgnoreCase("true"))
           document.select("tr")
@@ -115,15 +116,14 @@ class HTTPDownloader extends GMQLDownloader {
         if (path.matches(dataset.parameters.filter(_._1.toLowerCase == "folder_regex").head._2)) {
           logger.info("Searching into: " + path)
           val outputPath = source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Downloads"
-          val log = new FileLogger(outputPath)
 
           if (!new java.io.File(outputPath).exists) {
             new java.io.File(outputPath).mkdirs()
           }
 
           for (i <- 0 until elements.size()) {
-            //The url if is in a table, I have to get it from the row, if not, it has the href from anchor tag
-            var url: String =
+            //candidate name is the same as origin name.
+            var candidateName: String =
             if (source.parameters.filter(_._1.toLowerCase == "table").head._2.toLowerCase == "true")
               try {
                 elements.get(i).text.trim.split(" ").filterNot(_.isEmpty)(
@@ -134,10 +134,10 @@ class HTTPDownloader extends GMQLDownloader {
             else
               elements.get(i).attr("href")
 
-            if (url.startsWith("/"))
-              url = url.substring(1)
+            if (candidateName.startsWith("/"))
+              candidateName = candidateName.substring(1)
             //if the file matches with a regex to download
-            if (url.matches(dataset.parameters.filter(_._1.toLowerCase == "files_regex").head._2)) {
+            if (candidateName.matches(dataset.parameters.filter(_._1.toLowerCase == "files_regex").head._2)) {
               //from the anchor tag, i need to get nextSibling's text, from table I join all the tds on the row
               val dateAndSize =
               if (source.parameters.filter(_._1.toLowerCase == "table").head._2.toLowerCase == "true")
@@ -145,18 +145,23 @@ class HTTPDownloader extends GMQLDownloader {
               else
                 elements.get(i).nextSibling().toString.trim.split(" ").filterNot(_.isEmpty)
 
-              val date = dateAndSize(source.parameters.filter(_._1.toLowerCase == "date_index").head._2.toInt) + File.separator +
-                dateAndSize(source.parameters.filter(_._1.toLowerCase == "hour_index").head._2.toInt)
+              val date = dateAndSize(source.parameters.filter(_._1.toLowerCase == "date_index").head._2.toInt) +
+                File.separator + dateAndSize(source.parameters.filter(_._1.toLowerCase == "hour_index").head._2.toInt)
               val size = dateAndSize(source.parameters.filter(_._1.toLowerCase == "size_index").head._2.toInt)
 
-              val checkDownload = log.checkIfUpdate(url, path + File.separator + url, size, date)
+              val fileId = FileDatabase.fileId(datasetId,path+candidateName,STAGE.DOWNLOAD,candidateName)
+              val nameAndCopyNumber: (String, Int) = FileDatabase.getFileNameAndCopyNumber(fileId)
+              val name =
+                if(nameAndCopyNumber._2==1)nameAndCopyNumber._1
+                else nameAndCopyNumber._1.replaceFirst("\\.","_"+nameAndCopyNumber._2+".")
+
+              val checkDownload = FileDatabase.checkIfUpdateFile(fileId,"no hash here",size,date)
               if (checkDownload) {
-                downloadFileFromURL(path + url,outputPath + File.separator + url)
-                log.markAsUpdated(url)
+                downloadFileFromURL(path + candidateName,outputPath + File.separator + name)
+                FileDatabase.markAsUpdated(fileId,new File(outputPath + File.separator + name).getTotalSpace.toString)
               }
             }
           }
-          log.saveTable()
         }
       }
     }

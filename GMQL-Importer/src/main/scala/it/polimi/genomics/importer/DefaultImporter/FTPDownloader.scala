@@ -2,7 +2,7 @@ package it.polimi.genomics.importer.DefaultImporter
 
 import java.io.File
 
-import it.polimi.genomics.importer.FileDatabase.FileLogger
+import it.polimi.genomics.importer.FileDatabase.{FileDatabase,STAGE}
 import it.polimi.genomics.importer.DefaultImporter.utils.FTP
 import it.polimi.genomics.importer.GMQLImporter.utils.SCHEMA_LOCATION
 import it.polimi.genomics.importer.GMQLImporter.{GMQLDataset, GMQLDownloader, GMQLSource}
@@ -30,12 +30,11 @@ class FTPDownloader extends GMQLDownloader {
 
       //the mark to compare is done here because the iteration on ftp is based on ftp folders and not
       //on the source datasets.
+      val sourceId = FileDatabase.sourceId(source.name)
       source.datasets.foreach(dataset => {
         if (dataset.downloadEnabled) {
-          val outputPath = source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Downloads"
-          val log = new FileLogger(outputPath)
-          log.markToCompare()
-          log.saveTable()
+          val datasetId = FileDatabase.datasetId(sourceId,dataset.name)
+          FileDatabase.markToCompare(datasetId,STAGE.DOWNLOAD)
         }
       })
 
@@ -54,10 +53,8 @@ class FTPDownloader extends GMQLDownloader {
 
         source.datasets.foreach(dataset => {
           if (dataset.downloadEnabled) {
-            val outputPath = source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Downloads"
-            val log = new FileLogger(outputPath)
-            log.markAsOutdated()
-            log.saveTable()
+            val datasetId = FileDatabase.datasetId(sourceId,dataset.name)
+            FileDatabase.markToCompare(datasetId,STAGE.DOWNLOAD)
           }
         })
       }
@@ -91,12 +88,13 @@ class FTPDownloader extends GMQLDownloader {
       source.url,
       source.parameters.filter(_._1 == "username").head._2,
       source.parameters.filter(_._1 == "password").head._2).getOrElse(false)) {
+      val sourceId = FileDatabase.sourceId(source.name)
       ftp.cd(workingDirectory)
       for (dataset <- source.datasets) {
         if (dataset.downloadEnabled) {
+          val datasetId = FileDatabase.datasetId(sourceId,dataset.name)
           if (ftp.workingDirectory().matches(dataset.parameters.filter(_._1 == "folder_regex").head._2)) {
             val outputPath = source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Downloads"
-            val log = new FileLogger(outputPath)
 
             logger.info("Searching: " + ftp.workingDirectory())
             if (!new java.io.File(outputPath).exists) {
@@ -107,29 +105,36 @@ class FTPDownloader extends GMQLDownloader {
               dataset.parameters.filter(_._1 == "files_regex").head._2))
 
             for (file <- files) {
-              if (log.checkIfUpdate(
-                file.getName,
-                ftp.workingDirectory() + File.separator + file.getName,
+              val url = ftp.workingDirectory() + File.separator + file.getName
+              val fileId = FileDatabase.fileId(datasetId,url,STAGE.DOWNLOAD,file.getName)
+              if(FileDatabase.checkIfUpdateFile(
+                fileId,
+                "hash not here yet",
                 file.getSize.toString,
-                file.getTimestamp.getTime.toString)) {
-                logger.debug("Starting download of: " + ftp.workingDirectory() + File.separator + file.getName)
-                var downloaded = ftp.downloadFile(file.getName, outputPath + File.separator + file.getName)
+                file.getTimestamp.getTime.toString)){
+                val nameAndCopyNumber: (String, Int) = FileDatabase.getFileNameAndCopyNumber(fileId)
+                val name =
+                  if(nameAndCopyNumber._2==1)nameAndCopyNumber._1
+                  else nameAndCopyNumber._1.replaceFirst("\\.","_"+nameAndCopyNumber._2+".")
+                val outputUrl = outputPath + File.separator + name
+
+                logger.debug("Starting download of: " + url)
+                var downloaded = ftp.downloadFile(file.getName, outputUrl)
                 var timesTried = 0
                 while (!downloaded && timesTried < 4) {
-                  downloaded = ftp.downloadFile(file.getName, outputPath + File.separator + file.getName)
+                  downloaded = ftp.downloadFile(file.getName, outputUrl)
                   timesTried += 1
                 }
                 if (!downloaded) {
-                  logger.error("Downloading: " + ftp.workingDirectory() + File.separator + file.getName + " FAILED")
-                  log.markAsFailed(file.getName)
+                  logger.error("Downloading: " + url + " FAILED")
+                  FileDatabase.markAsFailed(fileId)
                 }
                 else {
-                  logger.info("Downloading: " + ftp.workingDirectory() + File.separator + file.getName + " DONE")
-                  log.markAsUpdated(file.getName)
+                  logger.info("Downloading: " + url + " DONE")
+                  FileDatabase.markAsUpdated(fileId,new File(outputUrl).getTotalSpace.toString)
                 }
               }
             }
-            log.saveTable()
           }
         }
       }
@@ -155,12 +160,14 @@ class FTPDownloader extends GMQLDownloader {
       logger.info("working directory: " + workingDirectory)
       val directories = ftp.listDirectories()
       ftp.disconnect()
-      directories.foreach(directory => {
-        recursiveDownload(workingDirectory+File.separator+directory.getName, source)
-      })
+      directories.foreach(directory =>
+        recursiveDownload(
+          if (workingDirectory.endsWith(File.separator)) workingDirectory + directory.getName
+          else workingDirectory + File.separator + directory.getName,
+          source))
     }
     else
-      logger.error("connection lost with FTP, skipped "+workingDirectory)
+      logger.error("connection lost with FTP, skipped " + workingDirectory)
   }
 
   /**

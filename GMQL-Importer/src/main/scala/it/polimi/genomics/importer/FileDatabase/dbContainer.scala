@@ -155,9 +155,10 @@ case class dbContainer() {
     * @param candidateName the name the file should have.
     * @return id of the file.
     */
-  def fileId(datasetId: Int, url: String, stage: String, candidateName: String): Int = {
+  def fileId(datasetId: Int, url: String, stage: STAGE.Value, candidateName: String): Int = {
     val query = (for (s <- files.filter(f =>
-      f.datasetId === datasetId && f.url === url && f.stage === stage && f.name === candidateName)) yield s.id).result
+      f.datasetId === datasetId && f.url === url && f.stage === stage.toString && f.name === candidateName))
+      yield s.id).result
     val execution = database.run(query)
     val result = Await.result(execution, Duration.Inf)
 
@@ -166,7 +167,7 @@ case class dbContainer() {
     //here I have to create the file.
     else {
       val idQuery: FixedSqlAction[Int, NoStream, Write] = (files returning files.map(_.id)) +=
-        (None, datasetId, url, candidateName, stage, "FAILED", "", "", "", "", "", "",-1)
+        (None, datasetId, url, candidateName, stage.toString, "FAILED", "", "", "", "", "", "",0)
       //FAILED STATUS IS GIVEN BY DEFAULT WHEN CREATING A FILE (MEANS HAVE NOT BEEN DOWNLOADED)
       val executionId = database.run(idQuery)
       val resultId = Await.result(executionId, Duration.Inf)
@@ -318,6 +319,7 @@ case class dbContainer() {
       val updateQuery = (for (f <- runFiles.filter(r => r.runId === runId && r.fileId === fileId))
         yield (f.status, f.size, f.lastUpdate, f.hash, f.originSize, f.originLastUpdate, f.dateProcessed))
         .update(fileFields._1, fileFields._2, fileFields._3, fileFields._4, fileFields._5, fileFields._6, fileFields._7)
+      Await.result(database.run(updateQuery),Duration.Inf)
       result.head
     }
     //here I have to create the runFile
@@ -348,22 +350,22 @@ case class dbContainer() {
   /**
     * By receiving a candidate name returns a unique name inside the dataset.
     * @param fileId id for the file.
-    * @return unique name among the dataset's files. -1 as the Int indicates the file should not exist.
+    * @return unique name among the dataset's files. 0 as the Int indicates the file should not exist.
     */
   def getFileNameAndCopyNumber(fileId: Int): (String,Int) = {
-    val query = (for (f <- files.filter(f => f.id === fileId)) yield (f.name, f.datasetId, f.copyNumber)).result
+    val query = (for (f <- files.filter(f => f.id === fileId)) yield (f.name, f.datasetId, f.copyNumber, f.stage)).result
     val execution = database.run(query)
     val result = Await.result(execution, Duration.Inf)
 
     if (result.nonEmpty) {
-      if (result.head._3 != -1) //this indicates the copynumber has been assigned
+      if (result.head._3 != 0) //this indicates the copynumber has been assigned
         (result.head._1, result.head._3)
-      //while copynumber is -1 means the value has not been assigned.
+      //while copynumber is 0 means the value has not been assigned.
       else
-        getFileName(fileId, result.head._1, result.head._2, 0)
+        getFileName(fileId, result.head._1, result.head._2, 1, STAGE.withName(result.head._4))
     }
     else
-      ("FileDoesNotExist", -1)
+      ("FileDoesNotExist", 0)
   }
   /**
     * returns hash, size and last update.
@@ -388,15 +390,15 @@ case class dbContainer() {
     * @param copyNumber actual guess of the number of copy the file is.
     * @return unique name among the dataset's files.
     */
-  private def getFileName(fileId: Int, name: String, datasetId: Int, copyNumber: Int): (String,Int) ={
-    val query = (for (s <- files.filter(f =>
-      f.datasetId === datasetId && f.name === name && f.copyNumber === copyNumber)) yield s.name).result
+  private def getFileName(fileId: Int, name: String, datasetId: Int, copyNumber: Int, stage: STAGE.Value): (String,Int) ={
+    val query = (for (s <- files.filter(f => f.datasetId === datasetId && f.stage === stage.toString &&
+      f.name === name && f.copyNumber === copyNumber && f.id =!= fileId)) yield s.id).result
     val execution = database.run(query)
     val result = Await.result(execution, Duration.Inf)
 
     //this means the name is already in use. I have to recursively get a new name.
     if (result.nonEmpty)
-      getFileName(fileId, name, datasetId, copyNumber+1)
+      getFileName(fileId, name, datasetId, copyNumber+1, stage)
     //here I have to create the file.
     else {
       val updateQuery = (
@@ -415,8 +417,9 @@ case class dbContainer() {
     * @param stage indicates whether download/transform
     * @return max copy number
     */
-  def getMaxCopyNumber(datasetId: Int, fileName: String, stage: String): Int ={
-    val query = (for (s <- files.filter(f => f.datasetId === datasetId && f.name === fileName && f.stage === stage)
+  def getMaxCopyNumber(datasetId: Int, fileName: String, stage: STAGE.Value): Int ={
+    val query = (for (s <- files.filter(f => f.datasetId === datasetId &&
+      f.name === fileName && f.stage === stage.toString)
     ) yield s.copyNumber).result
     val execution = database.run(query)
     val result = Await.result(execution, Duration.Inf)
@@ -487,10 +490,10 @@ case class dbContainer() {
   /**
     * returns all the non outdated files with its copy number.
     * @param datasetId dataset from where files are required.
-    * @return non outdated files with its correspondent copy number.
+    * @return (fileId, filename, copyNumber)
     */
-  def getFilesToProcess(datasetId: Int, stage: String):Seq[(Int,String,Int)]={
-    val query = (for (f <- files.filter(f => f.datasetId === datasetId && f.stage === stage &&
+  def getFilesToProcess(datasetId: Int, stage: STAGE.Value):Seq[(Int,String,Int)]={
+    val query = (for (f <- files.filter(f => f.datasetId === datasetId && f.stage === stage.toString &&
       (f.status === FILE_STATUS.UPDATE.toString || f.status === FILE_STATUS.NOTHING.toString))
     ) yield (f.id,f.name,f.copyNumber)).result
     val execution = database.run(query)
@@ -525,13 +528,13 @@ case class dbContainer() {
     * @param datasetId identifier for the dataset.
     * @param stage indicates whether refers to download or transformed files.
     */
-  def markAsOutdated(datasetId: Int, stage: String): Unit ={
+  def markAsOutdated(datasetId: Int, stage: STAGE.Value): Unit ={
     val queryIds = Await.result(database.run((for(f<- files.filter(f => f.datasetId === datasetId &&
-      f.status === FILE_STATUS.COMPARE.toString && f.stage === stage))yield f.id).result),Duration.Inf)
+      f.status === FILE_STATUS.COMPARE.toString && f.stage === stage.toString))yield f.id).result),Duration.Inf)
 
     val query = (
       for (f <- files.filter(
-        f => f.datasetId === datasetId && f.status === FILE_STATUS.COMPARE.toString && f.stage === stage
+        f => f.datasetId === datasetId && f.status === FILE_STATUS.COMPARE.toString && f.stage === stage.toString
       ))yield f.status).update(FILE_STATUS.OUTDATED.toString)
 
     val execution = database.run(query)
@@ -545,9 +548,9 @@ case class dbContainer() {
     * @param datasetId identifier for the dataset.
     * @param stage indicates whether refers to download or transformed files.
     */
-  def markToCompare(datasetId: Int, stage: String): Unit ={
+  def markToCompare(datasetId: Int, stage: STAGE.Value): Unit ={
     val query = (for (f <- files.filter(f => f.datasetId === datasetId &&
-      f.status =!= FILE_STATUS.UPDATE.toString && f.stage === stage)
+      f.status =!= FILE_STATUS.UPDATE.toString && f.stage === stage.toString)
     )yield f.status).update(FILE_STATUS.COMPARE.toString)
     val execution = database.run(query)
     Await.result(execution, Duration.Inf)
@@ -559,12 +562,12 @@ case class dbContainer() {
     * @param datasetId identifier for the dataset.
     * @param stage indicates whether refers to download or transformed files.
     */
-  def markAsProcessed(datasetId: Int, stage: String): Unit ={
+  def markAsProcessed(datasetId: Int, stage: STAGE.Value): Unit ={
     val queryIds = Await.result(database.run((for (f <- files.filter(f => f.datasetId === datasetId &&
-      f.status === FILE_STATUS.UPDATE.toString && f.stage === stage))yield f.id).result),Duration.Inf)
+      f.status === FILE_STATUS.UPDATE.toString && f.stage === stage.toString))yield f.id).result),Duration.Inf)
 
     val query = (for (f <- files.filter(f => f.datasetId === datasetId &&
-      f.status === FILE_STATUS.UPDATE.toString && f.stage === stage)
+      f.status === FILE_STATUS.UPDATE.toString && f.stage === stage.toString)
     )yield (f.status,f.dateProcessed)).update(FILE_STATUS.NOTHING.toString,DateTime.now().toString)
     val execution = database.run(query)
     Await.result(execution, Duration.Inf)

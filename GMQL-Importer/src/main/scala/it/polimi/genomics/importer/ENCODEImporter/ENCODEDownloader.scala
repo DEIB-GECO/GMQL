@@ -5,7 +5,7 @@ import java.net.URL
 
 import com.google.common.hash.Hashing
 import com.google.common.io.Files
-import it.polimi.genomics.importer.FileDatabase.FileDatabase
+import it.polimi.genomics.importer.FileDatabase.{FileDatabase,STAGE}
 import it.polimi.genomics.importer.GMQLImporter.{GMQLDataset, GMQLDownloader, GMQLSource}
 import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
@@ -48,7 +48,7 @@ class ENCODEDownloader extends GMQLDownloader {
     source.datasets.foreach(dataset => {
       if(dataset.downloadEnabled) {
         val datasetId = FileDatabase.datasetId(FileDatabase.sourceId(source.name),dataset.name)
-        val stage = "Download"
+        val stage = STAGE.DOWNLOAD
         val outputPath = source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Downloads"
         if (!new java.io.File(outputPath).exists) {
           new java.io.File(outputPath).mkdirs()
@@ -166,7 +166,7 @@ class ENCODEDownloader extends GMQLDownloader {
     val file = Source.fromFile(path + File.separator + "metadata" + ".tsv")
     if(file.hasNext) {
       val datasetId = FileDatabase.datasetId(FileDatabase.sourceId(source.name),dataset.name)
-      val stage = "Download"
+      val stage = STAGE.DOWNLOAD
 
       val header = file.getLines().next().split("\t")
 
@@ -186,8 +186,8 @@ class ENCODEDownloader extends GMQLDownloader {
           val fileNameAndCopyNumber = FileDatabase.getFileNameAndCopyNumber(fileId)
 
           val filename =
-            if(fileNameAndCopyNumber._2==0)fileNameAndCopyNumber._1
-            else fileNameAndCopyNumber._1.replaceFirst(".","_"+fileNameAndCopyNumber._2+".")
+            if(fileNameAndCopyNumber._2==1)fileNameAndCopyNumber._1
+            else fileNameAndCopyNumber._1.replaceFirst("\\.","_"+fileNameAndCopyNumber._2+".")
 
           val filePath = path + File.separator + filename
           if(FileDatabase.checkIfUpdateFile(fileId,fields(md5sum),fields(originSize),fields(originLastUpdate))){
@@ -214,8 +214,8 @@ class ENCODEDownloader extends GMQLDownloader {
           val fileId = FileDatabase.fileId(datasetId,urlExperimentJson,stage,candidateName)
           val fileNameAndCopyNumber = FileDatabase.getFileNameAndCopyNumber(fileId)
           val jsonName =
-            if(fileNameAndCopyNumber._2==0)fileNameAndCopyNumber._1
-            else fileNameAndCopyNumber._1.replaceFirst(".","_"+fileNameAndCopyNumber._2+".")
+            if(fileNameAndCopyNumber._2==1)fileNameAndCopyNumber._1
+            else fileNameAndCopyNumber._1.replaceFirst("\\.","_"+fileNameAndCopyNumber._2+".")
 
           val filePath = path + File.separator + jsonName
           //As I dont have the metadata for the json file i use the same as the region data.

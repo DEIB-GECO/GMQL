@@ -5,7 +5,7 @@ import java.util
 import java.util.zip.GZIPInputStream
 
 import com.google.common.io.Files
-import it.polimi.genomics.importer.FileDatabase.FileDatabase
+import it.polimi.genomics.importer.FileDatabase.{FileDatabase,STAGE}
 import it.polimi.genomics.importer.GMQLImporter.utils.SCHEMA_LOCATION
 import it.polimi.genomics.importer.GMQLImporter.{GMQLDataset, GMQLSource, GMQLTransformer}
 import org.codehaus.jackson.map.MappingJsonFactory
@@ -37,7 +37,7 @@ class ENCODETransformer extends GMQLTransformer {
       if(dataset.transformEnabled) {
         val datasetId = FileDatabase.datasetId(FileDatabase.sourceId(source.name),dataset.name)
 
-        FileDatabase.markToCompare(datasetId,"Transform")
+        FileDatabase.markToCompare(datasetId,STAGE.TRANSFORM)
 
         val datasetOutputFolder = source.outputFolder + File.separator + dataset.outputFolder + File.separator
         val metadataFileName = "metadata.tsv"
@@ -55,9 +55,9 @@ class ENCODETransformer extends GMQLTransformer {
         else
           logger.warn("Transformation for dataset: " +dataset.name +" cannot be done. Metadata files have not been downloaded")
 
-        FileDatabase.markAsOutdated(datasetId,"Transform")
+        FileDatabase.markAsOutdated(datasetId,STAGE.TRANSFORM)
 
-        FileDatabase.markAsProcessed(datasetId,"Download")
+        FileDatabase.markAsProcessed(datasetId,STAGE.DOWNLOAD)
       }
     })
     organize(source)
@@ -75,10 +75,10 @@ class ENCODETransformer extends GMQLTransformer {
 
     val datasetId = FileDatabase.datasetId(FileDatabase.sourceId(source.name),dataset.name)
 
-    FileDatabase.getFilesToProcess(datasetId,"Download").filter(_._2.endsWith(".gz")).map(fileNameAndCopyNumber=>{(
+    FileDatabase.getFilesToProcess(datasetId,STAGE.DOWNLOAD).filter(_._2.endsWith(".gz")).map(fileNameAndCopyNumber=>{(
       fileNameAndCopyNumber._1,
-      if(fileNameAndCopyNumber._3==0)fileNameAndCopyNumber._2
-      else fileNameAndCopyNumber._2.replaceFirst(".","_"+fileNameAndCopyNumber._2+".")
+      if(fileNameAndCopyNumber._3==1)fileNameAndCopyNumber._2
+      else fileNameAndCopyNumber._2.replaceFirst("\\.","_"+fileNameAndCopyNumber._3+".")
       )
     }).foreach(file => {
       val downloadFolder = source.outputFolder + File.separator +
@@ -89,13 +89,13 @@ class ENCODETransformer extends GMQLTransformer {
       //this is to take out the ".gz"
       val candidateName = file._2.substring(0, file._2.lastIndexOf("."))
       //should get file size, for the moment I pass the origin size just to have a value.
-      val fileId = FileDatabase.fileId(datasetId,downloadFolder+File.separator+file._2,"Transform",candidateName)
+      val fileId = FileDatabase.fileId(datasetId,downloadFolder+File.separator+file._2,STAGE.TRANSFORM,candidateName)
 
       val fileNameAndCopyNumber = FileDatabase.getFileNameAndCopyNumber(fileId)
 
       val name =
-        if(fileNameAndCopyNumber._2==0)fileNameAndCopyNumber._1
-        else fileNameAndCopyNumber._1.replaceFirst(".","_"+fileNameAndCopyNumber._2+".")
+        if(fileNameAndCopyNumber._2==1)fileNameAndCopyNumber._1
+        else fileNameAndCopyNumber._1.replaceFirst("\\.","_"+fileNameAndCopyNumber._2+".")
 
       val originDetails = FileDatabase.getFileDetails(file._1)
       if(FileDatabase.checkIfUpdateFile(fileId,originDetails._1,originDetails._2,originDetails._3)) {
@@ -132,25 +132,24 @@ class ENCODETransformer extends GMQLTransformer {
 
     val datasetId = FileDatabase.datasetId(FileDatabase.sourceId(source.name),dataset.name)
 
-    FileDatabase.getFilesToProcess(datasetId,"Download").filter(_._2.endsWith(".gz.json")).map(fileNameAndCopyNumber=>{(
+    FileDatabase.getFilesToProcess(datasetId,STAGE.DOWNLOAD).filter(_._2.endsWith(".gz.json")).map(fileNameAndCopyNumber=>{(
       fileNameAndCopyNumber._1,
-      if(fileNameAndCopyNumber._3==0)fileNameAndCopyNumber._2
-      else fileNameAndCopyNumber._2.replaceFirst(".","_"+fileNameAndCopyNumber._2+"."),
+      if(fileNameAndCopyNumber._3==1)fileNameAndCopyNumber._2
+      else fileNameAndCopyNumber._2.replaceFirst("\\.","_"+fileNameAndCopyNumber._2+"."),
       fileNameAndCopyNumber._3,
-      FileDatabase.getMaxCopyNumber(datasetId,fileNameAndCopyNumber._2,"Download")
+      FileDatabase.getMaxCopyNumber(datasetId,fileNameAndCopyNumber._2,STAGE.DOWNLOAD)
       )})
       .foreach(file => {
 
-
         val metadataCandidateName = file._2.replace(".gz.json", ".meta")
         val metadataDownloadPath = downloadPath + File.separator + file._2
-        val fileId = FileDatabase.fileId(datasetId,metadataDownloadPath,"Transform",metadataCandidateName)
+        val fileId = FileDatabase.fileId(datasetId,metadataDownloadPath,STAGE.TRANSFORM,metadataCandidateName)
 
         val fileNameAndCopyNumber = FileDatabase.getFileNameAndCopyNumber(fileId)
 
         val metadataName =
-          if(fileNameAndCopyNumber._2==0)fileNameAndCopyNumber._1
-          else fileNameAndCopyNumber._1.replaceFirst(".","_"+fileNameAndCopyNumber._2+".")
+          if(fileNameAndCopyNumber._2==1)fileNameAndCopyNumber._1
+          else fileNameAndCopyNumber._1.replaceFirst("\\.","_"+fileNameAndCopyNumber._2+".")
         val metadataTransformationPath = transformationPath + File.separator + metadataName
 
 

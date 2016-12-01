@@ -1,6 +1,6 @@
 package it.polimi.genomics.importer.GMQLImporter
 
-import it.polimi.genomics.importer.FileDatabase.FileDatabase
+import it.polimi.genomics.importer.FileDatabase.{FileDatabase,STAGE}
 import it.polimi.genomics.repository.FSRepository.{DFSRepository, LFSRepository}
 import it.polimi.genomics.repository.GMQLRepository.{GMQLDSNotFound, GMQLSample}
 import org.slf4j.LoggerFactory
@@ -27,7 +27,7 @@ object GMQLLoader {
   def loadIntoGMQL(source: GMQLSource): Unit = {
     val repo = new DFSRepository
     val gmqlUser = source.parameters.filter(_._1=="gmql_user").head._2
-    val stage = "Transform"
+    val stage = STAGE.TRANSFORM
     logger.debug("Preparing for loading datasets into GMQL")
     source.datasets.foreach(dataset =>{
       logger.trace("dataset "+dataset.name)
@@ -39,7 +39,7 @@ object GMQLLoader {
         val datasetId = FileDatabase.datasetId(FileDatabase.sourceId(source.name),dataset.name)
 
         FileDatabase.getFilesToProcess(datasetId,stage).filter(_._2.endsWith(".meta")).foreach(file => {
-          val fileName = if(file._3 == 0) file._2 else file._2.replaceFirst(".","_"+file._3+".")
+          val fileName = if(file._3 == 1) file._2 else file._2.replaceFirst("\\.","_"+file._3+".")
           try {
             listAdd.add(GMQLSample(
               path + File.separator + fileName.substring(0, fileName.lastIndexOf(".meta")),
