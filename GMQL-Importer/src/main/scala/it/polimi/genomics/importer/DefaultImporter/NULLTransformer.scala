@@ -1,11 +1,11 @@
 package it.polimi.genomics.importer.DefaultImporter
 
-import java.io.{File, IOException, PrintWriter}
+import java.io.{File, FileWriter, IOException, PrintWriter}
 
 import com.google.common.io.Files
-import it.polimi.genomics.importer.FileDatabase.FileLogger
+import it.polimi.genomics.importer.FileDatabase.{FileDatabase, STAGE}
 import it.polimi.genomics.importer.GMQLImporter.utils.SCHEMA_LOCATION
-import it.polimi.genomics.importer.GMQLImporter.{GMQLDataset, GMQLSource, GMQLTransformer}
+import it.polimi.genomics.importer.GMQLImporter.{GMQLSource, GMQLTransformer}
 import org.slf4j.LoggerFactory
 
 import scala.io.Source
@@ -24,6 +24,7 @@ class NULLTransformer extends GMQLTransformer {
     */
   override def transform(source: GMQLSource): Unit = {
     logger.info("Starting transformation for: " + source.outputFolder)
+    val sourceId = FileDatabase.sourceId(source.name)
     source.datasets.foreach(dataset => {
       if(dataset.transformEnabled) {
         logger.info("Transformation for dataset: " + dataset.outputFolder)
@@ -31,7 +32,10 @@ class NULLTransformer extends GMQLTransformer {
         if (!folder.exists()) {
           folder.mkdirs()
         }
-        transformData(source, dataset)
+        val datasetId = FileDatabase.datasetId(sourceId,dataset.name)
+        FileDatabase.markToCompare(datasetId,STAGE.TRANSFORM)
+        transformData(source, datasetId,dataset.outputFolder)
+        FileDatabase.markAsProcessed(datasetId,STAGE.DOWNLOAD)
       }
     })
     organize(source)
@@ -43,34 +47,57 @@ class NULLTransformer extends GMQLTransformer {
     * also saves in the Transform log, so when the Loader reads it, knows if the data should be updated, deleted or added.
     *
     * @param source  contains specific download and sorting info.
-    * @param dataset refers to the actual dataset being added
+    * @param datasetId refers to the actual dataset being added
+    * @param datasetOutputFolder output folder for the dataset.
     */
-  private def transformData(source: GMQLSource, dataset: GMQLDataset): Unit = {
-    val downloadPath = source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Downloads"
-    val transformPath = source.outputFolder + File.separator + dataset.outputFolder + File.separator + "Transformations"
+  private def transformData(source: GMQLSource, datasetId: Int, datasetOutputFolder: String): Unit = {
+    val downloadPath = source.outputFolder + File.separator + datasetOutputFolder + File.separator + "Downloads"
+    val transformPath = source.outputFolder + File.separator + datasetOutputFolder + File.separator + "Transformations"
 
-    val logDownload = new FileLogger(downloadPath)
-    val logTransform = new FileLogger(transformPath)
+    FileDatabase.getFilesToProcess(datasetId, STAGE.DOWNLOAD).foreach(file => {
+      //the name is going to be the same
+      val candidateName =
+      if (file._3 == 1) file._2
+      else file._2.replaceFirst("\\.", "_" + file._3 + ".")
 
-    logTransform.markAsOutdated()
-    logDownload.getFiles.foreach(file => {
-      if (logTransform.checkIfUpdate(file.name, file.name, file.originSize, file.lastUpdate)) {
-        try {
-          Files.copy(new File(downloadPath + File.separator + file.name),
-            new File(transformPath + File.separator + file.name))
-          logTransform.markAsUpdated(file.name)
-          logger.info("File: " + file.name + " copied into " + transformPath + File.separator + file.name)
+      val originUrl = downloadPath + File.separator + candidateName
+
+      val fileId = FileDatabase.fileId(datasetId, originUrl, STAGE.TRANSFORM, candidateName)
+      val fileNameAndCopyNumber = FileDatabase.getFileNameAndCopyNumber(fileId)
+      val name =
+        if (fileNameAndCopyNumber._2 == 1) fileNameAndCopyNumber._1
+        else fileNameAndCopyNumber._1.replaceFirst("\\.", "_" + fileNameAndCopyNumber._2 + ".")
+
+      val url = transformPath + File.separator + name
+
+      val originDetails = FileDatabase.getFileDetails(file._1)
+
+      val checkIfUpdate = FileDatabase.checkIfUpdateFile(fileId, originDetails._1, originDetails._2, originDetails._3)
+      //      I commented this because for now the transformation has to be for every file.
+      //      if  (checkIfUpdate) {
+      try {
+        Files.copy(new File(originUrl),
+          new File(url))
+        //here have to add the metadata of copy number and total copies
+        if (url.endsWith(".meta")) {
+          val numberOfCopies = FileDatabase.getMaxCopyNumber(datasetId, file._2, STAGE.DOWNLOAD)
+          if (numberOfCopies > 1) {
+            val writer = new FileWriter(url, true)
+            writer.write("number_of_copies\t" + numberOfCopies + "\n")
+            writer.write("copy_number\t" + file._3 + "\n")
+            writer.close()
+          }
         }
-        catch {
-          case e: IOException => logger.error("could not copy the file " +
-            downloadPath + File.separator + file.name + " to " +
-            transformPath + File.separator + file.name, e)
-        }
+        FileDatabase.markAsUpdated(fileId, new File(url).getTotalSpace.toString)
+        logger.info("File: " + file._2 + " copied into " + url)
       }
+      catch {
+        case e: IOException => logger.error("could not copy the file " +
+          originUrl + " to " +
+          url, e)
+      }
+      //      }
     })
-    logDownload.markAsProcessed()
-    logDownload.saveTable()
-    logTransform.saveTable()
   }
 
   /**
