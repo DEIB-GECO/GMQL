@@ -1,21 +1,26 @@
 <root>
     <settings>
         <output_folder>/home/nachon/git-repos/GMQL/GMQL-Importer/Example</output_folder>
-        <download_enabled>TRUE</download_enabled>
-        <transform_enabled>TRUE</transform_enabled>
-        <load_enabled>FALSE</load_enabled>
+        <download_enabled>false</download_enabled>
+        <transform_enabled>true</transform_enabled>
+        <load_enabled>true</load_enabled>
     </settings>
     <source_list>
         <source name="TCGA2BED">
             <url>bioinf.iasi.cnr.it</url>
             <output_folder>TCGA2BED</output_folder>
-            <gmql_user>public</gmql_user>
             <downloader>it.polimi.genomics.importer.DefaultImporter.FTPDownloader</downloader>
             <transformer>it.polimi.genomics.importer.DefaultImporter.NULLTransformer</transformer>
-            <download_enabled>FALSE</download_enabled>
-            <transform_enabled>FALSE</transform_enabled>
-            <load_enabled>FALSE</load_enabled>
+            <loader>it.polimi.genomics.importer.GMQLImporter.GMQLLoader$</loader>
+            <download_enabled>true</download_enabled>
+            <transform_enabled>true</transform_enabled>
+            <load_enabled>true</load_enabled>
             <parameter_list>
+                <parameter>
+                    <description>to know which user in gmql is going to be imported</description>
+                    <key>gmql_user</key>
+                    <value>public</value>
+                </parameter>-->
                 <parameter>
                     <description>for logging in ftp on tcga2bed need this anonymous user</description>
                     <key>username</key>
@@ -30,28 +35,28 @@
             <dataset_list>
                 <dataset name="cnv">
                     <output_folder>ExampleCNV</output_folder>
-                    <schema location="LOCAL">schemas/cnv.schema</schema>
-                    <download_enabled>TRUE</download_enabled>
-                    <transform_enabled>TRUE</transform_enabled>
-                    <load_enabled>TRUE</load_enabled>
+                    <schema location="local">schemas/cnv.schema</schema>
+                    <download_enabled>false</download_enabled>
+                    <transform_enabled>true</transform_enabled>
+                    <load_enabled>true</load_enabled>
                     <parameter_list>
                         <parameter>
                             <key>folder_regex</key>
                             <value>^/bed/.*/cnv</value>
                         </parameter>
                         <parameter>
+                            <!--In the example downloads all the .bed and .meta-->
                             <key>files_regex</key>
                             <value>.*\.bed(\.meta)?$</value>
-                            <!--<value>.*10A-01D-A393-01\.bed(\.meta)?$</value>-->
                         </parameter>
                     </parameter_list>
                 </dataset>
                 <dataset name="dnaseq">
                     <output_folder>ExampleDNASEQ</output_folder>
-                    <schema location="LOCAL">schemas/dnaseq.schema</schema>
-                    <download_enabled>TRUE</download_enabled>
-                    <transform_enabled>TRUE</transform_enabled>
-                    <load_enabled>TRUE</load_enabled>
+                    <schema location="local">schemas/dnaseq.schema</schema>
+                    <download_enabled>true</download_enabled>
+                    <transform_enabled>true</transform_enabled>
+                    <load_enabled>true</load_enabled>
                     <parameter_list>
                         <parameter>
                             <description>this downloads all the dnaseq folders from tcga2bed.</description>
@@ -65,18 +70,42 @@
                         </parameter>
                     </parameter_list>
                 </dataset>
+                <dataset name="dnamethyltest">
+                    <output_folder>dnamethylation</output_folder>
+                    <schema location="local">schemas/dnamethylation.schema</schema>
+                    <download_enabled>true</download_enabled>
+                    <transform_enabled>true</transform_enabled>
+                    <load_enabled>true</load_enabled>
+                    <parameter_list>
+                        <parameter>
+                            <description>this downloads all the dnaseq folders from tcga2bed.</description>
+                            <key>folder_regex</key>
+                            <value>^/bed/laml/dnameth.*</value>
+                        </parameter>
+                        <parameter>
+                            <description>the regex for filtering the files inside each folder.</description>
+                            <key>files_regex</key>
+                            <value>.*280.*.bed(\.meta)?$</value>
+                        </parameter>
+                    </parameter_list>
+                </dataset>
             </dataset_list>
         </source>
         <source name="ENCODE">
             <url>https://www.encodeproject.org/</url>
             <output_folder>ENCODE</output_folder>
-            <gmql_user>public</gmql_user>
             <downloader>it.polimi.genomics.importer.ENCODEImporter.ENCODEDownloader</downloader>
             <transformer>it.polimi.genomics.importer.ENCODEImporter.ENCODETransformer</transformer>
-            <download_enabled>TRUE</download_enabled>
-            <transform_enabled>TRUE</transform_enabled>
-            <load_enabled>TRUE</load_enabled>
+            <loader>it.polimi.genomics.importer.GMQLImporter.GMQLLoader$</loader>
+            <download_enabled>true</download_enabled>
+            <transform_enabled>true</transform_enabled>
+            <load_enabled>true</load_enabled>
             <parameter_list>
+                <parameter>
+                    <description>to know which user in gmql is going to be imported</description>
+                    <key>gmql_user</key>
+                    <value>public</value>
+                </parameter>
                 <parameter>
                     <description>for downloading the .tsv from encode we need to add this at the end of the url</description>
                     <key>metadata_prefix</key>
@@ -126,10 +155,10 @@
             <dataset_list>
                 <dataset name="exampleNarrowPeak">
                     <output_folder>ExampleNARROWPEAK</output_folder>
-                    <schema location="LOCAL">schemas/narrowPeak.schema</schema>
-                    <download_enabled>FALSE</download_enabled>
-                    <transform_enabled>TRUE</transform_enabled>
-                    <load_enabled>TRUE</load_enabled>
+                    <schema location="local">schemas/narrowPeak.schema</schema>
+                    <download_enabled>true</download_enabled>
+                    <transform_enabled>true</transform_enabled>
+                    <load_enabled>true</load_enabled>
                     <parameter_list>
                         <parameter>
                             <description>always should be experiment, but could be another type</description>
@@ -158,10 +187,10 @@
                 </dataset>
                 <dataset name="exampleBroadPeak">
                     <output_folder>ExampleBROADPEAK</output_folder>
-                    <schema location="LOCAL">schemas/broadPeak.schema</schema>
-                    <download_enabled>FALSE</download_enabled>
-                    <transform_enabled>FALSE</transform_enabled>
-                    <load_enabled>FALSE</load_enabled>
+                    <schema location="local">schemas/broadPeak.schema</schema>
+                    <download_enabled>true</download_enabled>
+                    <transform_enabled>true</transform_enabled>
+                    <load_enabled>true</load_enabled>
                     <parameter_list>
                         <parameter>
                             <description>always should be experiment, but could be another type</description>
@@ -182,10 +211,10 @@
                 </dataset>
                 <dataset name="exampleBroadPeak2">
                     <output_folder>ExampleBROADPEAK</output_folder>
-                    <schema location="LOCAL">schemas/broadPeak.schema</schema>
-                    <download_enabled>FALSE</download_enabled>
-                    <transform_enabled>FALSE</transform_enabled>
-                    <load_enabled>FALSE</load_enabled>
+                    <schema location="local">schemas/broadPeak.schema</schema>
+                    <download_enabled>false</download_enabled>
+                    <transform_enabled>false</transform_enabled>
+                    <load_enabled>false</load_enabled>
                     <parameter_list>
                         <parameter>
                             <description>always should be experiment, but could be another type</description>
@@ -204,15 +233,6 @@
                         </parameter>
                     </parameter_list>
                 </dataset>
-                <merged_dataset name="peaks">
-                    <output_folder>peaks</output_folder>
-                    <merge_enabled>FALSE</merge_enabled>
-                    <load_enabled>FALSE</load_enabled>
-                    <origin_dataset_list>
-                        <origin_dataset>exampleNarrowPeak</origin_dataset>
-                        <origin_dataset>exampleBroadPeak</origin_dataset>
-                    </origin_dataset_list>
-                </merged_dataset>
             </dataset_list>
         </source>
     </source_list>
