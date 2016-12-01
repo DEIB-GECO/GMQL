@@ -142,8 +142,9 @@ class GMQLSparkExecutor(val defaultBinSize : Long = 50000, val maxBinDistance : 
               val values = variable.schema.zip(x._2).flatMap{s=>if(s._1._1.equals("score")) None else Some(s._1._1+" \""+s._2+"\";")}.mkString(" ")
               (outSample+"_"+x._1._1.toString+".gtf",
                 x._1._2                                                                  //chrom
-                  + "\t" + jobname.substring(jobname.lastIndexOf("_")+1,jobname.length)   //variable name
-                  + "\t" +"GMQL_Region"
+//                  + "\t" + jobname.substring(jobname.lastIndexOf("_")+1,jobname.length)   //variable name
+                  + "\t" + "GMQL"   //variable name
+                  + "\t" +"Region"
                   + "\t" +x._1._3 + "\t" + x._1._4 + "\t"                                 //start , stop
                   + {if(scoreIndex>=0) x._2(scoreIndex) else "0.0"}                       //score
                   +"\t" + (if(x._1._5.equals('*')) '.' else x._1._5)  + "\t"                                                  //strand

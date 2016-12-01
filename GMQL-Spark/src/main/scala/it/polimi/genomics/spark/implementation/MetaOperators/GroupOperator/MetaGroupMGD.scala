@@ -25,9 +25,13 @@ object MetaGroupMGD {
   implicit class MetaGroup(rdd: RDD[MetaType]) {
     def MetaWithGroups(condition: List[String]): RDD[FlinkMetaGroupType2] = {
 
-      rdd.flatMap { x => val key = x._2._1.substring({val pos = x._2._1.lastIndexOf('.'); if (pos < 0) 0 else pos});
-        if (!condition.foldLeft(false)( _ | key.endsWith(_))) None
-        else Some((x._1, (key, x._2._2)))
+      rdd.flatMap { x => //val key = x._2._1.substring({val pos = x._2._1.lastIndexOf('.'); if (pos < 0) 0 else pos});
+        val matchedKey = condition.filter(k => x._2._1.endsWith(k))
+        matchedKey
+//        if (!condition.foldLeft(false)( _ | key.endsWith(_))) None
+        if (matchedKey.size == 0) None
+//        else Some((x._1, (key, x._2._2)))
+        else Some((x._1, (matchedKey(0), x._2._2)))
       }.groupByKey()
 
         .flatMap { x =>
