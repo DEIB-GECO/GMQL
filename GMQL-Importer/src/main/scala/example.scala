@@ -57,7 +57,7 @@ object example {
           Class.forName(source.transformer).newInstance.asInstanceOf[GMQLTransformer].transform(source)
         }
         if (loadEnabled && source.loadEnabled) {
-          GMQLLoader.loadIntoGMQL(source)
+          Class.forName(source.loader).newInstance.asInstanceOf[GMQLLoader].loadIntoGMQL(source)
         }
       })
       //end DTL
