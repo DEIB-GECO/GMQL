@@ -8,7 +8,7 @@ import java.io.File
 /**
   * Created by Nacho on 10/17/16.
   */
-object GMQLLoader {
+class GMQLLoader {
 
   val logger = LoggerFactory.getLogger(this.getClass)
   /**
