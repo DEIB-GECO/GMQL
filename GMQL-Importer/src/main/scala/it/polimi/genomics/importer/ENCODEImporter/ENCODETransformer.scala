@@ -204,8 +204,9 @@ class ENCODETransformer extends GMQLTransformer {
         val writer = new PrintWriter(file)
         try {
           if(copyNumbers._2>0) {
-            writer.write("number_of_copies\t"+copyNumbers._1+"\n")
-            writer.write("copy_number\t"+copyNumbers._2+"\n")
+            writer.write("manually_curated|number_of_copies\t" + copyNumbers._1 + "\n")
+            writer.write("manually_curated|copy_number\t" + copyNumbers._2 + "\n")
+            writer.write("manually_curated|file_name_replaced\ttrue\n")
           }
           //this is the one that could throw an exception
           val node: JsonNode = jp.readValueAsTree()

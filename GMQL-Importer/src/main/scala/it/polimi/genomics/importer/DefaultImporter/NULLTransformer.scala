@@ -83,8 +83,9 @@ class NULLTransformer extends GMQLTransformer {
           val numberOfCopies = FileDatabase.getMaxCopyNumber(datasetId, file._2, STAGE.DOWNLOAD)
           if (numberOfCopies > 1) {
             val writer = new FileWriter(url, true)
-            writer.write("number_of_copies\t" + numberOfCopies + "\n")
-            writer.write("copy_number\t" + file._3 + "\n")
+            writer.write("manually_curated|number_of_copies\t" + numberOfCopies + "\n")
+            writer.write("manually_curated|copy_number\t" + file._3 + "\n")
+            writer.write("manually_curated|file_name_replaced\ttrue\n")
             writer.close()
           }
         }
