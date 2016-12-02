@@ -2,21 +2,26 @@
     <settings>
         <!--BASE WORKING FOLDER FOR THE IMPORTER-->
         <output_folder>/home/canakoglu/gmql_importer</output_folder>
-        <download_enabled>TRUE</download_enabled>
-        <transform_enabled>TRUE</transform_enabled>
-        <load_enabled>FALSE</load_enabled>        
+        <download_enabled>true</download_enabled>
+        <transform_enabled>true</transform_enabled>
+        <load_enabled>false</load_enabled>        
     </settings>
     <source_list>
         <source name="HG19_TCGA">
             <url>bioinf.iasi.cnr.it</url>
             <output_folder>HG19_TCGA</output_folder>
-            <gmql_user>public</gmql_user>
             <downloader>it.polimi.genomics.importer.DefaultImporter.FTPDownloader</downloader>
             <transformer>it.polimi.genomics.importer.DefaultImporter.NULLTransformer</transformer>
-            <download_enabled>TRUE</download_enabled>
-            <transform_enabled>TRUE</transform_enabled>
-            <load_enabled>TRUE</load_enabled>
+            <loader>it.polimi.genomics.importer.GMQLImporter.GMQLLoader</loader>
+            <download_enabled>true</download_enabled>
+            <transform_enabled>true</transform_enabled>
+            <load_enabled>true</load_enabled>
             <parameter_list>
+                <parameter>
+                    <description>to know which user in gmql is going to be imported</description>
+                    <key>gmql_user</key>
+                    <value>public</value>
+                </parameter>
                 <parameter>
                     <description>for logging in ftp on tcga2bed need this anonymous user</description>
                     <key>username</key>
@@ -32,10 +37,10 @@
                 <!--THE SCHEMA PATH HAS TO BE REFERRED FROM ROOT PATH EX: ROOT PATH/SCHEMA PATH/schema.xml-->
                 <dataset name="cnv">
                     <output_folder>cnv</output_folder>
-                    <schema location="LOCAL">schemas/cnv.schema</schema>
-                    <download_enabled>FALSE</download_enabled>
-                    <transform_enabled>FALSE</transform_enabled>
-                    <load_enabled>FALSE</load_enabled>   
+                    <schema location="local">schemas/cnv.schema</schema>
+                    <download_enabled>false</download_enabled>
+                    <transform_enabled>false</transform_enabled>
+                    <load_enabled>false</load_enabled>   
                     <parameter_list>
                         <parameter>
                             <key>folder_regex</key>
@@ -49,10 +54,10 @@
                 </dataset>
                 <dataset name="dnamethylation">
                     <output_folder>dnamethylation</output_folder>
-                    <schema location="LOCAL">schemas/dnamethylation.schema</schema>
-                    <download_enabled>TRUE</download_enabled>
-                    <transform_enabled>TRUE</transform_enabled>
-                    <load_enabled>TRUE</load_enabled>   
+                    <schema location="local">schemas/dnamethylation.schema</schema>
+                    <download_enabled>true</download_enabled>
+                    <transform_enabled>true</transform_enabled>
+                    <load_enabled>true</load_enabled>   
                     <parameter_list>
                         <parameter>
                             <key>folder_regex</key>
@@ -66,10 +71,10 @@
                 </dataset>
                 <dataset name="dnaseq">
                     <output_folder>dnaseq</output_folder>
-                    <schema location="LOCAL">schemas/dnaseq.schema</schema>
-                    <download_enabled>FALSE</download_enabled>
-                    <transform_enabled>FALSE</transform_enabled>
-                    <load_enabled>FALSE</load_enabled>   
+                    <schema location="local">schemas/dnaseq.schema</schema>
+                    <download_enabled>false</download_enabled>
+                    <transform_enabled>false</transform_enabled>
+                    <load_enabled>false</load_enabled>   
                     <parameter_list>
                         <parameter>
                             <key>folder_regex</key>
@@ -83,10 +88,10 @@
                 </dataset>
                 <dataset name="mirnaseq_isoform">
                     <output_folder>mirnaseq_isoform</output_folder>
-                    <schema location="LOCAL">schemas/mirnaseq_isoform.schema</schema>
-                    <download_enabled>FALSE</download_enabled>
-                    <transform_enabled>FALSE</transform_enabled>
-                    <load_enabled>FALSE</load_enabled>   
+                    <schema location="local">schemas/mirnaseq_isoform.schema</schema>
+                    <download_enabled>false</download_enabled>
+                    <transform_enabled>false</transform_enabled>
+                    <load_enabled>false</load_enabled>   
                     <parameter_list>
                         <parameter>
                             <key>folder_regex</key>
@@ -100,10 +105,10 @@
                 </dataset>
                 <dataset name="mirnaseq_mirna">
                     <output_folder>mirnaseq_mirna</output_folder>
-                    <schema location="LOCAL">schemas/mirna_quantification.schema</schema>
-                    <download_enabled>FALSE</download_enabled>
-                    <transform_enabled>FALSE</transform_enabled>
-                    <load_enabled>FALSE</load_enabled>   
+                    <schema location="local">schemas/mirna_quantification.schema</schema>
+                    <download_enabled>false</download_enabled>
+                    <transform_enabled>false</transform_enabled>
+                    <load_enabled>false</load_enabled>   
                     <parameter_list>
                         <parameter>
                             <key>folder_regex</key>
@@ -117,10 +122,10 @@
                 </dataset>
                 <dataset name="rnaseq_exon">
                     <output_folder>rnaseq_exon</output_folder>
-                    <schema location="LOCAL">schemas/rnaseq_exon.schema</schema>
-                    <download_enabled>FALSE</download_enabled>
-                    <transform_enabled>FALSE</transform_enabled>
-                    <load_enabled>FALSE</load_enabled>   
+                    <schema location="local">schemas/rnaseq_exon.schema</schema>
+                    <download_enabled>false</download_enabled>
+                    <transform_enabled>false</transform_enabled>
+                    <load_enabled>false</load_enabled>   
                     <parameter_list>
                         <parameter>
                             <key>folder_regex</key>
@@ -134,10 +139,10 @@
                 </dataset>
                 <dataset name="rnaseq_gene">
                     <output_folder>rnaseq_gene</output_folder>
-                    <schema location="LOCAL">schemas/rnaseq_gene.schema</schema>
-                    <download_enabled>FALSE</download_enabled>
-                    <transform_enabled>FALSE</transform_enabled>
-                    <load_enabled>FALSE</load_enabled>   
+                    <schema location="local">schemas/rnaseq_gene.schema</schema>
+                    <download_enabled>false</download_enabled>
+                    <transform_enabled>false</transform_enabled>
+                    <load_enabled>false</load_enabled>   
                     <parameter_list>
                         <parameter>
                             <key>folder_regex</key>
@@ -151,10 +156,10 @@
                 </dataset>
                 <dataset name="rnaseq_spljxn">
                     <output_folder>rnaseq_spljxn</output_folder>
-                    <schema location="LOCAL">schemas/rnaseq_spljxn.schema</schema>
-                    <download_enabled>FALSE</download_enabled>
-                    <transform_enabled>FALSE</transform_enabled>
-                    <load_enabled>FALSE</load_enabled>   
+                    <schema location="local">schemas/rnaseq_spljxn.schema</schema>
+                    <download_enabled>false</download_enabled>
+                    <transform_enabled>false</transform_enabled>
+                    <load_enabled>false</load_enabled>   
                     <parameter_list>
                         <parameter>
                             <key>folder_regex</key>
@@ -168,10 +173,10 @@
                 </dataset>
                 <dataset name="rnaseqv2_exon">
                     <output_folder>rnaseqv2_exon</output_folder>
-                    <schema location="LOCAL">schemas/rnaseqv2_exon.schema</schema>
-                    <download_enabled>FALSE</download_enabled>
-                    <transform_enabled>FALSE</transform_enabled>
-                    <load_enabled>FALSE</load_enabled>   
+                    <schema location="local">schemas/rnaseqv2_exon.schema</schema>
+                    <download_enabled>false</download_enabled>
+                    <transform_enabled>false</transform_enabled>
+                    <load_enabled>false</load_enabled>   
                     <parameter_list>
                         <parameter>
                             <key>folder_regex</key>
@@ -185,10 +190,10 @@
                 </dataset>
                 <dataset name="rnaseqv2_gene">
                     <output_folder>rnaseqv2_gene</output_folder>
-                    <schema location="LOCAL">schemas/rnaseqv2_gene.schema</schema>
-                    <download_enabled>FALSE</download_enabled>
-                    <transform_enabled>FALSE</transform_enabled>
-                    <load_enabled>FALSE</load_enabled>   
+                    <schema location="local">schemas/rnaseqv2_gene.schema</schema>
+                    <download_enabled>false</download_enabled>
+                    <transform_enabled>false</transform_enabled>
+                    <load_enabled>false</load_enabled>   
                     <parameter_list>
                         <parameter>
                             <key>folder_regex</key>
@@ -202,10 +207,10 @@
                 </dataset>
                 <dataset name="rnaseqv2_iso">
                     <output_folder>rnaseqv2_isoform</output_folder>
-                    <schema location="LOCAL">schemas/rnaseqv2_isoform.schema</schema>
-                    <download_enabled>FALSE</download_enabled>
-                    <transform_enabled>FALSE</transform_enabled>
-                    <load_enabled>FALSE</load_enabled>   
+                    <schema location="local">schemas/rnaseqv2_isoform.schema</schema>
+                    <download_enabled>false</download_enabled>
+                    <transform_enabled>false</transform_enabled>
+                    <load_enabled>false</load_enabled>   
                     <parameter_list>
                         <parameter>
                             <key>folder_regex</key>
@@ -219,10 +224,10 @@
                 </dataset>
                 <dataset name="rnaseqv2_spljxn">
                     <output_folder>rnaseqv2_spljxn</output_folder>
-                    <schema location="LOCAL">schemas/rnaseqv2_spljxn.schema</schema>
-                    <download_enabled>FALSE</download_enabled>
-                    <transform_enabled>FALSE</transform_enabled>
-                    <load_enabled>FALSE</load_enabled>   
+                    <schema location="local">schemas/rnaseqv2_spljxn.schema</schema>
+                    <download_enabled>false</download_enabled>
+                    <transform_enabled>false</transform_enabled>
+                    <load_enabled>false</load_enabled>   
                     <parameter_list>
                         <parameter>
                             <key>folder_regex</key>
