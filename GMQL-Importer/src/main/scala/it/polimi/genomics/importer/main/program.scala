@@ -93,7 +93,7 @@ object program {
       FileDatabase.endRun(runId)
       //close database
 
-      FileDatabase.printDatabase()
+//      FileDatabase.printDatabase()
 
       FileDatabase.closeDatabase()
     }
