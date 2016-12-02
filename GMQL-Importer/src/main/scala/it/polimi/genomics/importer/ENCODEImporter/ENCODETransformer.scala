@@ -50,6 +50,11 @@ class ENCODETransformer extends GMQLTransformer {
             logger.debug("Folder created: " + folder)
           }
           transformData(source, dataset)
+
+          //fills the exclusion regexes into the list.
+          source.parameters.filter(parameter => parameter._1.equalsIgnoreCase("encode_metadata_exclusion")).foreach(param =>{
+            exclusionRegex.add(param._2)
+          })
           transformMeta(source, dataset)
         }
         else
@@ -118,11 +123,6 @@ class ENCODETransformer extends GMQLTransformer {
     */
   private def transformMeta(source: GMQLSource, dataset: GMQLDataset): Unit = {
     logger.info("Splitting ENCODE metadata for dataset: " + dataset.outputFolder)
-
-    //fills the exclusion regexes into the list.
-    source.parameters.filter(parameter => parameter._1.equalsIgnoreCase("encode_metadata_exclusion")).foreach(param =>{
-      exclusionRegex.add(param._2)
-    })
 
     val downloadPath = source.outputFolder + File.separator + dataset.outputFolder +
       File.separator + "Downloads"
