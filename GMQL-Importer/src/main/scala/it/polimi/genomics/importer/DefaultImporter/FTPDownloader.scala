@@ -187,7 +187,7 @@ class FTPDownloader extends GMQLDownloader {
       new java.io.File(source.outputFolder).mkdirs()
     }
     val ftp = new FTP()
-    if (dataset.schemaLocation == SCHEMA_LOCATION.REMOTE &&
+    if (dataset.schemaLocation == SCHEMA_LOCATION.FTP &&
       ftp.connectWithAuth(source.url,
         source.parameters.filter(_._1 == "username").head._2,
         source.parameters.filter(_._1 == "password").head._2).getOrElse(false)) {
