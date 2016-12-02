@@ -5,6 +5,7 @@ package it.polimi.genomics.importer.GMQLImporter.utils
   */
 object SCHEMA_LOCATION extends Enumeration {
   type SCHEMA_LOCATION = Value
-  val LOCAL = Value("LOCAL")
-  val REMOTE = Value("REMOTE")
+  val LOCAL = Value("local")
+  val FTP = Value("ftp")
+  val HTTP = Value("http")
 }
