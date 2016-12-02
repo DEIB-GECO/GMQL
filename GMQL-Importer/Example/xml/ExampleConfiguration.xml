@@ -11,7 +11,7 @@
             <output_folder>TCGA2BED</output_folder>
             <downloader>it.polimi.genomics.importer.DefaultImporter.FTPDownloader</downloader>
             <transformer>it.polimi.genomics.importer.DefaultImporter.NULLTransformer</transformer>
-            <loader>it.polimi.genomics.importer.GMQLImporter.GMQLLoader$</loader>
+            <loader>it.polimi.genomics.importer.GMQLImporter.GMQLLoader</loader>
             <download_enabled>true</download_enabled>
             <transform_enabled>true</transform_enabled>
             <load_enabled>true</load_enabled>
@@ -20,7 +20,7 @@
                     <description>to know which user in gmql is going to be imported</description>
                     <key>gmql_user</key>
                     <value>public</value>
-                </parameter>-->
+                </parameter>
                 <parameter>
                     <description>for logging in ftp on tcga2bed need this anonymous user</description>
                     <key>username</key>
@@ -96,7 +96,7 @@
             <output_folder>ENCODE</output_folder>
             <downloader>it.polimi.genomics.importer.ENCODEImporter.ENCODEDownloader</downloader>
             <transformer>it.polimi.genomics.importer.ENCODEImporter.ENCODETransformer</transformer>
-            <loader>it.polimi.genomics.importer.GMQLImporter.GMQLLoader$</loader>
+            <loader>it.polimi.genomics.importer.GMQLImporter.GMQLLoader</loader>
             <download_enabled>true</download_enabled>
             <transform_enabled>true</transform_enabled>
             <load_enabled>true</load_enabled>
