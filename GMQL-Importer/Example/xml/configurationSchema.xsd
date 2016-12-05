@@ -17,6 +17,11 @@
                     <xs:documentation>Paths inside the configuration xml are relative to this path.</xs:documentation>
                 </xs:annotation>
             </xs:element>
+            <xs:element type="xs:string" name="logger_properties">
+                <xs:annotation>
+                    <xs:documentation>Settings for the logger, can set up the logging.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
             <xs:element type="xs:boolean" name="download_enabled">
                 <xs:annotation>
                     <xs:documentation>Top level filter for allowing the application to download.</xs:documentation>
