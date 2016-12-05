@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<gmqlSchemaCollection name="job_filename_nachodox_20161017_140108_perro" xmlns="http://genomic.elet.polimi.it/entities">
+<gmqlSchemaCollection name="GLOBAL_SCHEMAS" xmlns="http://genomic.elet.polimi.it/entities">
 <gmqlSchema type="GTF">
            <field type="STRING">seqname</field>
            <field type="STRING">source</field>
