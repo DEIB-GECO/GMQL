@@ -1,14 +1,17 @@
 package it.polimi.genomics.importer.main
 
 import java.io.File
-import it.polimi.genomics.importer.GMQLImporter.utils.SCHEMA_LOCATION
-import it.polimi.genomics.importer.GMQLImporter._
+
 import it.polimi.genomics.importer.FileDatabase.FileDatabase
-import org.slf4j._
+import it.polimi.genomics.importer.GMQLImporter._
+import it.polimi.genomics.importer.GMQLImporter.utils.SCHEMA_LOCATION
+import org.apache.log4j.Logger
+import org.apache.log4j.xml.DOMConfigurator
+
 import scala.xml.{Elem, XML}
 
 object program {
-  val logger: Logger = LoggerFactory.getLogger(this.getClass)
+  val logger: Logger = Logger.getLogger(this.getClass)
 
   /**
     * depending on the arguments, can run download/transform/load procedure or
@@ -41,7 +44,6 @@ object program {
       }
     }
   }
-
   /**
     * by having a configuration xml file runs downloaders/transformers/loader for the sources and their
     * datasets if defined to.
@@ -52,6 +54,11 @@ object program {
     if (new File(xmlConfigPath).exists()) {
       val file: Elem = XML.loadFile(xmlConfigPath)
       val outputFolder = (file \\ "settings" \ "output_folder").text
+      val logProperties = (file \\ "settings" \ "logger_properties").text
+
+      if(logProperties != "")
+        DOMConfigurator.configure(logProperties)
+
       val downloadEnabled = if ("true".equalsIgnoreCase((file \\ "settings" \ "download_enabled").text)) true else false
       val transformEnabled = if ("true".equalsIgnoreCase((file \\ "settings" \ "transform_enabled").text)) true else false
       val loadEnabled = if ("true".equalsIgnoreCase((file \\ "settings" \ "load_enabled").text)) true else false
