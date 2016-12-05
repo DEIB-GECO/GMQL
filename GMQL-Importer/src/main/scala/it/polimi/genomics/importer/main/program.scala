@@ -1,11 +1,11 @@
 package it.polimi.genomics.importer.main
 
-import java.io.File
+import java.io.{File, IOException}
 
 import it.polimi.genomics.importer.FileDatabase.FileDatabase
 import it.polimi.genomics.importer.GMQLImporter._
 import it.polimi.genomics.importer.GMQLImporter.utils.SCHEMA_LOCATION
-import org.apache.log4j.Logger
+import org.apache.log4j.{BasicConfigurator, Logger}
 import org.apache.log4j.xml.DOMConfigurator
 
 import scala.xml.{Elem, XML}
@@ -19,6 +19,7 @@ object program {
     * @param args arguments for GMQLImporter (help for more information)
     */
   def main(args: Array[String]): Unit = {
+    BasicConfigurator.configure()
     if(args.length == 0){
       logger.info("arguments specified, run with help for more information")
     }
@@ -56,8 +57,7 @@ object program {
       val outputFolder = (file \\ "settings" \ "output_folder").text
       val logProperties = (file \\ "settings" \ "logger_properties").text
 
-      if(logProperties != "")
-        DOMConfigurator.configure(logProperties)
+      DOMConfigurator.configure(logProperties)
 
       val downloadEnabled = if ("true".equalsIgnoreCase((file \\ "settings" \ "download_enabled").text)) true else false
       val transformEnabled = if ("true".equalsIgnoreCase((file \\ "settings" \ "transform_enabled").text)) true else false
@@ -68,20 +68,20 @@ object program {
       FileDatabase.setDatabase(outputFolder)
       //start run
       val runId = FileDatabase.runId(
-        downloadEnabled.toString,transformEnabled.toString,loadEnabled.toString,outputFolder)
+        downloadEnabled.toString, transformEnabled.toString, loadEnabled.toString, outputFolder)
 
       //start DTL
       sources.foreach(source => {
-        val sourceId=FileDatabase.sourceId(source.name)
-        val runSourceId = FileDatabase.runSourceId(runId,sourceId,source.url,source.outputFolder,source.downloadEnabled.toString,source.downloader,source.transformEnabled.toString,source.transformer,source.loadEnabled.toString,source.loader)
-        source.parameters.foreach(parameter =>{
-          FileDatabase.runSourceParameterId(runSourceId,parameter._3,parameter._1,parameter._2)
+        val sourceId = FileDatabase.sourceId(source.name)
+        val runSourceId = FileDatabase.runSourceId(runId, sourceId, source.url, source.outputFolder, source.downloadEnabled.toString, source.downloader, source.transformEnabled.toString, source.transformer, source.loadEnabled.toString, source.loader)
+        source.parameters.foreach(parameter => {
+          FileDatabase.runSourceParameterId(runSourceId, parameter._3, parameter._1, parameter._2)
         })
-        source.datasets.foreach(dataset =>{
-          val datasetId = FileDatabase.datasetId(sourceId,dataset.name)
-          val runDatasetId = FileDatabase.runDatasetId(runId,datasetId,dataset.outputFolder,dataset.downloadEnabled.toString,dataset.transformEnabled.toString,dataset.loadEnabled.toString,dataset.schemaUrl,dataset.schemaLocation.toString)
-          dataset.parameters.foreach(parameter =>{
-            FileDatabase.runDatasetParameterId(runDatasetId,parameter._3,parameter._1,parameter._2)
+        source.datasets.foreach(dataset => {
+          val datasetId = FileDatabase.datasetId(sourceId, dataset.name)
+          val runDatasetId = FileDatabase.runDatasetId(runId, datasetId, dataset.outputFolder, dataset.downloadEnabled.toString, dataset.transformEnabled.toString, dataset.loadEnabled.toString, dataset.schemaUrl, dataset.schemaLocation.toString)
+          dataset.parameters.foreach(parameter => {
+            FileDatabase.runDatasetParameterId(runDatasetId, parameter._3, parameter._1, parameter._2)
           })
         })
         if (downloadEnabled && source.downloadEnabled) {
@@ -100,12 +100,13 @@ object program {
       FileDatabase.endRun(runId)
       //close database
 
-//      FileDatabase.printDatabase()
+      //      FileDatabase.printDatabase()
 
       FileDatabase.closeDatabase()
+
     }
     else
-      logger.warn(xmlConfigPath+" does not exist")
+      logger.warn(xmlConfigPath + " does not exist")
   }
 
   /**
