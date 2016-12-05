@@ -2,6 +2,7 @@
     <settings>
         <!--BASE WORKING FOLDER FOR THE IMPORTER-->
         <output_folder>/home/canakoglu/gmql_importer</output_folder>
+        <logger_properties>PUTXMLFOLDERHERE/log4j.xml</logger_properties>
         <download_enabled>true</download_enabled>
         <transform_enabled>true</transform_enabled>
         <load_enabled>false</load_enabled>        
