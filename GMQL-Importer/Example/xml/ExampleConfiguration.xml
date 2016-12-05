@@ -1,7 +1,8 @@
 <root>
     <settings>
         <output_folder>/home/nachon/git-repos/GMQL/GMQL-Importer/Example</output_folder>
-        <download_enabled>false</download_enabled>
+        <logger_properties>/home/nachon/git-repos/GMQL/GMQL-Importer/Example/xml/log4j.xml</logger_properties>
+        <download_enabled>true</download_enabled>
         <transform_enabled>true</transform_enabled>
         <load_enabled>true</load_enabled>
     </settings>
