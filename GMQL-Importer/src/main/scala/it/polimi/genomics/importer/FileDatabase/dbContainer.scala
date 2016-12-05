@@ -1,8 +1,10 @@
 package it.polimi.genomics.importer.FileDatabase
 
 import org.joda.time.DateTime
+import org.slf4j.{Logger, LoggerFactory}
 import slick.dbio.Effect.Write
 import slick.driver.H2Driver.api._
+import slick.driver.H2Driver.backend.DatabaseDef
 import slick.jdbc.meta.MTable
 import slick.profile.FixedSqlAction
 
@@ -37,6 +39,7 @@ import scala.concurrent.duration.Duration
   *       log it by using the method markAsProcessed().
   */
 case class dbContainer() {
+  val logger: Logger = LoggerFactory.getLogger(this.getClass)
   //------------------------------------------------testing space-------------------------------------------------------
   def printWholeDatabase(): Unit = {
     Await.result(database.run((for (r<- runs) yield (
@@ -100,7 +103,7 @@ case class dbContainer() {
     })
   }
   //-------------------------------------DATABASE DEFINITION------------------------------------------------------------
-  var database: _root_.slick.driver.H2Driver.backend.DatabaseDef = _
+  var database: DatabaseDef = _
 
   //-------------------------------BASIC INSERTIONS SOURCE/DATASET/FILE/RUN---------------------------------------------
   /**
@@ -117,7 +120,7 @@ case class dbContainer() {
       result.head
       //here I have to create the source.
     else {
-      val idQuery: FixedSqlAction[Int, NoStream, Write] = (sources returning sources.map(_.id)) += (None, name)
+      val idQuery = (sources returning sources.map(_.id)) += (None, name)
       val executionId = database.run(idQuery)
       val resultId = Await.result(executionId,Duration.Inf)
       resultId
@@ -582,61 +585,61 @@ case class dbContainer() {
     */
   def setDatabase(path: String): Unit = {
     //;DB_CLOSE_ON_EXIT=FALSE
-    database = Database.forURL("jdbc:h2:file:" + path + "/db", driver = "com.h2database.h2", keepAliveConnection = true)
+    database = Database.forURL("jdbc:h2:file:" + path + "/db", driver = "org.h2.Driver", keepAliveConnection = true)
     val tables = Await.result(database.run(MTable.getTables), Duration.Inf).toList
     if (!tables.exists(_.name.name == "SOURCES")) {
       val setup = DBIO.seq(sources.schema.create)
       val setupFuture = database.run(setup)
       Await.result(setupFuture,Duration.Inf)
-      println("Table SOURCES created")
+      logger.info("Table SOURCES created")
     }
     if (!tables.exists(_.name.name == "DATASETS")) {
       val setup = DBIO.seq(datasets.schema.create)
       val setupFuture = database.run(setup)
       Await.result(setupFuture,Duration.Inf)
-      println("Table DATASETS created")
+      logger.info("Table DATASETS created")
     }
     if (!tables.exists(_.name.name == "FILES")) {
       val setup = DBIO.seq(files.schema.create)
       val setupFuture = database.run(setup)
       Await.result(setupFuture,Duration.Inf)
-      println("Table FILES created")
+      logger.info("Table FILES created")
     }
     if (!tables.exists(_.name.name == "RUNS")) {
       val setup = DBIO.seq(runs.schema.create)
       val setupFuture = database.run(setup)
       Await.result(setupFuture,Duration.Inf)
-      println("Table RUNS created")
+      logger.info("Table RUNS created")
     }
     if (!tables.exists(_.name.name == "RUNSOURCES")) {
       val setup = DBIO.seq(runSources.schema.create)
       val setupFuture = database.run(setup)
       Await.result(setupFuture,Duration.Inf)
-      println("Table RUNSOURCES created")
+      logger.info("Table RUNSOURCES created")
     }
     if (!tables.exists(_.name.name == "RUNSOURCEPARAMETERS")) {
       val setup = DBIO.seq(runSourceParameters.schema.create)
       val setupFuture = database.run(setup)
       Await.result(setupFuture,Duration.Inf)
-      println("Table RUNSOURCEPARAMETERS created")
+      logger.info("Table RUNSOURCEPARAMETERS created")
     }
     if (!tables.exists(_.name.name == "RUNDATASETS")) {
       val setup = DBIO.seq(runDatasets.schema.create)
       val setupFuture = database.run(setup)
       Await.result(setupFuture,Duration.Inf)
-      println("Table RUNDATASETS created")
+      logger.info("Table RUNDATASETS created")
     }
     if (!tables.exists(_.name.name == "RUNDATASETPARAMETERS")) {
       val setup = DBIO.seq(runDatasetParameters.schema.create)
       val setupFuture = database.run(setup)
       Await.result(setupFuture,Duration.Inf)
-      println("Table RUNDATASETPARAMETERS created")
+      logger.info("Table RUNDATASETPARAMETERS created")
     }
     if (!tables.exists(_.name.name == "RUNFILES")) {
       val setup = DBIO.seq(runFiles.schema.create)
       val setupFuture = database.run(setup)
       Await.result(setupFuture,Duration.Inf)
-      println("Table RUNFILES created")
+      logger.info("Table RUNFILES created")
     }
   }
 
