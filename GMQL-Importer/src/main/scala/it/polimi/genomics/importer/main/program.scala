@@ -1,12 +1,12 @@
 package it.polimi.genomics.importer.main
 
-import java.io.{File, IOException}
+import java.io.File
 
 import it.polimi.genomics.importer.FileDatabase.FileDatabase
 import it.polimi.genomics.importer.GMQLImporter._
 import it.polimi.genomics.importer.GMQLImporter.utils.SCHEMA_LOCATION
-import org.apache.log4j.{BasicConfigurator, Logger}
 import org.apache.log4j.xml.DOMConfigurator
+import org.apache.log4j.{BasicConfigurator, Logger}
 
 import scala.xml.{Elem, XML}
 
@@ -88,7 +88,7 @@ object program {
           Class.forName(source.downloader).newInstance.asInstanceOf[GMQLDownloader].download(source)
         }
         if (transformEnabled && source.transformEnabled) {
-          Class.forName(source.transformer).newInstance.asInstanceOf[GMQLTransformer].transform(source)
+          Integrator.integrate(source)
         }
         if (loadEnabled && source.loadEnabled) {
           Class.forName(source.loader).newInstance.asInstanceOf[GMQLLoader].loadIntoGMQL(source)
@@ -138,7 +138,7 @@ object program {
           GMQLDataset(
             (dataset \ "@name").text,
             (dataset \ "output_folder").text,
-            outputFolder + File.separator +(dataset \ "schema").text,
+            (dataset \ "schema").text,
             SCHEMA_LOCATION.withName((dataset \ "schema" \ "@location").text),
             if ((dataset \ "download_enabled").text.toLowerCase == "true") true else false,
             if ((dataset \ "transform_enabled").text.toLowerCase == "true") true else false,
