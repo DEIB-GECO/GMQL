@@ -585,7 +585,7 @@ case class dbContainer() {
     */
   def setDatabase(path: String): Unit = {
     //;DB_CLOSE_ON_EXIT=FALSE
-    database = Database.forURL("jdbc:h2:file:" + path + "/db", driver = "org.h2.Driver", keepAliveConnection = true)
+    database = Database.forURL("jdbc:h2:file:" + path + "/db;AUTO_SERVER=TRUE", driver = "org.h2.Driver", keepAliveConnection = true)
     val tables = Await.result(database.run(MTable.getTables), Duration.Inf).toList
     if (!tables.exists(_.name.name == "SOURCES")) {
       val setup = DBIO.seq(sources.schema.create)
