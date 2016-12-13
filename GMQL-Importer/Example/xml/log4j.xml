@@ -8,12 +8,22 @@
                    value="[%d{ISO8601}]%5p[%t]%x - %c{1} - %m%n" />
         </layout>
     </appender>
+
+    <appender name="file" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="File" value="/home/nachon/git-repos/GMQL/GMQL-Importer/Example/console.log" />
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern"
+                   value="[%d{ISO8601}]%5p[%t]%x - %c{1} - %m%n" />
+        </layout>
+    </appender>
+
     <logger name="it.polimi.genomics.importer">
         <level value="INFO"/>
     </logger>
     <root>
         <level value="WARN"/>
         <appender-ref ref="console" />
+        <appender-ref ref="file" />
     </root>
 </log4j:configuration>
 
