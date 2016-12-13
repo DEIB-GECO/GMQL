@@ -54,7 +54,7 @@ object example {
           Class.forName(source.downloader).newInstance.asInstanceOf[GMQLDownloader].download(source)
         }
         if (transformEnabled && source.transformEnabled) {
-          Class.forName(source.transformer).newInstance.asInstanceOf[GMQLTransformer].transform(source)
+//          Class.forName(source.transformer).newInstance.asInstanceOf[GMQLTransformer].transform(source)
         }
         if (loadEnabled && source.loadEnabled) {
           Class.forName(source.loader).newInstance.asInstanceOf[GMQLLoader].loadIntoGMQL(source)
