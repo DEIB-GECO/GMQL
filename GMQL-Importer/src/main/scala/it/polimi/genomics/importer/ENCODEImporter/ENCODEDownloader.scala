@@ -69,6 +69,7 @@ class ENCODEDownloader extends GMQLDownloader {
           val file = new File(outputPath + File.separator + metadataCandidateName)
           if(file.exists()) {
             val fileId = FileDatabase.fileId(datasetId,indexAndMetaUrl,stage,metadataCandidateName)
+            val metadataName = FileDatabase.getFileNameAndCopyNumber(fileId)
 
             val hash = Files.hash(file,Hashing.md5()).toString
 
@@ -91,6 +92,7 @@ class ENCODEDownloader extends GMQLDownloader {
   }
 
   /**
+    * generates download link for the metadata file
     * generates download link for the metadata file
     *
     * @param source  contains information related for connecting to ENCODE
