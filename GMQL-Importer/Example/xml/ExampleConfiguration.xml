@@ -1,10 +1,11 @@
 <root>
     <settings>
+        <!--BASE WORKING FOLDER FOR THE IMPORTER-->
         <output_folder>/home/nachon/git-repos/GMQL/GMQL-Importer/Example</output_folder>
         <logger_properties>/home/nachon/git-repos/GMQL/GMQL-Importer/Example/xml/log4j.xml</logger_properties>
         <download_enabled>true</download_enabled>
         <transform_enabled>true</transform_enabled>
-        <load_enabled>true</load_enabled>
+        <load_enabled>false</load_enabled>
     </settings>
     <source_list>
         <source name="TCGA2BED">
@@ -13,7 +14,7 @@
             <downloader>it.polimi.genomics.importer.DefaultImporter.FTPDownloader</downloader>
             <transformer>it.polimi.genomics.importer.DefaultImporter.NULLTransformer</transformer>
             <loader>it.polimi.genomics.importer.GMQLImporter.GMQLLoader</loader>
-            <download_enabled>true</download_enabled>
+            <download_enabled>false</download_enabled>
             <transform_enabled>true</transform_enabled>
             <load_enabled>true</load_enabled>
             <parameter_list>
@@ -34,9 +35,10 @@
                 </parameter>
             </parameter_list>
             <dataset_list>
+                <!--THE SCHEMA PATH HAS TO BE REFERRED FROM ROOT PATH EX: ROOT PATH/SCHEMA PATH/schema.xml-->
                 <dataset name="cnv">
                     <output_folder>ExampleCNV</output_folder>
-                    <schema location="local">schemas/cnv.schema</schema>
+                    <schema location="http">ftp://bioinf.iasi.cnr.it/bed/acc/cnv/header.schema</schema>
                     <download_enabled>false</download_enabled>
                     <transform_enabled>true</transform_enabled>
                     <load_enabled>true</load_enabled>
@@ -54,7 +56,7 @@
                 </dataset>
                 <dataset name="dnaseq">
                     <output_folder>ExampleDNASEQ</output_folder>
-                    <schema location="local">schemas/dnaseq.schema</schema>
+                    <schema location="http">ftp://bioinf.iasi.cnr.it/bed/acc/dnaseq/header.schema</schema>
                     <download_enabled>true</download_enabled>
                     <transform_enabled>true</transform_enabled>
                     <load_enabled>true</load_enabled>
@@ -74,7 +76,7 @@
                 <dataset name="dnamethyltest">
                     <output_folder>dnamethylation</output_folder>
                     <schema location="local">schemas/dnamethylation.schema</schema>
-                    <download_enabled>true</download_enabled>
+                    <download_enabled>false</download_enabled>
                     <transform_enabled>true</transform_enabled>
                     <load_enabled>true</load_enabled>
                     <parameter_list>
@@ -157,8 +159,8 @@
                 <dataset name="exampleNarrowPeak">
                     <output_folder>ExampleNARROWPEAK</output_folder>
                     <schema location="local">schemas/narrowPeak.schema</schema>
-                    <download_enabled>true</download_enabled>
-                    <transform_enabled>true</transform_enabled>
+                    <download_enabled>false</download_enabled>
+                    <transform_enabled>false</transform_enabled>
                     <load_enabled>true</load_enabled>
                     <parameter_list>
                         <parameter>
