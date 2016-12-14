@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
-    <xs:element name="root" type="rootType">
+    <xs:element name="root" type="root_type">
         <xs:annotation>
             <xs:documentation>Literally the root of the xml document.</xs:documentation>
         </xs:annotation>
     </xs:element>
-    <xs:complexType name="settingsType">
+    <xs:complexType name="settings_type">
         <xs:annotation>
             <xs:documentation>Contains the general settings for the application.</xs:documentation>
         </xs:annotation>
@@ -41,7 +41,7 @@
             </xs:element>
         </xs:sequence>
     </xs:complexType>
-    <xs:complexType name="parameterType">
+    <xs:complexType name="parameter_type">
         <xs:annotation>
             <xs:documentation>Generic parameter with description, key name and value.</xs:documentation>
         </xs:annotation>
@@ -63,12 +63,12 @@
             </xs:element>
         </xs:sequence>
     </xs:complexType>
-    <xs:complexType name="parameter_listType">
+    <xs:complexType name="parameter_list_type">
         <xs:annotation>
             <xs:documentation>List of parameters for source/dataset.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
-            <xs:element type="parameterType" name="parameter" maxOccurs="unbounded" minOccurs="0"/>
+            <xs:element type="parameter_type" name="parameter" maxOccurs="unbounded" minOccurs="0"/>
         </xs:sequence>
     </xs:complexType>
     <xs:simpleType name="schema_location_type" final="restriction" >
@@ -88,7 +88,7 @@
             </xs:enumeration>
         </xs:restriction>
     </xs:simpleType>
-    <xs:complexType name="schemaType">
+    <xs:complexType name="schema_type">
         <xs:simpleContent>
             <xs:extension base="xs:string">
                 <xs:attribute type="schema_location_type" name="location" use="required">
@@ -99,7 +99,7 @@
             </xs:extension>
         </xs:simpleContent>
     </xs:complexType>
-    <xs:complexType name="datasetType">
+    <xs:complexType name="dataset_type">
         <xs:annotation>
             <xs:documentation>Represents a dataset, it belongs to a source and has internal settings.</xs:documentation>
         </xs:annotation>
@@ -109,7 +109,7 @@
                     <xs:documentation>Working directory for the dataset, subfolder of its source's working directory.</xs:documentation>
                 </xs:annotation>
             </xs:element>
-            <xs:element type="schemaType" name="schema_url">
+            <xs:element type="schema_type" name="schema_url">
                 <xs:annotation>
                     <xs:documentation>URL of the schema file.</xs:documentation>
                 </xs:annotation>
@@ -129,7 +129,7 @@
                     <xs:documentation>Indicates whether the dataset has to be loaded.</xs:documentation>
                 </xs:annotation>
             </xs:element>
-            <xs:element type="parameter_listType" name="parameter_list">
+            <xs:element type="parameter_list_type" name="parameter_list">
                 <xs:annotation>
                     <xs:documentation>List of parameters for the dataset.</xs:documentation>
                 </xs:annotation>
@@ -141,15 +141,15 @@
             </xs:annotation>
         </xs:attribute>
     </xs:complexType>
-    <xs:complexType name="dataset_listType">
+    <xs:complexType name="dataset_list_type">
         <xs:annotation>
             <xs:documentation>List of datasets inside a source.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
-            <xs:element type="datasetType" name="dataset" maxOccurs="unbounded" minOccurs="0"/>
+            <xs:element type="dataset_type" name="dataset" maxOccurs="unbounded" minOccurs="0"/>
         </xs:sequence>
     </xs:complexType>
-    <xs:complexType name="sourceType">
+    <xs:complexType name="source_type">
         <xs:annotation>
             <xs:documentation>Represents a source, it has internal settings and contains a list of datasets.</xs:documentation>
         </xs:annotation>
@@ -194,12 +194,12 @@
                     <xs:documentation>Indicates whether the source is enabled to be loaded, rules over dataset and is ruled by root settings.</xs:documentation>
                 </xs:annotation>
             </xs:element>
-            <xs:element type="parameter_listType" name="parameter_list">
+            <xs:element type="parameter_list_type" name="parameter_list">
                 <xs:annotation>
                     <xs:documentation>List of parameters needed for the source.</xs:documentation>
                 </xs:annotation>
             </xs:element>
-            <xs:element type="dataset_listType" name="dataset_list">
+            <xs:element type="dataset_list_type" name="dataset_list">
                 <xs:annotation>
                     <xs:documentation>List of datasets contained by the source.</xs:documentation>
                 </xs:annotation>
@@ -211,22 +211,21 @@
             </xs:annotation>
         </xs:attribute>
     </xs:complexType>
-    <xs:complexType name="source_listType">
+    <xs:complexType name="source_list_type">
         <xs:annotation>
             <xs:documentation>List of sources to be handled in the configuration file.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
-            <xs:element type="sourceType" name="source" maxOccurs="unbounded" minOccurs="0"/>
+            <xs:element type="source_type" name="source" maxOccurs="unbounded" minOccurs="0"/>
         </xs:sequence>
     </xs:complexType>
-    <xs:complexType name="rootType">
+    <xs:complexType name="root_type">
         <xs:annotation>
             <xs:documentation>Root node contains general settings and list of sources.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
-            <xs:element type="settingsType" name="settings"/>
-            <xs:element type="source_listType" name="source_list"/>
+            <xs:element type="settings_type" name="settings"/>
+            <xs:element type="source_list_type" name="source_list"/>
         </xs:sequence>
     </xs:complexType>
-
 </xs:schema>
