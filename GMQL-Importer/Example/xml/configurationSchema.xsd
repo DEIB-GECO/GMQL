@@ -1,6 +1,5 @@
 <?xml version="1.0"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
-
     <xs:element name="root" type="rootType">
         <xs:annotation>
             <xs:documentation>Literally the root of the xml document.</xs:documentation>
@@ -11,7 +10,7 @@
             <xs:documentation>Contains the general settings for the application.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
-            <xs:element type="xs:string" name="output_folder">
+            <xs:element type="xs:string" name="base_working_directory">
                 <xs:annotation>
                     <xs:documentation>Root working directory for the application.</xs:documentation>
                     <xs:documentation>Paths inside the configuration xml are relative to this path.</xs:documentation>
@@ -87,11 +86,6 @@
                     <xs:documentation>Access through http.</xs:documentation>
                 </xs:annotation>
             </xs:enumeration>
-            <xs:enumeration value="ftp" >
-                <xs:annotation>
-                    <xs:documentation>Access through ftp.</xs:documentation>
-                </xs:annotation>
-            </xs:enumeration>
         </xs:restriction>
     </xs:simpleType>
     <xs:complexType name="schemaType">
@@ -110,12 +104,12 @@
             <xs:documentation>Represents a dataset, it belongs to a source and has internal settings.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
-            <xs:element type="xs:string" name="output_folder">
+            <xs:element type="xs:string" name="dataset_working_directory">
                 <xs:annotation>
-                    <xs:documentation>Working directory for the dataset, subfolder of its source.</xs:documentation>
+                    <xs:documentation>Working directory for the dataset, subfolder of its source's working directory.</xs:documentation>
                 </xs:annotation>
             </xs:element>
-            <xs:element type="schemaType" name="schema">
+            <xs:element type="schemaType" name="schema_url">
                 <xs:annotation>
                     <xs:documentation>URL of the schema file.</xs:documentation>
                 </xs:annotation>
@@ -165,9 +159,9 @@
                     <xs:documentation>Url address for the source.</xs:documentation>
                 </xs:annotation>
             </xs:element>
-            <xs:element type="xs:string" name="output_folder">
+            <xs:element type="xs:string" name="source_working_directory">
                 <xs:annotation>
-                    <xs:documentation>Working directory of the source, subfolder of root output folder</xs:documentation>
+                    <xs:documentation>Working directory of the source, subfolder of root working directory</xs:documentation>
                 </xs:annotation>
             </xs:element>
             <xs:element type="xs:string" name="downloader">
