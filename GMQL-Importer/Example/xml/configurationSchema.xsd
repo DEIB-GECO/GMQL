@@ -1,5 +1,8 @@
 <?xml version="1.0"?>
-<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://polimi.it/GDMImporter"
+           xmlns="http://polimi.it/GDMImporter"
+           elementFormDefault="qualified">
     <xs:element name="root" type="root_type">
         <xs:annotation>
             <xs:documentation>Literally the root of the xml document.</xs:documentation>
@@ -14,11 +17,6 @@
                 <xs:annotation>
                     <xs:documentation>Root working directory for the application.</xs:documentation>
                     <xs:documentation>Paths inside the configuration xml are relative to this path.</xs:documentation>
-                </xs:annotation>
-            </xs:element>
-            <xs:element type="xs:string" name="logger_properties">
-                <xs:annotation>
-                    <xs:documentation>Settings for the logger, can set up the logging.</xs:documentation>
                 </xs:annotation>
             </xs:element>
             <xs:element type="xs:boolean" name="download_enabled">
@@ -71,17 +69,17 @@
             <xs:element type="parameter_type" name="parameter" maxOccurs="unbounded" minOccurs="0"/>
         </xs:sequence>
     </xs:complexType>
-    <xs:simpleType name="schema_location_type" final="restriction" >
+    <xs:simpleType name="schema_location_type" final="restriction">
         <xs:annotation>
             <xs:documentation>Enumeration of possible locations for the schema files.</xs:documentation>
         </xs:annotation>
         <xs:restriction base="xs:string">
-            <xs:enumeration value="local" >
+            <xs:enumeration value="local">
                 <xs:annotation>
                     <xs:documentation>Schema file is inside the root working directory.</xs:documentation>
                 </xs:annotation>
             </xs:enumeration>
-            <xs:enumeration value="http" >
+            <xs:enumeration value="http">
                 <xs:annotation>
                     <xs:documentation>Access through http.</xs:documentation>
                 </xs:annotation>
@@ -106,7 +104,8 @@
         <xs:sequence>
             <xs:element type="xs:string" name="dataset_working_directory">
                 <xs:annotation>
-                    <xs:documentation>Working directory for the dataset, subfolder of its source's working directory.</xs:documentation>
+                    <xs:documentation>Working directory for the dataset, subfolder of its source's working directory.
+                    </xs:documentation>
                 </xs:annotation>
             </xs:element>
             <xs:element type="schema_type" name="schema_url">
@@ -151,7 +150,8 @@
     </xs:complexType>
     <xs:complexType name="source_type">
         <xs:annotation>
-            <xs:documentation>Represents a source, it has internal settings and contains a list of datasets.</xs:documentation>
+            <xs:documentation>Represents a source, it has internal settings and contains a list of datasets.
+            </xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <xs:element type="xs:string" name="url">
@@ -161,7 +161,8 @@
             </xs:element>
             <xs:element type="xs:string" name="source_working_directory">
                 <xs:annotation>
-                    <xs:documentation>Working directory of the source, subfolder of root working directory</xs:documentation>
+                    <xs:documentation>Working directory of the source, subfolder of root working directory
+                    </xs:documentation>
                 </xs:annotation>
             </xs:element>
             <xs:element type="xs:string" name="downloader">
@@ -181,17 +182,23 @@
             </xs:element>
             <xs:element type="xs:boolean" name="download_enabled">
                 <xs:annotation>
-                    <xs:documentation>Indicates whether the source is enabled to be downloaded, rules over dataset and is ruled by root settings.</xs:documentation>
+                    <xs:documentation>Indicates whether the source is enabled to be downloaded, rules over dataset and
+                        is ruled by root settings.
+                    </xs:documentation>
                 </xs:annotation>
             </xs:element>
             <xs:element type="xs:boolean" name="transform_enabled">
                 <xs:annotation>
-                    <xs:documentation>Indicates whether the source is enabled to be transformed, rules over dataset and is ruled by root settings.</xs:documentation>
+                    <xs:documentation>Indicates whether the source is enabled to be transformed, rules over dataset and
+                        is ruled by root settings.
+                    </xs:documentation>
                 </xs:annotation>
             </xs:element>
             <xs:element type="xs:boolean" name="load_enabled">
                 <xs:annotation>
-                    <xs:documentation>Indicates whether the source is enabled to be loaded, rules over dataset and is ruled by root settings.</xs:documentation>
+                    <xs:documentation>Indicates whether the source is enabled to be loaded, rules over dataset and is
+                        ruled by root settings.
+                    </xs:documentation>
                 </xs:annotation>
             </xs:element>
             <xs:element type="parameter_list_type" name="parameter_list">
