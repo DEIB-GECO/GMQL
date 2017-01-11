@@ -86,7 +86,7 @@
               }
             }
             case "metadata_update" => {
-              throw new CompilerException("'meta_modifier' option for the PROJECT is not available yet")
+              throw new CompilerException("'meta_update' option for the PROJECT is not available yet")
             }
             case "metadata" => {
               meta_projection = parser_named(metadata_attribute_list,p.param_name.trim, p.param_value.trim)
