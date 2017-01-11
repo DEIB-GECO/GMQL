@@ -211,14 +211,14 @@ trait GmqlParsers extends JavaTokenParsers {
     STOP ^^ {x => RESTOP()} | LEFT ^^ {x => RELEFT()} |
     RIGHT ^^ {x=> RERIGHT()} | CHR ^^ {x => RECHR()} | STRAND ^^ {x => RESTRAND()} |
     decimalNumber ^^ {x => REFloat(x.toDouble)} |
-    any_field_identifier ^^ {x => REFieldNameOrPosition(x)}
+    any_field_identifier ^^ {x => REFieldNameOrPosition(x)} | "(" ~> re_expr <~ ")"
   val re_term:Parser[RENode] =
-    (re_factor <~ MULT) ~ re_factor ^^ {x => REMUL(x._1,x._2)} |
-      (re_factor <~ DIV) ~ re_factor ^^ {x => REDIV(x._1,x._2)} |
+    (re_factor <~ MULT) ~ re_term ^^ {x => REMUL(x._1,x._2)} |
+      (re_factor <~ DIV) ~ re_term ^^ {x => REDIV(x._1,x._2)} |
       re_factor
   val re_expr:Parser[RENode] =
-    (re_term <~ SUM) ~ re_term ^^ {x => READD(x._1,x._2)} |
-      (re_term <~ SUB) ~ re_term ^^ {x => RESUB(x._1,x._2)} |
+    (re_term <~ SUM) ~ re_expr ^^ {x => READD(x._1,x._2)} |
+      (re_term <~ SUB) ~ re_expr ^^ {x => RESUB(x._1,x._2)} |
       re_term
   val single_region_modifier:Parser[SingleProjectOnRegion] =
     ((RIGHT ^^ {x => FieldPosition(COORD_POS.RIGHT_POS)} |
