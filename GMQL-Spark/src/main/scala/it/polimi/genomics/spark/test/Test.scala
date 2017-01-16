@@ -1,13 +1,12 @@
-package it.polimi.genomics.spark
+package it.polimi.genomics.spark.test
 
-import it.polimi.genomics.core.DataStructures.RegionAggregate.RegionsToRegion
-import it.polimi.genomics.core.{GValue, GDouble}
 import it.polimi.genomics.GMQLServer.GmqlServer
+import it.polimi.genomics.core.DataStructures.RegionAggregate.RegionsToRegion
 import it.polimi.genomics.core.ParsingType._
-import it.polimi.genomics.core.{DataStructures, ParsingType}
+import it.polimi.genomics.core.{DataStructures, GDouble, GValue, ParsingType}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.loaders.{ANNParser, BedParser}
-import org.apache.spark.{SparkContext, SparkConf}
+import org.apache.spark.{SparkConf, SparkContext}
 
 /**
  * Created by Abdulrahman Kaitoua on 24/05/15.

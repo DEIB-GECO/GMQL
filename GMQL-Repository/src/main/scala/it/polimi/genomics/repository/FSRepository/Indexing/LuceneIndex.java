@@ -4,6 +4,8 @@ package it.polimi.genomics.repository.FSRepository.Indexing;
 //import it.polimi.genomics.repository.util.Utilities;
 //import org.apache.hadoop.conf.Configuration;
 //import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.*;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -19,6 +21,7 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -300,7 +303,7 @@ public class LuceneIndex {
      * @author Abdulraman Kaitoua (A. Kaitoua)
      * @return
      */
-   /* public static Directory buildInMemIndex(File inputfile, int id, Directory inDir, boolean HDFSfile) {
+    public static Directory buildInMemIndex(File inputfile, int id, Directory inDir, boolean HDFSfile) {
 
         IndexWriter indexWriter;
         BufferedReader reader;
@@ -370,6 +373,6 @@ public class LuceneIndex {
         } finally {
             return dir;
         }
-    }*/
+    }
 }
 

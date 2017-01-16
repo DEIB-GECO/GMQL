@@ -196,12 +196,12 @@ class GMQLDataSetXML(val dataSet: IRDataSet) {
     //http://www.bioinformatics.deib.polimi.it/GMQL/
       "<?xml version='1.0' encoding='UTF-8'?>\n" +
         "<gmqlSchemaCollection name=\"" + DSname + "\" xmlns=\"http://genomic.elet.polimi.it/entities\">\n" +
-    "<gmqlSchema type=\""+schemaType.toString+"\">\n"+
+    "\t<gmqlSchema type=\""+schemaType.toString+"\">\n"+
         schemaPart.getOrElse("") +
         schema.flatMap { x =>
           if (schemaType.equals(GMQLSchemaTypes.GTF) && x._1.toLowerCase() == "score") None
           else Some("           <field type=\"" + x._2.toString + "\">" + x._1 + "</field>")}.mkString("\n") + "\n" +
-        "</gmqlSchema>\n" +
+        "\t</gmqlSchema>\n" +
         "</gmqlSchemaCollection>"
 
       schemaHeader

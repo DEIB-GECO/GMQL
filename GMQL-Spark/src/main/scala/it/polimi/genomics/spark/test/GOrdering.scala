@@ -1,8 +1,7 @@
-package it.polimi.genomics.spark.implementation
+package it.polimi.genomics.spark.test
 
 import it.polimi.genomics.core.DataTypes._
-import it.polimi.genomics.core.GValue
-import it.polimi.genomics.core.GRecordKey
+import it.polimi.genomics.core.{GRecordKey, GValue}
 
 /**
  * Created by Abdulrahman Kaitoua on 01/06/15.

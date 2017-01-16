@@ -31,7 +31,7 @@ object SemiJoinMD {
         .map(a => ((a._2._1, a._2._2), (a._1._1, 1)))
         .distinct()
         .reduceByKey((a , b ) => ( a._1, a._2+b._2))
-        .filter(_._2._2.equals(joinCondition.attributes.size))
+        .filter(_._2._2 >= (joinCondition.attributes.size))
         .map(_._1._2).distinct()
         .collect
     input.filter(a => validInputId.contains(a._2)).map(x=>(x._2,x._1))

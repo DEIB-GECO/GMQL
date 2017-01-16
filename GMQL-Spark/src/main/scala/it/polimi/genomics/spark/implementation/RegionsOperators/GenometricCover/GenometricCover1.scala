@@ -9,7 +9,7 @@ import it.polimi.genomics.core.{GDouble, GValue}
 import it.polimi.genomics.core.GRecordKey
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
-import it.polimi.genomics.spark.implementation.RegionsOperators.GenometricMap.{GMAP2, GMAP3, GMAP4}
+import it.polimi.genomics.spark.implementation.RegionsOperators.GenometricMap.{ GMAP4}
 import org.apache.spark.SparkContext
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD

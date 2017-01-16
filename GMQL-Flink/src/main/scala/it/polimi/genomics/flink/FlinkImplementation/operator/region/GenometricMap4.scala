@@ -140,7 +140,10 @@ object GenometricMap4 {
 
     //OUTPU
 //    println("aggregation "+aggregationResult.count)
+
     aggregationResult
+//    coGroupResult.map(x=>(x._1,x._2,x._3,x._4,x._5,x._6 :+ GDouble(x._8)))
+
   }
 
   /**

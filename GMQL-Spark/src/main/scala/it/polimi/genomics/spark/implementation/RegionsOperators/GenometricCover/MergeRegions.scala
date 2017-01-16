@@ -141,7 +141,6 @@ object MergeRegions {
                   }
                   //                  }else {None}
                 }
-              fusedRegion
               var output = List(fusedRegion)
               if (!partition.hasNext) {
                 val out = ((record._1._1,record._1._2,Chrom,record._1._4),(Start,Laststop,record._2._3,Array[GValue](GDouble(maxAcc))))
@@ -201,7 +200,6 @@ object MergeRegions {
                   }
                   //                  }else {None}
                 }
-              fusedRegion
               var output = List(fusedRegion)
               if (!partition.hasNext) {
                 val out = ((record._1._1,record._1._2,Chrom,record._1._4),(summitstart,summitstop,record._2._3,Array[GValue](GDouble(maxAcc))))

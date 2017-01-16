@@ -12,8 +12,8 @@ import it.polimi.genomics.core.GMQLLoader
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
 import it.polimi.genomics.flink.FlinkImplementation.reader.DataSetFilter
-import it.polimi.genomics.repository.Index.LuceneIndex._
-import it.polimi.genomics.repository.Index.SearchIndex
+import it.polimi.genomics.repository.FSRepository.Indexing.LuceneIndex._
+import it.polimi.genomics.repository.FSRepository.Indexing.SearchIndex
 import it.polimi.genomics.repository.datasets.GMQLDataSetCollection
 import it.polimi.genomics.repository.util.Utilities
 import org.apache.flink.api.scala._

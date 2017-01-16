@@ -1,9 +1,10 @@
-package it.polimi.genomics.spark.implementation
+package it.polimi.genomics.spark.test
 
 import it.polimi.genomics.GMQLServer.GmqlServer
-import it.polimi.genomics.spark.implementation.loaders.{ANNParser, BedParser}
 import it.polimi.genomics.core.DataStructures
-import org.apache.spark.{SparkContext, SparkConf}
+import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
+import it.polimi.genomics.spark.implementation.loaders.BedParser
+import org.apache.spark.{SparkConf, SparkContext}
 
 /**
  * Created by Abdulrahman Kaitoua on 25/06/15.
@@ -12,8 +13,8 @@ import org.apache.spark.{SparkContext, SparkConf}
  */
 object TestSelect {
   def main(args: Array[String]) {
-    import java.util.Date
     import java.text.SimpleDateFormat
+    import java.util.Date
     val formatter = new SimpleDateFormat("HH:mm:ss:SSS");
 
     val conf = new SparkConf()

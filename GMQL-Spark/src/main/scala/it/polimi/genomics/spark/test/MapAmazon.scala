@@ -1,4 +1,4 @@
-package it.polimi.genomics.spark.Run
+package it.polimi.genomics.spark.test
 
 /**
   * The entry point of the application

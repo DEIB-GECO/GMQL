@@ -46,7 +46,7 @@ class GmqlSciRepositoryManager
 
       // remove previous importation directory
       try{ GmqlSciFileSystem.rmR(loading_dir) }
-      catch{ case _ => }
+      catch{ case _:Throwable => }
 
       // creates the target directory
       GmqlSciFileSystem.mkdir(loading_dir)
@@ -110,7 +110,7 @@ class GmqlSciRepositoryManager
 
       // remove previous importation directory
       try{ GmqlSciFileSystem.rmR(downloading_dir) }
-      catch{ case _ => }
+      catch{ case _:Throwable=> }
 
       // creates the target directory
       GmqlSciFileSystem.mkdir(downloading_dir)
@@ -169,7 +169,7 @@ class GmqlSciRepositoryManager
             GmqlSciConfig.scidb_server_password, GmqlSciConfig.scidb_server_runtime_dir
           ))
         } catch {
-          case ex => None
+          case ex:Throwable => None
         }
       }
     }
@@ -212,7 +212,7 @@ println(dataset)
             GmqlSciConfig.scidb_server_ip, GmqlSciConfig.scidb_server_username,
             GmqlSciConfig.scidb_server_password, GmqlSciConfig.scidb_server_runtime_dir
           )
-        } catch { case ex => }
+        } catch { case ex:Throwable => }
       }
     }
   }

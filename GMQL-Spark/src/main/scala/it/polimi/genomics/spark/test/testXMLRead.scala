@@ -1,4 +1,4 @@
-package it.polimi.genomics.spark.Run
+package it.polimi.genomics.spark.test
 
 import it.polimi.genomics.core.ParsingType
 

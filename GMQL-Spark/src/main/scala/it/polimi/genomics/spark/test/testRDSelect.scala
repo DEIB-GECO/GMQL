@@ -1,6 +1,6 @@
-package it.polimi.genomics.spark.implementation
+package it.polimi.genomics.spark.test
 
-import it.polimi.genomics.core.{GDouble, DataStructures}
+import it.polimi.genomics.core.DataStructures
 import it.polimi.genomics.core.DataStructures.RegionCondition.ChrCondition
 import it.polimi.genomics.repository.util.Utilities
 import it.polimi.genomics.spark.implementation.RegionsOperators.PredicateRD
@@ -11,7 +11,7 @@ import org.apache.spark.{SparkConf, SparkContext}
 /**
   * Created by abdulrahman on 21/06/16.
   */
-object testRDAgg {
+object testRDSelect {
   def main(args: Array[String]) {
 
     val dirInput = args(0)//"/Users/abdulrahman/Desktop/datasets for SciDB testing/DS1/beds/"
@@ -30,7 +30,29 @@ object testRDAgg {
 
     val sc:SparkContext =new SparkContext(conf)
 
+    val meta_con =
+      DataStructures.MetadataCondition.AND(
+        DataStructures.MetadataCondition.Predicate("cell",DataStructures.MetadataCondition.META_OP.GTE, "11"),
+        DataStructures.MetadataCondition.NOT(
+          DataStructures.MetadataCondition.Predicate("provider", DataStructures.MetadataCondition.META_OP.NOTEQ, "UCSC")
+        )
+      )
 
+    val score = DataStructures.RegionCondition.Predicate(0, DataStructures.RegionCondition.REG_OP.GT, 0.9)
+    val chr = ChrCondition("chr1")
+    val   reg_con = selection match {
+      case "score"  => score
+      case "chr" => chr
+      case "and" =>  DataStructures.RegionCondition.AND(score,chr)
+    }
+
+    //        DataStructures.RegionCondition.OR(
+    //          DataStructures.RegionCondition.Predicate(3, DataStructures.RegionCondition.REG_OP.GT, 30),
+    //DataStructures.RegionCondition.Predicate(0, DataStructures.RegionCondition.REG_OP.EQ, "400")
+
+    //        )
+
+//    val selectedURIs = new java.io.File(dirInput).listFiles.filter(!_.getName.endsWith(".meta")).map(x => x.getPath)
     val fs = Utilities.getInstance().getFileSystem
 
     val selectedURIs =  fs.listStatus(new Path(dirInput), new PathFilter {
@@ -39,23 +61,15 @@ object testRDAgg {
         }
       }).map(x=>x.getPath.toString).toList
 
+    val optimized_reg_cond = Some(PredicateRD.optimizeConditionTree(reg_con, false, None, sc))
+
 
     val startTime= System.currentTimeMillis();
-
     import it.polimi.genomics.spark.implementation.loaders.Loaders._
     def parser(x: (Long, String)) = BedScoreParser.region_parser(x)
-    val data = sc forPath (selectedURIs.mkString(",")) LoadRegionsCombineFiles(parser)
-
+    val data = sc forPath (selectedURIs.mkString(",")) LoadRegionsCombineFiles(parser, PredicateRD.applyRegionSelect, optimized_reg_cond)
     val stopTime = System.currentTimeMillis();
-
-    val dd =selection match {
-      case "count" => data.groupBy(x=>x._1._1).mapValues(x=>x.size)
-      case "sum" => data.groupBy(x=>x._1._1).mapValues(x=>x.foldLeft(0.0)((z,a)=>z+a._2(0).asInstanceOf[GDouble].v))
-      case "avg" => data.groupBy(x=>x._1._1).mapValues(x=>(x.foldLeft(0.0)((z,a)=>z+a._2(0).asInstanceOf[GDouble].v),x.size)).mapValues(x=>x._1/x._2)
-    }
-
-    dd.saveAsTextFile(dirInput+"/output")
-
+    data.saveAsTextFile(dirInput+"/output.bed")
     val finalTime= System.currentTimeMillis();
 
     println(stopTime-startTime,finalTime-startTime)

@@ -125,7 +125,7 @@ class GMQLSparkExecutor(val defaultBinSize : Long = 50000, val maxBinDistance : 
           //                regionRDD.map(x=>x._1+"\t"+x._2.mkString("\t")).saveAsTextFile(RegionOutputPath)
 
 //          println("output :"+ variable.regionDag.asInstanceOf[IRStoreRD].path.toString)
-          val outputFolderName= try{java.nio.file.Paths.get(variable.regionDag.asInstanceOf[IRStoreRD].path.toString).getFileName.toString}catch{case _ => variable.regionDag.asInstanceOf[IRStoreRD].path.toString}
+          val outputFolderName= try{java.nio.file.Paths.get(variable.regionDag.asInstanceOf[IRStoreRD].path.toString).getFileName.toString}catch{case _:Throwable => variable.regionDag.asInstanceOf[IRStoreRD].path.toString}
           val outSample = "S"
 
 
@@ -346,18 +346,6 @@ class GMQLSparkExecutor(val defaultBinSize : Long = 50000, val maxBinDistance : 
       }
     }
   }
-//    def implement_mjd(mjo : MetaJoinOperator, sc : SparkContext) : RDD[SparkMetaJoinType] = {
-//      if(mjo.intermediateResult.isDefined){
-//        mjo.intermediateResult.get.asInstanceOf[RDD[SparkMetaJoinType]]
-//      } else {
-//        val res =
-//          mjo match {
-//            case IRJoinBy(condition: MetaJoinCondition, leftDataset: MetaOperator, rightDataset: MetaOperator) => MetaJoinMJD2(this, condition, leftDataset, rightDataset, sc)
-//          }
-//        mjo.intermediateResult = Some(res)
-//        res
-//      }
-//    }
 
   //Other usefull methods
 
@@ -408,7 +396,7 @@ class GMQLSparkExecutor(val defaultBinSize : Long = 50000, val maxBinDistance : 
 
   def generateSchema(schema : List[(String, PARSING_TYPE)]): String ={
     val schemaPart = if(GTFoutput) {
-      "      <gmqlSchema type=\"gtf\">\n"+
+      "\t<gmqlSchema type=\"gtf\">\n"+
       "           <field type=\"STRING\">seqname</field>\n" +
         "           <field type=\"STRING\">source</field>\n"+
         "           <field type=\"STRING\">feature</field>\n"+
@@ -435,7 +423,7 @@ class GMQLSparkExecutor(val defaultBinSize : Long = 50000, val maxBinDistance : 
             if(GTFoutput && x._1.toLowerCase() == "score") None
             else Some("           <field type=\"" + x._2.toString + "\">" + x._1 + "</field>")
         }.mkString("\n") +
-          "\n</gmqlSchema>\n" +
+          "\n\t</gmqlSchema>\n" +
      "</gmqlSchemaCollection>"
 
 

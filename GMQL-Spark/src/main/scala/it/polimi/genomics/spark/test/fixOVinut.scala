@@ -1,4 +1,4 @@
-package it.polimi.genomics.spark.Run
+package it.polimi.genomics.spark.test
 
 /**
  * Created by abdulrahman on 06/10/15.
