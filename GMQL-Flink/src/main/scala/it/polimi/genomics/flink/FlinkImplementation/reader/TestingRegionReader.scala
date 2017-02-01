@@ -1,14 +1,15 @@
 package it.polimi.genomics.flink.FlinkImplementation.reader
 
-import java.io.{FileNotFoundException, File, IOException}
+import java.io.{File, FileNotFoundException, IOException}
 import java.nio.charset.Charset
 import java.nio.file.Paths
 import javax.xml.bind.JAXBException
 
 import it.polimi.genomics.core.DataTypes.FlinkRegionType
 import it.polimi.genomics.core.exception.ParsingException
-import it.polimi.genomics.repository.datasets.GMQLDataSetCollection
-import it.polimi.genomics.repository.util.Utilities
+import org.apache.hadoop.fs.FileSystem
+//import it.polimi.genomics.repository.{Utilities => General_Utilities}
+//import it.polimi.genomics.repository.FSRepository.{LFSRepository, Utilities => FSR_Utilities}
 import org.apache.flink.api.common.io.DelimitedInputFormat
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.core.fs.FileInputSplit
@@ -51,16 +52,13 @@ class TestingRegionReader(parser : ((Long,String)) => FlinkRegionType)(files : L
   }
 
   override def createInputSplits(minNumSplits : Int) = {
+    val conf = new org.apache.hadoop.conf.Configuration();
+    val path = new org.apache.hadoop.fs.Path(files.head);
+    val fs = FileSystem.get(path.toUri(), conf);
+
     files.flatMap((f) => {
-      val fs = Utilities.getInstance().getFileSystem
-      if(new File(f).isDirectory){
-        logger.debug("File " + f + " is a directory")
-        new File(f).listFiles(DataSetFilter).flatMap((subFile) => {
-          logger.debug("File " + subFile.toString + " is a single file")
-          super.setFilePath(subFile.toString)
-          super.createInputSplits(minNumSplits)
-        })
-      }else if (fs.exists(new org.apache.hadoop.fs.Path(f))) {
+//      val fs = FSR_Utilities.getFileSystem
+      if (fs.isDirectory(new org.apache.hadoop.fs.Path(f))) {
         logger.info("File " + f + " is a directory")
         fs.listStatus(new org.apache.hadoop.fs.Path(f), new PathFilter {
           override def accept(path: org.apache.hadoop.fs.Path): Boolean = !path.toString.endsWith(".meta")

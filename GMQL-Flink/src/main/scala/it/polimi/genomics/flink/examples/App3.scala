@@ -13,7 +13,7 @@ import it.polimi.genomics.flink.FlinkImplementation.reader.parser.BedScoreParser
 object App3 {
 
   def main(args : Array[String]) {
-    val server = new GmqlServer(new FlinkImplementation(testingIOFormats = true, defaultBinSize = 50000)/*, meta_implementation = Some(new FlinkImplementation(metaFirst = true))*/)
+    val server = new GmqlServer(new FlinkImplementation(testingIOFormats = true/*, defaultBinSize = 50000*/)/*, meta_implementation = Some(new FlinkImplementation(metaFirst = true))*/)
 
     val main = "/Users/abdulrahman/Downloads/"
     val ds1 = main + "annotations/"

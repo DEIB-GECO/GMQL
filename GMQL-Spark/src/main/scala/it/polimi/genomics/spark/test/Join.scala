@@ -10,8 +10,15 @@ import org.apache.spark.{SparkContext, SparkConf}
  * The entry point of the application
  * It initialize the server, call server's methods to build the query and invoke the server's run method to start the execution.
  */
+/**
+  *
+  */
 object Join {
 
+  /**
+    *
+    * @param args
+    */
   def main(args : Array[String]) {
 
     val timestamp: Long = System.currentTimeMillis / 1000

@@ -24,7 +24,7 @@ object Cover1 {
       .set("spark.driver.allowMultipleContexts","true")
       .set("spark.sql.tungsten.enabled", "true")
     val sc:SparkContext =new SparkContext(conf)
-    val server = new GmqlServer(new GMQLSparkExecutor(testingIOFormats = true, defaultBinSize = 50000,sc=sc)/*, meta_implementation = Some(new FlinkImplementation(metaFirst = true))*/)
+    val server = new GmqlServer(new GMQLSparkExecutor(testingIOFormats = true,sc=sc)/*, meta_implementation = Some(new FlinkImplementation(metaFirst = true))*/)
 
     val main = "/Users/abdulrahman/Desktop/summit/beds/"
     val ds1 = main + "annotations/"

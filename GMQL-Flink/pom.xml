@@ -8,7 +8,7 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <version>2.0</version>
+    <version>3.0</version>
     <artifactId>GMQL-Flink</artifactId>
     <description>Polimi GMQL, Big Data processing for Genomics</description>
     <inceptionYear>2015</inceptionYear>
@@ -57,12 +57,6 @@
             <groupId>it.polimi.genomics</groupId>
             <artifactId>GMQL-Server</artifactId>
             <version>2.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>it.polimi.genomics</groupId>
-            <artifactId>GMQL-R</artifactId>
-            <version>3.0</version>
         </dependency>
 
         <dependency>

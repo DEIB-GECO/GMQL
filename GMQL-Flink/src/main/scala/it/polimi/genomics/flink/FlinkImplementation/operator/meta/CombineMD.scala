@@ -1,12 +1,10 @@
 package it.polimi.genomics.flink.FlinkImplementation.operator.meta
 
-
-import it.polimi.genomics.core.DataStructures.{MetaJoinOperator, MetaOperator}
-import it.polimi.genomics.core.DataTypes.{FlinkMetaJoinType3, FlinkMetaType}
+import it.polimi.genomics.core.DataStructures.{SomeMetaJoinOperator, OptionalMetaJoinOperator, MetaJoinOperator, MetaOperator}
+import it.polimi.genomics.core.DataTypes.{FlinkMetaJoinType, FlinkMetaType}
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
 import org.apache.flink.api.scala._
-import org.apache.flink.hadoop.shaded.com.google.common.base.Charsets
 import org.apache.flink.hadoop.shaded.com.google.common.hash.Hashing
 import org.apache.flink.util.Collector
 import org.slf4j.LoggerFactory
@@ -14,20 +12,70 @@ import org.slf4j.LoggerFactory
 /**
  * Created by michelebertoni on 13/05/15.
  */
-object CombineMD{
-  final val logger = LoggerFactory.getLogger(this.getClass)
+object  CombineMD{
 
 
   //val hf : HashFunction = Hashing.sha256()
+  final val logger = LoggerFactory.getLogger(this.getClass)
 
   @throws[SelectFormatException]
-  def apply(executor : FlinkImplementation, grouping : Option[MetaJoinOperator], leftDataset : MetaOperator, rightDataset : MetaOperator, env : ExecutionEnvironment) : DataSet[FlinkMetaType] = {
-    //logger.warn("Executing CombineMD")
-    val left = executor.implement_md(leftDataset, env)
-    val right = executor.implement_md(rightDataset, env)
+  def apply(executor : FlinkImplementation, grouping : OptionalMetaJoinOperator, leftDataset : MetaOperator, rightDataset : MetaOperator, leftNameIn : String = "left", rightNameIn : String = "right", env : ExecutionEnvironment) : DataSet[FlinkMetaType] = {
 
+    //logger.warn("Executing CombineMD")
+
+    val leftName = leftNameIn + "."
+    val rightName = rightNameIn + "."
+
+    val left = executor.implement_md(leftDataset, env).map((meta) => (meta._1, leftName  + meta._2, meta._3))
+    val right = executor.implement_md(rightDataset, env).map((meta) => (meta._1, rightName  + meta._2, meta._3))
+
+    val pairs: DataSet[(Long, Long)] =
+      /*if(grouping.isInstanceOf[SomeMetaJoinOperator])*/{
+        val groups : DataSet[FlinkMetaJoinType] =
+          executor.implement_mjd3(grouping, env)
+
+        //groups.print
+
+        groups
+          .join(groups).where(1).equalTo(1)
+          .filter(x=>x._1._3==x._2._4).map(x=>(x._1._1,x._2._1)).distinct
+
+      }
+//    else {
+//        left.map(_._1).distinct((t) => t).cross(right.map(_._1).distinct((t) => t))
+//      }
+    //(sampleID, sampleID)
+
+    val leftOut : DataSet[(Long, String, String)] =
+      left.join(pairs).where(0).equalTo(0) {
+        (m: (Long, String, String), p: (Long, Long), out: Collector[FlinkMetaType]) => {
+          val s = new StringBuilder
+          s.append(m._1.toString)
+          s.append(p._2.toString)
+          //val id = Hashing.md5().hashString(s.toString, Charsets.UTF_8).asLong()
+          val id : Long = Hashing.md5().newHasher().putLong(m._1).putLong(p._2).hash().asLong()
+          out.collect(id, m._2, m._3)
+        }
+      }
+
+    val rightOut : DataSet[(Long, String, String)] =
+      right.join(pairs).where(0).equalTo(1) {
+        (m: (Long, String, String), p: (Long, Long), out: Collector[FlinkMetaType]) => {
+          val s = new StringBuilder
+          s.append(p._1.toString)
+          s.append(m._1.toString)
+          //val id = Hashing.md5().hashString(s.toString, Charsets.UTF_8).asLong()
+          val id : Long = Hashing.md5().newHasher().putLong(p._1).putLong(m._1).hash().asLong()
+          out.collect(id, m._2, m._3)
+        }
+      }
+
+    leftOut.union(rightOut)
+  }
+
+/*
     if (grouping.isDefined) {
-      val pairs : Seq[FlinkMetaJoinType3] =
+      val pairs : Seq[(Long, Long)] =
         executor.implement_mjd(grouping.get, env).collect()
 
       val leftOut : DataSet[(Long, String, String)] =
@@ -72,6 +120,7 @@ object CombineMD{
       leftOut.union(rightOut)
     }
   }
+  */
 
   /*
   def extractPairs(groups : DataSet[FlinkMetaJoinType2]): DataSet[(Long, Long)] = {
@@ -188,6 +237,15 @@ object CombineMD{
     }
   }
 
-  */
 
+
+  def assignGroups(ds : DataSet[FlinkMetaType], groups : DataSet[FlinkMetaJoinType]) : DataSet[(Long,String,String, Long)] = {
+    ds.join(groups).where(0).equalTo(0){
+      (m : FlinkMetaType, l : (FlinkMetaJoinType), out: Collector[(Long,String,String, Long)]) => {
+        out.collect((m._1, m._2, m._3, l._2))
+      }
+    }
+  }
+
+  */
 }

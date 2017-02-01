@@ -5,7 +5,9 @@ import java.nio.charset.Charset
 
 import it.polimi.genomics.core.DataTypes.FlinkMetaType
 import it.polimi.genomics.core.exception.ParsingException
-import it.polimi.genomics.repository.util.Utilities
+import org.apache.hadoop.fs.{FileSystem, Path}
+//import it.polimi.genomics.repository.{Utilities => General_Utilities}
+//import it.polimi.genomics.repository.FSRepository.{LFSRepository, Utilities => FSR_Utilities}
 import org.apache.flink.api.common.io.DelimitedInputFormat
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.core.fs.FileInputSplit
@@ -71,25 +73,19 @@ class TestingMetaReader(parser : ((Long,String)) => FlinkMetaType)(files : List[
     }
 
     val paths : List[String] = files
+    val conf = new org.apache.hadoop.conf.Configuration();
+    val path = new org.apache.hadoop.fs.Path(paths.head);
+    val fs = FileSystem.get(path.toUri(), conf);
 
     paths.flatMap((f) => {
-      val fs = Utilities.getInstance().getFileSystem
-      if(new File(f).isDirectory){
-        logger.debug("File : " + f + " is a directory")
-        new File(f).listFiles(DataSetFilter).flatMap((subFile) => {
-          logger.debug("File : " + subFile + ".meta is a single file")
-          openFile(subFile + ".meta")
-        })
-      } else if (fs.exists(new org.apache.hadoop.fs.Path(f))) {
-        logger.info("here")
+      val file = new Path(f)
+      if(fs.isDirectory(file)){
         fs.listStatus(new org.apache.hadoop.fs.Path(f), new PathFilter {
           override def accept(path: org.apache.hadoop.fs.Path): Boolean = !path.getName.endsWith(".meta")
         }).flatMap { x =>
-          logger.debug("File : " + x.getPath.toString + ".meta is a single file")
           openFile(x.getPath.toString + ".meta")
         }
       }else {
-        logger.debug("File : " + f + ".meta is a single file")
         openFile(f + ".meta")
       }
     }).toArray

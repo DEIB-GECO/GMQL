@@ -5,10 +5,13 @@ import java.nio.charset.Charset
 import java.nio.file.Paths
 import javax.xml.bind.JAXBException
 
+import it.polimi.genomics.core.DataStructures.IRDataSet
 import it.polimi.genomics.core.DataTypes.FlinkMetaType
+import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core.exception.ParsingException
-import it.polimi.genomics.repository.datasets.GMQLDataSetCollection
-import it.polimi.genomics.repository.util.Utilities
+import org.apache.hadoop.fs.{FileSystem, Path, PathFilter}
+//import it.polimi.genomics.repository.{Utilities => General_Utilities}
+//import it.polimi.genomics.repository.FSRepository.{LFSRepository, Utilities => FSR_Utilities}
 import org.apache.flink.api.common.io.DelimitedInputFormat
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.core.fs.FileInputSplit
@@ -74,56 +77,59 @@ class DefaultMetaReader(parser : ((Long,String)) => FlinkMetaType)(files : List[
       }
     }
 
+    val conf = new org.apache.hadoop.conf.Configuration();
+    val path = new org.apache.hadoop.fs.Path(files.head);
+    val fs = FileSystem.get(path.toUri(), conf);
+
+
     val paths : List[String] =
-      if(files.size == 1 && Utilities.getInstance().checkDSNameinRepo(Utilities.USERNAME, files.head)){
-        val username = if(Utilities.getInstance().checkDSNameinPublic(files.head)) "public" else Utilities.USERNAME
-        // load paths from repository
-        logger.debug("File : " + files.head + " is a meta repository placeholder")
-        var GMQLDSCol = new GMQLDataSetCollection();
-        try {
+//      if(files.size == 1 && repository.DSExists(ds)){
+//        val username = if(repository.DSExistsInPublic(ds)) "public" else General_Utilities().USERNAME
+//        // load paths from repository
+//        logger.debug("File : " + files.head + " is a meta repository placeholder")
+//        try {
+//          val newPaths =
+//            repository.ListDSSamples(username,files.head).asScala.map( d =>
+//              if (General_Utilities().MODE.equals("MAPREDUCE")) {
+//                val hdfs = FSR_Utilities.gethdfsConfiguration().get("fs.defaultFS")
+//                hdfs + General_Utilities().getHDFSRegionDir(username) + d.name
+//              } else {
+//                d.name
+//              }
+//            )
+//          newPaths.toList
+//
+//        }catch {
+//          case ex: JAXBException => {
+//            logger.error("The xml file of the dataset is not parsable...\n" + ex.getMessage)
+//            List()
+//          }
+//          case ex:FileNotFoundException => {
+//            logger.error("XML file of the dataset is not found. recheck the xml path...\n " + ex.getMessage)
+//            List()
+//          }
+//        }
+//
+//      } else
+      {
 
-          GMQLDSCol = GMQLDSCol.parseGMQLDataSetCollection(Paths.get(Utilities.getInstance().RepoDir + username + "/datasets/" + files.head +".xml"));
-          val dataset = GMQLDSCol.getDataSetList.get(0)
-          val newPaths =
-            dataset
-              .getURLs.asScala.map( d =>
-              if (Utilities.getInstance().MODE.equals("MAPREDUCE")) {
-                val hdfs = Utilities.getInstance().gethdfsConfiguration().get("fs.defaultFS")
-                hdfs + Utilities.getInstance().HDFSRepoDir + username+ "/regions/" + d.geturl
-              } else {
-                d.geturl
-              }
-            )
-          newPaths.toList
-
-        }catch {
-          case ex: JAXBException => {
-            logger.error("The xml file of the dataset is not parsable...\n" + ex.getMessage)
-            List()
-          }
-          case ex:FileNotFoundException => {
-            logger.error("XML file of the dataset is not found. recheck the xml path...\n " + ex.getMessage)
-            List()
-          }
-        }
-
-      } else {
         // use them as paths
         files
       }
 
 
     paths.flatMap((f) => {
-      val file = new File(f)
+      val file = new Path(f)
 
-      if(file.isDirectory){
-        logger.debug("File : " + f + " is a directory")
-        file.listFiles(DataSetFilter).flatMap((subFile) => {
-          logger.debug("File : " + subFile + ".meta is a single file")
-          openFile(subFile + ".meta")
-        })
+
+
+      if(fs.isDirectory(file)){
+        fs.listStatus(new org.apache.hadoop.fs.Path(f), new PathFilter {
+          override def accept(path: org.apache.hadoop.fs.Path): Boolean = !path.getName.endsWith(".meta")
+        }).flatMap { x =>
+          openFile(x.getPath.toString + ".meta")
+        }
       } else {
-        logger.debug("File : " + f + ".meta is a single file")
         openFile(f + ".meta")
       }
     }).toArray

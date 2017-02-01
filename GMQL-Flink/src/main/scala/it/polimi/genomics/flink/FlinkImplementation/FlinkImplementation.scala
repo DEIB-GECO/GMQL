@@ -2,7 +2,6 @@ package it.polimi.genomics.flink.FlinkImplementation
 
 import java.io.File
 
-import LowLevel.FlinkImplementation.metaJoinOperator.MetaJoinMJD
 import it.polimi.genomics.GMQLServer.{GraphEnumerator, Implementation}
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction._
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.TopParameter
@@ -16,25 +15,23 @@ import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.DataTypes._
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core.exception.SelectFormatException
-import it.polimi.genomics.core.{GMQLLoader, GMQLLoaderBase}
+import it.polimi.genomics.core.{BinSize, GMQLLoader, GMQLLoaderBase, GMQLOutputFormat}
 import it.polimi.genomics.flink.FlinkImplementation.operator.meta._
 import it.polimi.genomics.flink.FlinkImplementation.operator.metaGroup.MetaGroupMGD
-import it.polimi.genomics.flink.FlinkImplementation.operator.metaJoin.{MetaJoinMJD2, MetaJoinMJD3}
+import it.polimi.genomics.flink.FlinkImplementation.operator.metaJoin.{ MetaJoinMJD3}
 import it.polimi.genomics.flink.FlinkImplementation.operator.region._
 import it.polimi.genomics.flink.FlinkImplementation.reader.parser._
 import it.polimi.genomics.flink.FlinkImplementation.writer.{DefaultRegionWriter, MetaWriter, RegionWriter}
-import it.polimi.genomics.repository.util.Utilities
-import org.apache.flink.api.common.ExecutionMode
 import org.apache.flink.api.common.operators.Order
 import org.apache.flink.api.scala._
 import org.apache.flink.core.fs.FileSystem.WriteMode
 import org.slf4j.LoggerFactory
 
 /** Translate the variable dags into a Flink workflow and executed it*/
-class FlinkImplementation(val defaultBinSize : Long = 50000,
+class FlinkImplementation(var binSize : BinSize = BinSize(),
                           val maxBinDistance : Int = 1000000,
                           testingIOFormats : Boolean = false,
-                          metaFirst : Boolean = false) extends Implementation with java.io.Serializable{
+                          metaFirst : Boolean = false, outputFormat:GMQLOutputFormat.Value = GMQLOutputFormat.TAB) extends Implementation with java.io.Serializable{
 
   val overwrite_option = WriteMode.OVERWRITE  // (or NO_OVERWRITE)
 
@@ -96,38 +93,38 @@ def stop(): Unit ={
 //    try {
       for (variable <- to_be_materialized) {
 
-        val hdfsFS = Utilities.getInstance().gethdfsConfiguration().get("fs.defaultFS")
+//        val hdfsFS = FSR_Utilities.gethdfsConfiguration().get("fs.defaultFS")
 
         val metaOutputPath : String =
           if(!variable.metaDag.asInstanceOf[IRStoreMD].path.toString.toLowerCase().startsWith("job")){
             variable.metaDag.asInstanceOf[IRStoreMD].path.toString + "/meta/"
           } else {
-            if (Utilities.getInstance.MODE == Utilities.HDFS) {
-              hdfsFS + Utilities.getInstance().HDFSRepoDir + Utilities.USERNAME + "/regions/" + variable.regionDag.asInstanceOf[IRStoreRD].path.toString + "/meta/"
-            } else {
-              Utilities.getInstance().RepoDir + Utilities.USERNAME + "/regions/" + variable.regionDag.asInstanceOf[IRStoreRD].path.toString + "/meta/"
+//            if (General_Utilities().MODE == General_Utilities().HDFS) {
+              /*hdfsFS + General_Utilities().getHDFSRegionDir() +*/ variable.regionDag.asInstanceOf[IRStoreRD].path.toString + "/meta/"
+//            } else {
+//              General_Utilities().getRegionDir() + variable.regionDag.asInstanceOf[IRStoreRD].path.toString + "/meta/"
             }
-          }
+//          }
 
         val regionOutputPath : String =
         if(!variable.regionDag.asInstanceOf[IRStoreRD].path.toString.toLowerCase().startsWith("job")){
           variable.regionDag.asInstanceOf[IRStoreRD].path.toString + "/exp/"
         } else {
-          if (Utilities.getInstance.MODE == Utilities.HDFS) {
-            hdfsFS + Utilities.getInstance().HDFSRepoDir + Utilities.USERNAME + "/regions/" + variable.regionDag.asInstanceOf[IRStoreRD].path.toString + "/exp/"
-          } else {
-            Utilities.getInstance().RepoDir + Utilities.USERNAME + "/regions/" + variable.regionDag.asInstanceOf[IRStoreRD].path.toString + "/exp/"
-          }
+//          if (General_Utilities().MODE == General_Utilities().HDFS) {
+//            hdfsFS + General_Utilities().getHDFSRegionDir() + variable.regionDag.asInstanceOf[IRStoreRD].path.toString + "/exp/"
+//          } else {
+           /* General_Utilities().getRegionDir() +*/ variable.regionDag.asInstanceOf[IRStoreRD].path.toString + "/exp/"
+//          }
         }
 
         val schemaOutputPath : String =
           if(!variable.regionDag.asInstanceOf[IRStoreRD].path.toString.toLowerCase().startsWith("job") && !variable.regionDag.asInstanceOf[IRStoreRD].path.toString.toLowerCase().startsWith("hdfs")){
-            new File(variable.regionDag.asInstanceOf[IRStoreRD].path).toString + "/schema.xml"
+            new File(variable.regionDag.asInstanceOf[IRStoreRD].path).toString + "/exp/test.schema"
           } else {
-            if(variable.regionDag.asInstanceOf[IRStoreRD].path.toString.toLowerCase().startsWith("hdfs"))
-              (new org.apache.hadoop.fs.Path(variable.regionDag.asInstanceOf[IRStoreRD].path)).toString + "/schema.schema"
-            else
-              Utilities.getInstance().RepoDir + Utilities.USERNAME + "/schema/" + (new File(variable.regionDag.asInstanceOf[IRStoreRD].path)).toString + ".schema"
+//            if(variable.regionDag.asInstanceOf[IRStoreRD].path.toString.toLowerCase().startsWith("hdfs"))
+              (new org.apache.hadoop.fs.Path(variable.regionDag.asInstanceOf[IRStoreRD].path)).toString + "/exp/test.schema"
+//            else
+//              General_Utilities().getSchemaDir() + (new File(variable.regionDag.asInstanceOf[IRStoreRD].path)).toString + ".schema"
           }
 
         logger.info("Meta path = " + metaOutputPath)
@@ -263,14 +260,14 @@ def stop(): Unit ={
         mo match {
           case IRStoreMD(path: String, value: MetaOperator,_) => StoreMD(this, path, value, env)
           case IRReadMD(paths: List[String], loader: GMQLLoader[Any, Any, Any, Any],_) => ReadMD(paths, loader, metaFirst, env, testingIOFormats = testingIOFormats)
-          case IRSelectMD(metaCondition: MetadataCondition, inputDataset: MetaOperator) => SelectMD3(this, metaCondition, inputDataset, false, env)
+          case IRSelectMD(metaCondition: MetadataCondition, inputDataset: MetaOperator) => SelectMD(this, metaCondition, inputDataset, false, env)
           case IRPurgeMD(regionDataset: RegionOperator, inputDataset: MetaOperator) => PurgeMD(this, regionDataset, inputDataset, env)
           case IRSemiJoin(externalMeta: MetaOperator, joinCondition: MetaJoinCondition, inputDataset: MetaOperator) => SemiJoinMD(this, externalMeta, joinCondition, inputDataset, env)
           case IRProjectMD(projectedAttributes: Option[List[String]], metaAggregator: Option[MetaAggregateStruct], inputDataset: MetaOperator) => ProjectMD(this, projectedAttributes, metaAggregator, inputDataset, env)
           case IRUnionMD(leftDataset: MetaOperator, rightDataset: MetaOperator, leftName : String, rightName : String) => UnionMD(this, leftDataset, rightDataset, leftName, rightName, env)
           case IRUnionAggMD(leftDataset: MetaOperator, rightDataset: MetaOperator, leftName : String, rightName : String) => UnionAggMD(this, leftDataset, rightDataset, leftName, rightName, env)
           case IRAggregateRD(aggregator: List[RegionsToMeta], inputDataset: RegionOperator) => AggregateRD(this, aggregator, inputDataset, env)
-          case IRCombineMD(grouping: OptionalMetaJoinOperator, leftDataset: MetaOperator, rightDataset: MetaOperator, leftName : String, rightName : String) => CombineMD3(this, grouping, leftDataset, rightDataset, leftName, rightName, env)
+          case IRCombineMD(grouping: OptionalMetaJoinOperator, leftDataset: MetaOperator, rightDataset: MetaOperator, leftName : String, rightName : String) => CombineMD(this, grouping, leftDataset, rightDataset, leftName, rightName, env)
           case IRMergeMD(dataset: MetaOperator, groups: Option[MetaGroupOperator]) => MergeMD(this, dataset, groups, env)
           case IROrderMD(ordering: List[(String, Direction)], newAttribute: String, topParameter: TopParameter, inputDataset: MetaOperator) => OrderMD(this, ordering, newAttribute, topParameter, inputDataset, env)
           case IRGroupMD(keys: MetaGroupByCondition, aggregates: List[RegionsToMeta], groupName: String, inputDataset: MetaOperator, region_dataset: RegionOperator) => GroupMD(this, keys, aggregates, groupName, inputDataset, region_dataset, env)
@@ -301,40 +298,16 @@ def stop(): Unit ={
           case IRMergeRD(dataset: RegionOperator, groups: Option[MetaGroupOperator]) => MergeRD(this, dataset, groups, env)
           case IRGroupRD(groupingParameters: Option[List[GroupRDParameters.GroupingParameter]], aggregates: Option[List[RegionAggregate.RegionsToRegion]], regionDataset: RegionOperator) => GroupRD(this, groupingParameters, aggregates, regionDataset, env)
           case IROrderRD(ordering: List[(Int, Direction)], topPar: TopParameter, inputDataset: RegionOperator) => OrderRD(this, ordering: List[(Int, Direction)], topPar, inputDataset, env)
-          case node : IRGenometricMap => GenometricMap4(this, node.grouping, node.aggregates, node.reference, node.samples, node.binSize.getOrElse(defaultBinSize), env)
-          case node : IRRegionCover=> GenometricCover2(this, node.cover_flag, node.min, node.max, node.aggregates, node.groups, node.input_dataset, node.binSize.getOrElse(defaultBinSize), env)
-          case node : IRGenometricJoin => GenometricJoin4(this, node.metajoin_condition, node.join_condition, node.region_builder, node.left_dataset, node.right_dataset, env, node.binSize.getOrElse(defaultBinSize), /*node.binSize.getOrElse(defaultBinSize) **/ maxBinDistance)
-          case node : IRDifferenceRD => GenometricDifference2(this, node.meta_join, node.left_dataset, node.right_dataset, node.binSize.getOrElse(defaultBinSize), env)
+          case node : IRGenometricMap => GenometricMap4(this, node.grouping, node.aggregates, node.reference, node.samples, node.binSize.getOrElse(binSize.Map), env)
+          case node : IRRegionCover=> GenometricCover2(this, node.cover_flag, node.min, node.max, node.aggregates, node.groups, node.input_dataset, node.binSize.getOrElse(binSize.Cover), env)
+          case node : IRGenometricJoin => GenometricJoin4(this, node.metajoin_condition, node.join_condition, node.region_builder, node.left_dataset, node.right_dataset, env, node.binSize.getOrElse(binSize.Join), /*node.binSize.getOrElse(defaultBinSize) **/ maxBinDistance)
+          case node : IRDifferenceRD => GenometricDifference2(this, node.meta_join, node.left_dataset, node.right_dataset, node.binSize.getOrElse(binSize.Map), env)
 
         }
       ro.intermediateResult = Some(res)
       res
     }
   }
-
-
-  // Meta Join method
-
-
-
-  // OLD
-  @throws[SelectFormatException]
-  def implement_mjd(mjo : MetaJoinOperator, env : ExecutionEnvironment) : DataSet[FlinkMetaJoinType3] = {
-    mjo match {
-      case IRJoinBy(condition :  MetaJoinCondition, leftDataset : MetaOperator, rightDataset : MetaOperator) => MetaJoinMJD(this, condition, leftDataset, rightDataset, env)
-    }
-  }
-
-  // OLD
-  @throws[SelectFormatException]
-  def implement_mjd2(mjo : MetaJoinOperator, env : ExecutionEnvironment) : DataSet[FlinkMetaJoinType2] = {
-    mjo match {
-      case IRJoinBy(condition :  MetaJoinCondition, leftDataset : MetaOperator, rightDataset : MetaOperator) => MetaJoinMJD2(this, condition, leftDataset, rightDataset, env)
-    }
-  }
-  //
-
-
 
 
   @throws[SelectFormatException]

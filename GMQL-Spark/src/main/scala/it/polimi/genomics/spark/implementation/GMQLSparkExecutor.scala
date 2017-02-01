@@ -17,12 +17,12 @@ import it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinConditio
 import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionExtension, RegionsToMeta}
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
 import it.polimi.genomics.core.DataStructures._
-import it.polimi.genomics.core.DataTypes
+import it.polimi.genomics.core.{BinSize, DataTypes, GMQLLoaderBase, GMQLOutputFormat}
 import it.polimi.genomics.core.DataTypes._
-import it.polimi.genomics.core.GMQLLoaderBase
 import it.polimi.genomics.core.ParsingType._
 import it.polimi.genomics.core.exception.SelectFormatException
-import it.polimi.genomics.repository.util.Utilities
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.FileSystem
 import it.polimi.genomics.spark.implementation.MetaOperators.GroupOperator.{MetaGroupMGD, MetaJoinMJD2}
 import it.polimi.genomics.spark.implementation.MetaOperators.SelectMeta._
 import it.polimi.genomics.spark.implementation.MetaOperators._
@@ -31,20 +31,26 @@ import it.polimi.genomics.spark.implementation.RegionsOperators.GenometricMap._
 import it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions.TestingReadRD
 import it.polimi.genomics.spark.implementation.RegionsOperators._
 import it.polimi.genomics.spark.implementation.loaders._
+
+import scala.collection.JavaConverters._
 import org.apache.hadoop.fs.Path
-import org.apache.spark.rdd.{RDD, ShuffledRDD}
-import org.apache.spark.{HashPartitioner, Partitioner, SparkConf, SparkContext}
+import org.apache.spark.rdd.RDD
+import org.apache.spark.{HashPartitioner, SparkContext}
 import org.slf4j.LoggerFactory
 
 import scala.xml.Elem
-import it.polimi.genomics.repository.RepositoryManagerV2
 
-class GMQLSparkExecutor(val defaultBinSize : Long = 50000, val maxBinDistance : Int = 100000, REF_PARALLILISM: Int = 20,testingIOFormats:Boolean = false ,sc:SparkContext, GTFoutput:Boolean = false) extends Implementation with java.io.Serializable{
+class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : Int = 100000, REF_PARALLILISM: Int = 20,
+                        testingIOFormats:Boolean = false, sc:SparkContext,
+                        outputFormat:GMQLOutputFormat.Value = GMQLOutputFormat.TAB)
+  extends Implementation with java.io.Serializable{
+
 
   final val ENCODING = "UTF-8"
   final val ms = System.currentTimeMillis();
   final val logger = LoggerFactory.getLogger(this.getClass)
 
+  var fs:FileSystem = null
 
   def go(): Unit = {
     logger.info(to_be_materialized.toString())
@@ -92,47 +98,57 @@ class GMQLSparkExecutor(val defaultBinSize : Long = 50000, val maxBinDistance : 
         val metaRDD = implement_md(variable.metaDag, sc)
         val regionRDD = implement_rd(variable.regionDag, sc)
 
-        val MetaOutputPath = variable.metaDag.asInstanceOf[IRStoreMD].path.toString + "/meta/"
-        val RegionOutputPath = variable.regionDag.asInstanceOf[IRStoreRD].path.toString + "/exp/"
+        val variableDir =variable.metaDag.asInstanceOf[IRStoreMD].path.toString
+        val MetaOutputPath =  variableDir + "/meta/"
+        val RegionOutputPath = variableDir + "/exp/"
         logger.debug("meta out: "+MetaOutputPath)
         logger.debug("region out "+ RegionOutputPath)
+
+
+        val conf = new Configuration();
+        val path = new org.apache.hadoop.fs.Path(RegionOutputPath);
+        fs = FileSystem.get(path.toUri(), conf);
+
 
         if(testingIOFormats){
           metaRDD.map(x=>x._1+","+x._2._1 + "," + x._2._2).saveAsTextFile(MetaOutputPath)
           regionRDD.map(x=>x._1+"\t"+x._2.mkString("\t")).saveAsTextFile(RegionOutputPath)
 
         }else {
-          val fs = Utilities.getInstance().gethdfsConfiguration().get("fs.defaultFS")
-          val MetaOutputPath = if (Utilities.getInstance.MODE == Utilities.HDFS) {
-            fs + Utilities.getInstance().HDFSRepoDir + Utilities.USERNAME + "/regions/" + variable.metaDag.asInstanceOf[IRStoreMD].path.toString + "/meta/"
-          } else {
-            Utilities.getInstance().RepoDir + Utilities.USERNAME + "/regions/" + variable.metaDag.asInstanceOf[IRStoreMD].path.toString + "/meta/"
+//          val fsRegDir = FSR_Utilities.gethdfsConfiguration().get("fs.defaultFS")+
+//            General_Utilities().getHDFSRegionDir(General_Utilities().USERNAME)
+//          val localRegDir = General_Utilities().getLocalRegionDir(General_Utilities().USERNAME)
+
+          val MetaOutputPath =
+//            if (General_Utilities().MODE == General_Utilities().HDFS)
+//            fsRegDir + variableDir + "/meta/"
+//          else localRegDir +
+            variableDir + "/meta/"
+
+          val RegionOutputPath =
+//            if (General_Utilities().MODE == General_Utilities().HDFS)
+//            fsRegDir + variable.regionDag.asInstanceOf[IRStoreRD].path.toString + "/exp/"
+//          else localRegDir +
+            variableDir + "/exp/"
+
+          logger.info(MetaOutputPath)
+          logger.info(RegionOutputPath)
+          logger.info(metaRDD.toDebugString)
+          logger.info(regionRDD.toDebugString)
+
+          val outputFolderName= try{
+            new Path(variableDir).getName
           }
-          val RegionOutputPath = if (Utilities.getInstance.MODE == Utilities.HDFS) {
-            fs + Utilities.getInstance().HDFSRepoDir + Utilities.USERNAME + "/regions/" + variable.regionDag.asInstanceOf[IRStoreRD].path.toString + "/exp/"
-          }
-          else {
-            Utilities.getInstance().RepoDir + Utilities.USERNAME + "/regions/" + variable.regionDag.asInstanceOf[IRStoreRD].path.toString + "/exp/"
+          catch{
+            case _:Throwable => variableDir
           }
 
-
-          logger.debug(MetaOutputPath)
-          logger.debug(RegionOutputPath)
-          logger.debug(metaRDD.toDebugString)
-          logger.debug(regionRDD.toDebugString)
-
-          //                metaRDD.map(x=>x._1+","+x._2._1 + "," + x._2._2).saveAsTextFile(MetaOutputPath)
-          //                regionRDD.map(x=>x._1+"\t"+x._2.mkString("\t")).saveAsTextFile(RegionOutputPath)
-
-//          println("output :"+ variable.regionDag.asInstanceOf[IRStoreRD].path.toString)
-          val outputFolderName= try{java.nio.file.Paths.get(variable.regionDag.asInstanceOf[IRStoreRD].path.toString).getFileName.toString}catch{case _:Throwable => variable.regionDag.asInstanceOf[IRStoreRD].path.toString}
           val outSample = "S"
-
 
           val Ids = metaRDD.keys.distinct()
           val regionsPartitioner = new HashPartitioner(Ids.count.toInt)
 
-          val keyedRDD = if(!GTFoutput){
+          val keyedRDD = if(!(outputFormat == GMQLOutputFormat.GTF)){
              regionRDD.partitionBy(regionsPartitioner).map(x => (outSample+"_"+x._1._1.toString+".gdm", x._1._2 + "\t" + x._1._3 + "\t" + x._1._4 + "\t" + x._1._5 + "\t" + x._2.mkString("\t"))).partitionBy(regionsPartitioner)
           }else{
             val jobname = outputFolderName
@@ -156,20 +172,18 @@ class GMQLSparkExecutor(val defaultBinSize : Long = 50000, val maxBinDistance : 
 
           writeMultiOutputFiles.saveAsMultipleTextFiles(keyedRDD, RegionOutputPath)
 
-          val metaKeyValue = if(!GTFoutput){
+          val metaKeyValue = if(!(outputFormat == GMQLOutputFormat.GTF)){
             metaRDD.map(x => (outSample+"_"+x._1.toString + ".gdm.meta", x._2._1 + "\t" + x._2._2)).repartition(1).sortBy(x=>(x._1,x._2))
           }else{
             metaRDD.map(x => (outSample+"_"+x._1.toString + ".gtf.meta", x._2._1 + "\t" + x._2._2)).repartition(1).sortBy(x=>(x._1,x._2))
           }
           writeMultiOutputFiles.saveAsMultipleTextFiles(metaKeyValue, MetaOutputPath)
 
-//          logger.info(MetaOutputPath + "\t" + Utilities.USERNAME + "\t" + Utilities.getInstance().MODE)
-//          logger.info(RegionOutputPath + "\t" + Utilities.USERNAME + "\t" + Utilities.getInstance().MODE)
           writeMultiOutputFiles.fixOutputMetaLocation(MetaOutputPath)
           //        fixOutputNamingLocation(RegionOutputPath,"0")
           //        fixOutputNamingLocation(MetaOutputPath,"0.meta")
         }
-        storeSchema(generateSchema(variable.schema),RegionOutputPath)
+        storeSchema(generateSchema(variable.schema),variableDir)
       }
     } catch {
       case e : SelectFormatException => {
@@ -189,34 +203,11 @@ class GMQLSparkExecutor(val defaultBinSize : Long = 50000, val maxBinDistance : 
 
   }
 
-//  class IDPartitioner(ids:Array[String],partitions: Int) extends Partitioner {
-//    def numPartitions: Int = partitions
-//
-//    def getPartition(key: Any): Int = key match {
-//      case null => 0
-//      case _ => ids.indexOf(key.asInstanceOf[String])
-//      //      case _ => println("Partitioning Err: "+key.getClass);1;
-//    }
-//
-//    override def equals(other: Any): Boolean = other match {
-//      case h: IDPartitioner =>
-//        h.numPartitions == numPartitions
-//      case _ =>
-//        false
-//    }
-//
-//    override def hashCode: Int = numPartitions
-//  }
-
-  //Meta Data methods
-
   @throws[SelectFormatException]
   def implement_md(mo: MetaOperator, sc : SparkContext) : RDD[DataTypes.MetaType] = {
     if(mo.intermediateResult.isDefined){
-//      logger.info(" Spark ------------------ " + mo + " defined")
       mo.intermediateResult.get.asInstanceOf[RDD[MetaType]]
     } else {
-//      logger.info(" Spark ------------------ " + mo + " not defined")
       val res =
         mo match {
           case IRStoreMD(path, value,_) => StoreMD(this, path, value, sc)
@@ -254,10 +245,8 @@ class GMQLSparkExecutor(val defaultBinSize : Long = 50000, val maxBinDistance : 
   @throws[SelectFormatException]
   def implement_rd(ro : RegionOperator, sc : SparkContext) : RDD[DataTypes.GRECORD] = {
     if(ro.intermediateResult.isDefined){
-//      logger.info(" Saprk Node ------------------ " + ro + " reached")
       ro.intermediateResult.get.asInstanceOf[RDD[GRECORD]]
     } else {
-//      logger.info(" Spark Node ------------------ " + ro + " not reached before")
       val res =
         ro match {
           case IRStoreRD(path, value,_) => StoreRD(this, path, value, sc)
@@ -266,11 +255,11 @@ class GMQLSparkExecutor(val defaultBinSize : Long = 50000, val maxBinDistance : 
             inputDataset match {
               case IRReadRD(path, loader,_) =>
                 if(filteredMeta.isDefined) {
-                  if(Utilities.getInstance().checkDSNameinRepo(Utilities.USERNAME,path(0))){
-                    val schema = path(0)
-                    SelectIRD(this, regionCondition, filteredMeta, loader,path,Some(schema), sc)
-                  }
-                  else
+//                  if(new LFSRepository().DSExists(new IRDataSet(General_Utilities().USERNAME,List[(String,PARSING_TYPE)]().asJava),path(0))){
+//                    val schema = path(0)
+//                    SelectIRD(this, regionCondition, filteredMeta, loader,path,Some(schema), sc)
+//                  }
+//                  else
                     SelectIRD(this, regionCondition, filteredMeta, loader,path,None, sc)
                 }
                 else SelectRD(this, regionCondition, filteredMeta, inputDataset, sc)
@@ -360,42 +349,39 @@ class GMQLSparkExecutor(val defaultBinSize : Long = 50000, val maxBinDistance : 
   def storeSchema(schema: String, path : String)= {
     //    if (schema.isDefined) {
     val schemaHeader = schema//.get
-    val dir = new java.io.File(path);
-    val fs = Utilities.getInstance().getFileSystem
-    val parentDir = if(path.startsWith("hdfs")) {
-        new java.io.File((new Path(path).getParent.getName));
-      } else new java.io.File(dir.getParent)
+//    val dir = new java.io.File(path);
+//    val fs = FSR_Utilities.getFileSystem
+//    val parentDir = if(path.startsWith("hdfs")) {
+//        new java.io.File((new Path(path).getName));
+//      } else new java.io.File(dir.getPath)
 
-    if (!parentDir.exists) parentDir.mkdirs()
+//    if (!parentDir.exists) parentDir.mkdirs()
     //TODO when taking off GMQL V1 then refine these conditions
     //Where to store the schema file. In Case GMQL V2 only, we need to store it only on local
-    if ((new java.io.File("/" + parentDir.getPath)).exists())
-      new PrintWriter(parentDir.getPath + "/test.schema") { write(schemaHeader); close }
-    else if (Utilities.getInstance().MODE == Utilities.HDFS){
-      val hdfs = Utilities.getInstance().gethdfsConfiguration().get("fs.defaultFS")
-      val hdfsSchema = hdfs + Utilities.getInstance().HDFSRepoDir + Utilities.USERNAME  + "/regions/"+ path+"/test.schema"
-      logger.debug(hdfsSchema)
-      val br = new BufferedWriter(new OutputStreamWriter(fs.create(new Path(hdfsSchema)), "UTF-8"));
+//    if ((new java.io.File("/" + parentDir.getPath)).exists())
+//      new PrintWriter(parentDir.getPath + "/test.schema") { write(schemaHeader); close }
+//    else if (General_Utilities().MODE == General_Utilities().HDFS){
+      val schemaPath = path+"/exp/test.schema"
+      val br = new BufferedWriter(new OutputStreamWriter(fs.create(new Path(schemaPath)), "UTF-8"));
       br.write(schema);
       br.close();
 //      fs.close();
-    } else if (Utilities.getInstance().MODE == Utilities.LOCAL)
-      new PrintWriter(Utilities.getInstance().RepoDir + Utilities.USERNAME + "/schema/" + parentDir.getPath + ".schema") { write(schemaHeader); close }
+//    } else if (General_Utilities().MODE == General_Utilities().LOCAL)
+//      new PrintWriter(General_Utilities().getSchemaDir(General_Utilities().USERNAME) + parentDir.getPath + ".schema") { write(schemaHeader); close }
 
-    if(Utilities.getInstance().MODE == Utilities.HDFS){
-      // HDFS verison is needed only for GMQL V1
-      val localPath = Utilities.getInstance().RepoDir + Utilities.USERNAME + "/schema/" + parentDir.getPath + ".schema"
-      try{
-       new PrintWriter(localPath) { write(schemaHeader); close }
-      }catch{
-        case ex:Exception => logger.warn("schema data is not updated in the main repository manager. ")
-      }
-    }
-    //    } else logger.warn("The result DataSet is empty and no Schema file is generated \n "+path)
+//    if(General_Utilities().MODE == General_Utilities().HDFS){
+//      // HDFS verison is needed only for GMQL V1
+//      val localPath = General_Utilities().getSchemaDir(General_Utilities().USERNAME) + parentDir.getPath + ".schema"
+//      try{
+//       new PrintWriter(localPath) { write(schemaHeader); close }
+//      }catch{
+//        case ex:Exception => logger.warn("schema data is not updated in the main repository manager. ")
+//      }
+//    }
   }
 
   def generateSchema(schema : List[(String, PARSING_TYPE)]): String ={
-    val schemaPart = if(GTFoutput) {
+    val schemaPart = if(outputFormat == GMQLOutputFormat.GTF) {
       "\t<gmqlSchema type=\"gtf\">\n"+
       "           <field type=\"STRING\">seqname</field>\n" +
         "           <field type=\"STRING\">source</field>\n"+
@@ -420,17 +406,12 @@ class GMQLSparkExecutor(val defaultBinSize : Long = 50000, val maxBinDistance : 
         "<gmqlSchemaCollection name=\"DatasetName_SCHEMAS\" xmlns=\"http://genomic.elet.polimi.it/entities\">\n" +
         schemaPart +"\n"+
         schema.flatMap{x =>
-            if(GTFoutput && x._1.toLowerCase() == "score") None
+            if(outputFormat == GMQLOutputFormat.GTF && x._1.toLowerCase() == "score") None
             else Some("           <field type=\"" + x._2.toString + "\">" + x._1 + "</field>")
         }.mkString("\n") +
           "\n\t</gmqlSchema>\n" +
      "</gmqlSchemaCollection>"
 
-
       schemaHeader
   }
-  /**
-   * Needed for the GMQL translation, returns the factory that generates build-in gmql map functions
-   */
-  //  override def mapFunctionFactory: MapFunctionFactory = Factory
 }

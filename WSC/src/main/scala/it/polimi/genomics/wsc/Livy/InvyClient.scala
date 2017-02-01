@@ -70,8 +70,8 @@ object InvyClient {
           "className" -> JsString("it.polimi.genomics.cli.GMQLExecuteCommand"),
           "args" -> JsArray(Seq(JsString("-script"), JsString("""DATA = SELECT( antibody == 'Bach1_(sc-14700)' ) HG19_ENCODE_NARROW; THETOP = HISTOGRAM(1,ANY) DATA; MATERIALIZE DATA into data; MATERIALIZE THETOP into res;"""),
             JsString("-scriptpath"), JsString("/data/gmql_repo/data/abdulrahman/queries/histogram.gmql"),
-            JsString("-inputs"), JsString("HG19_ENCODE_NARROW:::/user/akaitoua/gmql_repo//public/regions/home/pinoli/importer/Encode_import/hg_narrowPeaks/"),
-            JsString("-schema"), JsString(schema),
+            JsString("-inputDirs"), JsString("HG19_ENCODE_NARROW:::/user/akaitoua/gmql_repo//public/regions/home/pinoli/importer/Encode_import/hg_narrowPeaks/"),
+            JsString("-schemata"), JsString(schema),
             JsString("-jobid"), JsString(ran),
             JsString("-username"), JsString("abdulrahman"),
             JsString("-outputFormat"), JsString("gtf")

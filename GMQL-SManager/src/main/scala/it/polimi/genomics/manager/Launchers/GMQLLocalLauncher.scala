@@ -14,11 +14,13 @@ class GMQLLocalLauncher (localJob:GMQLJob)  extends GMQLLauncher(localJob){
   def run(): GMQLLocalLauncher = {
     job.status = Status.RUNNING
     logger.info(String.format("Job %s is under execution.. ", job.jobId))
-    if (!job.operators.isEmpty)
-      if(job.status == Status.COMPILE_SUCCESS)
+//    if (!job.operators.isEmpty)
+//      if(job.status == Status.COMPILE_SUCCESS)
         job.server.run()
-      else
-        logger.error("When failed, Job Status = "+job.status)
+//      else
+//        logger.error("When failed, Job Status = "+job.status)
+
+    job.status = Status.EXEC_SUCCESS
     this
   }
 
@@ -31,5 +33,5 @@ class GMQLLocalLauncher (localJob:GMQLJob)  extends GMQLLauncher(localJob){
     launcherHandler.jobId
   }
 
-  override def killJob() = launcherHandler.implementation.stop()
+  override def killJob() = launcherHandler.gMQLContext.implementation.stop()
 }

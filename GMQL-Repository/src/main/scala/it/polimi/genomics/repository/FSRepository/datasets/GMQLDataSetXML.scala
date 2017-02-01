@@ -3,24 +3,26 @@ package it.polimi.genomics.repository.FSRepository.datasets
 import java.beans.Transient
 import java.io._
 import java.nio.charset.Charset
-import java.nio.file.StandardCopyOption._
-import java.nio.file.{Files, Paths, Path}
-import javax.xml.bind.annotation._
+import java.nio.file.{Files, Path, Paths}
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
-import it.polimi.genomics.core.ParsingType
 import it.polimi.genomics.core.ParsingType._
-import it.polimi.genomics.repository.FSRepository.Indexing.LuceneIndex
-import it.polimi.genomics.repository.GMQLRepository._
+//import it.polimi.genomics.repository.FSRepository.Indexing.LuceneIndex
+import it.polimi.genomics.repository.GMQLExceptions.{GMQLDSNotFound, GMQLNotValidDatasetNameException, GMQLSampleNotFound, GMQLUserNotFound}
+import it.polimi.genomics.repository._
 import org.slf4j.LoggerFactory
 
 import scala.xml.XML
 import scala.collection.JavaConverters._
 /**
-  * Created by abdulrahman on 12/04/16.
+  * Created by abdulrahman Kaitoua on 12/04/16.
   */
 
-class GMQLDataSetXML(val dataSet: IRDataSet) {
+/**
+  *
+  * @param dataSet
+  */
+case class GMQLDataSetXML(val dataSet: IRDataSet) {
   val logger = LoggerFactory.getLogger(this.getClass)
   type InternalSchema = List[(String, PARSING_TYPE)]
 
@@ -29,13 +31,21 @@ class GMQLDataSetXML(val dataSet: IRDataSet) {
   var samples = List[GMQLSample]()
   var DSname = dataSet.position
   var userName = "temp"
-  val LOCAL = "GENERATED_LOCAL"
+  val LOCAL = "GENERATED"
   var Repo = LOCAL
 
   def schemaDir: String = Utilities().RepoDir + this.userName + "/schema/" + DSname + ".schema";
   var schemaType: GMQLSchemaTypes.Value = GMQLSchemaTypes.Delimited
-  Utilities.apply()
+  Utilities()
 
+  /**
+    *
+    * @param dataset
+    * @param username
+    * @param repo
+    * @param fields
+    * @throws GMQLUserNotFound
+    */
   @throws(classOf[GMQLNotValidDatasetNameException])
   @throws(classOf[GMQLUserNotFound])
   def this(dataset: IRDataSet, username: String, repo:String, fields: List[GMQLSample] ) {
@@ -50,6 +60,12 @@ class GMQLDataSetXML(val dataSet: IRDataSet) {
     this.Repo = repo
   }
 
+  /**
+    *
+    * @param dataset
+    * @param username
+    * @throws GMQLUserNotFound
+    */
   @throws(classOf[GMQLUserNotFound])
   def this(dataset: IRDataSet, username: String) {
     this(dataset)
@@ -57,6 +73,12 @@ class GMQLDataSetXML(val dataSet: IRDataSet) {
     this.userName = username
   }
 
+  /**
+    *
+    * @param datasetName
+    * @param username
+    * @throws GMQLUserNotFound
+    */
   @throws(classOf[GMQLUserNotFound])
   def this(datasetName: String, username: String) {
     this(new IRDataSet(datasetName, List[(String,PARSING_TYPE)]().asJava))
@@ -64,6 +86,15 @@ class GMQLDataSetXML(val dataSet: IRDataSet) {
     this.userName = username
   }
 
+  /**
+    *
+    * @param dataset
+    * @param username
+    * @param fields
+    * @param GMQLCodeUrl
+    * @param repo
+    * @throws GMQLUserNotFound
+    */
   @throws(classOf[GMQLUserNotFound])
   @throws(classOf[GMQLNotValidDatasetNameException])
   def this(dataset: IRDataSet, username: String, fields: List[GMQLSample], GMQLCodeUrl: String,repo:String) {
@@ -71,23 +102,45 @@ class GMQLDataSetXML(val dataSet: IRDataSet) {
     this.GMQLScriptUrl = GMQLCodeUrl
   }
 
+  /**
+    *
+    * @param dataset
+    * @param username
+    * @param fields
+    * @param GMQLCodeUrl
+    * @param schemaType
+    * @param repo
+    */
   @throws(classOf[GMQLNotValidDatasetNameException])
   def this(dataset: IRDataSet, username: String, fields: List[GMQLSample], GMQLCodeUrl: String, schemaType: GMQLSchemaTypes.Value,repo:String ) {
     this(dataset, username, fields, GMQLCodeUrl,repo )
     this.schemaType = schemaType
   }
 
+  /**
+    *
+    * @param dataset
+    * @param username
+    * @param fields
+    * @param schemaType
+    * @param repo
+    */
   @throws(classOf[GMQLNotValidDatasetNameException])
   def this(dataset: IRDataSet, username: String, fields: List[GMQLSample], schemaType: GMQLSchemaTypes.Value,repo:String ) {
     this(dataset, username, repo, fields )
     this.schemaType = schemaType
   }
 
+  /**
+    *
+    * @throws GMQLUserNotFound
+    * @return
+    */
   @throws(classOf[GMQLUserNotFound])
   def exists(): Boolean = {
-    val dataSetDir: File = new File(Utilities().RepoDir + userName + "/datasets/")
+    val dataSetDir: File = new File(Utilities().getDataSetsDir(userName))
     if (!dataSetDir.exists) {
-      logger.warn("This user is not be registered yet.." + userName)
+      logger.warn("This user is not registered yet.." + userName)
       throw new GMQLUserNotFound()
     }
 
@@ -100,11 +153,16 @@ class GMQLDataSetXML(val dataSet: IRDataSet) {
     return false
   }
 
+  /**
+    *
+    * @throws GMQLDSNotFound
+    * @return
+    */
   @throws(classOf[GMQLDSNotFound])
   def loadDS(): GMQLDataSetXML = {
     //Loading DataSet XML
     if (exists()) {
-      val DSXMLfile = Utilities().RepoDir + userName + "/datasets/" + this.DSname + ".xml"
+      val DSXMLfile = Utilities().getDataSetsDir(userName) + this.DSname + ".xml"
       val dsXML = XML.loadFile(DSXMLfile);
       val cc = (dsXML \\ "url")
       this.DSname = (dsXML \\ "dataset").head.attribute("name").get.head.text
@@ -117,14 +175,19 @@ class GMQLDataSetXML(val dataSet: IRDataSet) {
         case ex:Exception => logger.debug("Generating script is not found")
       }
       // Loading schema
-      println(this.schemaDir)
+//      println(this.schemaDir)
       val schemaFields = (XML.loadFile(this.schemaDir) \\ "field")
-      this.schema = schemaFields.map(x => (x.text.trim, it.polimi.genomics.repository.FSRepository.Utilities.attType(x.attribute("type").get.head.text))).toList
+      import it.polimi.genomics.repository.FSRepository._
+      this.schema = schemaFields.map(x => (x.text.trim, FS_Utilities.attType(x.attribute("type").get.head.text))).toList
       this
     } else throw new GMQLDSNotFound()
 
   }
 
+  /**
+    *
+    * @return
+    */
   def Create(): Boolean = {
     try {
       logger.info("Start Creating ( " + this.DSname + " )Dataset")
@@ -147,6 +210,10 @@ class GMQLDataSetXML(val dataSet: IRDataSet) {
     }
   }
 
+  /**
+    *
+    * @return
+    */
   def generateDSXML(): String = {
 
     val GMQLDSxml =
@@ -161,6 +228,12 @@ class GMQLDataSetXML(val dataSet: IRDataSet) {
     GMQLDSxml
   }
 
+  /**
+    *
+    * @param xmlString
+    * @param location
+    * @return
+    */
   def storeXML(xmlString: String, location: String) = {
     new PrintWriter(location) {
       write(xmlString);
@@ -168,6 +241,11 @@ class GMQLDataSetXML(val dataSet: IRDataSet) {
     }
   }
 
+  /**
+    *
+    * @param schema
+    * @return
+    */
   def generateSchemaXML(schema: InternalSchema): String = {
     val schemaPart = if(Repo.startsWith("GENERATED")){
       if (schemaType.equals(GMQLSchemaTypes.GTF)) {
@@ -207,30 +285,33 @@ class GMQLDataSetXML(val dataSet: IRDataSet) {
       schemaHeader
   }
 
+  /**
+    *
+    */
   private def buildmetaDataWithIndex() {
-    val writer: PrintWriter = new PrintWriter(Utilities().RepoDir + this.userName + "/metadata/" + this.DSname + ".meta", "UTF-8")
+    val writer: PrintWriter = new PrintWriter(Utilities().getMetaDir(this.userName) + this.DSname + ".meta", "UTF-8")
     var line: String = null
-    for (url <- samples) {
+    for (sample <- samples) {
       try {
-//        println(url.meta)
-        val file: Path = Paths.get(url.meta)
+//        println(sample.meta)
+        val file: Path = Paths.get(sample.meta)
         val reader: BufferedReader = Files.newBufferedReader(file, Charset.defaultCharset)
 //        if (url.ID.toInt == 0) {
-//          LuceneIndex.buildIndex(Utilities().RepoDir + this.userName + "/indexes/" + this.DSname + "/",
+//          LuceneIndex.buildIndex(FS_Utilities().RepoDir + this.userName + "/indexes/" + this.DSname + "/",
 //            url.meta, url.ID.toInt, true, false);
 //        } else {
-//          LuceneIndex.addSampletoIndex(Utilities().RepoDir + this.userName + "/indexes/" + this.DSname + "/",
+//          LuceneIndex.addSampletoIndex(FS_Utilities().RepoDir + this.userName + "/indexes/" + this.DSname + "/",
 //            url.meta, url.ID.toInt, false);
 //        }
         while ( {
           line = reader.readLine;
           line
         } != null)
-          writer.println(url.ID + "\t" + line)
+          writer.println(sample.ID + "\t" + line)
 
         reader.close
       } catch {
-        case _:Throwable => logger.error("Meta file is not found .. " + url.name + ".meta \tCheck the schema URL.. ")
+        case _:Throwable => logger.error("Meta file is not found .. " + sample.name + ".meta \tCheck the schema URL.. ")
       }
     }
     writer.close
@@ -238,8 +319,15 @@ class GMQLDataSetXML(val dataSet: IRDataSet) {
     logger.info("Meta of" + DSname + " data set is Built... ")
   }
 
+  /**
+    *
+    * @return
+    */
   def getIndexURI: String = Utilities().RepoDir + this.userName + "/indexes/" + this.DSname
 
+  /**
+    *Delete the data set from the local repository
+    */
   def Delete() = {
     val index: File = new File(Utilities().RepoDir + this.userName + "/indexes/" + this.DSname)
     val meta: File = new File(Utilities().RepoDir + this.userName + "/metadata/" + this.DSname + ".meta")
@@ -282,6 +370,13 @@ class GMQLDataSetXML(val dataSet: IRDataSet) {
     logger.info("All files and folders related to " + this.DSname + " are now deleted\n" + "\t except the user local original files..")
   }
 
+  /**
+    *
+    * @param sample
+    * @throws GMQLSampleNotFound
+    * @throws java.io.IOException
+    * @return
+    */
   @throws(classOf[GMQLSampleNotFound])
   @throws(classOf[IOException])
   def addSample(sample: GMQLSample): GMQLDataSetXML = {
@@ -302,7 +397,7 @@ class GMQLDataSetXML(val dataSet: IRDataSet) {
     try {
       val file: Path = Paths.get(sample.meta)
       if (Files.exists(file) && Files.isReadable(file)) {
-        LuceneIndex.addSampletoIndex(Utilities().RepoDir + this.userName + "/indexes/" + this.DSname + "/", sample.meta, id, false)
+//        LuceneIndex.addSampletoIndex(Utilities().RepoDir + this.userName + "/indexes/" + this.DSname + "/", sample.meta, id, false)
         reader = Files.newBufferedReader(file, Charset.defaultCharset)
         while ( {
           line = reader.readLine;
@@ -326,11 +421,19 @@ class GMQLDataSetXML(val dataSet: IRDataSet) {
     this
   }
 
+  /**
+    *
+    */
   private def submitChangesToXML(): Unit = {
     new File(Utilities().RepoDir + this.userName + "/datasets/" + DSname + ".xml").delete()
     this.storeXML(generateDSXML(), Utilities().RepoDir + this.userName + "/datasets/" + DSname + ".xml")
   }
 
+  /**
+    *
+    * @param sample
+    * @return
+    */
   def delSample(sample: GMQLSample): Int = {
     val deletedid: Int = checkSampleInDataSet(sample, true)
     if (deletedid != 0) {
@@ -338,7 +441,7 @@ class GMQLDataSetXML(val dataSet: IRDataSet) {
         val writer: PrintWriter = new PrintWriter(Utilities().RepoDir + this.userName + "/metadata/" + this.DSname + ".meta.tmp", "UTF-8")
         val file: Path = Paths.get(Utilities().RepoDir + this.userName + "/metadata/" + this.DSname + ".meta")
         if (Files.exists(file) && Files.isReadable(file)) {
-          LuceneIndex.deleteIndexedSamplebyURL(Utilities().RepoDir + this.userName + "/indexes/" + this.DSname + "/", sample.meta )
+//          LuceneIndex.deleteIndexedSamplebyURL(Utilities().RepoDir + this.userName + "/indexes/" + this.DSname + "/", sample.meta )
           val reader: BufferedReader = Files.newBufferedReader(file, Charset.defaultCharset)
           var line: String = null
           while ( {
@@ -372,6 +475,12 @@ class GMQLDataSetXML(val dataSet: IRDataSet) {
     return deletedid
   }
 
+  /**
+    *
+    * @param sample
+    * @throws GMQLSampleNotFound
+    * @return
+    */
   @throws(classOf[GMQLSampleNotFound])
   def getMeta(sample: GMQLSample): String = {
     val s = samples.filter(x => x.name == sample.name)
@@ -385,13 +494,19 @@ class GMQLDataSetXML(val dataSet: IRDataSet) {
       } != null) {
         val str: Array[String] = line.split("\t")
         if (!(str(0) == s(0).ID))
-          st.append(str.tail.mkString("\t"))
+          st.append(str.tail.mkString("\t")).append("\n")
       }
       reader.close
       st.toString()
     } else throw new GMQLSampleNotFound()
   }
 
+  /**
+    *
+    * @param sample
+    * @param delete
+    * @return
+    */
   def checkSampleInDataSet(sample: GMQLSample, delete: Boolean): Int = {
     var found: Boolean = false
     var del: (GMQLSample, Int) = (new GMQLSample(), 0)
@@ -416,6 +531,12 @@ class GMQLDataSetXML(val dataSet: IRDataSet) {
     scala.io.Source.fromFile(Utilities().RepoDir + userName + "/metadata/" + DSname + ".meta").mkString
   }
 
+  /**
+    *
+    * @param username
+    * @throws GMQLUserNotFound
+    * @return
+    */
   @throws(classOf[GMQLUserNotFound])
   def checkuser(username: String): Boolean = {
     val dataSetDir: File = new File(Utilities().RepoDir + username)

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<gmqlSchemaCollection xmlns="http://genomic.elet.polimi.it/entities" name="GLOBAL_SCHEMAS">
+    <gmqlSchema name="ann" type="tab">
+<field type="STRING">CHR</field>
+<field type="LONG">START</field>
+<field type="LONG">STOP</field> 
+<field type="CHAR">STR</field>       
+<field type="STRING">name</field>
+        <field type="FLOAT">score</field>
+    </gmqlSchema>
+</gmqlSchemaCollection>

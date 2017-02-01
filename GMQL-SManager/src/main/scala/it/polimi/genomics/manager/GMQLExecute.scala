@@ -4,11 +4,16 @@ package it.polimi.genomics.manager
 import java.text.SimpleDateFormat
 import java.util
 import java.util.Date
-import java.util.concurrent.{TimeUnit, Executors}
+import java.util.concurrent.{Executors, TimeUnit}
+
+import it.polimi.genomics.core
+import it.polimi.genomics.core.{BinSize, GMQLScript, ImplementationPlatform}
 import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
+import it.polimi.genomics.manager.Exceptions.{InvalidGMQLJobException, NoJobsFoundException}
 import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLivyLauncher, GMQLSparkLauncher}
-import it.polimi.genomics.repository.GMQLRepository.GMQLRepository
-import it.polimi.genomics.repository.util.Utilities
+import it.polimi.genomics.repository.GMQLRepository
+import it.polimi.genomics.repository.{Utilities => General_Utilities}
+import it.polimi.genomics.repository.FSRepository.{LFSRepository, FS_Utilities => FSR_Utilities}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.{SparkConf, SparkContext}
 import org.slf4j.LoggerFactory
@@ -29,20 +34,17 @@ class GMQLExecute (){
   private var user_to_jobs_map:Map[String, List[String]] = new HashMap;
   private var jobid_to_ds_map:Map[String, List[String]] = new HashMap;
 
-  def registerJob(scriptPath:String, script:String,executionType:String,binSize:Long, username:String,jobid:String = "",sc:SparkContext = null,GTFoutput:Boolean = false): GMQLJob ={
+  def registerJob(script:GMQLScript, gMQLContext: GMQLContext, jobid:String = ""): GMQLJob ={
 
-    logger.info("Execution Platform is set to "+executionType)
-    logger.info("execType = "+executionType+"\t,scriptPath = "+scriptPath+"\t,username = "+username)
 
-    val job = if(executionType.toLowerCase() == GMQLExecute.SPARK){
-      new GMQLJob(new GMQLSparkExecutor(sc=sc,GTFoutput = GTFoutput),binSize,scriptPath,script,username,outputFormat = if(GTFoutput) "gtf" else "tab")
-    }else /*if(executionType.toLowerCase() == GMQLExecute.FLINK)*/{
-      new GMQLJob(new FlinkImplementation(),binSize,scriptPath,script,username,outputFormat = if(GTFoutput) "gtf" else "tab")
-    }
+    logger.info("Execution Platform is set to "+gMQLContext.implPlatform+"\n\tScriptPath = "+script.scriptPath+"\n\tUsername = "+gMQLContext.username)
+
+    val job = new GMQLJob(gMQLContext,script,gMQLContext.username)
+
 
     val jobProfile = if(jobid == "")job.compile() else job.compile(jobid)
 
-    val uToj = user_to_jobs_map.get(username);
+    val uToj = user_to_jobs_map.get(gMQLContext.username);
     val jToDSs = jobid_to_ds_map.get(jobProfile._1)
 
     var jobs: List[String]= if (!uToj.isDefined) List[String](); else uToj.get
@@ -51,7 +53,7 @@ class GMQLExecute (){
     jobs ::= jobProfile._1
     dataSets :::= jobProfile._2
 
-    user_to_jobs_map = user_to_jobs_map + (username-> jobs)
+    user_to_jobs_map = user_to_jobs_map + (gMQLContext.username-> jobs)
     jobid_to_ds_map = jobid_to_ds_map + (jobProfile._1 -> dataSets)
 
     //register the job
@@ -68,11 +70,11 @@ class GMQLExecute (){
     }else jobOption.get
   }
 
-  def scheduleGQLJobForYarn(jobId:String, launcher:GMQLLauncher, repository:GMQLRepository)={
+  def scheduleGQLJobForYarn(jobId:String, launcher:GMQLLauncher)={
     val job = getJob(jobId);
     try {
       logger.info(String.format("Job %s is under execution.. ", job.jobId))
-      val state = job.runGMQL(jobId,launcher,repository)
+      val state = job.runGMQL(jobId,launcher)
       logger.info(String.format ("Job is finished execution with %s.. ",state))
     }catch {
       case ex:Throwable =>logger.error("exception in execution .. \n" + ex.getMessage); ex.printStackTrace() ; job.status = Status.EXEC_FAILED ;Thread.currentThread().interrupt();
@@ -80,23 +82,23 @@ class GMQLExecute (){
   }
 
 
-  def scheduleGMQLJob(jobId:String)={
-
-    val job = getJob(jobId);
-
-    execService.submit(new Runnable() {
-      @Override
-      def run() {
-        try {
-          logger.info(String.format ("Job %s is under execution.. ",job.jobId))
-          val state  = job.runGMQL()
-          logger.info(String.format ("Job %s is finished execution.. ",state))
-        }catch {
-          case ex:Throwable =>logger.error("exception in execution ..\n" + ex.getMessage); ex.printStackTrace(); job.status = Status.EXEC_FAILED ;Thread.currentThread().interrupt();
-        }
-      }
-    })
-  }
+//  def scheduleGMQLJob(jobId:String)={
+//
+//    val job = getJob(jobId);
+//
+//    execService.submit(new Runnable() {
+//      @Override
+//      def run() {
+//        try {
+//          logger.info(String.format ("Job %s is under execution.. ",job.jobId))
+//          val state  = job.runGMQL()
+//          logger.info(String.format ("Job %s is finished execution.. ",state))
+//        }catch {
+//          case ex:Throwable =>logger.error("exception in execution ..\n" + ex.getMessage); ex.printStackTrace(); job.status = Status.EXEC_FAILED ;Thread.currentThread().interrupt();
+//        }
+//      }
+//    })
+//  }
 
   def getGMQLJob(username:String, jobId:String): GMQLJob ={
 
@@ -121,12 +123,12 @@ class GMQLExecute (){
 
 
   def getJobLogPath(username:String,jobID:String): String ={
-    Utilities.getInstance().GMQLHOME+"/data/"+username +"/logs/"+jobID.toLowerCase()+".log"
+    General_Utilities().getLogDir(username)+jobID.toLowerCase()+".log"
   }
 
   def getJobLog(username:String,jobID:String): util.List[String] ={
     import scala.io.Source
-    Source.fromFile(Utilities.getInstance().GMQLHOME+"/data/"+username +"/logs/"+jobID.toLowerCase()+".log").getLines().toList.asJava
+    Source.fromFile(General_Utilities().getLogDir(username)+jobID.toLowerCase()+".log").getLines().toList.asJava
   }
 
   def getJobDatasets (jobId:String): util.List[String] = {
@@ -151,11 +153,9 @@ class GMQLExecute (){
 }
 object GMQLExecute{
   var instance:GMQLExecute= null
-  private final val SPARK = "spark"
-  private final val FLINK = "flink"
-  private final val SCIDB = "scidb"
   def apply(): GMQLExecute ={
     if(instance == null){instance = new GMQLExecute();}
     instance
   }
 }
+
