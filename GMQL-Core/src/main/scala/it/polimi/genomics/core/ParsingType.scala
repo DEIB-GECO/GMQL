@@ -6,6 +6,6 @@ package it.polimi.genomics.core
 object ParsingType extends Enumeration{
 
   type PARSING_TYPE = Value
-  val INTEGER, DOUBLE, STRING, NULL = Value
+  val INTEGER, DOUBLE, STRING, CHAR, LONG, NULL = Value
 
 }
