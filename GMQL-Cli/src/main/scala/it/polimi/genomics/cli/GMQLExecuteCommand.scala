@@ -10,7 +10,6 @@ import it.polimi.genomics.GMQLServer.{GmqlServer, Implementation}
 import it.polimi.genomics.compiler._
 import it.polimi.genomics.core.{GMQLOutputFormat, ImplementationPlatform}
 import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
-import it.polimi.genomics.repository.FSRepository.{LFSRepository, FS_Utilities => FSR_Utilities}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
@@ -278,11 +277,6 @@ object GMQLExecuteCommand {
       //compile the GMQL Code
       val languageParserOperators = translator.phase1(script)
 
-//      val fsRegDir = FSR_Utilities.gethdfsConfiguration().get("fs.defaultFS")+
-//        General_Utilities().getHDFSRegionDir(General_Utilities().USERNAME)
-//      val lfsRegDir = General_Utilities().getRegionDir()
-
-//      val localRegDir = General_Utilities().getLocalRegionDir(General_Utilities().USERNAME)
       operators = languageParserOperators.map(x => x match {
         case d: MaterializeOperator =>
 
@@ -291,18 +285,12 @@ object GMQLExecuteCommand {
             if (!d.store_path.isEmpty)
               {
                 logger.info(d.op_pos+ ","+ id + "_" + d.store_path + "/")
-
-                d.store_path =
-//                  if (General_Utilities().MODE == General_Utilities().HDFS)
-//                    fsRegDir + id + "_" + d.store_path + "/"
-//                  else
-                    /*localRegDir + */id + "_" + d.store_path + "/"
+                d.store_path = id + "_" + d.store_path + "/"
                 d
               };
             else
               {
-//                logger.info(d.op_pos+","+ localRegDir + id + "/,"+ d.input1)
-                d.store_path =/* localRegDir +*/id + "/"
+                d.store_path = id + "/"
                 d
               };
           }
@@ -326,7 +314,10 @@ object GMQLExecuteCommand {
 
   def getImplemenation(executionType:String,jobid:String , outputFormat: GMQLOutputFormat.Value) ={
     if (executionType.equals(it.polimi.genomics.core.ImplementationPlatform.SPARK.toString.toLowerCase())) {
-      val sc: SparkContext = new SparkContext(new SparkConf().setAppName("GMQL V2.1 Spark " + jobid))
+      val conf = new SparkConf().setAppName("GMQL V2.1 Spark " + jobid).set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "64")
+        .set("spark.driver.allowMultipleContexts","true")
+        .set("spark.sql.tungsten.enabled", "true")
+      val sc: SparkContext = new SparkContext(conf)
       sc.addSparkListener(new SparkListener() {
         override def onApplicationStart(applicationStart: SparkListenerApplicationStart) {
           logger.debug("Spark ApplicationStart: " + applicationStart.appName);
@@ -351,12 +342,15 @@ object GMQLExecuteCommand {
   }
 
   private def extractInDSsSchema(inputSchemata:String):Map[String, String] ={
+
+    val conf = new Configuration();
+
     val DSs = inputSchemata.split(",")
     if (!DSs.isEmpty) DSs.map { x =>
       val ds = x.split(":::");
       val dir = ds(0) + DEFAULT_SCHEMA_FILE
-      val fs = FSR_Utilities.getFileSystem
       val file = new org.apache.hadoop.fs.Path(dir);
+      val fs = FileSystem.get(file.toUri(), conf);
       if (!fs.exists(file)) {
         val br = new BufferedWriter(new OutputStreamWriter(fs.create(file), "UTF-8"));
         br.write(ds(1));
