@@ -77,6 +77,8 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
   }
 
   /**
+    *  Add sample to Data Set,
+    *  TODO: i did not finish it since The web interface does not use it for the moment
     *
     * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @param Sample GMQL sample {@link GMQLSample}.
@@ -86,6 +88,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
 
   /**
     * Delete Data Set from the repository, Delete XML files from local File system and delete the samples and meta files from HDFS.
+    *
     * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @throws GMQLDSNotFound
     * @throws GMQLDSException
@@ -119,7 +122,8 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
   override def DeleteSampleFromDS(dataSet:IRDataSet, userName: String, Sample:GMQLSample): Unit = ???
 
   /**
-    *
+    *   List of the samples that was generated from a GMQL script execution
+    *   and the schema for these samples
     * @param dataSet
     * @throws GMQLDSException
     * @return
@@ -146,10 +150,11 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
   override def getDSStatistics(dataSet: IRDataSet, userName: String): GMQLStatistics = ???
 
   /**
+    *  export the dataset from Hadoop Distributed File system to Local File system
     *
-    * @param dataSetName
-    * @param userName
-    * @param localDir
+    * @param dataSetName String of the dataset name
+    * @param userName String of the owner of the dataset
+    * @param localDir  String of the local directory path
     */
   override def exportDsToLocal(dataSetName: String, userName: String, localDir:String): Unit = {
 
@@ -167,22 +172,29 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
 
   }
 
+  /**
+    *   Register user in the repository.
+    *
+    * @param userName String of the user name.
+    * @return
+    */
   override def registerUser(userName: String): Boolean = {
     logger.info(General_Utilities().getHDFSRegionDir(userName)
       + FS_Utilities.createDFSDir(General_Utilities().getHDFSRegionDir(userName)))
     super.registerUser(userName)
   }
 
+  /**
+    *   Delete a user from the repository.
+    *
+    * @param userName String of the user name.
+    * @return
+    */
   override def unregisterUser(userName: String): Boolean = {
-    logger.info("HDFS Folders Deletion ...")
-//    logger.info( General_Utilities().getDataSetsDir( userName )+"\t Status:" +
-//      (if (FS_Utilities.deleteDFSDir(General_Utilities().getDataSetsDir( userName ))) "Deleted." else "Error"))
+    logger.info(s"HDFS Folders Deletion for user $userName...")
 
     logger.info( General_Utilities().getHDFSRegionDir( userName )+"\t Status:" +
       (if (FS_Utilities.deleteDFSDir(General_Utilities().getHDFSRegionDir( userName ))) "Deleted." else "Error"))
-
-//    logger.info(General_Utilities().getMetaDir( userName ) +"\t Status:" +
-//      (if (FS_Utilities.deleteDFSDir(General_Utilities().getMetaDir( userName ))) "Deleted." else "Error"))
 
     super.unregisterUser(userName)
   }

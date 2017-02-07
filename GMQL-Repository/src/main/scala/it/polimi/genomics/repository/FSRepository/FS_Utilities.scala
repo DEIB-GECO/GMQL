@@ -17,6 +17,8 @@ import org.apache.hadoop.hdfs.DistributedFileSystem
 import org.xml.sax.SAXException
 
 /**
+  * Static methods that are used in the FileSystem repositories.
+  *
   * Created by abdulrahman on 12/04/16.
   */
 object FS_Utilities {
@@ -26,14 +28,13 @@ object FS_Utilities {
   val fs = FileSystem.get(conf)
   conf.get("fs.defaultFS")
 
-  def getType(schemaType:String): GMQLSchemaTypes.Value ={
-    schemaType. toLowerCase() match {
-      case "gtf" => GMQLSchemaTypes.GTF
-      case "del" => GMQLSchemaTypes.Delimited
-      case "vcf" => GMQLSchemaTypes.VCF
-      case _ => GMQLSchemaTypes.Delimited
-    }
-  }
+  /**
+    *
+    * validate the xml file of the schema using XSD template
+    *
+    * @param xmlFile {@link String} of the path to the schema file to be checked
+    * @return
+    */
   def validate(xmlFile: String): Boolean = {
     val xsdFile =  General_Utilities().GMQLHOME+"/conf/gmqlSchemaCollection.xsd"
 
@@ -50,6 +51,14 @@ object FS_Utilities {
     true
   }
 
+  /**
+    *
+    *  Give a list of {@link GMQLSample} from a directory
+    *
+    * @param URL {@link String} of the path to the directory to check the samples inside.
+    * @throws it.polimi.genomics.repository.GMQLExceptions.GMQLNotValidDatasetNameException
+    */
+  @deprecated
   @throws(classOf[GMQLNotValidDatasetNameException])
   def dirFiles( URL: String) {
     var fields = List[GMQLSample]()
@@ -78,7 +87,9 @@ object FS_Utilities {
 
   /**
     *
-    * @return
+    *   Return Hadoop Configuration File by reading Hadoop Core and HDFS config files
+    *
+    * @return {@link Configuration} Hadoop configurations
     */
   def gethdfsConfiguration(): Configuration = {
     val conf = new Configuration();
@@ -92,7 +103,9 @@ object FS_Utilities {
 
   /**
     *
-    * @return
+    *  Return Hadoop Distributed File System handle
+    *
+    * @return {@link FileSystem}
     */
   def getFileSystem: FileSystem = {
     val fs:FileSystem = null
@@ -104,6 +117,9 @@ object FS_Utilities {
   }
 
   /**
+    *
+    *   Copy Files from HDFS to local
+    *   This will check if the file has meta file and if found, it will copy the meta file too
     *
     * @param sourceHDFSUrl
     * @param distLocalUrl
@@ -128,6 +144,15 @@ object FS_Utilities {
     true
   }
 
+  /**
+    *
+    *   Copy File from Local file system to Hadoop File system
+    *   TODO: make this function copy files in parallel using hadoop distcp command
+    *
+    * @param sourceUrl
+    * @param distUrl
+    * @throws java.io.IOException
+    */
   @throws(classOf[IOException])
   def copyfiletoHDFS(sourceUrl: String, distUrl: String)= {
     val conf = gethdfsConfiguration
@@ -150,6 +175,9 @@ object FS_Utilities {
 
   /**
     *
+    *   Delete sample from HDFS
+    *   If the sample has meta file, the meta file will be deleted too
+    *
     * @param url
     * @return
     * @throws IOException
@@ -165,6 +193,8 @@ object FS_Utilities {
 
   /**
     *
+    *   Delete file from local file system recuresivly
+    *
     * @param inputfile
     */
   def deleterecursive(inputfile: File) {
@@ -177,7 +207,9 @@ object FS_Utilities {
 
   /**
     *
-    * @param url
+    *   Create directiry in HDFS
+    *
+    * @param url {@link String} of the Directory location
     * @throws
     * @return
     */
@@ -192,6 +224,48 @@ object FS_Utilities {
     if (fs.mkdirs(new Path(url)))  true else false
   }
 
+  /**
+    *  Delete files from the local file system
+    *
+    * @param dir
+    */
+    def deleteFromLocalFSRecursive(dir: File) {
+      var files: Array[File] = null
+      if (dir.isDirectory) {
+        files = dir.listFiles
+        if (!(files == null)) {
+          for (file <- files) {
+            deleteFromLocalFSRecursive(file)
+          }
+        }
+        dir.delete
+      }
+      else dir.delete
+    }
+
+  /**
+    *
+    *  Get the {@link GMQLSchemaTypes} of a specific String
+    *
+    * @param schemaType String of the schema type
+    * @return
+    */
+  def getType(schemaType:String): GMQLSchemaTypes.Value ={
+    schemaType. toLowerCase() match {
+      case "gtf" => GMQLSchemaTypes.GTF
+      case "del" => GMQLSchemaTypes.Delimited
+      case "vcf" => GMQLSchemaTypes.VCF
+      case _ => GMQLSchemaTypes.Delimited
+    }
+  }
+
+  /**
+    *
+    * Get the data type correspondance type in GMQL
+    *
+    * @param x {@link String} of the data type
+    * @return
+    */
   def attType(x: String) = x.toUpperCase match {
     case "STRING" => ParsingType.STRING
     case "CHAR" => ParsingType.STRING

@@ -82,6 +82,8 @@ trait XMLDataSetRepository extends GMQLRepository{
 
   /**
     *
+    *   Add sample to dataset in the repository
+    *
     * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @param Sample
     * @throws GMQLDSNotFound
@@ -153,7 +155,9 @@ trait XMLDataSetRepository extends GMQLRepository{
 
   /**
     *
-    * @param dataSet
+    *  Delete data set from the repository
+    *
+    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @throws GMQLDSNotFound
     * @throws GMQLDSException
     * @throws GMQLUserNotFound
