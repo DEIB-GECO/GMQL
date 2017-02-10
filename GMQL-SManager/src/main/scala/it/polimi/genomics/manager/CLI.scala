@@ -8,7 +8,7 @@ import java.util.Date
 import it.polimi.genomics.core.{BinSize, GMQLOutputFormat, GMQLScript, ImplementationPlatform}
 import it.polimi.genomics.manager.Launchers.{GMQLLocalLauncher, GMQLSparkLauncher}
 import it.polimi.genomics.repository.FSRepository.{DFSRepository, LFSRepository}
-import it.polimi.genomics.repository.Utilities
+import it.polimi.genomics.repository.{Utilities => repo_Utilities}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -106,7 +106,7 @@ object CLI {
 
     val gmqlScript = new GMQLScript( new String(Files.readAllBytes(Paths.get(scriptPath))),scriptPath)
     val binSize = new BinSize(5000, 5000, 1000)
-    val repository = if(Utilities().MODE == Utilities().HDFS) new DFSRepository() else new LFSRepository()
+    val repository = if(repo_Utilities().MODE == repo_Utilities().HDFS) new DFSRepository() else new LFSRepository()
 
     val conf = new SparkConf()
       .setAppName("GMQL V2 Spark")

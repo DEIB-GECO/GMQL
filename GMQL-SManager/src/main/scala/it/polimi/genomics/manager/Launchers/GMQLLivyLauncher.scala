@@ -25,6 +25,7 @@ class GMQLLivyLauncher (livyJob:GMQLJob)  extends GMQLLauncher(livyJob){
   val baseUrl = "http://biginsights.pico.cineca.it:8998/batches"
   var livyJobID:Option[String] = None
 
+  //Logging to GMQL job log file
   val loggerFile = General_Utilities().getLogDir() + livyJob.jobId.toLowerCase() + ".log"
 
   val standaloneWSAPI = new StandAloneWSAPI()
@@ -33,6 +34,8 @@ class GMQLLivyLauncher (livyJob:GMQLJob)  extends GMQLLauncher(livyJob){
   val wsAPI: WSAPI = standaloneWSAPI
   val statuswsAPI: WSAPI = statusWSAPI
 
+  //Json Objedct with the configurations of GMQL Job, this will call GMQLExecuteCommand main function,
+  //located in GMQL-CLI module
   val jsData = JsObject(Seq(
     "proxyUser" -> JsString("akaitoua"),
     "numExecutors" -> JsNumber(15),   //YARN only
@@ -54,17 +57,20 @@ class GMQLLivyLauncher (livyJob:GMQLJob)  extends GMQLLauncher(livyJob){
 
   logger.info(jsData.toString())
 
-  def submitHolder = {
+  // handle to the webservice
+  private def submitHolder = {
     wsAPI.url(baseUrl)
       .withHeaders("Accept" -> "application/json")
       .withRequestTimeout(10000)
   }
 
-  def submitGMQLJob: Future[Seq[String]] = {
+  // The call for the web services is managed by the asyncronous call
+  private def submitGMQLJob: Future[Seq[String]] = {
     submitHolder.post(jsData).map(x=>x.json \\ "id" map (_.toString()))
   }
 
-  def getSchema(job:GMQLJob,DS:String):String = {
+  // extract the schema from the repository
+  private def getSchema(job:GMQLJob,DS:String):String = {
     import scala.io.Source
     val repository = new LFSRepository()
     import scala.collection.JavaConverters._
@@ -73,6 +79,7 @@ class GMQLLivyLauncher (livyJob:GMQLJob)  extends GMQLLauncher(livyJob){
     Source.fromFile(General_Utilities().getSchemaDir(user)+DS+".schema").getLines().mkString("")
   }
 
+  //Run GMQLJob remotely
   def run(): GMQLLivyLauncher = {
     try {
       livyJobID = Some(Await.result(submitGMQLJob, 10.seconds) (0) /*take 10 foreach println*/ )
@@ -86,6 +93,13 @@ class GMQLLivyLauncher (livyJob:GMQLJob)  extends GMQLLauncher(livyJob){
     this
   }
 
+
+  /**
+    *
+    * Return the status of GMQLJob running remotely
+    * The status is requested using web service call to Livy web server
+    *
+    *     */
   def getStatus(): Status.Value={
 
     def statusHolder = {
@@ -113,10 +127,19 @@ class GMQLLivyLauncher (livyJob:GMQLJob)  extends GMQLLauncher(livyJob){
       pw.close
     }
 
+    //TODO extract the log of Knox execution and write it to GMQL job log file
+
     stateAdapter(state)
   }
 
-  def stateAdapter(state:String): Status.Value ={
+  /**
+    *
+    * Map the status recieved from Livy to GMQLJob Status
+    *
+    * @param state String from Livy
+    * @return {@link Status} of GMQL job
+    */
+  private def stateAdapter(state:String): Status.Value ={
     state match {
       case "\"pending\"" => Status.PENDING
       case "\"running\"" => Status.RUNNING
@@ -126,11 +149,23 @@ class GMQLLivyLauncher (livyJob:GMQLJob)  extends GMQLLauncher(livyJob){
     }
   }
 
+  /**
+    *
+    * Not implemented yet
+    * Should be a system call to get the application name from remote Livy
+    *
+    * @return String of the application name
+    */
   def getAppName (): String =
   {
     ""
   }
 
+  /**
+    *
+    * Kill GMQL job, by calling a remote web service of Livy with delete command
+    *
+    */
   override def killJob() = {
     def deleteHolder = {
       wsAPI.url(baseUrl+"/"+livyJobID.get)
