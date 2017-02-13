@@ -13,7 +13,7 @@ object Join2 {
 
   def main(args : Array[String]) {
 
-    val server = new GmqlServer(new FlinkImplementation(50000, 20))
+    val server = new GmqlServer(new FlinkImplementation(/*50000,*/ maxBinDistance =  20))
     val mainPath = "/home/abdo/"
     val ex_data_path = List(mainPath + "join3/ref/")
     val REF_DS_Path = List(mainPath + "join3/exp/")

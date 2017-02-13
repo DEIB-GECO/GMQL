@@ -1,11 +1,15 @@
 package it.polimi.genomics.manager.Launchers
 
-import it.polimi.genomics.manager.{Status, GMQLJob}
-import it.polimi.genomics.repository.util.Utilities
+import it.polimi.genomics.core.DataStructures.IRDataSet
+import it.polimi.genomics.core.ParsingType.PARSING_TYPE
+import it.polimi.genomics.manager.{GMQLJob, Status}
+import it.polimi.genomics.repository.{Utilities => General_Utilities}
+import it.polimi.genomics.repository.FSRepository.{LFSRepository, FS_Utilities => FSR_Utilities}
 import it.polimi.genomics.wsc.Livy.StandAloneWSAPI
 import org.slf4j.LoggerFactory
-import play.api.libs.json.{JsNumber, JsArray, JsString, JsObject}
+import play.api.libs.json.{JsArray, JsNumber, JsObject, JsString}
 import play.api.libs.ws.WSAPI
+
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -21,7 +25,7 @@ class GMQLLivyLauncher (livyJob:GMQLJob)  extends GMQLLauncher(livyJob){
   val baseUrl = "http://biginsights.pico.cineca.it:8998/batches"
   var livyJobID:Option[String] = None
 
-  val loggerFile = Utilities.getInstance().GMQLHOME + "/data/" + Utilities.USERNAME + "/logs/" + livyJob.jobId.toLowerCase() + ".log"
+  val loggerFile = General_Utilities().getLogDir() + livyJob.jobId.toLowerCase() + ".log"
 
   val standaloneWSAPI = new StandAloneWSAPI()
   val statusWSAPI = new StandAloneWSAPI()
@@ -38,12 +42,12 @@ class GMQLLivyLauncher (livyJob:GMQLJob)  extends GMQLLauncher(livyJob){
     "driverMemory" -> JsString("8G"),
     "file"->JsString("/user/akaitoua/GMQL-Cli-2.0-jar-with-dependencies.jar"),
     "className" ->JsString("it.polimi.genomics.cli.GMQLExecuteCommand"),
-    "args" -> JsArray(Seq(JsString("-script"), JsString(job.script),
-      JsString("-scriptpath"), JsString(job.scriptPath),
+    "args" -> JsArray(Seq(JsString("-script"), JsString(job.script.script),
+      JsString("-scriptpath"), JsString(job.script.scriptPath),
       JsString("-inputs"), JsString(job.inputDataSets.map(x => x._1+":::"+x._2+"/").mkString(",")),
       JsString("-schema"), JsString(job.inputDataSets.map(x => x._2+":::"+getSchema(job,x._1)).mkString(",")),
       JsString("-jobid"), JsString(job.jobId),
-      JsString("-outputFormat"),JsString(job.outputFormat),
+      JsString("-outputFormat"),JsString(job.gMQLContext.outputFormat.toString),
       JsString("-username"), JsString(job.username)
     ))
   ))
@@ -62,9 +66,11 @@ class GMQLLivyLauncher (livyJob:GMQLJob)  extends GMQLLauncher(livyJob){
 
   def getSchema(job:GMQLJob,DS:String):String = {
     import scala.io.Source
-    import it.polimi.genomics.repository.util.Utilities;
-    val user = if(Utilities.getInstance().checkDSNameinPublic(DS))"public" else job.username
-    Source.fromFile(Utilities.getInstance().RepoDir+user+"/schema/"+DS+".schema").getLines().mkString("")
+    val repository = new LFSRepository()
+    import scala.collection.JavaConverters._
+    val ds = new IRDataSet(DS, List[(String,PARSING_TYPE)]().asJava)
+    val user = if(repository.DSExistsInPublic(ds))"public" else job.username
+    Source.fromFile(General_Utilities().getSchemaDir(user)+DS+".schema").getLines().mkString("")
   }
 
   def run(): GMQLLivyLauncher = {

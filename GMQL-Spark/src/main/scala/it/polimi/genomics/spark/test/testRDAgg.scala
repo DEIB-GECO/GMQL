@@ -1,9 +1,11 @@
 package it.polimi.genomics.spark.test
 
 import it.polimi.genomics.core.GDouble
-import it.polimi.genomics.repository.util.Utilities
+//import it.polimi.genomics.repository.{Utilities => General_Utilities}
+//import it.polimi.genomics.repository.FSRepository.{LFSRepository, Utilities => FSR_Utilities}
 import it.polimi.genomics.spark.implementation.loaders.BedScoreParser
-import org.apache.hadoop.fs.{Path, PathFilter}
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.{FileSystem, Path, PathFilter}
 import org.apache.spark.{SparkConf, SparkContext}
 
 /**
@@ -29,7 +31,9 @@ object testRDAgg {
     val sc:SparkContext =new SparkContext(conf)
 
 
-    val fs = Utilities.getInstance().getFileSystem
+    val hconf = new Configuration();
+    val path = new org.apache.hadoop.fs.Path(dirInput);
+    val fs = FileSystem.get(path.toUri(), hconf);
 
     val selectedURIs =  fs.listStatus(new Path(dirInput), new PathFilter {
         override def accept(path: Path): Boolean = {

@@ -6,7 +6,8 @@ import it.polimi.genomics.DotImplementation.DotImplementation
 import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.compiler.{MaterializeOperator, Translator}
 import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
-import it.polimi.genomics.repository.util.Utilities
+import it.polimi.genomics.repository.{Utilities => General_Utilities}
+import it.polimi.genomics.repository.FSRepository.{LFSRepository, FS_Utilities => FSR_Utilities}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.tooling.{Comparators, DataGenerator, DocumentManager, FS_tools}
 import org.apache.flink.optimizer.postpass.SparseKeySchema
@@ -25,6 +26,9 @@ object Compare {
   private final val FLINK = "FLINK"
   private final val SPARK = "SPARK"
   private final val ALL = "ALL"
+  val root:ch.qos.logback.classic.Logger = org.slf4j.LoggerFactory.getLogger("org").asInstanceOf[ch.qos.logback.classic.Logger];
+  root.setLevel(ch.qos.logback.classic.Level.WARN);
+
 
   def main(args: Array[String]) {
 
@@ -68,7 +72,7 @@ object Compare {
 
     val docManager = new DocumentManager()
 
-    val test_conf = XML.loadFile(if (inputFile != "") inputFile else "conf/test_map.xml")
+    val test_conf = XML.loadFile(if (inputFile != "") inputFile else "conf/test_join.xml")
     val binSizes = (test_conf \\ "config" \\ "binsizes" \\ "binsize").map(_.text.toInt)
 
     val datasets: Seq[(String, String)] = for (x <- (test_conf \\ "datasets" \\ "dataset")) yield {
@@ -199,7 +203,7 @@ object Compare {
 
           //delete the output path if it is on hdfs
           if(outputs.head.startsWith("hdfs")&& binSizes.size>1){
-           outputs.map(x=> println("deleting Spark out( "+x+" ) "+Utilities.getInstance().deleteDFSDir(x)))
+           outputs.map(x=> println("deleting Spark out( "+x+" ) "+FSR_Utilities.deleteDFSDir(x)))
           }
 
           (true, Some(spark_stop - spark_start))

@@ -4,23 +4,22 @@ import java.io._
 import java.nio.file.Paths
 
 import it.polimi.genomics.compiler._
-import it.polimi.genomics.GMQLServer.{Implementation, GmqlServer}
+import it.polimi.genomics.GMQLServer.{GmqlServer, Implementation}
 import it.polimi.genomics.core.DataStructures.{IRDataSet, IRVariable}
-import it.polimi.genomics.core.ParsingType
-import it.polimi.genomics.core.ParsingType._
-import it.polimi.genomics.manager.Launchers.{GMQLLocalLauncher, GMQLLauncher}
-import it.polimi.genomics.repository.FSRepository.DFSRepository
-import it.polimi.genomics.repository.GMQLRepository.{GMQLSchemaTypes, GMQLRepository}
-import it.polimi.genomics.repository.RepositoryManagerV2
-import it.polimi.genomics.repository.datasets.GMQLNotValidDatasetNameException
-import it.polimi.genomics.repository.util.Utilities
-import org.apache.hadoop.fs.{Path, FileSystem}
+import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLocalLauncher}
+import it.polimi.genomics.repository.FSRepository.{DFSRepository, FS_Utilities => FSR_Utilities}
+import it.polimi.genomics.repository.{GMQLRepository, GMQLSchemaTypes}
+import it.polimi.genomics.repository.{Utilities => General_Utilities}
+import it.polimi.genomics.repository.GMQLExceptions.GMQLNotValidDatasetNameException
 import org.slf4j.LoggerFactory
-import java.util.Date;
-import java.text.SimpleDateFormat;
+import java.util.Date
+import java.text.SimpleDateFormat
 
 import scala.collection.JavaConverters._
 import Status._
+import it.polimi.genomics.core.{GMQLOutputFormat, GMQLScript}
+import it.polimi.genomics.core.ParsingType.PARSING_TYPE
+import org.apache.hadoop.fs.FileSystem
 
 import scala.collection.immutable.HashMap
 import scala.collection.mutable
@@ -31,42 +30,44 @@ import scala.xml.XML
  * Email: abdulrahman.kaitoua@polimi.it
  *
  */
-class GMQLJob(val implementation: Implementation,val binSize: Long,val scriptPath: String, val script:String, val username: String = Utilities.USERNAME, val outputFormat:String) {
+class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:String) {
 
 
   val date = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-  def jobId: String = generateJobId(username, new java.io.File(scriptPath).getName.substring(0, new java.io.File(scriptPath).getName.indexOf(".")))
+  def jobId: String = generateJobId(username, new java.io.File(script.scriptPath).getName.substring(0, new java.io.File(script.scriptPath).getName.indexOf(".")))
   private final val logger = LoggerFactory.getLogger(this.getClass);
   val jobOutputMessages = new StringBuilder
-  val Username = {
-    username
-  }
 
 //  var script = fixFileFormat(scriptPath)
-  val regionsURL = if (Utilities.getInstance().MODE == Utilities.HDFS) Utilities.getInstance().HDFSRepoDir else Utilities.getInstance().RepoDir
+//  val regionsURL = if (General_Utilities().MODE == FS_Utilities.HDFS) FS_Utilities.getInstance().HDFSRepoDir else FS_Utilities.getInstance().RepoDir
   case class ElapsedTime (var compileTime:String,var executionTime:String,var createDsTime:String =" Included in The execution time. (details in the log File)")
   val elapsedTime =ElapsedTime("","","")
 
   var status = PENDING
   var outputVariablesList = List[String]()
-  val server = new GmqlServer(implementation, Some(binSize))
+  val server = new GmqlServer(gMQLContext.implementation, Some(gMQLContext.binSize.Map))
   val translator = new Translator(server, "")
   var operators: List[Operator] = List[Operator]()
   var inputDataSets:Map[String, String] = new HashMap;
   var submitHandle: GMQLLauncher = null
-  var repositoryHandle: GMQLRepository = null
+  var repositoryHandle: GMQLRepository = gMQLContext.gMQLRepository
   var DAG: mutable.MutableList[IRVariable] = mutable.MutableList[IRVariable]()
 
+  /**
+    *
+    * @param id
+    * @return
+    */
   def compile(id:String = jobId): (String, List[String]) = {
     status = Status.COMPILING
-    Utilities.USERNAME = Username
+    General_Utilities().USERNAME = username
 
     val Compiletimestamp = System.currentTimeMillis();
     try {
-      //compile the GMQL Code
-      val languageParserOperators = translator.phase1(script)
+      //compile the GMQL Code phase 1
+      val languageParserOperators = translator.phase1(script.script)
 
-      //Create the datasets names based on the materialized dataset names
+      //Get the output Datasets names.
       outputVariablesList = languageParserOperators.flatMap(x => x match {
         case d: MaterializeOperator =>
           if (!d.store_path.isEmpty)
@@ -75,44 +76,80 @@ class GMQLJob(val implementation: Implementation,val binSize: Long,val scriptPat
         case _ => None
       })
 
-      inputDataSets = languageParserOperators.flatMap { x => x match {
-        case select: SelectOperator =>  println(select.op_pos,select.output,select.parameters); select.input1 match {
-          case p: VariablePath => println("hhhh",p.path);
-            if (Utilities.getInstance().checkDSNameinRepo(this.username, p.path)) {
-              val user = if (Utilities.getInstance().checkDSNameinPublic(p.path)) "public" else this.username
-              Some(p.path, getDSFolder(p.path, user))
-            }else {
-              logger.warn(p.name+" is not a dataset in the repository...error");None}
-          case p: Variable =>
-            println(p)
-            if (Utilities.getInstance().checkDSNameinRepo(this.username, p.name)) {
-              val user = if (Utilities.getInstance().checkDSNameinPublic(p.name)) "public" else this.username
-              Some(p.name, getDSFolder(p.name,user))
+      // Get the input Dataset names from the Select Statements
+      inputDataSets = languageParserOperators.flatMap { x =>
+        x match {
+          case select: SelectOperator => logger.info(select.op_pos + "\t" + select.output + "\t" + select.parameters);
+            val DSname: String = select.input1 match {
+              case p: VariablePath => p.path
+              case p: Variable => p.name
+            }
+            val ds = new IRDataSet(DSname, List[(String, PARSING_TYPE)]().asJava)
+            if (repositoryHandle.DSExists(ds, username)) {
+              val user = if (repositoryHandle.DSExistsInPublic(ds)) "public" else this.username
+              Some(DSname, getHDFSRegionFolder(DSname, user))
             } else {
-              logger.warn(p.name+" is not a dataset in the repository...")
+              logger.warn(DSname + " is not a dataset in the repository...error");
               None
             }
-//          case p:Variable => None
+          case s: Operator => None
         }
-        case s: Operator => None
-      }}.toMap
+      }.toMap
 
 
+      val fsRegDir = FSR_Utilities.gethdfsConfiguration().get("fs.defaultFS")+
+                    General_Utilities().getHDFSRegionDir()
+      //extract the materialize operators, change the Store path to be $JobID_$StorePath
       operators = languageParserOperators.map(x => x match {
+        case select: SelectOperator => logger.info(select.op_pos + "\t" + select.output + "\t" + select.parameters);
+          val dsinput = select.input1 match {
+            case p: VariablePath => val ds = new IRDataSet( p.path, List[(String, PARSING_TYPE)]().asJava)
+              if (repositoryHandle.DSExists(ds, username)) {
+                val user = if (repositoryHandle.DSExistsInPublic(ds)) "public" else this.username
+                val newPath = getHDFSRegionFolder(ds.position, user)
+                println(newPath)
+                new VariablePath(newPath, p.parser_name);
+              } else {
+                p
+              }
+            case p: VariableIdentifier => {
+              val ds = new IRDataSet(p.IDName, List[(String, PARSING_TYPE)]().asJava)
+              if (repositoryHandle.DSExists(ds, username)) {
+                val user = if (repositoryHandle.DSExistsInPublic(ds)) "public" else this.username
+                val newPath = getHDFSRegionFolder(ds.position, user)
+                println(newPath)
+                new VariableIdentifier(newPath);
+              } else {
+                p
+              }
+            }
+          }
+          new SelectOperator(select.op_pos, dsinput, select.input2,select.output,select.parameters)
+          /*val ds = new IRDataSet(DSname, List[(String, PARSING_TYPE)]().asJava)
+          if (repositoryHandle.DSExists(ds, username)) {
+            val user = if (repositoryHandle.DSExistsInPublic(ds)) "public" else this.username
+            Some(DSname, getHDFSRegionFolder(DSname, user))
+          } else {
+            logger.warn(DSname + " is not a dataset in the repository...error");
+            None
+          }*/
         case d: MaterializeOperator =>
           if (!d.store_path.isEmpty){
-            d.store_path = id + "_" + d.store_path + "/"
+            if (General_Utilities().MODE == General_Utilities().HDFS)
+                         d.store_path = fsRegDir + id + "_" + d.store_path + "/"
+            else d.store_path = id + "_" + d.store_path + "/"
             d
           }
-            //MaterializeOperator(d.op_pos, id + "_" + d.store_path + "/", d.input1, d.input2);
           else{
-            d.store_path = id + "/"
+            if (General_Utilities().MODE == General_Utilities().HDFS)
+              d.store_path = fsRegDir + id + "/"
+            else d.store_path = id + "/"
             d
           }
-            //MaterializeOperator(d.op_pos, id + "/", d.input1, d.input2);
         case s: Operator => s
       })
 
+      //Perform the second compilation phase
       if(translator.phase2(operators))
         status = Status.COMPILE_SUCCESS
       else
@@ -128,18 +165,20 @@ class GMQLJob(val implementation: Implementation,val binSize: Long,val scriptPat
     (id, outputVariablesList)
   }
 
-  def getDSFolder(dsName:String,user:String): String ={
-    val xmlFile = Utilities.getInstance().RepoDir + user + "/datasets/" + dsName + ".xml"
+  def getHDFSRegionFolder(dsName:String,user:String): String ={
+    val xmlFile = General_Utilities().getDataSetsDir(user) + dsName + ".xml"
    val xml = XML.loadFile(xmlFile)
     val path = (xml \\ "url")(0).text
-    if(path.startsWith("hdfs")) (new org.apache.hadoop.fs.Path(path)).getParent.toString else
-    Utilities.getInstance.HDFSRepoDir+"/"+user+"/regions/"+Paths.get(path).getParent.toString
+    if(path.startsWith("hdfs"))
+      (new org.apache.hadoop.fs.Path(path)).getParent.toString
+    else
+      FSR_Utilities.gethdfsConfiguration().get("fs.defaultFS") +
+        General_Utilities().getHDFSRegionDir(user)+Paths.get(path).getParent.toString
   }
 
-  def runGMQL(id:String = jobId,submitHand: GMQLLauncher= new GMQLLocalLauncher(this), repoHandler:GMQLRepository = new DFSRepository()):Status.Value = {
+  def runGMQL(id:String = jobId,submitHand: GMQLLauncher= new GMQLLocalLauncher(this)):Status.Value = {
     this.status = Status.RUNNING
 
-    this repositoryHandle = repoHandler
     this submitHandle= submitHand
     this.submitHandle run
 
@@ -187,15 +226,20 @@ class GMQLJob(val implementation: Implementation,val binSize: Long,val scriptPat
     this.status = Status.DS_CREATION_RUNNING
     if (!outputVariablesList.isEmpty) {
       try {
+
         outputVariablesList.map { ds =>
 
-          val samples = repositoryHandle.ListResultDSSamples(ds + "/exp/", this.Username)
+          val samples = repositoryHandle.ListResultDSSamples(ds + "/exp/", this.username)
 
-//          samples.asScala foreach println _
+          println("samples")
+          samples._1.asScala foreach println _
 
-          val sch = repositoryHandle.getSchema(ds+ "/exp/", this.Username)
+          val sch = samples._2
+//          val sch = repositoryHandle.getSchema(ds+ "/exp/", this.username)
 
-          repositoryHandle.createDs(new IRDataSet(ds, sch), this.Username, samples, scriptPath,if(outputFormat.equals("gtf"))GMQLSchemaTypes.GTF else GMQLSchemaTypes.Delimited)
+          repositoryHandle.createDs(new IRDataSet(ds, sch),
+            this.username, samples._1, script.scriptPath,
+            if(gMQLContext.outputFormat.equals(GMQLOutputFormat.GTF))GMQLSchemaTypes.GTF else GMQLSchemaTypes.Delimited)
 
         }
         elapsedTime.createDsTime = (System.currentTimeMillis() - dstimestamp).toString
@@ -236,23 +280,12 @@ class GMQLJob(val implementation: Implementation,val binSize: Long,val scriptPat
     if(submitHandle != null)
       {
         this.submitHandle.getStatus()
-//        println("\n\n\n\nThe exitCode Is: \n"+state+"\n\n\n\n\n\n\n")
       }
       else Status.PENDING
-//    state
   }
 
-//  def getLauncherStatus = this.synchronized {
-//    println("\n\n\n\nThe Thread Status Is: \n"+this.submitHandle.getStatus()+"\n\n\n\n\n\n\n")
-//    this.submitHandle.getStatus()
-//  }
-
-//  def setJobStatus (status:Status.Value)= this.synchronized {
-//    this.status = status;
-//  }
 
   def generateJobId(username: String, queryname: String): String = {
-//    logger.info(username)
     "job_" + queryname.toLowerCase() + "_" + username + "_" + date
   }
 

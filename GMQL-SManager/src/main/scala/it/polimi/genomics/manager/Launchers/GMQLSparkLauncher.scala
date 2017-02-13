@@ -1,42 +1,32 @@
 package it.polimi.genomics.manager.Launchers
 
-import it.polimi.genomics.manager.{GMQLJob, InvalidGMQLJobException, Status}
+import it.polimi.genomics.manager.Exceptions.InvalidGMQLJobException
+import it.polimi.genomics.manager.{GMQLJob, Status}
 import org.apache.spark.launcher.SparkAppHandle
 import org.slf4j.LoggerFactory
 
 /**
   * Created by abdulrahman on 04/05/16.
   */
+/**
+  *
+  * @param sparkJob is a {@link GMQLJob}, sparkJob should contains information on running GMQL Job
+  *      such as the implementation platform and the context, along with the code and the state.
+  */
 class GMQLSparkLauncher(sparkJob:GMQLJob) extends GMQLLauncher(sparkJob){
+
   private final val logger = LoggerFactory.getLogger(this.getClass);
+
+  //Spark application handler
   var launcherHandler:SparkAppHandle = null
+
+  /**
+    * Run GMQL job
+    * @return
+    */
   def run(): GMQLSparkLauncher = {
     val importController = new GMQLSparkSubmit(job);
     launcherHandler = importController.runSparkJob()
-
-//    new Thread(new Runnable {
-//      def run() {
-//        while(launcherHandler.getState == SparkAppHandle.State.CONNECTED ||
-//          launcherHandler.getState == SparkAppHandle.State.SUBMITTED ||
-//          launcherHandler.getState == SparkAppHandle.State.RUNNING  ||
-//          launcherHandler.getState == SparkAppHandle.State.UNKNOWN ){ Thread.sleep(1000)}
-//        logger.info("Creating dataset...",job.outputVariablesList)
-//        logger.info("State: "+job.status)
-////        if(job.status == Status.EXEC_SUCCESS)
-////          {
-////            job.createds()
-////            job.status= Status.SUCCESS
-////          }
-////        else
-////        {
-////          job.status = Status.EXEC_FAILED
-////          logger.warn("Job Failed, no dataset is created.")
-////        }
-//
-//
-//      }
-//    }).start()
-
     logger.info("Creating dataset Done...")
     this
   }

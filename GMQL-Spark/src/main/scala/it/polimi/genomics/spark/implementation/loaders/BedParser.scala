@@ -1,13 +1,19 @@
 package it.polimi.genomics.spark.implementation.loaders
 
-import java.io.{InputStream, FileInputStream, File}
+import java.io.{File, FileInputStream, InputStream}
 
+import it.polimi.genomics.core.DataStructures.IRDataSet
 import it.polimi.genomics.core.GMQLLoader
-import it.polimi.genomics.core.{GValue, GString, GDouble}
+import it.polimi.genomics.core.ParsingType.PARSING_TYPE
+import it.polimi.genomics.core.{GDouble, GString, GValue}
 import it.polimi.genomics.core.{DataTypes, GRecordKey, ParsingType}
-import it.polimi.genomics.repository.util.Utilities
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.{FileSystem, Path}
 import org.slf4j.LoggerFactory
+
 import scala.xml.XML
+//import it.polimi.genomics.repository.{Utilities => General_Utilities}
+//import it.polimi.genomics.repository.FSRepository.{LFSRepository, Utilities => FSR_Utilities}
 
 /**
   * Created by abdulrahman kaitoua on 25/05/15.
@@ -263,22 +269,13 @@ class CustomParser extends BedParser("\t", 0, 1, 2, Some(3), Some(Array((4, Pars
 
   private val logger = LoggerFactory.getLogger(classOf[CustomParser]);
   //val schema = List(("name", ParsingType.STRING), ("score", ParsingType.DOUBLE))
-  def setSchema(dataset: String, username :String = Utilities.USERNAME): BedParser = {
+  def setSchema(dataset: String): BedParser = {
 
-    val hdfs = Utilities.getInstance().getFileSystem
-    val XMLfile:InputStream = if(dataset.startsWith("hdfs")|| dataset.startsWith(Utilities.getInstance().HDFSRepoDir))
-      hdfs.open(new org.apache.hadoop.fs.Path(dataset+"/test.schema"))
-//    else if (new File(dataset).exists()) {
-//      new FileInputStream(new File(dataset+"test.schema"))
-//    }
-    else if (dataset.contains("/")) {
-      hdfs.open(new org.apache.hadoop.fs.Path(Utilities.getInstance().gethdfsConfiguration().get("fs.defaultFS")
-        +Utilities.getInstance().HDFSRepoDir + username + "/regions" +
-        dataset+"/test.schema"))
-    } else if(!Utilities.getInstance().checkDSNameinPublic(dataset))
-        new FileInputStream(new File(Utilities.getInstance().RepoDir+username+"/schema/"+dataset+".schema"))
-    else
-      new FileInputStream(new File(Utilities.getInstance().RepoDir+"public"+"/schema/"+dataset+".schema"))
+    val conf = new Configuration();
+    val path = new Path(dataset);
+    val fs = FileSystem.get(path.toUri(), conf);
+
+    val XMLfile:InputStream = fs.open(new Path(dataset+"/test.schema"))
 
 //    println ("HI ",dataset,Utilities.getInstance().gethdfsConfiguration().get("fs.defaultFS") +Utilities.getInstance().HDFSRepoDir + Utilities.USERNAME + "/regions" + dataset+"/test.schema")
 

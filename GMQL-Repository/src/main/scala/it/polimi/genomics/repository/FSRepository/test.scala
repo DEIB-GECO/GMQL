@@ -9,7 +9,6 @@ object test {
   def main(args: Array[String]) {
     val s = FileSystems.getDefault().getPath("")
     println(s.toAbsolutePath)
-   println( Utilities.validate("/Users/abdulrahman/HG19_BED_ANNOTATION_V2.schema"))
+   println( FS_Utilities.validate("/Users/abdulrahman/HG19_BED_ANNOTATION_V2.schema"))
   }
-
 }
