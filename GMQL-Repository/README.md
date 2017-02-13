@@ -28,7 +28,7 @@ The meta file contains attribute values separated bt a tab. In the bellow exampl
 ![GDM](GDM.png)
 
 ## GMQL Reposiotry Manager
-Files are stored in the repository in there original format. Managing the repository includes: 
+Files are stored in the repository in their original format. Managing the repository includes: 
 * Adding new dataset.
 * Deleting dataset
 * Modifing dataset
