@@ -30,11 +30,20 @@ import scala.xml.XML
  * Email: abdulrahman.kaitoua@polimi.it
  *
  */
+/**
+  *  GMQL Job
+  *  Hold the state of the job, the configuration of which this job runs on.
+  *
+  * @param gMQLContext {@link GMQLContext} sets the implementation type and the defaults for binning
+  * @param script {@link GMQLScript} contains the script string and the script path
+  * @param username {@link String} as the executing user of this job
+  */
 class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:String) {
 
+  private final val date = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
 
-  val date = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
   def jobId: String = generateJobId(username, new java.io.File(script.scriptPath).getName.substring(0, new java.io.File(script.scriptPath).getName.indexOf(".")))
+
   private final val logger = LoggerFactory.getLogger(this.getClass);
   val jobOutputMessages = new StringBuilder
 
@@ -54,9 +63,13 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
   var DAG: mutable.MutableList[IRVariable] = mutable.MutableList[IRVariable]()
 
   /**
+    * Compile GMQL Job,
+    * Extract the output dataset names,
+    * Find the input datasets in the repository,
+    * Modify DAG to include paths instead of Dataset names for both input and output.
     *
-    * @param id
-    * @return
+    * @param id {@link String} as the Job ID
+    * @return a Tuple of a {@link String} as the Job ID, and a List of Strings as the output Datasets.
     */
   def compile(id:String = jobId): (String, List[String]) = {
     status = Status.COMPILING
@@ -165,6 +178,14 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     (id, outputVariablesList)
   }
 
+  /**
+    *
+    * return the HDFS directory for a specific folder, including the file system name
+    *
+    * @param dsName {@link String} of the dataset name
+    * @param user {@link String} as the user name, owner of the dataset
+    * @return String of the absolute path of the dataset folder in HDFS
+    */
   def getHDFSRegionFolder(dsName:String,user:String): String ={
     val xmlFile = General_Utilities().getDataSetsDir(user) + dsName + ".xml"
    val xml = XML.loadFile(xmlFile)
@@ -176,6 +197,14 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
         General_Utilities().getHDFSRegionDir(user)+Paths.get(path).getParent.toString
   }
 
+  /**
+    *
+    * Run GMQL Job using the laucher specified in the input parameters.
+    *
+    * @param id GMQL Job ID
+    * @param submitHand {@link GMQLLauncher} as the launcher to use to run GMQL Job
+    * @return {@link State} of the running job
+    */
   def runGMQL(id:String = jobId,submitHand: GMQLLauncher= new GMQLLocalLauncher(this)):Status.Value = {
     this.status = Status.RUNNING
 
@@ -203,15 +232,12 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
         }
         elapsedTime.executionTime = ((System.currentTimeMillis() - timestamp) / 1000).toString
 
-//        status = Status.DS_CREATION_RUNNING
-//
         logger.info(jobId+"\t"+getJobStatus)
         if(status == Status.EXEC_SUCCESS) {
           logger.info("Creating dataset..." + outputVariablesList)
           createds()
           logger.info("Creating dataset Done...")
         }
-//        status = getJobStatus//Status.SUCCESS
 
       }
     }).start()
@@ -221,6 +247,9 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     status
   }
 
+  /**
+    * Create a data set in the repository with the result of the GMQL job
+    */
   def createds(): Unit = {
     val dstimestamp = System.currentTimeMillis();
     this.status = Status.DS_CREATION_RUNNING
@@ -229,16 +258,14 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
 
         outputVariablesList.map { ds =>
 
-          val samples = repositoryHandle.ListResultDSSamples(ds + "/exp/", this.username)
+          val (samples, sch) = repositoryHandle.ListResultDSSamples(ds + "/exp/", this.username)
 
           println("samples")
-          samples._1.asScala foreach println _
+          samples.asScala foreach println _
 
-          val sch = samples._2
-//          val sch = repositoryHandle.getSchema(ds+ "/exp/", this.username)
 
           repositoryHandle.createDs(new IRDataSet(ds, sch),
-            this.username, samples._1, script.scriptPath,
+            this.username, samples, script.scriptPath,
             if(gMQLContext.outputFormat.equals(GMQLOutputFormat.GTF))GMQLSchemaTypes.GTF else GMQLSchemaTypes.Delimited)
 
         }
@@ -257,25 +284,57 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
 
   }
 
-  def logInfo(message: String) = {
+  /**
+    *
+    * add logging information to the logger and to the returned message to the user.
+    *
+    * @param message logged message as a String
+    */
+  private def logInfo(message: String):Unit = {
     logger.info(message)
     jobOutputMessages.append(message)
   }
 
-  def logError(message: String) = {
+  /**
+    * Log the error messages to the logger and to the returned message to the user.
+    * @param message String of the message to be logged
+    */
+  private def logError(message: String):Unit = {
     logger.error(message)
     jobOutputMessages.append(message)
   }
 
+  /**
+    * @return the execution time in a form of String ($Number Seconds)
+    */
   def getExecutionTime(): java.lang.String = if (elapsedTime.executionTime == "") "Execution Under Progress" else elapsedTime.executionTime + " Seconds"
+
+  /**
+    * @return the Compilation time in a form of String ($Number Seconds)
+    */
   def getCompileTime(): java.lang.String = if (elapsedTime.compileTime == "") "Compiling" else elapsedTime.compileTime + " Seconds"
+
+  /**
+    * @return the DataSet creation time in a form of String ($Number Seconds)
+    */
   def getDSCreationTime(): java.lang.String = if (elapsedTime.createDsTime == "") "Creating Data set in the repository." else elapsedTime.createDsTime + " Seconds"
+
+  /**
+    * @return the user message about the exceution (copy of the log).
+    */
   def getMessage() = jobOutputMessages.toString()
 
+  /**
+    * @return the status {@link Status} of the GMQL Job
+    */
   def getJobStatus: Status.Value = this.synchronized {
     this.status
   }
 
+  /**
+    * @return the status {@link Status} of the GMQL Job.
+    *      This status is the executor status.
+    */
   def getExecJobStatus: Status.Value = this.synchronized {
     if(submitHandle != null)
       {
@@ -285,6 +344,14 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
   }
 
 
+  /**
+    *  Generate GMQL Job ID by concatinating the username with the script file name,
+    *  and the time stamp.
+    *
+    * @param username String of the username (the owner of the Job)
+    * @param queryname String of the Script File name
+    * @return GMQL Job ID as a string
+    */
   def generateJobId(username: String, queryname: String): String = {
     "job_" + queryname.toLowerCase() + "_" + username + "_" + date
   }

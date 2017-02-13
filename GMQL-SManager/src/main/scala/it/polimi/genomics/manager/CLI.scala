@@ -104,22 +104,35 @@ object CLI {
         }
     }
 
+    //GMQL script
     val gmqlScript = new GMQLScript( new String(Files.readAllBytes(Paths.get(scriptPath))),scriptPath)
+
+    //Default bin parameters
     val binSize = new BinSize(5000, 5000, 1000)
+
+    // Set the repository based on the global variables.
     val repository = if(repo_Utilities().MODE == repo_Utilities().HDFS) new DFSRepository() else new LFSRepository()
 
+    //Spark context setting
+    // number of executers is set to the number of the running machine cores.
     val conf = new SparkConf()
       .setAppName("GMQL V2 Spark")
-      .setMaster("local[1]")
+      .setMaster("local[*]")
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "64")
       .set("spark.driver.allowMultipleContexts","true")
       .set("spark.sql.tungsten.enabled", "true")
     val sc:SparkContext =new SparkContext(conf)
 
+    //GMQL context contains all the GMQL job needed information
     val gmqlContext = new GMQLContext(ImplementationPlatform.SPARK, repository, outputFormat, binSize, username,sc)
+
+    //create GMQL server manager instance, if it is not created yet.
     val server = GMQLExecute()
 
+    //register Job
     val job = server.registerJob(gmqlScript, gmqlContext, "")
-    server.scheduleGQLJobForYarn(job.jobId, new GMQLSparkLauncher(job))
+
+    //Run the job
+    server.execute(job.jobId, new GMQLSparkLauncher(job))
   }
 }

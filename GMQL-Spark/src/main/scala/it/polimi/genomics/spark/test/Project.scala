@@ -23,11 +23,15 @@ object Project {
 
   def main(args : Array[String]) {
 
-    val conf = new SparkConf().setMaster("Local[*]");
+    val conf = new SparkConf()
+      .setMaster("local[*]")
+      .setAppName("hello")
+      .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
+
     val server = new GmqlServer(new GMQLSparkExecutor(testingIOFormats = true,sc = new SparkContext(conf)))
-    val mainPath = "/Users/abdulrahman/Desktop/"
-    val ex_data_path = List(mainPath + "testInput/")
-    val ex_data_path_optional = List(mainPath + "map/exp/")
+    val mainPath = "/Users/abdulrahman/Ddownloads/"
+    val ex_data_path = List(mainPath + "ann/")
+    val ex_data_path_optional = List(mainPath + "exp/")
     val output_path = mainPath + "res/"
 
     val dataAsTheyAre = server READ ex_data_path USING BedScoreParser
