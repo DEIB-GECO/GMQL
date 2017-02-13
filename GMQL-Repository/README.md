@@ -1,66 +1,38 @@
-# Repository Manager
+# Repository
+## Data Set structure
+A data set consists of a set of sample files, a set of meta files describing the samples, and a schema file.
 
-## RepositoryManager $COMMAND
+GMQL data set is based on [Genomic Data Model (GDM)](http://www.sciencedirect.com/science/article/pii/S1046202316303012). In GDM, every sample file (for example: sample1.bed) should be associated with a meta file with the same name (sample1.bed.meta), as shown in the figure bellow. 
 
-Allowed Commands are :
+The sample file contains regions information, a region is an interval that is described by a chromosome number, start position, end position, strand, and a set of optional values that describe the region (such as score, p-value, or q-value). 
 
-### RegisterUser
+The samples of the same dataset should confirm to a common schema for the attributes, this schema is either a well known schema (can be seleted from a list of well known schemas, such as [BED](https://genome.ucsc.edu/FAQ/FAQformat#format1), Narrow peaks, or Broad Peaks formats) or uploaded with the dataset. For example, the schema file for the example bellow is described in an XML file as follows:
 
-To register the current user to the GMQL repository.
+```
+	<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+	<gmqlSchemaCollection name="GLOBAL_SCHEMAS" xmlns="http://www.bioinformatics.deib.polimi.it/GMQL/">
+		<gmqlSchema name="TAB_DELIMITED_EXAMPLE" type="TAB">
+			<field type="STRING">chr</field>
+			<field type="LONG">start</field>
+			<field type="LONG">stop</field>
+			<field type="CHAR">strand</field>
+			<field type="DOUBLE">p-value</field>
+		</gmqlSchema>
+	</gmqlSchemaCollection>
+```
 
-### UnRegisterUser
+Different datasets has different schemas, GMQL engine will take care of the heterogeneity of the datasets while performing GMQL operations.
 
-To unregister the current user from GMQL repository. <br />
-All the datasets, history, User private schemata and user results will be deleted. <br />
-The Samples on the Local File System will not be deleted.<br />
+The meta file contains attribute values separated bt a tab. In the bellow example, we show two samples ( ID:1 and  ID:2 ). 
 
-### CREATEDS DS_NAME SCHEMA_URL SAMPLES_PATH 
-		
-DS_NAME is the new dataset name
+![GDM](GDM.png)
 
-SCHEMA_URL is the path to the schema file
-
-- The schema can be a keyword { BED | BEDGRAPH | NARROWPEAK | BROADPEAK }
-
-SAMPLES_PATH is the path to the samples, can be one of the following formats:
-
-- Samples urls separated by a comma with no spaces in between:
-	
-	/to/the/path/sample1.bed,/to/the/path/sample2.bed 
-
-- Samples folder Path: /to/the/path/samplesFolder/ 
-	
-	in this case all the samples with an associated metadata will be added to the dataset.
-
-**TIP:** each sample file must be associated with a metadata file. The meta data file name should have the full name of the sample ended with ".meta" extension, for example: { sample.bed sample.bed.meta }
-
-### DELETEDS DS_NAME 
-
-To Delete a dataset named DS_NAME
-
-### ADDSAMPLE DS_NAME SAMPLE_URL 
-
-DS_NAME the dataset name (It has to be already added in the system). 
-
-SAMPLE_URL is the path to the sample. No need to add the metadata Path since it must be in the same folder.
-	For example: /to/the/path/sample.bed
-
-### DELETESAMPLE DS_NAME SAMPLE_URL 
-
-Delete one sample form the dataset named DS_NAME 
-
-SAMPLE_URL must be identical to what { LIST DS_NAME } command prints. 
-
-### LIST ALL|DS_NAME
-
-ALL to print all the datasets for the current user and the public user. 
-
-DS_NAME to print the samples of this dataset
-
-### CopyDSToLocal DS_NAME LOCAL_DIRECTORY 
-
-This command copy all the samples of DS_NAME to local folder. <br />
-The samples will be copied with its metadata. <br />
-LOCAL_DIRECTORY is the full path to the local location. <br />
-
-**INFO:** For more information read the GMQL shell commands document.
+## GMQL Reposiotry Manager
+Files are stored in the repository in there original format. Managing the repository includes: 
+* Adding new dataset.
+* Deleting dataset
+* Modifing dataset
+  * Add sample.
+  * Delete sample.
+* Query a dataset
+* Copy dataset
