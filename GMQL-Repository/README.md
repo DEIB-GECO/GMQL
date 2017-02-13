@@ -36,3 +36,6 @@ Files are stored in the repository in there original format. Managing the reposi
   * Delete sample.
 * Query a dataset
 * Copy dataset
+
+## Shell API
+Go to [shell api](./SHELL_API.md)
