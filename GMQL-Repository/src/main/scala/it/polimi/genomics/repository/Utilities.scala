@@ -91,100 +91,101 @@ class Utilities() {
     logger.debug("User is set to = " + user + "," + this.USERNAME)
   }
 
-  def deleteFromLocalFSRecursive(dir: File) {
-    var files: Array[File] = null
-    if (dir.isDirectory) {
-      files = dir.listFiles
-      if (!(files == null)) {
-        for (file <- files) {
-          deleteFromLocalFSRecursive(file)
-        }
-      }
-      dir.delete
-    }
-    else dir.delete
-  }
-
   /**
     *
-    * @param userName
-    * @return
+    * Constract the Directory to the tmp folder
+    *
+    * @param userName {@link String} of the user name
+    * @return Directory location of the temp folder
     */
   def getTempDir(userName: String = USERNAME): String = GMQLHOME + "/tmp/" + userName + "/"
 
   /**
     *
-    * @param userName
-    * @return
+    * Constract the Directory to the regions folder on HDFS
+    *
+    * @param userName {@link String} of the user name
+    * @return Directory location of the regions folder in HDFS
     */
   def getHDFSRegionDir(userName: String = USERNAME): String = HDFSRepoDir + userName + "/regions/"
 
   /**
     *
-    * @param userName
-    * @return
-    */
-  def getLocalRegionDir(userName: String = USERNAME): String = RepoDir + userName + "/regions/"
-
-  /**
+    * Constract the Directory to the regions folder on Local file system
     *
-    * @param userName
-    * @return
+    * @param userName {@link String} of the user name
+    * @return Directory location of the regions folder in Local File system
     */
   def getRegionDir(userName: String = USERNAME): String = RepoDir + userName + "/regions/"
 
   /**
     *
-    * @param userName
-    * @return
+    * Constract the Directory to the dataset folder
+    *
+    * @param userName {@link String} of the user name
+    * @return Directory location of the datasets folder
     */
   def getDataSetsDir(userName: String = USERNAME): String = RepoDir + userName + "/datasets/"
 
   /**
     *
-    * @param userName
-    * @return
+    * Constract the Directory to the schema folder
+    *
+    * @param userName {@link String} of the user name
+    * @return Directory location of the schema folder
     */
   def getSchemaDir(userName: String = USERNAME): String = RepoDir + userName + "/schema/"
 
   /**
     *
-    * @param userName
-    * @return
+    * Constract the Directory to the metadata folder
+    *
+    * @param userName {@link String} of the user name
+    * @return Directory location of the metadata folder
     */
   def getMetaDir(userName: String = USERNAME): String = RepoDir + userName + "/metadata/"
 
   /**
     *
-    * @param userName
-    * @return
+    *  Constract the Directory to the indexes folder
+    *
+    * @param userName {@link String} of the user name
+    * @return Directory location of the indexes folder
     */
   def getIndexDir(userName: String = USERNAME): String = RepoDir + userName + "/indexes/"
 
   /**
     *
-    * @param userName
-    * @return
+    * Constract the Directory to the GMQL scripts folder
+    *
+    * @param userName {@link String} of the user name
+    * @return Directory location of the GMQL scripts history folder
     */
   def getScriptsDir(userName: String = USERNAME): String = RepoDir + userName + "/queries/"
 
   /**
     *
-    * @param userName
-    * @return
+    * Constract the Directory to the GMQL Repository folder for Specific user
+    *
+    * @param userName {@link String} of the user name
+    * @return Directory location of the repository user's folder
     */
   def getUserDir(userName: String = USERNAME): String = RepoDir + userName + "/"
 
   /**
     *
-    * @param userName
-    * @return
+    * Constract the Directory to the Log folder
+    *
+    * @param userName {@link String} of the user name
+    * @return Directory location of the logs folder
     */
   def getLogDir(userName: String = USERNAME) = GMQLHOME + "/data/" + userName + "/logs/"
 
   /**
     *
-    * @return
+    * Constract the Directory to the Configurations folder
+    *
+    * @return Directory location of the conf folder
     */
   def getConfDir = GMQLHOME + "/conf/"
 }
@@ -200,6 +201,9 @@ object Utilities {
   }
 }
 
+/**
+  *  Configurations of GMQL
+  */
 object Conf {
   val GMQL_HOME = "GMQL_HOME"
   val GMQL_EXEC = "GMQL_EXEC"

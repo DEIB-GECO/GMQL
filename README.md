@@ -3,11 +3,11 @@
 ## Deployment
 GMQL Engine has several deployment modes: 
 
-1- Shell installation without Repository.
+### Shell deployment without Repository.
   
   Example Code:
   
-### Local Execution (single machine)
+#### Local Execution (single machine)
   ```
     A = SELECT() /home/user1/ds/ref/;
     B = SELECT() /home/user1/ds/exp/;
@@ -15,7 +15,7 @@ GMQL Engine has several deployment modes:
     MATERIALIZE S INTO /home/user1/ds/out/S/;
   ```
    
-### Yarn Execution (cluster)
+#### Yarn Execution (cluster)
   
   ```
     A = SELECT() hdfs://127.0.0.1:9000/user/repo/user1/regions/ref/;
@@ -24,7 +24,8 @@ GMQL Engine has several deployment modes:
     MATERIALIZE S INTO hdfs://127.0.0.1:9000/user/repo/user1/regions/out/;
   ```
   
-2- Shell installation with Repository.
+### Shell Deployment with Repository.
+
   Example Code: 
   
  ```

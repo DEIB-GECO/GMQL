@@ -2,6 +2,7 @@ package it.polimi.genomics.compiler
 
 
 import it.polimi.genomics.GMQLServer.GmqlServer
+import it.polimi.genomics.core.GMQLOutputFormat
 import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.{SparkConf, SparkContext}
@@ -102,7 +103,7 @@ object gmqlc {
       .set("spark.driver.allowMultipleContexts","true")
 //      .set("spark.sql.tungsten.enabled", "true")
     val sc:SparkContext =new SparkContext(conf)
-    val server = new GmqlServer(new GMQLSparkExecutor(testingIOFormats = false,sc=sc,GTFoutput = true), Some(1000)/*Some(args(3).toInt)*/)
+    val server = new GmqlServer(new GMQLSparkExecutor(testingIOFormats = false,sc=sc,outputFormat = GMQLOutputFormat.GTF), Some(1000)/*Some(args(3).toInt)*/)
 //    val server = new GmqlServer(new FlinkImplementation(), Some(10000))
     val translator = new Translator(server, "/Users/pietro/Desktop/test_gmql/testout/")
 
@@ -203,6 +204,21 @@ object gmqlc {
       "OUT = ORDER(region_order: signal, pvalue; region_topg: 7) EXP;\n " +
       "MATERIALIZE OUT into GH;"
 
+    val select = "EXP = SELECT() project1;\n" +
+      "MATERIALIZE EXP into outoo;"
+
+    val cover_ALL = "RAW = SELECT(ibody == 'ATF3') cover_in;\n" +
+//      "HISTO_TEST = COVER_HISTOGRAM(ALL,ALL;GROUPBY: cell) RAW;\n" +
+      "MATERIALIZE RAW into histo_res;\n"
+
+    val union = " TEAD4_rep_narrow = SELECT() ann;\n " +
+      "TEAD4_rep_broad = SELECT(dd=='ddd') beds;\n  " +
+      "TEAD4_rep = UNION()  TEAD4_rep_narrow  TEAD4_rep_broad;\n  " +
+      "MATERIALIZE TEAD4_rep into TEAD4_rep;"
+
+    val selectEmpty = "A = SELECT(dd == 'hello') ann; \n " +
+      "Materialize A into emptyset;"
+
     val project = "A = SELECT( cell == 'K562' AND antibody == 'c-Jun' ) project;\n" +
       "B = PROJECT( region_update: score AS score * 2)A;\n" +
       "MATERIALIZE B INTO AddedDatasetPlusMinus2;"
@@ -212,7 +228,7 @@ object gmqlc {
     }
     val test_double_select = ""
       try {
-        if (translator.phase2(translator.phase1(project))) {
+        if (translator.phase2(translator.phase1(union))) {
           server.run()
           //server.getDotGraph()
         }
@@ -220,7 +236,7 @@ object gmqlc {
         case e: CompilerException => println(e.getMessage)
       }
 
-      println("\n\nQuery" +"\n" + project + "\n\n")
+      println("\n\nQuery" +"\n" + union + "\n\n")
       // "open /Users/pietro/Desktop/test_gmql/output/".!
       //  Console.readLine()
   }
