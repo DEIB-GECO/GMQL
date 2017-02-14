@@ -74,8 +74,7 @@ class GMQLLivyLauncher (livyJob:GMQLJob)  extends GMQLLauncher(livyJob){
     import scala.io.Source
     val repository = new LFSRepository()
     import scala.collection.JavaConverters._
-    val ds = new IRDataSet(DS, List[(String,PARSING_TYPE)]().asJava)
-    val user = if(repository.DSExistsInPublic(ds))"public" else job.username
+    val user = if(repository.DSExistsInPublic(DS))"public" else job.username
     Source.fromFile(General_Utilities().getSchemaDir(user)+DS+".schema").getLines().mkString("")
   }
 

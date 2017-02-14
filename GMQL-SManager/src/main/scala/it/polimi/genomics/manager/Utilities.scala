@@ -20,7 +20,7 @@ class Utilities {
   def apply() = {
 
     try {
-      val file = new File("../conf/impl.conf")
+      val file = new File(it.polimi.genomics.repository.Utilities().getConfDir + "/impl.conf")
       val xmlFile = XML.loadFile(file)
       val properties = (xmlFile \\ "property")
       //      val schemaType = (xmlFile \\ "gmqlSchema").head.attribute("type").get.head.text

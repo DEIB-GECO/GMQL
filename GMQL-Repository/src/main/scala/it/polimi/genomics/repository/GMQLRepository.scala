@@ -69,7 +69,7 @@ trait GMQLRepository {
     * @throws GMQLSampleNotFound
     */
   @throws(classOf[GMQLDSException])
-  def AddSampleToDS(dataSet:IRDataSet, userName:String, Sample:GMQLSample)
+  def AddSampleToDS(dataSet:String, userName:String, Sample:GMQLSample)
 
   /**
     *
@@ -83,7 +83,7 @@ trait GMQLRepository {
     * @throws GMQLSampleNotFound
     */
   @throws(classOf[GMQLDSException])
-  def DeleteSampleFromDS(dataSet:IRDataSet, userName:String, Sample:GMQLSample)
+  def DeleteSampleFromDS(dataSet:String, userName:String, Sample:GMQLSample)
 
   /**
     *
@@ -138,7 +138,7 @@ trait GMQLRepository {
     * @return
     */
   @throws(classOf[GMQLDSException])
-  def DSExists(dataSet:IRDataSet, userName:String): Boolean
+  def DSExists(dataSet:String, userName:String): Boolean
 
   /**
     *
@@ -149,7 +149,7 @@ trait GMQLRepository {
     * @return
     */
   @throws(classOf[GMQLDSException])
-  def DSExistsInPublic( dataSet:IRDataSet): Boolean
+  def DSExistsInPublic( dataSet:String): Boolean
 
   /**
     *
@@ -158,7 +158,7 @@ trait GMQLRepository {
     * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @return
     */
-  def getDSStatistics(dataSet:IRDataSet, userName:String):GMQLStatistics
+  def getDSStatistics(dataSet:String, userName:String):GMQLStatistics
 
 
   /**
@@ -178,7 +178,7 @@ trait GMQLRepository {
     * @param userName {@link String} of the user name
     * @return
     */
-  def getMeta(dataSet: IRDataSet,userName:String):String
+  def getMeta(dataSet: String,userName:String):String
 
   /**
     *
@@ -189,7 +189,7 @@ trait GMQLRepository {
     * @param sample
     * @return
     */
-  def getSampleMeta(dataSet: IRDataSet, userName:String, sample: GMQLSample):String
+  def getSampleMeta(dataSet: String, userName:String, sample: GMQLSample):String
 
   /**
     *
@@ -200,7 +200,7 @@ trait GMQLRepository {
     * @param query  {@link String} of the query
     * @return
     */
-  def searchMeta(dataSet: IRDataSet, userName:String, query:String): java.util.List[GMQLSample]
+  def searchMeta(dataSet: String, userName:String, query:String): java.util.List[GMQLSample]
 
   /**
     *

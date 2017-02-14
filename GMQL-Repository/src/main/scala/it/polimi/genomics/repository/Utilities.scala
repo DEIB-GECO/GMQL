@@ -15,7 +15,8 @@ import scala.xml.XML
   * @author abdulrahman kaitoua <abdulrahman dot kaitoua at polimi dot it>
   */
 class Utilities() {
-  private val logger: Logger = LoggerFactory.getLogger(Utilities.getClass)
+
+  import Utilities.logger
   var USERNAME: String = System.getProperty("user.name")
   //USERNAME  = System.getenv("USER")
   val HDFS: String = "YARN"
@@ -29,17 +30,16 @@ class Utilities() {
   var HADOOP_CONF_DIR:String = System.getenv("HADOOP_CONF_DIR")
   var GMQLHOME: String = System.getenv("GMQL_HOME")
   var HADOOP_HOME:String = System.getenv("HADOOP_HOME")
+  var GMQL_CONF_DIR:String = "../conf/GMQL.conf"
 
 
   /**
     *  Read Configurations from the system environment variables.
     *  The xml configurations will override any environment variables configurations.
     */
-  def apply() = {
-
-
+  def apply(confFile:String = GMQL_CONF_DIR) = {
     try {
-      val file = new File("../conf/GMQL.conf")
+      val file = new File(confFile)
       val xmlFile = XML.loadFile(file)
       val properties = (xmlFile \\ "property")
       //      val schemaType = (xmlFile \\ "gmqlSchema").head.attribute("type").get.head.text
@@ -54,6 +54,7 @@ class Utilities() {
           case Conf.GMQL_EXEC => this.MODE = value.toUpperCase();
           case Conf.HADOOP_CONF_DIR  => HADOOP_CONF_DIR = value
           case Conf.HADOOP_HOME =>  HADOOP_HOME = value
+          case Conf.GMQL_CONF_DIR => GMQL_CONF_DIR = value
           case _ => logger.error(s"Not known configuration property: $x, $value")
         }
         logger.debug(s"XML config override environment variables. $att = $value ")
@@ -67,6 +68,8 @@ class Utilities() {
 
     this.GMQLHOME =  if (this.GMQLHOME == null)  "/user/gmql_repository" else  this.GMQLHOME
 
+    this.GMQL_CONF_DIR = GMQLHOME+"/conf/"
+
     this.USERNAME  = if (this.USERNAME  == null) "gmql_user" else this.USERNAME
 
     this.HDFSRepoDir = if (this.HDFSRepoDir == null)   "/tmp/gmql_repository/" else this.HDFSRepoDir
@@ -77,8 +80,6 @@ class Utilities() {
     } else this.MODE
 
     RepoDir = this.GMQLHOME + "/data/"
-
-
 
     CoreConfigurationFiles = if (CoreConfigurationFiles == null) "/usr/local/Cellar/hadoop/2.7.2/libexec/etc/hadoop/core-site.xml" else CoreConfigurationFiles
     HDFSConfigurationFiles = if (HDFSConfigurationFiles == null) "/usr/local/Cellar/hadoop/2.7.2/libexec/etc/hadoop/hdfs-site.xml" else HDFSConfigurationFiles
@@ -176,7 +177,7 @@ class Utilities() {
     * @param userName {@link String} of the user name
     * @return Directory location of the logs folder
     */
-  def getLogDir(userName: String = USERNAME) = GMQLHOME + "/data/" + userName + "/logs/"
+  def getLogDir(userName: String = USERNAME) = RepoDir + userName + "/logs/"
 
   /**
     *
@@ -184,15 +185,37 @@ class Utilities() {
     *
     * @return Directory location of the conf folder
     */
-  def getConfDir = GMQLHOME + "/conf/"
+  def getConfDir() =  GMQL_CONF_DIR
+
+  /**
+    *
+    * Set the home directory for GMQL.
+    *
+    * @param gmqlHome String of the path to the location of the home directory
+    */
+  def setGMQLHome(gmqlHome:String):Unit = {
+    GMQLHOME = gmqlHome
+  }
+
+  /**
+    * Set the configurations Directory for GMQL.
+    *
+    * @param confDir String of the location of the configuration directory
+    */
+  def setConfDir(confDir:String) = {
+    GMQL_CONF_DIR = confDir
+  }
 }
 
 object Utilities {
   private var instance: Utilities = null
+  var confFile: String = "../conf/GMQL.conf"
+  val logger: Logger = LoggerFactory.getLogger(Utilities.getClass)
 
   def apply(): Utilities = {
     if (instance == null) {
-      instance = new Utilities(); instance.apply()
+      instance = new Utilities();
+      instance.apply(confFile+"/GMQL.conf")
     }
     instance
   }
@@ -207,6 +230,7 @@ object Conf {
   val GMQL_DFS_HOME = "GMQL_DFS_HOME";
   val HADOOP_HOME = "HADOOP_HOME";
   val HADOOP_CONF_DIR = "HADOOP_CONF_DIR"
+  val GMQL_CONF_DIR = "GMQL_CONF_DIR"
 }
 
 

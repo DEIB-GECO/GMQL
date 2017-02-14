@@ -53,7 +53,7 @@ class LFSRepository extends GMQLRepository with XMLDataSetRepository{
     * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @return
     */
-  override def getDSStatistics(dataSet: IRDataSet, userName: String): GMQLStatistics = ???
+  override def getDSStatistics(dataSet: String, userName: String): GMQLStatistics = ???
 
   /**
     * Copy data set from GMQL repository to local folder,
@@ -112,5 +112,5 @@ class LFSRepository extends GMQLRepository with XMLDataSetRepository{
     * @param query
     * @return
     */
-  override def searchMeta(dataSet: IRDataSet, userName: String, query: String): java.util.List[GMQLSample] = ???
+  override def searchMeta(dataSet: String, userName: String, query: String): java.util.List[GMQLSample] = ???
 }

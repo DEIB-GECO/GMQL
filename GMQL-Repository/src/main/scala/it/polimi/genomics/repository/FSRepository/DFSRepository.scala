@@ -84,7 +84,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     * @param Sample GMQL sample {@link GMQLSample}.
     * @userName String of the user name.
     */
-  override def AddSampleToDS(dataSet: IRDataSet, userName: String, Sample: GMQLSample): Unit = ???
+  override def AddSampleToDS(dataSet: String, userName: String, Sample: GMQLSample): Unit = ???
 
   /**
     * Delete Data Set from the repository, Delete XML files from local File system and delete the samples and meta files from HDFS.
@@ -119,7 +119,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     * @throws GMQLUserNotFound
     * @throws GMQLSampleNotFound
     */
-  override def DeleteSampleFromDS(dataSet:IRDataSet, userName: String, Sample:GMQLSample): Unit = ???
+  override def DeleteSampleFromDS(dataSet:String, userName: String, Sample:GMQLSample): Unit = ???
 
   /**
     *   List of the samples that was generated from a GMQL script execution
@@ -147,7 +147,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @return
     */
-  override def getDSStatistics(dataSet: IRDataSet, userName: String): GMQLStatistics = ???
+  override def getDSStatistics(dataSet: String, userName: String): GMQLStatistics = ???
 
   /**
     *  export the dataset from Hadoop Distributed File system to Local File system

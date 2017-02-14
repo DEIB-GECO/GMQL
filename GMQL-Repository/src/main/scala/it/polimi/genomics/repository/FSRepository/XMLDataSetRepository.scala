@@ -37,7 +37,7 @@ trait XMLDataSetRepository extends GMQLRepository{
   override def createDs(dataSet:IRDataSet, userName: String = General_Utilities().USERNAME, Samples: java.util.List[GMQLSample], GMQLScriptPath: String,schemaType:GMQLSchemaTypes.Value): Unit = {
     // Check the dataset name, return if the dataset is already used in
     // the repository of the this user or the public repository.
-    if (DSExists(dataSet, userName)) {
+    if (DSExists(dataSet.position, userName)) {
       logger.warn(s"The dataset (${dataSet.position})  is already registered")
       throw new GMQLNotValidDatasetNameException(s"The dataset name (${dataSet.position}) is already registered")
     }
@@ -66,7 +66,7 @@ trait XMLDataSetRepository extends GMQLRepository{
 
     // Check the dataset name, return if the dataset is already used in
     // the repository of the this user or the public repository.
-    if (DSExists(new IRDataSet(dataSetName, List(("", ParsingType.NULL)).asJava), userName)) {
+    if (DSExists(dataSetName, userName)) {
       logger.warn("The dataset name is already registered")
       throw new GMQLNotValidDatasetNameException(s"The dataset name ($dataSetName) is already registered")
     }
@@ -92,7 +92,7 @@ trait XMLDataSetRepository extends GMQLRepository{
     * @throws GMQLSampleNotFound
     */
   @throws(classOf[GMQLDSException])
-  override def AddSampleToDS(dataSet: IRDataSet, userName: String = General_Utilities().USERNAME, Sample: GMQLSample) ={
+  override def AddSampleToDS(dataSet: String, userName: String = General_Utilities().USERNAME, Sample: GMQLSample) ={
     val ds = new GMQLDataSetXML(dataSet,userName).loadDS()
     ds.addSample(Sample)
   }
@@ -104,7 +104,7 @@ trait XMLDataSetRepository extends GMQLRepository{
     * @return
     */
   @throws(classOf[GMQLSampleNotFound])
-  override def getSampleMeta(dataSet: IRDataSet, userName: String = General_Utilities().USERNAME, sample: GMQLSample): String = {
+  override def getSampleMeta(dataSet: String, userName: String = General_Utilities().USERNAME, sample: GMQLSample): String = {
     val ds = new GMQLDataSetXML(dataSet,userName).loadDS()
     ds.getMeta(sample)
   }
@@ -114,7 +114,7 @@ trait XMLDataSetRepository extends GMQLRepository{
     * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @return
     */
-  override def getMeta(dataSet: IRDataSet,userName:String = General_Utilities().USERNAME): String = {
+  override def getMeta(dataSet: String,userName:String = General_Utilities().USERNAME): String = {
     new GMQLDataSetXML(dataSet,userName).getMeta()
   }
 
@@ -139,7 +139,7 @@ trait XMLDataSetRepository extends GMQLRepository{
     * @throws GMQLDSException
     * @return
     */
-  override def DSExists(dataSet: IRDataSet, userName: String = General_Utilities().USERNAME): Boolean = {
+  override def DSExists(dataSet: String, userName: String = General_Utilities().USERNAME): Boolean = {
     new GMQLDataSetXML(dataSet,userName).exists()  || new GMQLDataSetXML(dataSet,"public").exists()
   }
 
@@ -149,7 +149,7 @@ trait XMLDataSetRepository extends GMQLRepository{
     * @throws GMQLDSException
     * @return
     */
-  override def DSExistsInPublic(dataSet: IRDataSet): Boolean = {
+  override def DSExistsInPublic(dataSet: String): Boolean = {
     new GMQLDataSetXML(dataSet,"public").exists()
   }
 
@@ -176,7 +176,7 @@ trait XMLDataSetRepository extends GMQLRepository{
     * @throws GMQLUserNotFound
     * @throws GMQLSampleNotFound
     */
-  override def DeleteSampleFromDS(dataSet:IRDataSet, userName: String = General_Utilities().USERNAME, sample:GMQLSample): Unit = {
+  override def DeleteSampleFromDS(dataSet:String, userName: String = General_Utilities().USERNAME, sample:GMQLSample): Unit = {
     new GMQLDataSetXML(dataSet,userName).loadDS().delSample(sample)
   }
 
@@ -201,7 +201,7 @@ trait XMLDataSetRepository extends GMQLRepository{
 
     // Check the dataset name, return if the dataset is already used in
     // the repository of the this user or the public repository.
-    if (DSExists(new IRDataSet(dataSetName, List(("", ParsingType.NULL)).asJava), userName)) {
+    if (DSExists(dataSetName, userName)) {
       logger.warn("The dataset name is already registered")
       throw new GMQLNotValidDatasetNameException(s"The dataset name ($dataSetName) is already registered")
     }
@@ -233,7 +233,7 @@ trait XMLDataSetRepository extends GMQLRepository{
     * @param query
     * @return
     */
-  override def searchMeta(dataSet: IRDataSet, userName: String = General_Utilities().USERNAME, query: String): java.util.List[GMQLSample] = ???
+  override def searchMeta(dataSet: String, userName: String = General_Utilities().USERNAME, query: String): java.util.List[GMQLSample] = ???
 
   override def registerUser(userName:String): Boolean ={
         val indexes = new File(General_Utilities().getIndexDir( userName ))

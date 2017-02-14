@@ -97,9 +97,8 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
               case p: VariablePath => p.path
               case p: Variable => p.name
             }
-            val ds = new IRDataSet(DSname, List[(String, PARSING_TYPE)]().asJava)
-            if (repositoryHandle.DSExists(ds, username)) {
-              val user = if (repositoryHandle.DSExistsInPublic(ds)) "public" else this.username
+            if (repositoryHandle.DSExists(DSname, username)) {
+              val user = if (repositoryHandle.DSExistsInPublic(DSname)) "public" else this.username
               Some(DSname, getHDFSRegionFolder(DSname, user))
             } else {
               logger.warn(DSname + " is not a dataset in the repository...error");
@@ -116,20 +115,19 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
       operators = languageParserOperators.map(x => x match {
         case select: SelectOperator => logger.info(select.op_pos + "\t" + select.output + "\t" + select.parameters);
           val dsinput = select.input1 match {
-            case p: VariablePath => val ds = new IRDataSet( p.path, List[(String, PARSING_TYPE)]().asJava)
-              if (repositoryHandle.DSExists(ds, username)) {
-                val user = if (repositoryHandle.DSExistsInPublic(ds)) "public" else this.username
-                val newPath = getHDFSRegionFolder(ds.position, user)
+            case p: VariablePath =>
+              if (repositoryHandle.DSExists(p.path, username)) {
+                val user = if (repositoryHandle.DSExistsInPublic(p.path)) "public" else this.username
+                val newPath = getHDFSRegionFolder(p.path, user)
                 println(newPath)
                 new VariablePath(newPath, p.parser_name);
               } else {
                 p
               }
             case p: VariableIdentifier => {
-              val ds = new IRDataSet(p.IDName, List[(String, PARSING_TYPE)]().asJava)
-              if (repositoryHandle.DSExists(ds, username)) {
-                val user = if (repositoryHandle.DSExistsInPublic(ds)) "public" else this.username
-                val newPath = getHDFSRegionFolder(ds.position, user)
+              if (repositoryHandle.DSExists(p.IDName, username)) {
+                val user = if (repositoryHandle.DSExistsInPublic(p.IDName)) "public" else this.username
+                val newPath = getHDFSRegionFolder(p.IDName, user)
                 println(newPath)
                 new VariableIdentifier(newPath);
               } else {

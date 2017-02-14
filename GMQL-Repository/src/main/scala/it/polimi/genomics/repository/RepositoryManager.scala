@@ -174,7 +174,7 @@ object RepositoryManager {
           username = args(3)
           Utilities().USERNAME = username
         }
-        mr.AddSampleToDS(new IRDataSet(args(1), List[(String,PARSING_TYPE)]().asJava), username, new GMQLSample( args(2), args(2)+".meta"))
+        mr.AddSampleToDS(args(1), username, new GMQLSample( args(2), args(2)+".meta"))
       case "deletesample" =>
         if (args.length < 3) {
           logger.warn(usage)
@@ -185,7 +185,7 @@ object RepositoryManager {
           Utilities().USERNAME = username
         }
 
-        mr.DeleteSampleFromDS(new IRDataSet(args(1), List[(String,PARSING_TYPE)]().asJava), username, new GMQLSample( args(2), args(2)+".meta"))
+        mr.DeleteSampleFromDS(args(1), username, new GMQLSample( args(2), args(2)+".meta"))
       case "list" =>
         if (args.length < 2) {
           logger.warn(usage)
