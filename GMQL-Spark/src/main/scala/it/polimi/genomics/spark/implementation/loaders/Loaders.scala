@@ -93,9 +93,9 @@ object Loaders {
                                                      index: Integer) extends CombineMetaRecordReader[Long](split, context, index) {
 
     override def generateKey(split: CombineFileSplit, index: Integer) = {
-      val uri = split.getPath(index).toString
+      val uri = split.getPath(index).getName
       val uriExt =uri.substring(uri.lastIndexOf(".")+1,uri.size)
-      val URLNoMeta = if(!uriExt.equals("meta"))uri.substring(uri.indexOf(":")+1,uri.size ) else  uri.substring(uri.indexOf(":")+1,uri.lastIndexOf("."))
+      val URLNoMeta = if(!uriExt.equals("meta"))uri.substring(/*uri.indexOf(":")+1*/0,uri.size ) else  uri.substring(/*uri.indexOf(":")+1*/0,uri.lastIndexOf("."))
 //      logger.info ("LOADER: "+URLNoMeta.replaceAll("/","")+"\t"+ Hashing.md5().newHasher().putString(URLNoMeta.replaceAll("/",""),java.nio.charset.StandardCharsets.UTF_8).hash().asLong())
       //println("\n\n\n"+URLNoMeta+ "\n\n\n")
       //println(Hashing.md5().newHasher().putString(URLNoMeta,java.nio.charset.StandardCharsets.UTF_8).hash().asLong())
