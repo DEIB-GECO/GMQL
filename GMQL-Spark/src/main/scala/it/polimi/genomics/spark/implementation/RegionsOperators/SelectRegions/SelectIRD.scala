@@ -88,8 +88,8 @@ object SelectIRD {
       }
 
     val inputURIs = files.map { x =>
-      val uri = x.substring(x.indexOf(":") + 1, x.size).replaceAll("/", "");
-      Hashing.md5().newHasher().putString(uri, StandardCharsets.UTF_8).hash().asLong() -> x
+      val uri = x//.substring(x.indexOf(":") + 1, x.size).replaceAll("/", "");
+      Hashing.md5().newHasher().putString( new Path (uri).getName, StandardCharsets.UTF_8).hash().asLong() -> x
     }.toMap
 //        inputURIs.foreach(x=>logger.debug("HDFS File : "+x._1+"\t"+Hashing.md5().newHasher().putString(x._2.substring(x._2.indexOf(":")+1,x._2.size ).replaceAll("/",""),StandardCharsets.UTF_8).hash().asLong()+"\t"+x._2.substring(x._2.indexOf(":")+1,x._2.size ).replaceAll("/","")))
     val metaIdList = executor.implement_md(filteredMeta.get, sc).keys.distinct.collect
