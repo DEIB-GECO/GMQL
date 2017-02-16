@@ -220,6 +220,15 @@ trait GMQLRepository {
     */
   def unregisterUser(userName:String): Boolean
 
+  /**
+    * Return the location of the dataset, Local, HDFS, remote
+    *
+    * @param dataSet String of the dataset name
+    * @param userName String of the name of the owner of the dataset
+    * @return The Location as either LOCAL, HDFS, or REMOTE
+    */
+  def getDSLocation(dataSet:String, userName:String): (RepositoryType.Value,DatasetOrigin.Value)
+
 }
 
 

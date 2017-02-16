@@ -32,19 +32,19 @@
         <dependency>
             <groupId>it.polimi.genomics</groupId>
             <artifactId>GMQL-Flink</artifactId>
-            <version>2.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>it.polimi.genomics</groupId>
-            <artifactId>GMQL-Spark</artifactId>
             <version>3.0</version>
         </dependency>
 
         <dependency>
             <groupId>it.polimi.genomics</groupId>
+            <artifactId>GMQL-Spark</artifactId>
+            <version>4.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>it.polimi.genomics</groupId>
             <artifactId>Compiler</artifactId>
-            <version>2.0</version>
+            <version>3.0</version>
         </dependency>
 
         <dependency>

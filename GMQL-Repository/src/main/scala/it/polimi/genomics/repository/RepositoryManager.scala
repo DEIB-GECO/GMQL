@@ -149,7 +149,7 @@ object RepositoryManager {
           val dataSetDir = new File(Utilities().getDataSetsDir(username))
           val datasets = dataSetDir.listFiles(new FilenameFilter() {def accept(dir: File, name: String): Boolean = name.matches(datasetname + "*.*\\.xml")})
           var i = 1
-          while (i <= datasets.length) {
+          while (i < datasets.length) {
               logger.info(s"datasets[$i] = " + datasets(i).getName.split("\\.")(0))
               i += 1;
           }

@@ -179,8 +179,9 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     * @return
     */
   override def registerUser(userName: String): Boolean = {
-    logger.info(General_Utilities().getHDFSRegionDir(userName)
-      + FS_Utilities.createDFSDir(General_Utilities().getHDFSRegionDir(userName)))
+    val dir = General_Utilities().getHDFSRegionDir(userName)
+    val creationMessage = if(FS_Utilities.createDFSDir(dir)) "\t Created..." else "\t Not created..."
+    logger.info( dir + creationMessage)
     super.registerUser(userName)
   }
 

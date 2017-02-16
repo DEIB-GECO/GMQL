@@ -179,8 +179,10 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
       val dsXML = XML.loadFile(DSXMLfile);
       val cc = (dsXML \\ "url")
       this.DSname = (dsXML \\ "dataset").head.attribute("name").get.head.text
+      this.Repo = (dsXML \\ "dataset").head.attribute("execType").get.head.text
       this.userName = (dsXML \\ "dataset").head.attribute("username").get.head.text
       samples = cc.map(x => new GMQLSample(x.text.trim,x.text.trim+".meta",x.attribute("id").get.head.text)).toList
+//      this.schemaDir = (dsXML \\ "dataset").head.attribute("schemaDir").get.head.text
 
       try{
       this.GMQLScriptUrl = (dsXML \\ "dataset").head.attribute("script").get.head.text

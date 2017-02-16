@@ -28,7 +28,7 @@ object CLI {
   private final val usage = "GMQL-Submit " +
     " [-username USER] " +
     "[-exec FLINK|SPARK] [-binsize BIN_SIZE] [-jobid JOB_ID] " +
-    "[-verbuse true|false] " +
+    "[-verbose true|false] " +
     "[-outputFormat GTF|TAB]" +
     "-scriptpath /where/gmql/script/is \n" +
     "\n" +
@@ -40,8 +40,8 @@ object CLI {
     "\t[-exec FLINK|SPARK] \n" +
     "\t\tThe execution type, Currently Spark and Flink engines are supported as platforms for executing GMQL Script.\n" +
     "\n" +
-    "\t[-verbuse true|false]\n" +
-    "\t\tThe default will print only the INFO tags. -verbuse is used to show Debug mode.\n" +
+    "\t[-verbose true|false]\n" +
+    "\t\tThe default will print only the INFO tags. -verbose is used to show Debug mode.\n" +
     "\n" +
     "\t[-outputFormat GTF|TAB]\n" +
     "\t\tThe default output format is TAB: tab delimited files in the format of BED files." +
@@ -57,7 +57,7 @@ object CLI {
     var username: String = System.getProperty("user.name")
     var outputPath = ""
     var outputFormat = GMQLOutputFormat.TAB
-    var verbuse = false
+    var verbose = false
     var i = 0;
 
     for (i <- 0 until args.length if (i % 2 == 0)) {
@@ -72,9 +72,9 @@ object CLI {
         username = args(i + 1).toLowerCase()
         logger.info("Username set to: " + username)
 
-      }  else if ("-verbuse".equals(args(i).toLowerCase())) {
-        if(args(i+1).equals("true"))verbuse = true else verbuse = false
-        logger.info("Output is set to Verbuse: " + verbuse)
+      }  else if ("-verbose".equals(args(i).toLowerCase())) {
+        if(args(i+1).equals("true"))verbose = true else verbose = false
+        logger.info("Output is set to verbose: " + verbose)
 
       } else if ("-scriptpath".equals(args(i))) {
         logger.info("scriptpath set to: " + scriptPath)

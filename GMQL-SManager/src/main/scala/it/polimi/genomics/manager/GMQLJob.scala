@@ -8,8 +8,7 @@ import it.polimi.genomics.GMQLServer.{GmqlServer, Implementation}
 import it.polimi.genomics.core.DataStructures.{IRDataSet, IRVariable}
 import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLocalLauncher}
 import it.polimi.genomics.repository.FSRepository.{DFSRepository, FS_Utilities => FSR_Utilities}
-import it.polimi.genomics.repository.{GMQLRepository, GMQLSchemaTypes}
-import it.polimi.genomics.repository.{Utilities => General_Utilities}
+import it.polimi.genomics.repository.{DatasetOrigin, GMQLRepository, GMQLSchemaTypes, RepositoryType, Utilities => General_Utilities}
 import it.polimi.genomics.repository.GMQLExceptions.GMQLNotValidDatasetNameException
 import org.slf4j.LoggerFactory
 import java.util.Date
@@ -92,14 +91,15 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
       // Get the input Dataset names from the Select Statements
       inputDataSets = languageParserOperators.flatMap { x =>
         x match {
-          case select: SelectOperator => logger.info(select.op_pos + "\t" + select.output + "\t" + select.parameters);
+          case select: SelectOperator =>
+//            logger.info(select.op_pos + "\t" + select.output + "\t" + select.parameters);
             val DSname: String = select.input1 match {
               case p: VariablePath => p.path
               case p: Variable => p.name
             }
             if (repositoryHandle.DSExists(DSname, username)) {
               val user = if (repositoryHandle.DSExistsInPublic(DSname)) "public" else this.username
-              Some(DSname, getHDFSRegionFolder(DSname, user))
+              Some(DSname, getRegionFolder(DSname, user))
             } else {
               logger.warn(DSname + " is not a dataset in the repository...error");
               None
@@ -118,7 +118,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
             case p: VariablePath =>
               if (repositoryHandle.DSExists(p.path, username)) {
                 val user = if (repositoryHandle.DSExistsInPublic(p.path)) "public" else this.username
-                val newPath = getHDFSRegionFolder(p.path, user)
+                val newPath = getRegionFolder(p.path, user)
                 println(newPath)
                 new VariablePath(newPath, p.parser_name);
               } else {
@@ -127,7 +127,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
             case p: VariableIdentifier => {
               if (repositoryHandle.DSExists(p.IDName, username)) {
                 val user = if (repositoryHandle.DSExistsInPublic(p.IDName)) "public" else this.username
-                val newPath = getHDFSRegionFolder(p.IDName, user)
+                val newPath = getRegionFolder(p.IDName, user)
                 println(newPath)
                 new VariableIdentifier(newPath);
               } else {
@@ -176,6 +176,28 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     (id, outputVariablesList)
   }
 
+
+  /**
+    * return the input dataset directory.
+    *
+    * @param dsName string of the data name
+    * @param user String of the user name, owner of the dataset
+    * @return String of the dataset location
+    */
+  def getRegionFolder(dsName:String,user:String): String = {
+//    val xmlFile = General_Utilities().getDataSetsDir(user) + dsName + ".xml"
+//    val xml = XML.loadFile(xmlFile)
+    val path = repositoryHandle.ListDSSamples(dsName,user).asScala.head.name//(xml \\ "url") (0).text
+
+    val (location,ds_origin) = repositoryHandle.getDSLocation(dsName,user)
+    if ( location == RepositoryType.HDFS)
+      getHDFSRegionFolder(path,user)
+    else if(ds_origin == DatasetOrigin.GENERATED)
+      General_Utilities().getHDFSRegionDir(user)+ Paths.get(path).getParent.toString
+    else //DatasetOrigin.IMPORTED
+      Paths.get(path).getParent.toString
+  }
+
   /**
     *
     * return the HDFS directory for a specific folder, including the file system name
@@ -184,10 +206,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     * @param user {@link String} as the user name, owner of the dataset
     * @return String of the absolute path of the dataset folder in HDFS
     */
-  def getHDFSRegionFolder(dsName:String,user:String): String ={
-    val xmlFile = General_Utilities().getDataSetsDir(user) + dsName + ".xml"
-   val xml = XML.loadFile(xmlFile)
-    val path = (xml \\ "url")(0).text
+  def getHDFSRegionFolder(path:String,user:String): String ={
     if(path.startsWith("hdfs"))
       (new org.apache.hadoop.fs.Path(path)).getParent.toString
     else
@@ -204,7 +223,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     * @return {@link State} of the running job
     */
   def runGMQL(id:String = jobId,submitHand: GMQLLauncher= new GMQLLocalLauncher(this)):Status.Value = {
-    this.status = Status.RUNNING
+    this.status = Status.PENDING
 
     this submitHandle= submitHand
     this.submitHandle run

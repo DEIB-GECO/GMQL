@@ -46,23 +46,53 @@ class GMQLSparkSubmit(job:GMQLJob) {
     * @return
     */
   def runSparkJob(): SparkAppHandle = {
+    println("SparkHome: "+SPARK_HOME)
+    println("HADOOP CONF: "+HADOOP_CONF_DIR)
+    println("YARN CONF: "+YARN_CONF_DIR)
+    println("GMQL HOME: "+GMQL_HOME)
+    println("GMQLJAR: "+GMQLjar)
+    println("MASTER CLASS : "+MASTER_CLASS)
+    println("AppID: "+APPID)
+    println("user: "+job.username)
+    println ("script: "+ job.script.script)
+    println("DS in Dir: "+job.inputDataSets.map(x => x._1+":::"+x._2+"/").mkString(","))
+    println("ds in to schema: "+job.inputDataSets.map(x => x._2+":::"+getSchema(job,x._1)).mkString(","))
+    println("JobID: "+ job.jobId)
+    println("out format: "+ job.gMQLContext.outputFormat.toString)
+    println("log: " +General_Utilities().getLogDir(job.username))
+
+
     val env = Map(
       "HADOOP_CONF_DIR" -> HADOOP_CONF_DIR,
       "YARN_CONF_DIR" -> YARN_CONF_DIR
     )
 
-    new SparkLauncher(env.asJava)
+
+
+    val fsRegDir = FSR_Utilities.gethdfsConfiguration().get("fs.defaultFS")+
+      General_Utilities().getHDFSRegionDir(job.username)
+
+    val outDir = job.outputVariablesList.map{x=>
+      val dir = if (General_Utilities().MODE == General_Utilities().HDFS)
+        fsRegDir + x + "/"
+      else General_Utilities().getRegionDir(job.username) + x +"/"
+      x+":::"+dir }.mkString(",")
+
+    println(outDir)
+
+   val d =  new SparkLauncher(env.asJava)
       .setSparkHome(SPARK_HOME)
       .setAppResource(GMQLjar)
       .setMainClass(MASTER_CLASS)
       .addAppArgs("-username", job.username,
         "-script", job.script.script/*serializeDAG(job.operators)*/,
         "-scriptpath", job.script.scriptPath,
-        "-inputDirs",job.inputDataSets.map(x => x._1+":::"+x._2+"/").mkString(","),
+        "-inputDirs",job.inputDataSets.map{x =>x._1+":::"+x._2+"/"}.mkString(","),
         //TODO: Check how to get the schema path from the repository manager.
         "-schemata",job.inputDataSets.map(x => x._2+":::"+getSchema(job,x._1)).mkString(","),
         "-jobid", job.jobId,
         "-outputFormat",job.gMQLContext.outputFormat.toString,
+        "-outputDirs", outDir,
         "-logDir",General_Utilities().getLogDir(job.username))
       .setConf("spark.app.id", APPID)
 
@@ -83,6 +113,7 @@ class GMQLSparkSubmit(job:GMQLJob) {
         .setConf("spark.yarn.executor.memoryOverhead","600")*/
       .setVerbose(true)
       .startApplication()
+    d
   }
 
   /**

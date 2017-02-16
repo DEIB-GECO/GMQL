@@ -27,7 +27,6 @@ class GMQLSparkLauncher(sparkJob:GMQLJob) extends GMQLLauncher(sparkJob){
   def run(): GMQLSparkLauncher = {
     val importController = new GMQLSparkSubmit(job);
     launcherHandler = importController.runSparkJob()
-    logger.info("Creating dataset Done...")
     this
   }
 

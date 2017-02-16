@@ -27,17 +27,17 @@ class Utilities() {
   var MODE: String = System.getenv("GMQL_EXEC")
   var CoreConfigurationFiles: String = null
   var HDFSConfigurationFiles: String = null
-  var HADOOP_CONF_DIR:String = System.getenv("HADOOP_CONF_DIR")
+  var HADOOP_CONF_DIR:String = null
   var GMQLHOME: String = System.getenv("GMQL_HOME")
   var HADOOP_HOME:String = System.getenv("HADOOP_HOME")
-  var GMQL_CONF_DIR:String = "../conf/GMQL.conf"
+  var GMQL_CONF_DIR:String = null
 
 
   /**
     *  Read Configurations from the system environment variables.
     *  The xml configurations will override any environment variables configurations.
     */
-  def apply(confFile:String = GMQL_CONF_DIR) = {
+  def apply(confFile:String = "../conf/GMQL.conf") = {
     try {
       val file = new File(confFile)
       val xmlFile = XML.loadFile(file)
@@ -63,12 +63,13 @@ class Utilities() {
       case ex: Throwable => ex.printStackTrace(); logger.warn("XML config file is not found..")
     }
 
+    HADOOP_CONF_DIR =  if(HADOOP_CONF_DIR == null) HADOOP_HOME+"/etc/hadoop/" else HADOOP_CONF_DIR
     CoreConfigurationFiles =  HADOOP_CONF_DIR+"/core-site.xml"
     HDFSConfigurationFiles = HADOOP_CONF_DIR+"/hdfs-site.xml"
 
     this.GMQLHOME =  if (this.GMQLHOME == null)  "/user/gmql_repository" else  this.GMQLHOME
 
-    this.GMQL_CONF_DIR = GMQLHOME+"/conf/"
+    GMQL_CONF_DIR =  if (this.GMQL_CONF_DIR == null)  GMQLHOME+"/conf/" else GMQL_CONF_DIR
 
     this.USERNAME  = if (this.USERNAME  == null) "gmql_user" else this.USERNAME
 
@@ -81,8 +82,10 @@ class Utilities() {
 
     RepoDir = this.GMQLHOME + "/data/"
 
-    CoreConfigurationFiles = if (CoreConfigurationFiles == null) "/usr/local/Cellar/hadoop/2.7.2/libexec/etc/hadoop/core-site.xml" else CoreConfigurationFiles
-    HDFSConfigurationFiles = if (HDFSConfigurationFiles == null) "/usr/local/Cellar/hadoop/2.7.2/libexec/etc/hadoop/hdfs-site.xml" else HDFSConfigurationFiles
+//    CoreConfigurationFiles = if (CoreConfigurationFiles == null) "/usr/local/Cellar/hadoop/2.7.2/libexec/etc/hadoop/core-site.xml" else CoreConfigurationFiles
+//    HDFSConfigurationFiles = if (HDFSConfigurationFiles == null) "/usr/local/Cellar/hadoop/2.7.2/libexec/etc/hadoop/hdfs-site.xml" else HDFSConfigurationFiles
+    logger.debug(CoreConfigurationFiles)
+    logger.debug(HDFSConfigurationFiles)
     logger.debug("GMQL_HOME is set to = " +  this.GMQLHOME)
     logger.debug("GMQL_DFS_HOME, HDFS Repository is set to = " +  this.HDFSRepoDir)
     logger.debug("MODE is set to = " +  this.MODE)
@@ -209,13 +212,13 @@ class Utilities() {
 
 object Utilities {
   private var instance: Utilities = null
-  var confFile: String = "../conf/GMQL.conf"
+  var confFolder: String = "../conf/"
   val logger: Logger = LoggerFactory.getLogger(Utilities.getClass)
 
   def apply(): Utilities = {
     if (instance == null) {
       instance = new Utilities();
-      instance.apply(confFile+"/GMQL.conf")
+      instance.apply(confFolder+"/GMQL.conf")
     }
     instance
   }
