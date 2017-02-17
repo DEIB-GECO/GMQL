@@ -120,6 +120,7 @@ object SelectIMDWithNoIndex {
 //        /*hdfs*/uri.substring(/*hdfs*/uri.indexOf(":") + 1, /*hdfs*/uri.size)
 //      } else
     uri
+
     }
 
     @throws[SelectFormatException]

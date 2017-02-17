@@ -146,6 +146,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
           val outSample = "S"
 
           val Ids = metaRDD.keys.distinct()
+
           val newIDS: Map[Long, Long] = Ids.zipWithIndex().collectAsMap()
           val newIDSbroad = sc.broadcast(newIDS)
 
