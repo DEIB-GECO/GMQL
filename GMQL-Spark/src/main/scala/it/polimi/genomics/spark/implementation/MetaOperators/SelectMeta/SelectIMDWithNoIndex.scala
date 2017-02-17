@@ -94,7 +94,7 @@ object SelectIMDWithNoIndex {
 
       val searchRes = searchIndex(query/*, index*/)
       if (searchRes.isDefined)
-         sparkContext.parallelize(searchRes.get.split(",").map(x => Hashing.md5().newHasher().putString(new Path(x).getName, StandardCharsets.UTF_8).hash().asLong()))
+        sparkContext.parallelize(searchRes.get.split(",").map(x => Hashing.md5().newHasher().putString(new Path(x).getName, StandardCharsets.UTF_8).hash().asLong()))
       else
         sparkContext.emptyRDD[ID]
     }
@@ -115,11 +115,12 @@ object SelectIMDWithNoIndex {
     }
 
     def getURI(uri: String) = {
- //     if (/*General_Utilities().MODE == General_Utilities().HDFS && !*/uri.startsWith("hdfs")) {
+//      if (/*General_Utilities().MODE == General_Utilities().HDFS && !*/uri.startsWith("hdfs")) {
 //        val hdfsuri = Utilities.gethdfsConfiguration().get("fs.defaultFS") + General_Utilities().getHDFSRegionDir(username) + uri
 //        /*hdfs*/uri.substring(/*hdfs*/uri.indexOf(":") + 1, /*hdfs*/uri.size)
-   //   } else 
-      uri
+//      } else
+    uri
+
     }
 
     @throws[SelectFormatException]

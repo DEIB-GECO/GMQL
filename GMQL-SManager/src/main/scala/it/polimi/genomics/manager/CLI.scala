@@ -8,7 +8,7 @@ import java.util.Date
 import it.polimi.genomics.core.{BinSize, GMQLOutputFormat, GMQLScript, ImplementationPlatform}
 import it.polimi.genomics.manager.Launchers.{GMQLLocalLauncher, GMQLSparkLauncher}
 import it.polimi.genomics.repository.FSRepository.{DFSRepository, LFSRepository}
-import it.polimi.genomics.repository.Utilities
+import it.polimi.genomics.repository.{Utilities => repo_Utilities}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -28,7 +28,7 @@ object CLI {
   private final val usage = "GMQL-Submit " +
     " [-username USER] " +
     "[-exec FLINK|SPARK] [-binsize BIN_SIZE] [-jobid JOB_ID] " +
-    "[-verbuse true|false] " +
+    "[-verbose true|false] " +
     "[-outputFormat GTF|TAB]" +
     "-scriptpath /where/gmql/script/is \n" +
     "\n" +
@@ -40,8 +40,8 @@ object CLI {
     "\t[-exec FLINK|SPARK] \n" +
     "\t\tThe execution type, Currently Spark and Flink engines are supported as platforms for executing GMQL Script.\n" +
     "\n" +
-    "\t[-verbuse true|false]\n" +
-    "\t\tThe default will print only the INFO tags. -verbuse is used to show Debug mode.\n" +
+    "\t[-verbose true|false]\n" +
+    "\t\tThe default will print only the INFO tags. -verbose is used to show Debug mode.\n" +
     "\n" +
     "\t[-outputFormat GTF|TAB]\n" +
     "\t\tThe default output format is TAB: tab delimited files in the format of BED files." +
@@ -57,7 +57,7 @@ object CLI {
     var username: String = System.getProperty("user.name")
     var outputPath = ""
     var outputFormat = GMQLOutputFormat.TAB
-    var verbuse = false
+    var verbose = false
     var i = 0;
 
     for (i <- 0 until args.length if (i % 2 == 0)) {
@@ -72,9 +72,9 @@ object CLI {
         username = args(i + 1).toLowerCase()
         logger.info("Username set to: " + username)
 
-      }  else if ("-verbuse".equals(args(i).toLowerCase())) {
-        if(args(i+1).equals("true"))verbuse = true else verbuse = false
-        logger.info("Output is set to Verbuse: " + verbuse)
+      }  else if ("-verbose".equals(args(i).toLowerCase())) {
+        if(args(i+1).equals("true"))verbose = true else verbose = false
+        logger.info("Output is set to verbose: " + verbose)
 
       } else if ("-scriptpath".equals(args(i))) {
         logger.info("scriptpath set to: " + scriptPath)
@@ -104,22 +104,35 @@ object CLI {
         }
     }
 
+    //GMQL script
     val gmqlScript = new GMQLScript( new String(Files.readAllBytes(Paths.get(scriptPath))),scriptPath)
-    val binSize = new BinSize(5000, 5000, 1000)
-    val repository = if(Utilities().MODE == Utilities().HDFS) new DFSRepository() else new LFSRepository()
 
+    //Default bin parameters
+    val binSize = new BinSize(5000, 5000, 1000)
+
+    // Set the repository based on the global variables.
+    val repository = if(repo_Utilities().MODE == repo_Utilities().HDFS) new DFSRepository() else new LFSRepository()
+
+    //Spark context setting
+    // number of executers is set to the number of the running machine cores.
     val conf = new SparkConf()
       .setAppName("GMQL V2 Spark")
-      .setMaster("local[1]")
+      .setMaster("local[*]")
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "64")
       .set("spark.driver.allowMultipleContexts","true")
       .set("spark.sql.tungsten.enabled", "true")
     val sc:SparkContext =new SparkContext(conf)
 
+    //GMQL context contains all the GMQL job needed information
     val gmqlContext = new GMQLContext(ImplementationPlatform.SPARK, repository, outputFormat, binSize, username,sc)
+
+    //create GMQL server manager instance, if it is not created yet.
     val server = GMQLExecute()
 
+    //register Job
     val job = server.registerJob(gmqlScript, gmqlContext, "")
-    server.scheduleGQLJobForYarn(job.jobId, new GMQLSparkLauncher(job))
+
+    //Run the job
+    server.execute(job.jobId, new GMQLSparkLauncher(job))
   }
 }

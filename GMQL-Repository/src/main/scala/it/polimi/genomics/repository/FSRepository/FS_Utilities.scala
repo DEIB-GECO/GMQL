@@ -36,7 +36,7 @@ object FS_Utilities {
     * @return
     */
   def validate(xmlFile: String): Boolean = {
-    val xsdFile =  General_Utilities().GMQLHOME+"/conf/gmqlSchemaCollection.xsd"
+    val xsdFile =  General_Utilities().getConfDir() + "/gmqlSchemaCollection.xsd"
 
     try {
       val schemaLang = "http://www.w3.org/2001/XMLSchema"

@@ -38,6 +38,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.{HashPartitioner, SparkContext}
 import org.slf4j.LoggerFactory
 
+import scala.collection.Map
 import scala.xml.Elem
 
 class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : Int = 100000, REF_PARALLILISM: Int = 20,
@@ -109,7 +110,6 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
         val path = new org.apache.hadoop.fs.Path(RegionOutputPath);
         fs = FileSystem.get(path.toUri(), conf);
 
-
         if(testingIOFormats){
           metaRDD.map(x=>x._1+","+x._2._1 + "," + x._2._2).saveAsTextFile(MetaOutputPath)
           regionRDD.map(x=>x._1+"\t"+x._2.mkString("\t")).saveAsTextFile(RegionOutputPath)
@@ -145,7 +145,8 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
 
           val outSample = "S"
 
-                   val Ids = metaRDD.keys.distinct()
+          val Ids = metaRDD.keys.distinct()
+
           val newIDS: Map[Long, Long] = Ids.zipWithIndex().collectAsMap()
           val newIDSbroad = sc.broadcast(newIDS)
 

@@ -149,7 +149,7 @@ object RepositoryManager {
           val dataSetDir = new File(Utilities().getDataSetsDir(username))
           val datasets = dataSetDir.listFiles(new FilenameFilter() {def accept(dir: File, name: String): Boolean = name.matches(datasetname + "*.*\\.xml")})
           var i = 1
-          while (i <= datasets.length) {
+          while (i < datasets.length) {
               logger.info(s"datasets[$i] = " + datasets(i).getName.split("\\.")(0))
               i += 1;
           }
@@ -174,7 +174,7 @@ object RepositoryManager {
           username = args(3)
           Utilities().USERNAME = username
         }
-        mr.AddSampleToDS(new IRDataSet(args(1), List[(String,PARSING_TYPE)]().asJava), username, new GMQLSample( args(2), args(2)+".meta"))
+        mr.AddSampleToDS(args(1), username, new GMQLSample( args(2), args(2)+".meta"))
       case "deletesample" =>
         if (args.length < 3) {
           logger.warn(usage)
@@ -185,7 +185,7 @@ object RepositoryManager {
           Utilities().USERNAME = username
         }
 
-        mr.DeleteSampleFromDS(new IRDataSet(args(1), List[(String,PARSING_TYPE)]().asJava), username, new GMQLSample( args(2), args(2)+".meta"))
+        mr.DeleteSampleFromDS(args(1), username, new GMQLSample( args(2), args(2)+".meta"))
       case "list" =>
         if (args.length < 2) {
           logger.warn(usage)

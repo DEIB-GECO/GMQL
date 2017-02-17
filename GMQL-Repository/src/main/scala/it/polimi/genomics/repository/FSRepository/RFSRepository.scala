@@ -96,7 +96,7 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
     * @throws GMQLSampleNotFound
     */
   @throws(classOf[GMQLDSException])
-  override def AddSampleToDS(dataSet: IRDataSet, userName: String, Sample: GMQLSample) = ???
+  override def AddSampleToDS(dataSet: String, userName: String, Sample: GMQLSample) = ???
 
   /**
     *
@@ -123,7 +123,7 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
     * @throws GMQLUserNotFound
     * @throws GMQLSampleNotFound
     */
-  override def DeleteSampleFromDS(dataSet: IRDataSet, userName: String, sample: GMQLSample): Unit = ???
+  override def DeleteSampleFromDS(dataSet: String, userName: String, sample: GMQLSample): Unit = ???
 
   /**
     *
@@ -154,7 +154,7 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
     * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @return
     */
-  override def getDSStatistics(dataSet: IRDataSet, userName: String): GMQLStatistics = ???
+  override def getDSStatistics(dataSet: String, userName: String): GMQLStatistics = ???
 
 
   /**
@@ -187,5 +187,5 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
     * @param query
     * @return
     */
-  override def searchMeta(dataSet: IRDataSet, userName: String, query: String): java.util.List[GMQLSample] = ???
+  override def searchMeta(dataSet: String, userName: String, query: String): java.util.List[GMQLSample] = ???
 }
