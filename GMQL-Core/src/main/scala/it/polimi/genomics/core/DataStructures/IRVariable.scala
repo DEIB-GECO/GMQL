@@ -238,8 +238,8 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
       IRCombineMD(meta_join_cond,
         this.metaDag,
         subtrahend.metaDag,
-        "left",
-        "right")
+        "",
+        "")
 
     //difference does not change the schema
     new IRVariable(new_meta_dag, new_region_dag,this.schema)

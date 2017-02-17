@@ -33,14 +33,20 @@ object CombineMD{
 
       val leftOut = left.flatMap{ l => val pair = pairs.get(l._1)
         if(pair.isDefined)
-        pair.get.map(expID=>(Hashing.md5().newHasher().putLong(l._1).putLong( expID).hash().asLong, (l._2._1,l._2._2)))
+          if (!leftTag.isEmpty()) {
+            pair.get.map(expID => (Hashing.md5().newHasher().putLong(l._1).putLong(expID).hash().asLong, (leftTag + "." + l._2._1, l._2._2)))
+          } else pair.get.map(expID=>(Hashing.md5().newHasher().putLong(l._1).putLong( expID).hash().asLong, (l._2._1,l._2._2)))
         else None
         }
 
       val rightOut = right.flatMap{ r =>
         pairs.flatMap{p =>
           if (p._2.contains(r._1)) {
-            Some(Hashing.md5().newHasher().putLong(p._1).putLong(r._1).hash().asLong, (r._2._1,r._2._2))
+            if (!rightTag.isEmpty()) {
+              Some(Hashing.md5().newHasher().putLong(p._1).putLong(r._1).hash().asLong, (rightTag + "." + r._2._1, r._2._2))
+            }
+            else
+              Some(Hashing.md5().newHasher().putLong(p._1).putLong(r._1).hash().asLong, (r._2._1, r._2._2))
           }else None
         }
       }
@@ -56,13 +62,17 @@ object CombineMD{
 
       val leftOut = left.flatMap{l=>
         rightIds.map{r =>
-          (Hashing.md5().newHasher().putLong(l._1).putLong( r).hash.asLong, (l._2._1,l._2._2))
+          if (!leftTag.isEmpty()){
+          (Hashing.md5().newHasher().putLong(l._1).putLong( r).hash.asLong, (leftTag +"."+l._2._1,l._2._2))
+        } else (Hashing.md5().newHasher().putLong(l._1).putLong( r).hash.asLong, (l._2._1,l._2._2))
         }
       }
 
       val rightOut = right.flatMap{r=>
         leftIds.map{l =>
-          (Hashing.md5().newHasher().putLong(l).putLong( r._1).hash.asLong, (r._2._1,r._2._2))
+          if (!rightTag.isEmpty()){
+          (Hashing.md5().newHasher().putLong(l).putLong( r._1).hash.asLong, (rightTag +"."+r._2._1,r._2._2))
+          } else (Hashing.md5().newHasher().putLong(l).putLong( r._1).hash.asLong, (r._2._1,r._2._2))
         }
       }
 
