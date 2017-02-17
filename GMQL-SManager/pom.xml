@@ -42,26 +42,16 @@
 
         <dependency>
             <groupId>it.polimi.genomics</groupId>
-            <artifactId>GMQL-Flink</artifactId>
-            <version>2.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>it.polimi.genomics</groupId>
             <artifactId>GMQL-Spark</artifactId>
-            <version>3.0</version>
+            <version>4.0</version>
             <exclusions>
-            <!--<exclusion>-->
-                <!--<groupId>io.netty</groupId>-->
-                <!--<artifactId>netty</artifactId>-->
-            <!--</exclusion>-->
             </exclusions>
         </dependency>
 
         <dependency>
             <groupId>it.polimi.genomics</groupId>
             <artifactId>Compiler</artifactId>
-            <version>2.0</version>
+            <version>3.0</version>
         </dependency>
 
         <dependency>
@@ -125,29 +115,29 @@
                 </configuration>
             </plugin>
 
-            <!--<plugin>-->
-                <!--<artifactId>maven-assembly-plugin</artifactId>-->
-                <!--<version>2.4.1</version>-->
-                <!--<configuration>-->
-                    <!--<descriptorRefs>-->
-                        <!--<descriptorRef>jar-with-dependencies</descriptorRef>-->
-                    <!--</descriptorRefs>-->
-                    <!--<archive>-->
-                        <!--<manifestEntries>-->
-                            <!--<Main-Class>it.polimi.genomics.manager.GMQLExecute</Main-Class>-->
-                        <!--</manifestEntries>-->
-                    <!--</archive>-->
-                <!--</configuration>-->
-                <!--<executions>-->
-                    <!--<execution>-->
-                        <!--<id>make-assembly</id>-->
-                        <!--<phase>package</phase>-->
-                        <!--<goals>-->
-                            <!--<goal>single</goal>-->
-                        <!--</goals>-->
-                    <!--</execution>-->
-                <!--</executions>-->
-            <!--</plugin>-->
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>2.4.1</version>
+                <configuration>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                    <archive>
+                        <manifestEntries>
+                            <Main-Class>it.polimi.genomics.manager.CLI</Main-Class>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

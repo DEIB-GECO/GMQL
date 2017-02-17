@@ -6,7 +6,6 @@
     <version>1.0-SNAPSHOT</version>
     <modules>
         <module>GMQL-Core</module>
-        <module>GMQL-R</module>
         <module>GMQL-Cli</module>
         <module>GMQL-Server</module>
         <module>GMQL-Spark</module>
@@ -14,11 +13,11 @@
         <module>GMQL-dot</module>
         <module>Compiler</module>
         <module>GMQL-Test</module>
-        <module>GMQL-SciDB</module>
-        <module>SciDB-ScalaAPI</module>
+        <!--<module>GMQL-SciDB</module>-->
+        <!--<module>SciDB-ScalaAPI</module>-->
         <module>GMQL-Repository</module>
         <module>GMQL-SManager</module>
-        <module>GMQL-Importer</module>
+        <!--<module>GMQL-Importer</module>-->
         <module>WSC</module>
     </modules>
     <name>${project.artifactId}</name>
@@ -37,88 +36,34 @@
         <maven.compiler.source>1.7</maven.compiler.source>
         <maven.compiler.target>1.7</maven.compiler.target>
         <encoding>UTF-8</encoding>
-        <scala.version>2.10.4</scala.version>
+        <scala.version>2.10.6</scala.version>
     </properties>
 
-    <!--
-      <repositories>
-        <repository>
-          <id>scala-tools.org</id>
-          <name>Scala-Tools Maven2 Repository</name>
-          <url>http://scala-tools.org/repo-releases</url>
-        </repository>
-      </repositories>
-
-      <pluginRepositories>
-        <pluginRepository>
-          <id>scala-tools.org</id>
-          <name>Scala-Tools Maven2 Repository</name>
-          <url>http://scala-tools.org/repo-releases</url>
-        </pluginRepository>
-      </pluginRepositories>
-    -->
     <dependencies>
         <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
             <version>${scala.version}</version>
         </dependency>
-        <!-- http://mvnrepository.com/artifact/org.apache.lucene/lucene-analyzers-common -->
-        <dependency>
-            <groupId>org.apache.lucene</groupId>
-            <artifactId>lucene-analyzers-common</artifactId>
-            <version>4.7.0</version>
-        </dependency>
 
-        <!-- http://mvnrepository.com/artifact/org.apache.lucene/lucene-queryparser -->
-        <dependency>
-            <groupId>org.apache.lucene</groupId>
-            <artifactId>lucene-queryparser</artifactId>
-            <version>4.7.0</version>
-        </dependency>
-
-        <!-- http://mvnrepository.com/artifact/org.apache.lucene/lucene-core -->
-        <dependency>
-            <groupId>org.apache.lucene</groupId>
-            <artifactId>lucene-core</artifactId>
-            <version>4.7.0</version>
-        </dependency>
-
-        <!--
-        <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-scala</artifactId>
-            <version>0.9.0-milestone-1</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-clients</artifactId>
-            <version>0.9.0-milestone-1</version>
-        </dependency>
-        -->
-        <!--<dependency>-->
-        <!--<groupId>org.apache.flink</groupId>-->
-        <!--<artifactId>flink-scala</artifactId>-->
-        <!--<version>0.9-SNAPSHOT</version>-->
-        <!--</dependency>-->
-        <!--<dependency>-->
-        <!--<groupId>org.apache.flink</groupId>-->
-        <!--<artifactId>flink-clients</artifactId>-->
-        <!--<version>0.9-SNAPSHOT</version>-->
-        <!--</dependency>-->
         <dependency>
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
             <version>1.2.17</version>
         </dependency>
 
+        <!-- http://mvnrepository.com/artifact/org.slf4j/slf4j-log4j12 -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>1.7.21</version>
+        </dependency>
 
-
-        <!--<dependency>-->
-            <!--<groupId>com.google.guava</groupId>-->
-            <!--<artifactId>guava</artifactId>-->
-            <!--<version>18.0</version>-->
-        <!--</dependency>-->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.21</version>
+        </dependency>
 
         <!-- Test -->
 

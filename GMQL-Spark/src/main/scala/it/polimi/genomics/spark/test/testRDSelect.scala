@@ -2,7 +2,10 @@ package it.polimi.genomics.spark.test
 
 import it.polimi.genomics.core.DataStructures
 import it.polimi.genomics.core.DataStructures.RegionCondition.ChrCondition
-import it.polimi.genomics.repository.util.Utilities
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.FileSystem
+//import it.polimi.genomics.repository.{Utilities => General_Utilities}
+//import it.polimi.genomics.repository.FSRepository.{LFSRepository, Utilities => FSR_Utilities}
 import it.polimi.genomics.spark.implementation.RegionsOperators.PredicateRD
 import it.polimi.genomics.spark.implementation.loaders.BedScoreParser
 import org.apache.hadoop.fs.{Path, PathFilter}
@@ -53,7 +56,9 @@ object testRDSelect {
     //        )
 
 //    val selectedURIs = new java.io.File(dirInput).listFiles.filter(!_.getName.endsWith(".meta")).map(x => x.getPath)
-    val fs = Utilities.getInstance().getFileSystem
+    val hconf = new Configuration();
+    val path = new org.apache.hadoop.fs.Path(dirInput);
+    val fs = FileSystem.get(path.toUri(), hconf);
 
     val selectedURIs =  fs.listStatus(new Path(dirInput), new PathFilter {
         override def accept(path: Path): Boolean = {

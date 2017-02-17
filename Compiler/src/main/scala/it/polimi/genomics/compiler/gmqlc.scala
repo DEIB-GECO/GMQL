@@ -2,6 +2,7 @@ package it.polimi.genomics.compiler
 
 
 import it.polimi.genomics.GMQLServer.GmqlServer
+import it.polimi.genomics.core.GMQLOutputFormat
 import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.{SparkConf, SparkContext}
@@ -102,7 +103,7 @@ object gmqlc {
       .set("spark.driver.allowMultipleContexts","true")
 //      .set("spark.sql.tungsten.enabled", "true")
     val sc:SparkContext =new SparkContext(conf)
-    val server = new GmqlServer(new GMQLSparkExecutor(testingIOFormats = false,sc=sc,GTFoutput = true), Some(1000)/*Some(args(3).toInt)*/)
+    val server = new GmqlServer(new GMQLSparkExecutor(testingIOFormats = false,sc=sc,outputFormat = GMQLOutputFormat.TAB), Some(1000)/*Some(args(3).toInt)*/)
 //    val server = new GmqlServer(new FlinkImplementation(), Some(10000))
     val translator = new Translator(server, "/Users/pietro/Desktop/test_gmql/testout/")
 
@@ -185,7 +186,7 @@ object gmqlc {
       "MATERIALIZE J into hdfs://ip-172-31-3-242.us-west-2.compute.internal:8020/user/hadoop/newOut/;"
 
     val ran = Random.nextInt()
-    val Histogram =  "S = SELECT(NOT(leaveout==\"something\");parser: BedScoreParser) hdfs://ip-172-31-12-101.us-west-2.compute.internal:8020/user/hadoop/"+args(0)+"/;\n" +
+    val Histogram =  "S = SELECT(NOT(leaveout==\"something\");parser: BedScoreParser) hdfs://ip-172-31-12-101.us-west-2.compute.internal:8020/user/hadoop/"/*+args(0)*/+"/;\n" +
       "J = Histogram() S;\n" +
       "MATERIALIZE J into hdfs://ip-172-31-12-101.us-west-2.compute.internal:8020/user/hadoop/newOut"+ran+";"
 
@@ -194,8 +195,8 @@ object gmqlc {
 //      "J = MAP() A S;\n" +
 //      "MATERIALIZE J into hdfs://ip-172-31-5-18.us-west-2.compute.internal:8020/user/hadoop/newOut"+ran+";"
 
-    val Map_server =  "S = SELECT(NOT(leaveout==\"something\");parser: NarrowPeakParser) hdfs://ip-172-31-5-18.us-west-2.compute.internal:8020/user/hadoop/"+args(0)+"/;\n" +
-      "A = SELECT(NOT(leaveout==\"something\");parser:ANNParser) hdfs://ip-172-31-5-18.us-west-2.compute.internal:8020/user/hadoop/"+args(1)+"/;\n" +
+    val Map_server =  "S = SELECT(NOT(leaveout==\"something\");parser: NarrowPeakParser) hdfs://ip-172-31-5-18.us-west-2.compute.internal:8020/user/hadoop/"/*+args(0)*/+"/;\n" +
+      "A = SELECT(NOT(leaveout==\"something\");parser:ANNParser) hdfs://ip-172-31-5-18.us-west-2.compute.internal:8020/user/hadoop/"/*+args(1)*/+"/;\n" +
       "J = MAP() A S;\n" +
       "MATERIALIZE J into hdfs://ip-172-31-5-18.us-west-2.compute.internal:8020/user/hadoop/newOut"+ran+";"
 
@@ -203,16 +204,31 @@ object gmqlc {
       "OUT = ORDER(region_order: signal, pvalue; region_topg: 7) EXP;\n " +
       "MATERIALIZE OUT into GH;"
 
+    val select = "EXP = SELECT() project1;\n" +
+      "MATERIALIZE EXP into outoo;"
+
+    val cover_ALL = "RAW = SELECT(ibody == 'ATF3') cover_in;\n" +
+//      "HISTO_TEST = COVER_HISTOGRAM(ALL,ALL;GROUPBY: cell) RAW;\n" +
+      "MATERIALIZE RAW into histo_res;\n"
+
+    val union = " TEAD4_rep_narrow = SELECT() /Users/abdulrahman/Desktop/ann/;\n " +
+      "TEAD4_rep_broad = SELECT() /Users/abdulrahman/Desktop/exp/;\n  " +
+      "TEAD4_rep = UNION()  TEAD4_rep_narrow  TEAD4_rep_broad;\n  " +
+      "MATERIALIZE TEAD4_rep into TEAD4_rep;"
+
+    val selectEmpty = "A = SELECT(dd == 'hello') ann; \n " +
+      "Materialize A into emptyset;"
+
     val project = "A = SELECT( cell == 'K562' AND antibody == 'c-Jun' ) project;\n" +
       "B = PROJECT( region_update: score AS score * 2)A;\n" +
       "MATERIALIZE B INTO AddedDatasetPlusMinus2;"
-    val execQuery = args(2) match {
-      case "histo" => Histogram
-      case "map" => Map_server
-    }
+//    val execQuery = args(2) match {
+//      case "histo" => Histogram
+//      case "map" => Map_server
+//    }
     val test_double_select = ""
       try {
-        if (translator.phase2(translator.phase1(project))) {
+        if (translator.phase2(translator.phase1(union))) {
           server.run()
           //server.getDotGraph()
         }
@@ -220,7 +236,7 @@ object gmqlc {
         case e: CompilerException => println(e.getMessage)
       }
 
-      println("\n\nQuery" +"\n" + project + "\n\n")
+      println("\n\nQuery" +"\n" + union + "\n\n")
       // "open /Users/pietro/Desktop/test_gmql/output/".!
       //  Console.readLine()
   }

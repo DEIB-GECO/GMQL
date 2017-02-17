@@ -4,11 +4,16 @@ package it.polimi.genomics.manager
 import java.text.SimpleDateFormat
 import java.util
 import java.util.Date
-import java.util.concurrent.{TimeUnit, Executors}
+import java.util.concurrent.{Executors, TimeUnit}
+
+import it.polimi.genomics.core
+import it.polimi.genomics.core.{BinSize, GMQLScript, ImplementationPlatform}
 import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
+import it.polimi.genomics.manager.Exceptions.{InvalidGMQLJobException, NoJobsFoundException}
 import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLivyLauncher, GMQLSparkLauncher}
-import it.polimi.genomics.repository.GMQLRepository.GMQLRepository
-import it.polimi.genomics.repository.util.Utilities
+import it.polimi.genomics.repository.GMQLRepository
+import it.polimi.genomics.repository.{Utilities => General_Utilities}
+import it.polimi.genomics.repository.FSRepository.{LFSRepository, FS_Utilities => FSR_Utilities}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.{SparkConf, SparkContext}
 import org.slf4j.LoggerFactory
@@ -25,42 +30,61 @@ class GMQLExecute (){
   private final val logger = LoggerFactory.getLogger(this.getClass);
   private final val NUM_THREADS = 5;
   private final val execService = Executors.newFixedThreadPool(NUM_THREADS);
-  private var id_to_job_map:Map[String,GMQLJob] = new HashMap;
-  private var user_to_jobs_map:Map[String, List[String]] = new HashMap;
-  private var jobid_to_ds_map:Map[String, List[String]] = new HashMap;
+  private var JOBID_TO_JOB_INSTANCE:Map[String,GMQLJob] = new HashMap;
+  private var USER_TO_JOBID:Map[String, List[String]] = new HashMap;
+  private var JOBID_TO_OUT_DSs:Map[String, List[String]] = new HashMap;
 
-  def registerJob(scriptPath:String, script:String,executionType:String,binSize:Long, username:String,jobid:String = "",sc:SparkContext = null,GTFoutput:Boolean = false): GMQLJob ={
+  /**
+    * GMQL job is registered in the list of the jobs of for a specific user.
+    * This includes:
+    *   - Compilation of the job
+    *   - Register the user in the history list (if not registered yet)
+    *   - Register the jobID with to the user
+    *
+    * @param script {@link GMQLScript}, contains script string in addition to the script path. script path is used in generating the jobID.
+    * @param gMQLContext {@link GMQLContext} contains job running environment
+    * @param jobid {@link BinSize} contains the defaults for the job binning parameters
+    * @return {@link GMQLJob} contains all the information of the job.
+    */
+  def registerJob(script:GMQLScript, gMQLContext: GMQLContext, jobid:String = ""): GMQLJob ={
 
-    logger.info("Execution Platform is set to "+executionType)
-    logger.info("execType = "+executionType+"\t,scriptPath = "+scriptPath+"\t,username = "+username)
 
-    val job = if(executionType.toLowerCase() == GMQLExecute.SPARK){
-      new GMQLJob(new GMQLSparkExecutor(sc=sc,GTFoutput = GTFoutput),binSize,scriptPath,script,username,outputFormat = if(GTFoutput) "gtf" else "tab")
-    }else /*if(executionType.toLowerCase() == GMQLExecute.FLINK)*/{
-      new GMQLJob(new FlinkImplementation(),binSize,scriptPath,script,username,outputFormat = if(GTFoutput) "gtf" else "tab")
-    }
+    logger.info("Execution Platform is set to "+gMQLContext.implPlatform+"\n\tScriptPath = "+script.scriptPath+"\n\tUsername = "+gMQLContext.username)
+
+    val job = new GMQLJob(gMQLContext,script,gMQLContext.username)
+
 
     val jobProfile = if(jobid == "")job.compile() else job.compile(jobid)
+    val jID = jobProfile._1
+    val outDSs = jobProfile._2
 
-    val uToj = user_to_jobs_map.get(username);
-    val jToDSs = jobid_to_ds_map.get(jobProfile._1)
+    val uToj = USER_TO_JOBID.get(gMQLContext.username);
+    val jToDSs = JOBID_TO_OUT_DSs.get(jID)
 
+    //if the user is not found create empty lists of jobs and out Datasets.
     var jobs: List[String]= if (!uToj.isDefined) List[String](); else uToj.get
     var dataSets: List[String]= if (!jToDSs.isDefined) List[String](); else jToDSs.get
 
-    jobs ::= jobProfile._1
-    dataSets :::= jobProfile._2
+    jobs ::= jID
+    dataSets :::= outDSs
 
-    user_to_jobs_map = user_to_jobs_map + (username-> jobs)
-    jobid_to_ds_map = jobid_to_ds_map + (jobProfile._1 -> dataSets)
+    USER_TO_JOBID = USER_TO_JOBID + (gMQLContext.username-> jobs)
+    JOBID_TO_OUT_DSs = JOBID_TO_OUT_DSs + (jID -> dataSets)
 
     //register the job
-    id_to_job_map = id_to_job_map + (jobProfile._1 -> job);
+    JOBID_TO_JOB_INSTANCE = JOBID_TO_JOB_INSTANCE + (jID -> job);
     job;
   }
 
+  /**
+    * Get the job instance from the job name.
+    * If the job is not found  {@link InvalidGMQLJobException} exception will be thrown
+    *
+    * @param jobId {@link String} describe the GMQL job name (ID)
+    * @return {@link GMQLJob} instance
+    */
   private def getJob(jobId:String): GMQLJob ={
-    val jobOption = id_to_job_map.get(jobId);
+    val jobOption = JOBID_TO_JOB_INSTANCE.get(jobId);
     if (!jobOption.isDefined) {
       logger.error("Job not found in the registered job list..."+jobId);
       throw new InvalidGMQLJobException(String.format("Job %s cannot be scheduled for execution: the job does not exists.", jobId));
@@ -68,11 +92,18 @@ class GMQLExecute (){
     }else jobOption.get
   }
 
-  def scheduleGQLJobForYarn(jobId:String, launcher:GMQLLauncher, repository:GMQLRepository)={
+  /**
+    * Try to Execute GMQL Job. The job will be checked for execution of the provided platform
+    * and run in case of clear from errors.
+    *
+    * @param jobId {@link String} as the JobID.
+    * @param launcher There is a set of launchers that implements {@link GMQLLauncher}.
+    */
+  def execute(jobId:String, launcher:GMQLLauncher)={
     val job = getJob(jobId);
     try {
       logger.info(String.format("Job %s is under execution.. ", job.jobId))
-      val state = job.runGMQL(jobId,launcher,repository)
+      val state = job.runGMQL(jobId,launcher)
       logger.info(String.format ("Job is finished execution with %s.. ",state))
     }catch {
       case ex:Throwable =>logger.error("exception in execution .. \n" + ex.getMessage); ex.printStackTrace() ; job.status = Status.EXEC_FAILED ;Thread.currentThread().interrupt();
@@ -80,6 +111,7 @@ class GMQLExecute (){
   }
 
 
+  @deprecated
   def scheduleGMQLJob(jobId:String)={
 
     val job = getJob(jobId);
@@ -98,11 +130,19 @@ class GMQLExecute (){
     })
   }
 
+  /**
+    *
+    * retrieve GMQL job by providing the username and the job id
+    *
+    * @param username {@link String} of the username (owner of the job)
+    * @param jobId {@link String} as the job id
+    * @return {@link GMQLJob} instance
+    */
   def getGMQLJob(username:String, jobId:String): GMQLJob ={
 
     logger.debug("queried job = "+jobId.trim)
     logger.debug ("jobs: ")
-    id_to_job_map.foreach(x=>logger.debug(x._1,x._2) )
+    JOBID_TO_JOB_INSTANCE.foreach(x=>logger.debug(x._1,x._2) )
 
     val job = getJob(jobId.trim)
     if (!username.equals(job.username))
@@ -111,26 +151,29 @@ class GMQLExecute (){
     job
   }
 
+  /**
+    *  List all the jobs of the user
+    *
+    * @param username {@link String} as the user name
+    * @return {@link util.List} of {@link String} as the job ids of the requested user.
+    */
   def getUserJobs(username:String):util.List[String]= {
-    val jobsOption = user_to_jobs_map.get(username);
+    val jobsOption = USER_TO_JOBID.get(username);
     if (!jobsOption.isDefined) {
       throw new NoJobsFoundException(String.format("No job found for user %s.", username));
       List[String]().asJava
     }else jobsOption.get.asJava
   }
 
-
-  def getJobLogPath(username:String,jobID:String): String ={
-    Utilities.getInstance().GMQLHOME+"/data/"+username +"/logs/"+jobID.toLowerCase()+".log"
-  }
-
-  def getJobLog(username:String,jobID:String): util.List[String] ={
-    import scala.io.Source
-    Source.fromFile(Utilities.getInstance().GMQLHOME+"/data/"+username +"/logs/"+jobID.toLowerCase()+".log").getLines().toList.asJava
-  }
-
+  /**
+    *
+    * return the job output datasets names.
+    *
+    * @param jobId {@link String} as the GMQL Job id
+    * @return List of Strings of the output datasets names
+    */
   def getJobDatasets (jobId:String): util.List[String] = {
-    val datasets = jobid_to_ds_map.get(jobId)
+    val datasets = JOBID_TO_OUT_DSs.get(jobId)
     if(!datasets.isDefined){
       throw new NoJobsFoundException(s"No datasets for job found: $jobId");
       List[String]().asJava
@@ -138,6 +181,10 @@ class GMQLExecute (){
       datasets.get.asJava
   }
 
+  /**
+    * ShutDown The Server Manager by terminating all the thread pool.
+    *
+    */
   def shotdown(): Unit ={
     execService.shutdown()
     try{
@@ -150,12 +197,35 @@ class GMQLExecute (){
 
 }
 object GMQLExecute{
+
   var instance:GMQLExecute= null
-  private final val SPARK = "spark"
-  private final val FLINK = "flink"
-  private final val SCIDB = "scidb"
+
   def apply(): GMQLExecute ={
     if(instance == null){instance = new GMQLExecute();}
     instance
   }
+
+  /**
+    * Get the path of the log file of a specific job in a specific user
+    *
+    * @param username
+    * @param jobID
+    * @return
+    */
+  def getJobLogPath(username:String,jobID:String): String ={
+    General_Utilities().getLogDir(username)+jobID.toLowerCase()+".log"
+  }
+
+  /**
+    * return all the log strings of a specific job.
+    *
+    * @param username {@link String} of the username
+    * @param jobID {@link String} of the JobID
+    * @return list of Strings of the log information.
+    */
+  def getJobLog(username:String,jobID:String): util.List[String] ={
+    import scala.io.Source
+    Source.fromFile(General_Utilities().getLogDir(username)+jobID.toLowerCase()+".log").getLines().toList.asJava
+  }
 }
+

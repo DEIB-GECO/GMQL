@@ -21,7 +21,7 @@ object Comparators {
     val spark_meta = read_spark_results(spark_path + "/exp").sorted
 
 //    flink_meta.zip(spark_meta).foreach(x=>if(x._1 != x._2) println(x._1+"///"+x._2,false)else println(x._1+"///"+x._2,true) )
-//    println (flink_meta.size, spark_meta.size)
+    println (flink_meta.size, spark_meta.size)
     flink_meta==spark_meta
   }
 
@@ -35,7 +35,7 @@ object Comparators {
         .toList
     } else {
       var res : List[String] = List.empty
-      for (f <- f_flink_path.listFiles()) {
+      for (f <- f_flink_path.listFiles().filter(x => !x.getName.endsWith("schema"))) {
         res = res ++ (for(line <- scala.io.Source.fromFile(f).getLines()) yield line)
       }
       res

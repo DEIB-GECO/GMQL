@@ -18,8 +18,6 @@ object SelectMD {
   @throws[SelectFormatException]
   def apply(executor : GMQLSparkExecutor, metaCondition: MetadataCondition, inputDataset: MetaOperator, sc : SparkContext) : RDD[MetaType] = {
     logger.info("----------------SELECTMD executing..")
-    //    val sqlContext = new SQLContext(sc);
-    //    import sqlContext.implicits._
 
     val input = executor.implement_md(inputDataset, sc).cache()
     input.join(metaSelection.applyMetaSelect(metaCondition, input).map(x=>(x,0))).map(x=>(x._1,x._2._1)).cache()

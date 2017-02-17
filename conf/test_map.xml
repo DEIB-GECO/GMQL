@@ -93,7 +93,7 @@
             MATERIALIZE M into #OUTPUT#;
         </query>
         <query>
-            R = SELECT(NOT(leaveout=="something");parser:RnaSeqParser) #ANN#;
+            R = SELECTNOT(leaveout=="something");parser:RnaSeqParser) #ANN#;
             E = SELECT(NOT(leaveout=="something");parser:BedScoreParser)  #BED#;
             M = MAP(summa AS SUM(score), minzi AS MIN(score), maxi AS MAX(score)) R E;
             MATERIALIZE M into #OUTPUT#;

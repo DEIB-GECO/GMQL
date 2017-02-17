@@ -19,7 +19,7 @@ object App2 {
       println(i)
     }
 
-    val server = new GmqlServer(new FlinkImplementation(defaultBinSize = args(3).toLong))
+    val server = new GmqlServer(new FlinkImplementation(/*defaultBinSize = args(3).toLong*/))
 
     val inPath1 = "/Users/michelebertoni/Workspaces/IdeaProjects/genomic_computing/GMQLv2Scala/scalav2/trunk/GMQL-Flink/src/test/datasets/"
     val ex_data_path = List(inPath1 + "pietro/")

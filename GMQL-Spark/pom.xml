@@ -8,7 +8,7 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <version>3.0</version>
+    <version>4.0</version>
     <artifactId>GMQL-Spark</artifactId>
     <packaging>jar</packaging>
 
@@ -31,11 +31,6 @@
             <artifactId>GMQL-Core</artifactId>
             <version>2.0</version>
         </dependency>
-        <dependency>
-            <groupId>it.polimi.genomics</groupId>
-            <artifactId>GMQL-R</artifactId>
-            <version>3.0</version>
-        </dependency>
 
         <dependency>
             <groupId>it.polimi.genomics</groupId>
@@ -43,35 +38,10 @@
             <version>2.0</version>
         </dependency>
 
-        <!--<dependency>-->
-            <!--<groupId>it.polimi.genomics</groupId>-->
-            <!--<artifactId>GMQL-Spark-yarn</artifactId>-->
-            <!--<version>1.5.1</version>-->
-        <!--</dependency>-->
-
-        <!--<dependency>-->
-            <!--<groupId>it.polimi.genomics</groupId>-->
-            <!--<artifactId>GMQL-Spark-core</artifactId>-->
-            <!--<version>1.5.1</version>-->
-        <!--</dependency>-->
-
-
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-core_2.10</artifactId>
-            <!--<version>1.5.2</version>-->
             <version>1.6.2</version>
-            <!--<exclusions>-->
-                <!--<exclusion>-->
-                    <!--<groupId>io.netty</groupId>-->
-                    <!--<artifactId>netty</artifactId>-->
-                <!--</exclusion>-->
-                <!--<exclusion>-->
-                    <!--<artifactId>netty</artifactId>-->
-                    <!--<groupId>org.jboss.netty</groupId>-->
-                <!--</exclusion>-->
-            <!--</exclusions>-->
-            <!--<scope>provided</scope>-->
         </dependency>
     </dependencies>
 

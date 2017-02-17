@@ -13,7 +13,7 @@ object Join {
 
   def main(args : Array[String]) {
 
-    val server = new GmqlServer(new FlinkImplementation(50000, 5))
+    val server = new GmqlServer(new FlinkImplementation(/*50000,*/ maxBinDistance = 5))
     val mainPath = "/Users/michelebertoni/Workspaces/IdeaProjects/genomic_computing/GMQLv2Scala/scalav2/trunk/GMQL-Flink/src/test/datasets/"
     val ex_data_path = List(mainPath + "join/ref/")
     val ex_data_path_optional = List(mainPath + "join/exp/")

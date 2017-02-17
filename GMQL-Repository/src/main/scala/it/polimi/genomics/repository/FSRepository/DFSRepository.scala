@@ -6,10 +6,10 @@ import com.google.common.io.Files
 import it.polimi.genomics.core.DataStructures.IRDataSet
 import it.polimi.genomics.core.ParsingType
 import it.polimi.genomics.core.ParsingType._
+import it.polimi.genomics.repository
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
-import it.polimi.genomics.repository.GMQLRepository
-import it.polimi.genomics.repository.GMQLRepository.Utilities._
-import it.polimi.genomics.repository.GMQLRepository._
+import it.polimi.genomics.repository.GMQLExceptions.{GMQLDSException, GMQLDSNotFound, GMQLSampleNotFound, GMQLUserNotFound}
+import it.polimi.genomics.repository.{ GMQLRepository, GMQLSample, GMQLSchemaTypes, GMQLStatistics, Utilities => General_Utilities}
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.slf4j.LoggerFactory
 
@@ -18,239 +18,185 @@ import scala.collection.JavaConverters._
 /**
   * Created by abdulrahman on 12/04/16.
   */
-class DFSRepository extends GMQLRepository{
+class DFSRepository extends GMQLRepository with XMLDataSetRepository{
   private final val logger = LoggerFactory.getLogger(this.getClass)
-    GMQLRepository.Utilities()
+    repository.Utilities()
+
   /**
+    * Add a new dataset to GMQL repository, this dataset is usually a result of a script execution.
     *
-    * DO NOT Forget to check the existance ot the datasetname before creating the dataset
-    *
-    * @param dataSet
-    * @param Schema
-    * @param Samples
-    * @param GMQLScriptPaht
-    * @throws GMQLDSNotFound
-    * @throws it.polimi.genomics.repository.GMQLRepository.GMQLUserNotFound
-    * @throws it.polimi.genomics.repository.GMQLRepository.GMQLSampleNotFound
+    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
+    * @param userName The user name in which this dataSet belongs to.
+    * @param Samples List of GMQL samples {@link GMQLSample}.
+    * @param GMQLScriptPath The path to the script text file that generated this data set.
+    * @param schemaType One of GMQL schema types as shown in {@link GMQLSchemaTypes}
     */
-  override def createDs(dataSet:IRDataSet, userName: String, Samples: java.util.List[GMQLSample], GMQLScriptPaht: String,schemaType:GMQLSchemaTypes.Value): Unit = {
-    import it.polimi.genomics.repository.GMQLRepository.Utilities._
-    new File(GMQLRepository.Utilities().GMQLHOME+"/tmp/"+userName+"/"+dataSet.position+"_/").mkdirs()
+  override def createDs(dataSet:IRDataSet, userName: String, Samples: java.util.List[GMQLSample], GMQLScriptPath: String,schemaType:GMQLSchemaTypes.Value): Unit = {
+    //Create Temp folder to place the meta files temporarly in Local file system
+    val tmpFolderName = General_Utilities().getTempDir(userName)+dataSet.position+"_/"
+    val tmpFolder = new File(tmpFolderName)
+    tmpFolder.mkdirs()
+
+    //copy all the meta data from HDFS to Local file system
     val samples = Samples.asScala.map{x=>
-      val metaFile= GMQLRepository.Utilities().GMQLHOME+"/tmp/"+userName+"/"+dataSet.position+"_/"+new File(x.name+".meta").getName
-      Utilities.copyfiletoLocal(GMQLRepository.Utilities().HDFSRepoDir + userName + "/regions/" + x.name+".meta", metaFile)
-      new GMQLSample(x.name, metaFile,x.ID)
-    }.toList
-    val gMQLDataSetXML = new GMQLDataSetXML(dataSet,userName,samples,GMQLScriptPaht, schemaType,"GENERATED_HDFS")
-    gMQLDataSetXML.Create()
+      val metaFile= tmpFolderName + x.name+".meta"
+      val sourceHDFSMetaFile = General_Utilities().getHDFSRegionDir(userName) + x.name+".meta"
+      FS_Utilities.copyfiletoLocal(sourceHDFSMetaFile, metaFile)
+      new GMQLSample(name = x.name,meta = metaFile )
+    }.toList.asJava
+
+    //create DS as a set of XML files in the local repository
+    super.createDs(dataSet, userName, samples, GMQLScriptPath, schemaType)
+
+    //clean the temp Directory
+    tmpFolder.delete()
   }
 
   /**
+    *     * Import Dataset into GMQL from Local file system.
     *
-    * DO NOT Forget to check the existance ot the datasetname before creating the dataset
-    *
-    * @param dataSet
-    * @param Schema
-    * @param Samples
-    * @param GMQLScriptPaht
-    * @throws GMQLDSNotFound
-    * @throws it.polimi.genomics.repository.GMQLRepository.GMQLUserNotFound
-    * @throws it.polimi.genomics.repository.GMQLRepository.GMQLSampleNotFound
+    * @param dataSetName String of the dataset name.
+    * @param Samples List of GMQL samples {@link GMQLSample}.
+    * @param userName String of the user name to add this dataset to.
+    * @param schemaPath String of the path to the xml file of the dataset's schema.
     */
-  override def importDs(dataSetName:String, userName: String, Samples: java.util.List[GMQLSample], schemaPath:String): Unit = {
-//    Files.copy((new File(schemaPath)),(new File(GMQLRepository.Utilities.RepoDir + userName + "/schema/" + dataSetName + ".schema")))
-   if(Utilities.validate(schemaPath)) {
-     val xmlFile = XML.load(schemaPath)
-     val cc = (xmlFile \\ "field")
-     val schemaType = (xmlFile \\ "gmqlSchema").head.attribute("type").get.head.text
-     val schema = cc.map { x => (x.text.trim, attType(x.attribute("type").get.head.text)) }.toList.asJava
-     val dataSet = new IRDataSet(dataSetName, schema)
-     val gMQLDataSetXML = new GMQLDataSetXML(dataSet, userName, Samples.asScala.toList, Utilities.getType(schemaType), "IMPORTED_HDFS")
-     gMQLDataSetXML.Create()
+  override def importDs(dataSetName: String, userName: String, Samples: java.util.List[GMQLSample], schemaPath: String): Unit = {
+    if (FS_Utilities.validate(schemaPath)) {
+      // Import the dataset schema and Script files to the local folder
+      super.importDs(dataSetName: String, userName: String, Samples: java.util.List[GMQLSample], schemaPath: String)
 
-     // Move data into HDFS
-     Samples.asScala.map(x => Utilities.copyfiletoHDFS(x.name, GMQLRepository.Utilities().HDFSRepoDir + userName + "/regions/" + x.name))
-   }else {
+      // Copy sample and Meta data from HDFS to the local folder
+      Samples.asScala.map(x => FS_Utilities.copyfiletoHDFS(x.name, General_Utilities().getHDFSRegionDir(userName) + x.name))
+
+      FS_Utilities.copyfiletoHDFS(General_Utilities().getSchemaDir(userName)+dataSetName+".schema",
+        General_Utilities().getHDFSRegionDir(userName)+ new Path(Samples.get(0).name).getParent.toString+ "/test.schema"
+      )
+    } else {
       logger.info("The dataset schema does not confirm the schema style (XSD)")
-   }
+    }
   }
 
   /**
+    *  Add sample to Data Set,
+    *  TODO: i did not finish it since The web interface does not use it for the moment
     *
-    * @param dataSet
-    * @param Sample
-    * @throws GMQLDSNotFound
-    * @throws it.polimi.genomics.repository.GMQLRepository.GMQLDSException
-    * @throws it.polimi.genomics.repository.GMQLRepository.GMQLUserNotFound
-    * @throws it.polimi.genomics.repository.GMQLRepository.GMQLSampleNotFound
+    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
+    * @param Sample GMQL sample {@link GMQLSample}.
+    * @userName String of the user name.
     */
-  override def AddSampleToDS(dataSet: IRDataSet, userName: String, Sample: GMQLSample): Unit = ???
+  override def AddSampleToDS(dataSet: String, userName: String, Sample: GMQLSample): Unit = ???
 
   /**
+    * Delete Data Set from the repository, Delete XML files from local File system and delete the samples and meta files from HDFS.
     *
-    * @param dataSet
-    * @param sample
-    * @return
-    */
-  override def getSampleMeta(dataSet: IRDataSet, userName: String, sample: GMQLSample): String = ???
-
-  /**
-    *
-    * @param dataSet
+    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @throws GMQLDSNotFound
-    * @throws it.polimi.genomics.repository.GMQLRepository.GMQLDSException
-    * @throws it.polimi.genomics.repository.GMQLRepository.GMQLUserNotFound
+    * @throws GMQLDSException
+    * @throws GMQLUserNotFound
     */
   override def DeleteDS(dataSetName:String, userName:String): Unit = {
     val dataset = new GMQLDataSetXML(dataSetName,userName).loadDS()
-    val conf = Utilities.gethdfsConfiguration()
+
+    //Delete files from HDFS
+    val conf = FS_Utilities.gethdfsConfiguration()
     val fs = FileSystem.get(conf)
-    val hdfspath = conf.get("fs.defaultFS") +GMQLRepository.Utilities().HDFSRepoDir+ userName + "/regions/"
-    dataset.samples.map{x=> fs.delete(new Path(hdfspath+x.name),true);fs.delete(new Path(hdfspath+x.meta),true)}
+    val hdfspath = conf.get("fs.defaultFS") + General_Utilities().getHDFSRegionDir(userName)
+    dataset.samples.map{x=>
+      fs.delete(new Path(hdfspath+x.name),true);
+      fs.delete(new Path(hdfspath+x.meta),true)
+    }
+
+    //Delete dataset XML files
     dataset.Delete()
   }
 
   /**
     *
-    * @param dataSet
-    * @param Sample
+    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
+    * @param Sample GMQL sample {@link GMQLSample}.
     * @throws GMQLDSNotFound
-    * @throws it.polimi.genomics.repository.GMQLRepository.GMQLDSException
-    * @throws it.polimi.genomics.repository.GMQLRepository.GMQLUserNotFound
-    * @throws it.polimi.genomics.repository.GMQLRepository.GMQLSampleNotFound
-    */
-  override def DeleteSampleFromDS(dataSet:IRDataSet, userName: String, Sample:GMQLSample): Unit = ???
-
-  /**
-    *
-    * @param userName
     * @throws GMQLDSException
-    * @throws it.polimi.genomics.repository.GMQLRepository.GMQLUserNotFound
+    * @throws GMQLUserNotFound
+    * @throws GMQLSampleNotFound
     */
-  override def ListAllDSs(userName: String): java.util.List[IRDataSet] = {
-    val dSs = new File(it.polimi.genomics.repository.GMQLRepository.Utilities().RepoDir + userName+"/datasets/").listFiles(new FilenameFilter() {
-      def accept(dir: File, name: String): Boolean = {
-        return name.endsWith(".xml")
-      }
-    })
-    import scala.collection.JavaConverters._
-    dSs.map(x=>new GMQLDataSetXML(new IRDataSet(x.getName().subSequence(0, x.getName().length() - 4).toString(),List[(String,PARSING_TYPE)]().asJava),userName).loadDS().dataSet).toList.asJava
-  }
+  override def DeleteSampleFromDS(dataSet:String, userName: String, Sample:GMQLSample): Unit = ???
 
   /**
-    *
+    *   List of the samples that was generated from a GMQL script execution
+    *   and the schema for these samples
     * @param dataSet
     * @throws GMQLDSException
     * @return
     */
-  override def DSExists(dataSet: IRDataSet, userName: String): Boolean = ???
-
-  /**
-    *
-    * @param dataSet
-    * @throws GMQLDSException
-    * @return
-    */
-  override def DSExistsInPublic(dataSet: IRDataSet, userName: String): Boolean = ???
-
-  /**
-    *
-    * @param dataSet
-    * @throws GMQLDSException
-    * @return
-    */
-  override def ListDSSamples(dataSetName:String, userName: String): java.util.List[GMQLSample] ={
-    new GMQLDataSetXML(dataSetName,userName).loadDS().samples.asJava
-  }
-
-  /**
-    *
-    * @param dataSet
-    * @throws GMQLDSException
-    * @return
-    */
-  override def ListResultDSSamples(dataSetName:String , userName: String): java.util.List[GMQLSample] = {
-    val conf = Utilities.gethdfsConfiguration()
+  override def ListResultDSSamples(dataSetName:String , userName: String): (java.util.List[GMQLSample],java.util.List[(String,PARSING_TYPE)]) = {
+    val conf = FS_Utilities.gethdfsConfiguration()
     val fs = FileSystem.get(conf);
-    fs.listStatus(new Path(conf.get("fs.defaultFS") +GMQLRepository.Utilities().HDFSRepoDir+ userName + "/regions/" + dataSetName))
+    val dsPath = conf.get("fs.defaultFS") +repository.Utilities().getHDFSRegionDir(userName) + dataSetName
+    val samples = fs.listStatus(new Path(dsPath))
         .flatMap(x => {
           if (fs.exists(new Path(x.getPath.toString+".meta")) ) {
             Some(new GMQLSample(dataSetName+x.getPath.getName))
           } else
             None
         }).toList.asJava;
+    val schema = readSchemaFile(dsPath + "/test.schema")
+    (samples,schema)
   }
   /**
     *
-    * @param dataSet
+    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @return
     */
-  override def getDSStatistics(dataSet: IRDataSet, userName: String): GMQLStatistics = ???
-
-
+  override def getDSStatistics(dataSet: String, userName: String): GMQLStatistics = ???
 
   /**
-    * DO NOT Forget to check the existance ot the dataset name before copying the dataset
+    *  export the dataset from Hadoop Distributed File system to Local File system
     *
-    * @param dataSet
-    * @throws GMQLDSException
+    * @param dataSetName String of the dataset name
+    * @param userName String of the owner of the dataset
+    * @param localDir  String of the local directory path
     */
   override def exportDsToLocal(dataSetName: String, userName: String, localDir:String): Unit = {
 
-    import it.polimi.genomics.repository.GMQLRepository.Utilities._
-    val gMQLDataSetXML = new GMQLDataSetXML(dataSetName, userName).loadDS()
+    // export the schema and the script files
+    super.exportDsToLocal(dataSetName, userName, localDir)
 
+    val gMQLDataSetXML = new GMQLDataSetXML(dataSetName, userName).loadDS()
     val dest = new File(localDir)
     dest.mkdir()
 
+    //copy samples/meta files to local file system
     gMQLDataSetXML.samples.map { x =>
-      Utilities.copyfiletoLocal(GMQLRepository.Utilities().HDFSRepoDir + userName + "/regions/" + x.name, localDir + "/" + new File(x.name).getName)
+      FS_Utilities.copyfiletoLocal(repository.Utilities().getHDFSRegionDir(userName) + x.name, localDir + "/" + new File(x.name).getName)
     }
 
-    val srcSchema = new File(gMQLDataSetXML.schemaDir)
-    if (srcSchema.exists()) {
-    val schemaOS = new FileOutputStream(dest + "/" + srcSchema.getName)
-    schemaOS getChannel() transferFrom(
-      new FileInputStream(srcSchema) getChannel, 0, Long.MaxValue)
-    }
-
-    val srcScript = new File (gMQLDataSetXML.GMQLScriptUrl)
-    if(srcScript.exists()) {
-      val scriptOS = new FileOutputStream(dest + "/" + srcScript.getName)
-      scriptOS getChannel() transferFrom(
-        new FileInputStream(srcScript) getChannel, 0, Long.MaxValue)
-      scriptOS.close()
-    }
-  }
-
-
-  def getSchema(dataSetName: String, userName:String): java.util.List[(String,PARSING_TYPE)] = {
-    val gtfFields = List("seqname","source","feature","start","end","strand","frame")
-    val tabFields = List("chr","left","right","strand")
-    val xmlFile = XML.load(GMQLRepository.Utilities().RepoDir + userName + "/schema/" + (new File(dataSetName)).getParent + ".schema")
-    val cc = (xmlFile \\ "field")
-    cc.flatMap{x => if(gtfFields.contains(x.text.trim)||tabFields.contains(x.text.trim)) None else Some(x.text.trim, attType(x.attribute("type").get.head.text))}.toList.asJava
   }
 
   /**
+    *   Register user in the repository.
     *
-    * @param dataSet
-    * @param query
+    * @param userName String of the user name.
     * @return
     */
-  override def searchMeta(dataSet: IRDataSet, userName: String, query: String): java.util.List[GMQLSample] = ???
+  override def registerUser(userName: String): Boolean = {
+    val dir = General_Utilities().getHDFSRegionDir(userName)
+    val creationMessage = if(FS_Utilities.createDFSDir(dir)) "\t Created..." else "\t Not created..."
+    logger.info( dir + creationMessage)
+    super.registerUser(userName)
+  }
 
   /**
+    *   Delete a user from the repository.
     *
-    * @param dataSet
+    * @param userName String of the user name.
     * @return
     */
-  override def getMeta(dataSet: IRDataSet, userName: String): String = ???
+  override def unregisterUser(userName: String): Boolean = {
+    logger.info(s"HDFS Folders Deletion for user $userName...")
 
-  def attType(x: String) = x.toUpperCase match {
-    case "STRING" => ParsingType.STRING
-    case "CHAR" => ParsingType.STRING
-    case "CHARACTAR" => ParsingType.STRING
-    case _ => ParsingType.DOUBLE
+    logger.info( General_Utilities().getHDFSRegionDir( userName )+"\t Status:" +
+      (if (FS_Utilities.deleteDFSDir(General_Utilities().getHDFSRegionDir( userName ))) "Deleted." else "Error"))
+
+    super.unregisterUser(userName)
   }
 }

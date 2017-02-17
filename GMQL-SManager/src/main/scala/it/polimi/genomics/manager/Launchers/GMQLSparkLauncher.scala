@@ -1,47 +1,39 @@
 package it.polimi.genomics.manager.Launchers
 
-import it.polimi.genomics.manager.{GMQLJob, InvalidGMQLJobException, Status}
+import it.polimi.genomics.manager.Exceptions.InvalidGMQLJobException
+import it.polimi.genomics.manager.{GMQLJob, Status}
 import org.apache.spark.launcher.SparkAppHandle
 import org.slf4j.LoggerFactory
 
 /**
   * Created by abdulrahman on 04/05/16.
   */
+/**
+  *
+  * @param sparkJob is a {@link GMQLJob}, sparkJob should contains information on running GMQL Job
+  *      such as the implementation platform and the context, along with the code and the state.
+  */
 class GMQLSparkLauncher(sparkJob:GMQLJob) extends GMQLLauncher(sparkJob){
+
   private final val logger = LoggerFactory.getLogger(this.getClass);
+
+  //Spark application handler
   var launcherHandler:SparkAppHandle = null
+
+  /**
+    * Run GMQL job
+    * @return {@link GMQLSparkLauncher} handle
+    */
   def run(): GMQLSparkLauncher = {
     val importController = new GMQLSparkSubmit(job);
     launcherHandler = importController.runSparkJob()
-
-//    new Thread(new Runnable {
-//      def run() {
-//        while(launcherHandler.getState == SparkAppHandle.State.CONNECTED ||
-//          launcherHandler.getState == SparkAppHandle.State.SUBMITTED ||
-//          launcherHandler.getState == SparkAppHandle.State.RUNNING  ||
-//          launcherHandler.getState == SparkAppHandle.State.UNKNOWN ){ Thread.sleep(1000)}
-//        logger.info("Creating dataset...",job.outputVariablesList)
-//        logger.info("State: "+job.status)
-////        if(job.status == Status.EXEC_SUCCESS)
-////          {
-////            job.createds()
-////            job.status= Status.SUCCESS
-////          }
-////        else
-////        {
-////          job.status = Status.EXEC_FAILED
-////          logger.warn("Job Failed, no dataset is created.")
-////        }
-//
-//
-//      }
-//    }).start()
-
-    logger.info("Creating dataset Done...")
     this
   }
 
-  def getStatus(): Status.Value={
+  /**
+    * Return
+    *     */
+  override def getStatus(): Status.Value={
     val status = launcherHandler.getState
     status match {
       case SparkAppHandle.State.CONNECTED => Status.PENDING
@@ -54,11 +46,20 @@ class GMQLSparkLauncher(sparkJob:GMQLJob) extends GMQLLauncher(sparkJob){
     }
   }
 
-  def getAppName (): String =
+  override def getAppName (): String =
   {
     launcherHandler.getAppId
   }
 
+  //TODO: GMQL job should be killed in YARN environment too.
+  // This needs to be added bellow by calling appropriate function to kill YARN job.
+  // Other wise the kill button will stop GMQL job only from the Server Manager and not from holding the resources.
+  /**
+    *
+    * kill GMQL Job by stoping the spark context
+    *
+    *
+    */
   override def killJob() =
   {
     try{

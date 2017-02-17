@@ -1,8 +1,12 @@
 package it.polimi.genomics.flink.FlinkImplementation.reader.parser
 
+import it.polimi.genomics.core.DataStructures.IRDataSet
 import it.polimi.genomics.core.ParsingType
-import it.polimi.genomics.repository.util.Utilities
+import it.polimi.genomics.core.ParsingType.PARSING_TYPE
+//import it.polimi.genomics.repository.{Utilities => General_Utilities}
+//import it.polimi.genomics.repository.FSRepository.{LFSRepository, Utilities => FSR_Utilities}
 import org.slf4j.LoggerFactory
+import sun.java2d.loops.FillRect.General
 
 import scala.xml.XML
 
@@ -17,11 +21,15 @@ object RepositoryParser {
   //val schema = List(("name", ParsingType.STRING), ("score", ParsingType.DOUBLE))
   def apply(dataset: String) : DelimiterSeparatedValuesParser = {
 
+//    val repository = new LFSRepository()
+//    import scala.collection.JavaConverters._
+//    val ds = new IRDataSet(dataset, List[(String,PARSING_TYPE)]().asJava)
 
-    val XMLfile = if(!Utilities.getInstance().checkDSNameinPublic(dataset))
-      Utilities.getInstance().RepoDir+Utilities.USERNAME+"/schema/"+dataset+".schema"
-    else
-      Utilities.getInstance().RepoDir+"public"+"/schema/"+dataset+".schema"
+
+    val XMLfile = //if(!repository.DSExistsInPublic(ds))
+      /*General_Utilities().getSchemaDir()+*/dataset+".schema"
+//    else
+//      General_Utilities().getSchemaDir("public")+dataset+".schema"
 
     println(XMLfile)
     var schematype = "tab"

@@ -8,10 +8,11 @@ package it.polimi.genomics.spark.implementation.loaders
 
 import com.google.common.hash._
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
-import it.polimi.genomics.core.{GValue}
+import it.polimi.genomics.core.GValue
 import it.polimi.genomics.core.DataTypes.{GRECORD, MetaType}
 import it.polimi.genomics.core.GRecordKey
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io._
 import org.apache.hadoop.io.compress.CompressionCodecFactory
 import org.apache.hadoop.mapreduce.lib.input._
@@ -46,16 +47,17 @@ object Loaders {
     def LoadMetaCombineFiles(parser:((Long,String))=>Option[MetaType]): RDD[MetaType] = {
       sc
         .newAPIHadoopRDD(conf, classOf[CombineTextFileWithPathInputFormat], classOf[Long], classOf[Text])
-        .flatMap(x =>  parser(x._1,x._2.toString))
+        .flatMap(x =>  {parser(x._1,x._2.toString)})
 
     }
 
     def LoadRegionsCombineFiles(parser: ((Long, String)) => Option[GRECORD], lineFilter: ((RegionCondition, GRECORD) => Boolean), regionPredicate: Option[RegionCondition]): RDD[(GRecordKey, Array[GValue])] = {
       val rdd = sc
         .newAPIHadoopRDD(conf, classOf[CombineTextFileWithPathInputFormat], classOf[Long], classOf[Text])
-      val rddPartitioned = if (rdd.partitions.size < 20)
-        rdd.repartition(40)
-      else
+      val rddPartitioned =
+//        if (rdd.partitions.size < 20)
+//        rdd.repartition(40)
+//      else
         rdd
       rddPartitioned.flatMap { x => val gRecord = parser(x._1, x._2.toString);
         gRecord match {
@@ -71,12 +73,12 @@ object Loaders {
       val rdd = sc.newAPIHadoopRDD(conf, classOf[CombineTextFileWithPathInputFormat], classOf[Long], classOf[Text])
       //.repartition(20)
       val rddPartitioned =
-        if(rdd.partitions.size<20)
-          rdd.repartition(40)
-        else
+//        if(rdd.partitions.size<20)
+//          rdd.repartition(40)
+//        else
           rdd
 
-        rddPartitioned.flatMap(x => parser(x._1, x._2.toString))
+        rddPartitioned.flatMap(x => {parser(x._1, x._2.toString)})
     }
   }
 
@@ -93,11 +95,14 @@ object Loaders {
                                                      index: Integer) extends CombineMetaRecordReader[Long](split, context, index) {
 
     override def generateKey(split: CombineFileSplit, index: Integer) = {
-      val uri = split.getPath(index).toString
+      val uri = split.getPath(index).getName
       val uriExt =uri.substring(uri.lastIndexOf(".")+1,uri.size)
-      val URLNoMeta = if(!uriExt.equals("meta"))uri.substring(uri.indexOf(":")+1,uri.size ) else  uri.substring(uri.indexOf(":")+1,uri.lastIndexOf("."))
+      val URLNoMeta = if(!uriExt.equals("meta"))uri.substring(/*uri.indexOf(":")+1*/0,uri.size ) else  uri.substring(/*uri.indexOf(":")+1*/0,uri.lastIndexOf("."))
 //      logger.info ("LOADER: "+URLNoMeta.replaceAll("/","")+"\t"+ Hashing.md5().newHasher().putString(URLNoMeta.replaceAll("/",""),java.nio.charset.StandardCharsets.UTF_8).hash().asLong())
-      //println("\n\n\n"+URLNoMeta+ "\n\n\n")
+//      println("EHHEHEHEH")
+//      logger.error("HHHHHH")
+//      println("\n\n\n"+URLNoMeta+ "\n\n\n")
+//      logger.error("\n\n\n"+URLNoMeta+ "\n\n\n")
       //println(Hashing.md5().newHasher().putString(URLNoMeta,java.nio.charset.StandardCharsets.UTF_8).hash().asLong())
       //println(Hashing.md5().hashString(URLNoMeta, Charsets.UTF_8).asLong())
       Hashing.md5().newHasher().putString(URLNoMeta.replaceAll("/",""),java.nio.charset.StandardCharsets.UTF_8).hash().asLong()

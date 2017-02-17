@@ -1,14 +1,17 @@
 package it.polimi.genomics.flink.FlinkImplementation.reader
 
-import java.io.{FileNotFoundException, File, IOException}
+import java.io.{File, FileNotFoundException, IOException}
 import java.nio.charset.Charset
 import java.nio.file.Paths
 import javax.xml.bind.JAXBException
 
+import it.polimi.genomics.core.DataStructures.IRDataSet
 import it.polimi.genomics.core.DataTypes.FlinkRegionType
+import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core.exception.ParsingException
-import it.polimi.genomics.repository.datasets.GMQLDataSetCollection
-import it.polimi.genomics.repository.util.Utilities
+import org.apache.hadoop.fs.{FileSystem, Path, PathFilter}
+//import it.polimi.genomics.repository.{Utilities => General_Utilities}
+//import it.polimi.genomics.repository.FSRepository.{LFSRepository, Utilities => FSR_Utilities}
 import org.apache.flink.api.common.io.DelimitedInputFormat
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.core.fs.FileInputSplit
@@ -50,47 +53,54 @@ class DefaultRegionReader(parser : ((Long,String)) => FlinkRegionType)(files : L
   }
 
   override def createInputSplits(minNumSplits : Int) = {
+    val conf = new  org.apache.hadoop.conf.Configuration();
+    val path = new org.apache.hadoop.fs.Path(files.head);
+    val fs = FileSystem.get(path.toUri(), conf);
     files.flatMap((f) => {
-      val file = new File(f)
+      val file = new Path(f)
 
-      if(file.isDirectory){
+      if(fs.isDirectory(file)){
         logger.debug("File " + f + " is a directory")
-        file.listFiles(DataSetFilter).flatMap((subFile) => {
-          logger.debug("File " + subFile.toString + " is a single file")
-          super.setFilePath(subFile.toString)
+//        file.listFiles(DataSetFilter).flatMap((subFile) => {
+//          logger.debug("File " + subFile.toString + " is a single file")
+//          super.setFilePath(subFile.toString)
+//          super.createInputSplits(minNumSplits)
+//        })
+        fs.listStatus(file).flatMap { x =>
+          super.setFilePath(x.getPath.toString)
           super.createInputSplits(minNumSplits)
-        })
+        }
+
       } else {
-        if(Utilities.getInstance().checkDSNameinRepo(Utilities.USERNAME, f)){
-          val username = if(Utilities.getInstance().checkDSNameinPublic(f)) "public" else Utilities.USERNAME
-          logger.debug("File " + f + " is a repository placeholder")
-          // repository
-          var GMQLDSCol = new GMQLDataSetCollection();
-          val list =
-            try {
-              GMQLDSCol = GMQLDSCol.parseGMQLDataSetCollection(Paths.get(Utilities.getInstance().RepoDir + username+ "/datasets/" + f +".xml"));
-              val dataset = GMQLDSCol.getDataSetList.get(0)
-              import scala.collection.JavaConverters._
-              dataset.getURLs.asScala.map(d =>
-                if (Utilities.getInstance().MODE.equals("MAPREDUCE")) {
-                  val hdfs = Utilities.getInstance().gethdfsConfiguration().get("fs.defaultFS")
-                  hdfs + Utilities.getInstance().HDFSRepoDir + username + "/regions/" + d.geturl
-                }
-                else { d.geturl}
-              )
-            } catch {
-              case ex: JAXBException => logger.error("DataSet is corrupted"); List[String]()
-              case ex: FileNotFoundException => logger.error("DataSet is not Found"); List[String]()
-            }
 
-          list
-            .flatMap((subFile) => {
-              logger.debug("File " + subFile.toString + " is a single file")
-              super.setFilePath(subFile.toString)
-              super.createInputSplits(minNumSplits)
-            })
-
-        } else {
+//        if(repository.DSExists( ds)){
+//          val username = if(repository.DSExistsInPublic(ds)) "public" else General_Utilities().USERNAME
+//          logger.debug("File " + f + " is a repository placeholder")
+//          // repository
+//          val list =
+//            try {
+//              import scala.collection.JavaConverters._
+//              repository.ListDSSamples(f,username).asScala.map(d =>
+//                if (General_Utilities().MODE.equals(General_Utilities().HDFS)) {
+//                  val hdfs = FSR_Utilities.gethdfsConfiguration().get("fs.defaultFS")
+//                  hdfs + General_Utilities().getHDFSRegionDir(username) + d.name
+//                }
+//                else { d.name}
+//              )
+//            } catch {
+//              case ex: JAXBException => logger.error("DataSet is corrupted"); List[String]()
+//              case ex: FileNotFoundException => logger.error("DataSet is not Found"); List[String]()
+//            }
+//
+//          list
+//            .flatMap((subFile) => {
+//              logger.debug("File " + subFile.toString + " is a single file")
+//              super.setFilePath(subFile.toString)
+//              super.createInputSplits(minNumSplits)
+//            })
+//
+//        } else
+        {
           logger.debug("File " + f + " is a single file")
           // single file
           super.setFilePath(f)

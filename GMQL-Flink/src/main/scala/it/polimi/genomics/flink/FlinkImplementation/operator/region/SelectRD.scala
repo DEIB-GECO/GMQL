@@ -1,6 +1,6 @@
 package it.polimi.genomics.flink.FlinkImplementation.operator.region
 
-import java.io.{FileNotFoundException, File}
+import java.io.{File, FileNotFoundException}
 import java.nio.file.Paths
 import java.util.Locale
 import javax.xml.bind.JAXBException
@@ -10,18 +10,19 @@ import it.polimi.genomics.core.DataStructures.RegionCondition._
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.DataTypes._
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
-import it.polimi.genomics.core.{GString, GDouble, GValue, GMQLLoader}
+import it.polimi.genomics.core.{GDouble, GMQLLoader, GString, GValue}
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
 import it.polimi.genomics.flink.FlinkImplementation.reader.DataSetFilter
-import it.polimi.genomics.repository.datasets.GMQLDataSetCollection
-import it.polimi.genomics.repository.util.Utilities
+import org.apache.hadoop.fs.{FileSystem, Path}
+//import it.polimi.genomics.repository.{Utilities => General_Utilities}
+//import it.polimi.genomics.repository.FSRepository.{LFSRepository, Utilities => FSR_Utilities}
 import org.apache.flink.api.scala._
-import org.apache.flink.core.fs.Path
 import org.apache.flink.hadoop.shaded.com.google.common.base.Charsets
 import org.apache.flink.hadoop.shaded.com.google.common.hash.Hashing
 import org.apache.hadoop.fs.PathFilter
 import org.slf4j.LoggerFactory
+import scala.collection.JavaConverters._
 
 //{DataSet, ExecutionEnvironment}
 
@@ -45,53 +46,59 @@ object SelectRD {
     val filteredRegion =
       if(filteredMeta.isDefined){
 
-        val metaIdList = executor.implement_md(filteredMeta.get, env).distinct(0).map(_._1).collect.toSet
+        val metaIdList = executor.implement_md(filteredMeta.get, env)
+          .distinct(0).map(_._1)
+          .collect
+          .toSet
 //metaIdList.foreach(println _)
         inputDataset match {
           // Selection from HD
           // SELECTIVE LOAD
           case IRReadRD(paths: List[String], loader: GMQLLoader[Any, Any, Any, Any],_) => {
-            val pathsIn = paths.flatMap((p) => {
-              val fs = Utilities.getInstance().getFileSystem
-              // if directory, extract all files
-              if (new File(p).isDirectory) {
-                new File(p).listFiles(DataSetFilter).map((subFile) => {
-                  ((Hashing.md5().hashString(subFile.toString.replaceAll("/",""), Charsets.UTF_8).asLong()) -> subFile.toString)
-                })
+            val conf = new org.apache.hadoop.conf.Configuration();
+            val path = new org.apache.hadoop.fs.Path(paths.head);
+            val fs = FileSystem.get(path.toUri(), conf);
 
-              } else if (fs.exists(new org.apache.hadoop.fs.Path(p))) {
+
+            val pathsIn = paths.flatMap((p) => {
+              val file = new org.apache.hadoop.fs.Path(p)
+
+//              val fs = FSR_Utilities.getFileSystem
+              // if directory, extract all files
+              if (fs.isDirectory(file)) {
                 fs.listStatus(new org.apache.hadoop.fs.Path(p), new PathFilter {
                   override def accept(path: org.apache.hadoop.fs.Path): Boolean = !path.toString.endsWith(".meta")
-                }).map{x=>val path = x.getPath.toString; val p = path.substring(path.indexOf(":")+1, path.size).replaceAll("/","");logger.info(p);((Hashing.md5().hashString(p, Charsets.UTF_8).asLong()) ->x.getPath.toString)}.toList
+                }).map{x=>val path = x.getPath.toString; val p = path.substring(path.indexOf(":")+1, path.size).replaceAll("/","");/*logger.info(p);*/((Hashing.md5().hashString(p, Charsets.UTF_8).asLong()) ->x.getPath.toString)}.toList
               }else {
 
+//                val repository = new LFSRepository()
+//                val ds = new IRDataSet(p, List[(String,PARSING_TYPE)]().asJava)
                 // if not directory
-                if(Utilities.getInstance().checkDSNameinRepo(Utilities.USERNAME, p)){
-                  val username = if(Utilities.getInstance().checkDSNameinPublic(p)) "public" else Utilities.USERNAME
-                  //if repository extract paths from repository
-                  var GMQLDSCol = new GMQLDataSetCollection();
-                  val list =
-                    try {
-                      GMQLDSCol = GMQLDSCol.parseGMQLDataSetCollection(Paths.get(Utilities.getInstance().RepoDir + username + "/datasets/" + p +".xml"));
-                      val dataset = GMQLDSCol.getDataSetList.get(0)
-                      import scala.collection.JavaConverters._
-                      dataset.getURLs.asScala.map(d =>
-                        if (Utilities.getInstance().MODE.equals("MAPREDUCE")) {
-                          val hdfs = Utilities.getInstance().gethdfsConfiguration().get("fs.defaultFS")
-                          hdfs + Utilities.getInstance().HDFSRepoDir + username + "/regions" + d.geturl
-                        }
-                        else { d.geturl}
-                      )
-                    } catch {
-                      case ex: JAXBException => logger.error("DataSet is corrupted"); List[String]()
-                      case ex: FileNotFoundException => logger.error("DataSet is not Found"); List[String]()
-                    }
-
-                  list.map((subFile) => {
-                    ((Hashing.md5().hashString(subFile.toString.substring(subFile.toString.indexOf(":")+1, subFile.toString.size).replaceAll("/",""), Charsets.UTF_8).asLong()) -> subFile.toString)
-                  })
-
-                } else {
+//                if(repository.DSExists( ds)){
+//                  val username = if(repository.DSExistsInPublic(ds)) "public" else General_Utilities().USERNAME
+//                  //if repository extract paths from repository
+//
+//                  val list =
+//                    try {
+//                      import scala.collection.JavaConverters._
+//                      repository.ListDSSamples(p).asScala.map(d =>
+//                        if (General_Utilities().MODE.equals("MAPREDUCE")) {
+//                          val hdfs = FSR_Utilities.gethdfsConfiguration().get("fs.defaultFS")
+//                          hdfs + General_Utilities().getHDFSRegionDir(username) + d.name
+//                        }
+//                        else { d.name}
+//                      )
+//                    } catch {
+//                      case ex: JAXBException => logger.error("DataSet is corrupted"); List[String]()
+//                      case ex: FileNotFoundException => logger.error("DataSet is not Found"); List[String]()
+//                    }
+//
+//                  list.map((subFile) => {
+//                    ((Hashing.md5().hashString(subFile.toString.substring(subFile.toString.indexOf(":")+1, subFile.toString.size).replaceAll("/",""), Charsets.UTF_8).asLong()) -> subFile.toString)
+//                  })
+//
+//                } else
+                {
 
                   //else use as file path
                   Array((Hashing.md5().hashString(new Path(p).toString.substring(new Path(p).toString.indexOf(":")+1, new Path(p).toString.size).replaceAll("/",""), Charsets.UTF_8).asLong()) -> p)

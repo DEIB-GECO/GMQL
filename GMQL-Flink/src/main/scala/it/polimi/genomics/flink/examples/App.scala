@@ -22,7 +22,7 @@ object App {
       println(i)
     }
 
-    val server = new GmqlServer(new FlinkImplementation(defaultBinSize = args(2).toLong, maxBinDistance = args(3).toInt))
+    val server = new GmqlServer(new FlinkImplementation(/*binSize = args(2).toLong,*/ maxBinDistance = args(3).toInt))
 
     /*
         val ex_data_path = "s3://genomic.s3-us-west-2.amazonaws.com/flink/ref/"
