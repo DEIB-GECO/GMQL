@@ -12,7 +12,7 @@ import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaAggregateStruct
 import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinCondition
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
-import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionFunction, RegionsToRegion, RegionsToMeta, RegionExtension}
+import it.polimi.genomics.core.DataStructures.RegionAggregate._
 import it.polimi.genomics.core.DataStructures.RegionCondition.{MetaAccessor, RegionCondition}
 import it.polimi.genomics.core.ParsingType
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
@@ -202,7 +202,6 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
     new_region_operator.binSize = binS.size
 
     val new_meta = IRCollapseMD(grouping,this.metaDag)
-
 
     val new_schema = List(("AccIndex", ParsingType.INTEGER),
                           ("JaccardIntersect", ParsingType.DOUBLE),
