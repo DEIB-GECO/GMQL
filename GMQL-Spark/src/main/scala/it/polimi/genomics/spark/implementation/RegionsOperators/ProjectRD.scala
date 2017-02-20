@@ -61,13 +61,13 @@ object ProjectRD {
         case COORD_POS.STRAND_POS => new GString(r._1._5.toString)
         case _ : Int => r._2(b)
       }
-    }):+new GString(r._1._5.toString) )
+    }))
   }
 
   def extendRegion(out : GRECORD, r:GRECORD, aggList : List[RegionExtension]) : Option[GRECORD] = {
     if(aggList.isEmpty) {
       //out
-      if (out._1._3 > out._1._4) // if left > right, the region is deleted
+      if (out._1._3 >= out._1._4) // if left > right, the region is deleted
       {
         None
       }
@@ -84,6 +84,18 @@ object ProjectRD {
         case Some(COORD_POS.LEFT_POS) => extendRegion((new GRecordKey(out._1._1, out._1._2, computeFunction(r, agg).asInstanceOf[GDouble].v.toLong, out._1._4, out._1._5), out._2),r, aggList.tail)
         case Some(COORD_POS.RIGHT_POS) => extendRegion((new GRecordKey(out._1._1, out._1._2, out._1._3, computeFunction(r, agg).asInstanceOf[GDouble].v.toLong, out._1._5), out._2),r, aggList.tail)
         case Some(COORD_POS.STRAND_POS) => extendRegion((new GRecordKey(out._1._1, out._1._2, out._1._3, out._1._4, computeFunction(r, agg).asInstanceOf[GString].v.charAt(0)), out._2),r, aggList.tail)
+        case Some(COORD_POS.START_POS) => {
+          if (out._1._5.equals('-')) {
+            extendRegion((new GRecordKey(out._1._1, out._1._2, out._1._3, computeFunction(r, agg).asInstanceOf[GDouble].v.toLong, out._1._5), out._2), r, aggList.tail)
+          } else
+            extendRegion((new GRecordKey(out._1._1, out._1._2, computeFunction(r, agg).asInstanceOf[GDouble].v.toLong, out._1._4, out._1._5), out._2),r, aggList.tail)
+        }
+        case Some(COORD_POS.STOP_POS) => {
+          if (out._1._5.equals('-')) {
+            extendRegion((new GRecordKey(out._1._1, out._1._2, computeFunction(r, agg).asInstanceOf[GDouble].v.toLong, out._1._4, out._1._5), out._2), r, aggList.tail)
+          } else
+            extendRegion((new GRecordKey(out._1._1, out._1._2, out._1._3, computeFunction(r, agg).asInstanceOf[GDouble].v.toLong, out._1._5), out._2),r, aggList.tail)
+        }
         case Some(v : Int) => extendRegion((out._1, {out._2.update(v, computeFunction(r, agg)); out._2} ),r, aggList.tail)
         case None => extendRegion((out._1, out._2 :+ computeFunction(r, agg)),r, aggList.tail)
       }

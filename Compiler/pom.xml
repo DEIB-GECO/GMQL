@@ -8,7 +8,7 @@
     </parent>
     <groupId>it.polimi.genomics</groupId>
     <artifactId>Compiler</artifactId>
-    <version>2.0</version>
+    <version>3.0</version>
     <name>${project.artifactId}</name>
     <description>My wonderfull scala app</description>
     <inceptionYear>2010</inceptionYear>
@@ -46,13 +46,6 @@
             <artifactId>GMQL-Core</artifactId>
             <version>2.0</version>
         </dependency>
-
-
-        <!--<dependency>-->
-            <!--<groupId>it.polimi.genomics</groupId>-->
-            <!--<artifactId>GMQL-R</artifactId>-->
-            <!--<version>2.0</version>-->
-        <!--</dependency>-->
 
 
         <dependency>

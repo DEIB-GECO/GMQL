@@ -25,7 +25,7 @@ object SemiJoinMD {
     val validInputId =
       executor
         .implement_md(externalMeta, sc)
-        .filter(a => joinCondition.attributes.foldLeft(false)( _ | a._2._1.endsWith(_)) )
+        .filter(a => joinCondition.attributes.foldLeft(false)( (r,c) => r | a._2._1.endsWith(c.toString())) )
         .map(x=>(x._2,x._1))
         .join(input)
         .map(a => ((a._2._1, a._2._2), (a._1._1, 1)))

@@ -17,12 +17,18 @@ case class GMQLSchema ( name:String,
 
 /**
   *
-  * @param name
-  * @param fieldType
+  *  The schema of the sample's columns descriped in the schema XML file
+  *
+  * @param name NAme of the field (column name)
+  * @param fieldType Type of the column
   */
-
 case class GMQLSchemaField(name:String, fieldType:GMQLParse.Value)
 
+/**
+  *
+  * Data Types allowed in the xml schema file
+  *
+  */
 object GMQLParse extends Enumeration{
 
   type GMQLParse = Value

@@ -22,16 +22,18 @@ class GMQLSparkLauncher(sparkJob:GMQLJob) extends GMQLLauncher(sparkJob){
 
   /**
     * Run GMQL job
-    * @return
+    * @return {@link GMQLSparkLauncher} handle
     */
   def run(): GMQLSparkLauncher = {
     val importController = new GMQLSparkSubmit(job);
     launcherHandler = importController.runSparkJob()
-    logger.info("Creating dataset Done...")
     this
   }
 
-  def getStatus(): Status.Value={
+  /**
+    * Return
+    *     */
+  override def getStatus(): Status.Value={
     val status = launcherHandler.getState
     status match {
       case SparkAppHandle.State.CONNECTED => Status.PENDING
@@ -44,11 +46,20 @@ class GMQLSparkLauncher(sparkJob:GMQLJob) extends GMQLLauncher(sparkJob){
     }
   }
 
-  def getAppName (): String =
+  override def getAppName (): String =
   {
     launcherHandler.getAppId
   }
 
+  //TODO: GMQL job should be killed in YARN environment too.
+  // This needs to be added bellow by calling appropriate function to kill YARN job.
+  // Other wise the kill button will stop GMQL job only from the Server Manager and not from holding the resources.
+  /**
+    *
+    * kill GMQL Job by stoping the spark context
+    *
+    *
+    */
   override def killJob() =
   {
     try{

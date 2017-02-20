@@ -5,7 +5,7 @@ import java.util
 import it.polimi.genomics.core.DataStructures.IRDataSet
 import it.polimi.genomics.core.ParsingType
 import it.polimi.genomics.core.ParsingType._
-import it.polimi.genomics.repository.GMQLExceptions.{GMQLDSException, GMQLDSNotFound, GMQLSampleNotFound, GMQLUserNotFound}
+import it.polimi.genomics.repository.GMQLExceptions._
 
 /**
   * Created by Abdulrahman Kaitoua on 11/04/16.
@@ -14,15 +14,15 @@ trait GMQLRepository {
 
   /**
     *
-    * DO NOT Forget to check the existance ot the datasetname before creating the dataset
+    *  Import Dataset into GMQL from Local file system.
     *
-    * @param dataSet
-    * @param Schema
-    * @param Samples
-    * @param GMQLScriptPaht
-    * @throws GMQLDSNotFound
+    * @param dataSetName  String of the dataset name.
+    * @param userName String of the user name.
+    * @param Samples List of GMQL samples {@link GMQLSample}.
+    * @param schemaPath String of the path to the xml file of the dataset schema.
+    * @throws GMQLNotValidDatasetNameException
     * @throws GMQLUserNotFound
-    * @throws GMQLSampleNotFound
+    * @throws java.lang.Exception
     */
   @throws(classOf[GMQLDSException])
   def importDs(dataSetName:String, userName:String, Samples:java.util.List[GMQLSample], schemaPath:String)
@@ -30,15 +30,15 @@ trait GMQLRepository {
 
   /**
     *
-    * DO NOT Forget to check the existance ot the datasetname before creating the dataset
+    * Add a new dataset to GMQL repository, this dataset is usually a result of a script execution.
     *
-    * @param dataSet
+    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @param Schema
     * @param Samples
     * @param GMQLScriptPaht
-    * @throws GMQLDSNotFound
-    * @throws GMQLUserNotFound
-    * @throws GMQLSampleNotFound
+    * @throws it.polimi.genomics.repository.GMQLExceptions.GMQLDSNotFound
+    * @throws it.polimi.genomics.repository.GMQLExceptions.GMQLUserNotFound
+    * @throws it.polimi.genomics.repository.GMQLExceptions.GMQLSampleNotFound
     */
   @throws(classOf[GMQLDSException])
   def createDs(dataSet:IRDataSet, userName:String, Samples:java.util.List[GMQLSample], GMQLScriptPaht:String = "ROOT_DS",schemaType:GMQLSchemaTypes.Value=GMQLSchemaTypes.Delimited)
@@ -46,7 +46,9 @@ trait GMQLRepository {
 
   /**
     *
-    * @param dataSet
+    *  Delete data set from the repository
+    *
+    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @throws GMQLDSNotFound
     * @throws GMQLDSException
     * @throws GMQLUserNotFound
@@ -57,7 +59,9 @@ trait GMQLRepository {
 
   /**
     *
-    * @param dataSet
+    *   Add {@link GMQLSample}  to dataset {@link IRDataSet} in the repository
+    *
+    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @param Sample
     * @throws GMQLDSNotFound
     * @throws GMQLDSException
@@ -65,11 +69,13 @@ trait GMQLRepository {
     * @throws GMQLSampleNotFound
     */
   @throws(classOf[GMQLDSException])
-  def AddSampleToDS(dataSet:IRDataSet, userName:String, Sample:GMQLSample)
+  def AddSampleToDS(dataSet:String, userName:String, Sample:GMQLSample)
 
   /**
     *
-    * @param dataSet
+    *  Delete {@link GMQLSample} from a dataset {@link IRDataSet}
+    *
+    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @param Sample
     * @throws GMQLDSNotFound
     * @throws GMQLDSException
@@ -77,11 +83,13 @@ trait GMQLRepository {
     * @throws GMQLSampleNotFound
     */
   @throws(classOf[GMQLDSException])
-  def DeleteSampleFromDS(dataSet:IRDataSet, userName:String, Sample:GMQLSample)
+  def DeleteSampleFromDS(dataSet:String, userName:String, Sample:GMQLSample)
 
   /**
     *
-    * @param userName
+    *  List all the {@link IRDataSet} dataset of the user in the repository
+    *
+    * @param userName {@link String} of the user name
     * @throws GMQLDSException
     * @throws GMQLUserNotFound
     */
@@ -89,6 +97,8 @@ trait GMQLRepository {
   def ListAllDSs(userName:String): java.util.List[IRDataSet]
 
   /**
+    *
+    *   List all the samples {@link GMQLSample} of specific dataset in the repository
     *
     * @param dataSet
     * @throws GMQLDSException
@@ -99,7 +109,9 @@ trait GMQLRepository {
 
   /**
     *
-    * @param dataSetName
+    * List the result {@link GMQLSample} and the schema of an execution of GMQL script
+    *
+    * @param dataSetName {@link String} of the dataset name
     * @throws GMQLDSException
     * @return
     */
@@ -107,9 +119,10 @@ trait GMQLRepository {
   def ListResultDSSamples(dataSetName:String, userName:String):(java.util.List[GMQLSample],java.util.List[(String,PARSING_TYPE)])
 
   /**
-    *DO NOT Forget to check the existance ot the dataset name before copying the dataset
+    * Copy data set from GMQL repository to local folder,
+    * dataset includes; Schema file, script file, samples files, and metadata files
     *
-    * @param dataSet
+    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @throws GMQLDSException
     */
   @throws(classOf[GMQLDSException])
@@ -117,73 +130,104 @@ trait GMQLRepository {
 
   /**
     *
-    * @param dataSet
+    *  Verify the existance of a dataset in the reposiotry under a specific username
+    *
+    * @param dataSet {@link IRDataSet} of the dataset
+    * @param userName  {@link String} of the user name
     * @throws GMQLDSException
     * @return
     */
   @throws(classOf[GMQLDSException])
-  def DSExists(dataSet:IRDataSet, userName:String): Boolean
+  def DSExists(dataSet:String, userName:String): Boolean
 
   /**
     *
-    * @param dataSet
+    *  Verify the existance of a dataset in the public dataset
+    *
+    * @param dataSet {@link IRDataSet} of the dataset
     * @throws GMQLDSException
     * @return
     */
   @throws(classOf[GMQLDSException])
-  def DSExistsInPublic( dataSet:IRDataSet): Boolean
+  def DSExistsInPublic( dataSet:String): Boolean
 
   /**
     *
-    * @param dataSet
+    *  return the statistics (profiling ) of the dataset
+    *
+    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @return
     */
-  def getDSStatistics(dataSet:IRDataSet, userName:String):GMQLStatistics
+  def getDSStatistics(dataSet:String, userName:String):GMQLStatistics
 
 
   /**
     *
-    * @param dataSet
+    *   return the schema of the dataset
+    *
+    * @param schemaPath {@link String} of the path to the schema xml
     * @return
     */
   def readSchemaFile(schemaPath:String): util.List[(String, ParsingType.Value)]
 
   /**
     *
-    * @param dataSet
+    * Get the metadata of a Dataset
+    *
+    * @param dataSet {@link IRDataSet}, dataset identifier
+    * @param userName {@link String} of the user name
     * @return
     */
-  def getMeta(dataSet: IRDataSet,userName:String):String
+  def getMeta(dataSet: String,userName:String):String
 
   /**
     *
-    * @param dataSet
+    *  Return a {@link String} of the meta data of specific sample
+    *
+    * @param dataSet {@link IRDataSet}, dataset identifier
+    * @param userName {@link String} of the user name
     * @param sample
     * @return
     */
-  def getSampleMeta(dataSet: IRDataSet, userName:String, sample: GMQLSample):String
+  def getSampleMeta(dataSet: String, userName:String, sample: GMQLSample):String
 
   /**
     *
-    * @param dataSet
-    * @param query
+    *  Return a list of {@ink GNQLSample} after searching the meta data with a query
+    *
+    * @param dataSet {@link IRDataSet}, dataset identifier
+    * @param userName {@link String} of the user name
+    * @param query  {@link String} of the query
     * @return
     */
-  def searchMeta(dataSet: IRDataSet, userName:String, query:String): java.util.List[GMQLSample]
+  def searchMeta(dataSet: String, userName:String, query:String): java.util.List[GMQLSample]
 
   /**
     *
-    * @param userName
+    *  Register user in the repository
+    *
+    * @param userName {@link String} of the user name
     * @return
     */
   def registerUser(userName:String): Boolean
 
   /**
     *
-    * @param userName
+    *  Delete a user from the repsository
+    *
+    * @param userName {@link String} of the user name
     * @return
     */
   def unregisterUser(userName:String): Boolean
+
+  /**
+    * Return the location of the dataset, Local, HDFS, remote
+    *
+    * @param dataSet String of the dataset name
+    * @param userName String of the name of the owner of the dataset
+    * @return The Location as either LOCAL, HDFS, or REMOTE
+    */
+  def getDSLocation(dataSet:String, userName:String): (RepositoryType.Value,DatasetOrigin.Value)
 
 }
 

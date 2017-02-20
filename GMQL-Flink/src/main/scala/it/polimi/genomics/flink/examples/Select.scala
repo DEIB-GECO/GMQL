@@ -1,6 +1,6 @@
 package it.polimi.genomics.flink.examples
 
-import it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinCondition
+import it.polimi.genomics.core.DataStructures.MetaJoinCondition.{Default, MetaJoinCondition}
 import it.polimi.genomics.core.DataStructures.MetadataCondition.ContainAttribute
 import it.polimi.genomics.core.DataStructures.RegionCondition.REG_OP
 import it.polimi.genomics.core.DataStructures._
@@ -89,7 +89,7 @@ object Select {
         case 4 => {
           //SEMI JOIN ON META
           DS1.SELECT(
-            MetaJoinCondition(List("bert_value1", "bert_value2")),
+            MetaJoinCondition(List(Default("bert_value1"), Default("bert_value2"))),
             REFDS
           )
         }

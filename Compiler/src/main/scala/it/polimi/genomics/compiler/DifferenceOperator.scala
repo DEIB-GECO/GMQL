@@ -33,7 +33,11 @@ case class DifferenceOperator(op_pos : Position,
     for (n <- parameters.named) {
       n.param_name.trim.toLowerCase match {
         case "joinby" => {
-          meta_join_param = Some(MetaJoinCondition(parser_named(metadata_attribute_list, n.param_name, n.param_value).get))
+          meta_join_param = Some(
+            MetaJoinCondition(
+              parser_named(rich_metadata_attribute_list,
+                           n.param_name,
+                           n.param_value).get))
         }
       }
     }

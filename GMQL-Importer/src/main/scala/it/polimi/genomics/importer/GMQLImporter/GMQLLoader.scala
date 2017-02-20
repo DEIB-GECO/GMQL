@@ -1,10 +1,12 @@
 package it.polimi.genomics.importer.GMQLImporter
 
-import it.polimi.genomics.importer.FileDatabase.{FileDatabase,STAGE}
+import it.polimi.genomics.importer.FileDatabase.{FileDatabase, STAGE}
 import it.polimi.genomics.repository.FSRepository.{DFSRepository, LFSRepository}
-import it.polimi.genomics.repository.GMQLRepository.{GMQLDSNotFound, GMQLSample}
+import it.polimi.genomics.repository.GMQLExceptions.GMQLDSNotFound
 import org.slf4j.LoggerFactory
 import java.io.File
+
+import it.polimi.genomics.repository.GMQLSample
 /**
   * Created by Nacho on 10/17/16.
   */

@@ -11,15 +11,6 @@
     <version>2.0</version>
     <artifactId>GMQL-Core</artifactId>
 
-
-    <dependencies>
-    <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-api</artifactId>
-        <version>1.7.12</version>
-    </dependency>
-    </dependencies>
-
     <build>
         <sourceDirectory>./src/main/scala</sourceDirectory>
 

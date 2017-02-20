@@ -3,7 +3,7 @@ package it.polimi.genomics.flink.examples
 import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.{Direction, NoTop}
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.{DistLess, JoinQuadruple, MinDistance, RegionBuilder}
-import it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinCondition
+import it.polimi.genomics.core.DataStructures.MetaJoinCondition.{Default, MetaJoinCondition}
 import it.polimi.genomics.core.DataStructures.MetadataCondition.{META_OP, Predicate}
 import it.polimi.genomics.core.DataStructures.RegionCondition
 import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
@@ -40,9 +40,9 @@ object App4 {
     val ds2S = ds2R.SELECT(Predicate("antibody", META_OP.EQ, "BRD4"))
 
 
-    val join = ds1S.JOIN(Some(MetaJoinCondition(List("organism"))), List(new JoinQuadruple(Some(DistLess(100000)),Some(new MinDistance(1)))), RegionBuilder.RIGHT, ds2S)
+    val join = ds1S.JOIN(Some(MetaJoinCondition(List(Default("organism")))), List(new JoinQuadruple(Some(DistLess(100000)),Some(new MinDistance(1)))), RegionBuilder.RIGHT, ds2S)
 
-    val map = ds1S.MAP(Some(MetaJoinCondition(List("organism"))), List(), join)
+    val map = ds1S.MAP(Some(MetaJoinCondition(List(Default("organism")))), List(), join)
 
     //val cover = join.COVER(CoverFlag.COVER, N(1), N(2), List(), None)
 /*

@@ -40,7 +40,7 @@ object MetaJoinMJD3 {
               if (pos < 0) 0 else pos
             })*/, v._3, false, true))
           )
-          .filter((v) => condition.attributes.foldLeft(false)( _ | v._2.endsWith(_)))
+          .filter((v) => condition.attributes.foldLeft(false)( (r,c) => r | v._2.endsWith(c.toString())))
 
 
       val sampleWithGroup: DataSet[FlinkMetaJoinType] =

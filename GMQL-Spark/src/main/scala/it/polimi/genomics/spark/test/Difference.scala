@@ -1,10 +1,10 @@
 package it.polimi.genomics.spark.test
 
 import it.polimi.genomics.GMQLServer.GmqlServer
-import it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinCondition
+import it.polimi.genomics.core.DataStructures.MetaJoinCondition.{Default, MetaJoinCondition}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.loaders.test3Parser
-import org.apache.spark.{SparkContext, SparkConf}
+import org.apache.spark.{SparkConf, SparkContext}
 
 /**
  * The entry point of the application
@@ -46,7 +46,7 @@ object Difference {
 
       case 1 =>
         // MAP with aggregation
-        dataAsTheyAre.DIFFERENCE(condition = Some(new MetaJoinCondition(List("bert_value1"))), subtrahend = optionalDS)
+        dataAsTheyAre.DIFFERENCE(condition = Some(new MetaJoinCondition(List(Default("bert_value1")))), subtrahend = optionalDS)
 
     }
     server setOutputPath output_path MATERIALIZE difference

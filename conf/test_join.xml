@@ -12,9 +12,9 @@
             <numfiles>5</numfiles>
             <numchrom>5</numchrom>
             <numregchrom>100</numregchrom>
-            <chromlen>10000</chromlen>
+            <chromlen>1000</chromlen>
             <minreglen>10</minreglen>
-            <maxreglen>500</maxreglen>
+            <maxreglen>50</maxreglen>
             <nummeta>12</nummeta>
             <minval>0.0</minval>
             <maxval>1.0</maxval>
@@ -28,12 +28,12 @@
             <name>beds</name>
             <type>BEDSCORE</type>
             <placeholder>#BED#</placeholder>
-            <numfiles>20</numfiles>
+            <numfiles>5</numfiles>
             <numchrom>5</numchrom>
             <numregchrom>200</numregchrom>
-            <chromlen>10000</chromlen>
+            <chromlen>1000</chromlen>
             <minreglen>5</minreglen>
-            <maxreglen>200</maxreglen>
+            <maxreglen>50</maxreglen>
             <nummeta>12</nummeta>
             <minval>0.0</minval>
             <maxval>1.0</maxval>

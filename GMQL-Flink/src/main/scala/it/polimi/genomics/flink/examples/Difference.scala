@@ -1,7 +1,7 @@
 package it.polimi.genomics.flink.examples
 
 
-import it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinCondition
+import it.polimi.genomics.core.DataStructures.MetaJoinCondition.{Default, MetaJoinCondition}
 import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
 import it.polimi.genomics.flink.FlinkImplementation.reader.parser.BedScoreParser
@@ -36,7 +36,7 @@ object Difference {
 
       case 1 =>
         // MAP with aggregation
-        dataAsTheyAre.DIFFERENCE(condition = Some(new MetaJoinCondition(List("bert_value1"))), subtrahend = optionalDS)
+        dataAsTheyAre.DIFFERENCE(condition = Some(new MetaJoinCondition(List(Default("bert_value1")))), subtrahend = optionalDS)
 
     }
     server setOutputPath output_path MATERIALIZE difference
