@@ -29,11 +29,11 @@ object MetaJoinMJD2 {
       println("condition atributes: ",condition.attributes)
       val ref: RDD[MetaType] = executor.implement_md(leftDataset, sc).filter(v =>  condition.attributes.foldLeft(false)( _ | v._2._1.endsWith(_)))
         .map{x=>
-          condition.attributes.flatMap{att=> if(x._2._1.endsWith(att))Some((x._1,(att,x._2._2)))else None}.head
+          condition.attributes.flatMap{att=> if(x._2._1.equals(att) || x._2._1.endsWith("."+att))Some((x._1,(att,x._2._2)))else None}.head
         }
       val exp: RDD[MetaType] = executor.implement_md(rightDataset, sc).filter(v =>  condition.attributes.foldLeft(false)( _ | v._2._1.endsWith(_)))
         .map{x=>
-          condition.attributes.flatMap{att=> if(x._2._1.endsWith(att))Some((x._1,(att,x._2._2)))else None}.head
+          condition.attributes.flatMap{att=> if(x._2._1.equals(att) || x._2._1.endsWith("."+att))Some((x._1,(att,x._2._2)))else None}.head
         }
 
       //ref, Array[exp]

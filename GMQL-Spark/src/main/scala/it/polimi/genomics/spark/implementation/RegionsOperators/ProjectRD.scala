@@ -27,7 +27,7 @@ object ProjectRD {
         input.map(a  => (a._1,  projectedValues.get.foldLeft(Array[GValue]())((Acc, b) => Acc :+ a._2(b)) ))
     else input
 
-   if (tupleAggregator.isDefined) projectedInput.map { a =>
+   if (tupleAggregator.isDefined) projectedInput.flatMap { a =>
 //      var out = a;
 //      val r = a;
 //      tupleAggregator.get.foreach { agg =>
@@ -61,13 +61,23 @@ object ProjectRD {
         case COORD_POS.STRAND_POS => new GString(r._1._5.toString)
         case _ : Int => r._2(b)
       }
-    }) )
+    }):+new GString(r._1._5.toString) )
   }
 
-  def extendRegion(out : GRECORD, r:GRECORD, aggList : List[RegionExtension]) : GRECORD = {
-    if(aggList.isEmpty){
-      out
-    } else {
+  def extendRegion(out : GRECORD, r:GRECORD, aggList : List[RegionExtension]) : Option[GRECORD] = {
+    if(aggList.isEmpty) {
+      //out
+      if (out._1._3 > out._1._4) // if left > right, the region is deleted
+      {
+        None
+      }
+      else if (out._1._3 < 0) //if left become < 0, set it to 0
+      {
+        Some((new GRecordKey(out._1._1, out._1._2, 0, out._1._4, out._1._5), out._2))
+      }
+      else Some(out)
+    }
+    else {
       val agg = aggList.head
       agg.output_index match {
         case Some(COORD_POS.CHR_POS) => extendRegion((new GRecordKey(out._1._1, computeFunction(r, agg).asInstanceOf[GString].v, out._1._3, out._1._4, out._1._5), out._2),r, aggList.tail)
