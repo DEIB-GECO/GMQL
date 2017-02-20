@@ -220,13 +220,18 @@ trait GmqlParsers extends JavaTokenParsers {
     (re_term <~ SUM) ~ re_expr ^^ {x => READD(x._1,x._2)} |
       (re_term <~ SUB) ~ re_expr ^^ {x => RESUB(x._1,x._2)} |
       re_term
+
   val single_region_modifier:Parser[SingleProjectOnRegion] =
-    ((RIGHT ^^ {x => FieldPosition(COORD_POS.RIGHT_POS)} |
-      LEFT ^^ {x => FieldPosition(COORD_POS.LEFT_POS)} |
-      ((START | STOP) ^^ {x =>
-        throw new CompilerException(x + " is not a valid name for region attribute")} |
-      any_field_identifier)) <~ AS) ~
-      re_expr ^^ {x => RegionModifier(x._1,x._2)}
+    (
+      (
+        RIGHT ^^ {x => FieldPosition(COORD_POS.RIGHT_POS)} |
+        LEFT ^^ {x => FieldPosition(COORD_POS.LEFT_POS)} |
+        START ^^ {x => FieldPosition(COORD_POS.START_POS)} |
+        STOP ^^ {x => FieldPosition(COORD_POS.STOP_POS)}|
+        any_field_identifier
+        ) <~ AS
+      ) ~ re_expr ^^ { x => RegionModifier(x._1,x._2)}
+
   val region_modifier_list:Parser[List[SingleProjectOnRegion]] = rep1sep(single_region_modifier, ",")
 
   val single_meta_project:Parser[SingleProjectOnMeta] = metadata_attribute ^^ {MetaProject(_)}
