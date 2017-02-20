@@ -102,7 +102,7 @@ object gmqlc {
       .set("spark.driver.allowMultipleContexts","true")
 //      .set("spark.sql.tungsten.enabled", "true")
     val sc:SparkContext =new SparkContext(conf)
-    val server = new GmqlServer(new GMQLSparkExecutor(testingIOFormats = false,sc=sc,GTFoutput = true), Some(1000)/*Some(args(3).toInt)*/)
+    val server = new GmqlServer(new GMQLSparkExecutor(testingIOFormats = false,sc=sc), Some(1000)/*Some(args(3).toInt)*/)
 //    val server = new GmqlServer(new FlinkImplementation(), Some(10000))
     val translator = new Translator(server, "/Users/pietro/Desktop/test_gmql/testout/")
 
