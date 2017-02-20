@@ -147,8 +147,21 @@ trait GmqlParsers extends JavaTokenParsers {
   val region_select_single_condition_fixed:Parser[RegionCondition] = (fixed_field_position ~ region_operator ~ region_cond_field_value) ^^
     {x => it.polimi.genomics.core.DataStructures.RegionCondition.Predicate(x._1._1, x._1._2, x._2)}
 
-  val region_strand_condition:Parser[StrandCondition] = (STRAND ~> "==" ~> """[a-zA-Z0-9_\\*\\+\\-]""".r) ^^
-    {x=> it.polimi.genomics.core.DataStructures.RegionCondition.StrandCondition(x)}
+  val region_strand_condition:Parser[StrandCondition] =
+    STRAND ~> "==" ~> (
+      ("""[\\+]""".r) |
+      ("""[\\-]""".r) |
+      ("""[\\*]""".r) |
+      ("'+'" ^^ {_ => "+"}) |
+      ("'-'" ^^ {_ => "-"}) |
+      ("'*'" ^^ {_ => "*"}) |
+      (("\""+"""[+]"""+"\"").r  ^^ {_ => "+"}) |
+      ("\"-\"" ^^ {_ => "-"}) |
+      ("\"*\"" ^^ {_ => "*"})
+    ) ^^ {
+    x =>
+      it.polimi.genomics.core.DataStructures.RegionCondition.StrandCondition(x)
+  }
   val region_chr_condition:Parser[ChrCondition] = (CHR ~> "==" ~> """[a-zA-Z0-9_\\*\\+\\-]+""".r) ^^
     {x=> it.polimi.genomics.core.DataStructures.RegionCondition.ChrCondition(x)}
   val region_left_condition:Parser[LeftEndCondition] = (LEFT ~> (region_operator ~ decimalNumber)) ^^
@@ -160,8 +173,12 @@ trait GmqlParsers extends JavaTokenParsers {
   val region_stop_condition:Parser[StopCondition] = (STOP ~> (region_operator ~ decimalNumber)) ^^
     {x=> it.polimi.genomics.core.DataStructures.RegionCondition.StopCondition(x._1,x._2.toLong)}
   val region_coordinate_condition:Parser[RegionCondition] =
-    region_strand_condition | region_chr_condition | region_left_condition |
-      region_right_condition | region_stop_condition | region_start_condition
+    region_strand_condition |
+      region_chr_condition |
+      region_left_condition |
+      region_right_condition |
+      region_stop_condition |
+      region_start_condition
 
   lazy val region_select_term:Parser[RegionCondition] = region_select_factor ~ ((AND ~> region_select_factor)*) ^^ { x=>
     val left_most = x._1
@@ -187,7 +204,8 @@ trait GmqlParsers extends JavaTokenParsers {
     }
   }
 
-  val region_select_factor:Parser[RegionCondition] = region_coordinate_condition |
+  val region_select_factor:Parser[RegionCondition] =
+    region_coordinate_condition |
     region_select_single_condition_fixed |
     region_select_single_condition |
     "(" ~> region_select_expr <~ ")" |
