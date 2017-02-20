@@ -43,7 +43,7 @@
         <dependency>
             <groupId>it.polimi.genomics</groupId>
             <artifactId>GMQL-Spark</artifactId>
-            <version>3.0</version>
+            <version>4.0</version>
             <exclusions>
             </exclusions>
         </dependency>
