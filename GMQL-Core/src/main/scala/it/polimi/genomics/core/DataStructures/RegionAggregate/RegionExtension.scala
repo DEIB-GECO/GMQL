@@ -24,6 +24,8 @@ object COORD_POS {
   val LEFT_POS = -10
   val RIGHT_POS = -100
   val STRAND_POS = -1000
+  val START_POS = -10000
+  val STOP_POS = -100000
 }
 
 trait RegionFunction extends Serializable {

@@ -108,18 +108,33 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
     SELECT | PROJECT | MAP | JOIN | HISTOGRAM | SUMMIT | FLAT | COVER | MERGE | EXTEND | ORDER | GROUP
 
   val comparison: Parser[String] = ("==" | "!=" | ">=" | "<=" | ">" | "<")
-  val arithmetic: Parser[String] = (STAR | MULT | DIV | SUB | SUM)
+  val arithmetic: Parser[String] =
+      STAR |
+      MULT |
+      DIV |
+      SUB |
+      SUM
+
   val keyword: Parser[String] = INTERSECT | ASC | OR | AND | NOT | LEFT | RIGHT | STRAND | CHR |
     START | STOP | META | UPSTREAM | DOWNSTREAM | MINDIST | DISTANCE | DISTLESS |
     DISTGREATER | IN | CONTIG | ANY | ALL | TOPG | TOP | AS | DESC
-  val gmql_identifier: Parser[String] = rep1sep(ident, ".") ^^ {
+  val gmql_identifier: Parser[String] = rep1sep(ident | "?", ".") ^^ {
     _.mkString(".")
   }
 
-  val param_value: Parser[String] = rep1(comparison | arithmetic | //keyword |
-    metadata_attribute | gmql_identifier | decimalNumber | floatingPointNumber | "," | stringLiteral |
-    "(" ~ param_value ~ ")" ^^ (x => x._1._1 + x._1._2 + x._2) |
-    "(" ~ ")" ^^ (x => x._1 + x._2) ) ^^ {
+  val param_value: Parser[String] =
+    rep1(
+      comparison |
+        arithmetic |
+        gmql_identifier |
+        metadata_attribute |
+        decimalNumber |
+        floatingPointNumber |
+        "," |
+        stringLiteral |
+        "(" ~ param_value ~ ")" ^^ (x => x._1._1 + x._1._2 + x._2) |
+        "(" ~ ")" ^^ (x => x._1 + x._2)
+    ) ^^ {
     _.mkString(" ")
   }
 

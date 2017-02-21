@@ -22,38 +22,73 @@
     var region_modifier : Option[List[RegionFunction]] = None
 
       override def preprocess_operator(status: CompilerStatus) : Boolean = {
-        super_variable_left = Some(get_variable_if_defined(input1.asInstanceOf[VariableIdentifier].name, status).get.payload)
+        super_variable_left = Some(
+          get_variable_if_defined(input1.asInstanceOf[VariableIdentifier].name,
+          status).get.payload
+        )
 
         if (parameters.unamed.isDefined) {
-          val cond_proj: Option[Either[AllBut,List[SingleProjectOnRegion]]] = parser_unnamed(region_project_cond, None)
+          val cond_proj: Option[Either[AllBut,
+                                List[SingleProjectOnRegion]]] = parser_unnamed(region_project_cond, None)
 
           region_project_fields =
             cond_proj.get match {
 
-              case Right(list_proj) => Some(for (a <- list_proj) yield {
+              case Right(list_proj) => {
 
-                a.asInstanceOf[RegionProject].field match {
-                  case FieldPosition(p) => {
-                    left_var_check_num_field(p)
-                    p
-                  }
-                  case FieldName(n) => {
-                    left_var_get_field_name(n).get
+                val list_set : List[Set[Int]] = for (a <- list_proj) yield {
+                  a.asInstanceOf[RegionProject].field match {
+                    case FieldPosition(p) => {
+                      left_var_check_num_field(p)
+                      Set(p)
+                    }
+                    case FieldName(n) => {
+                      Set(left_var_get_field_name(n).get)
+                    }
+                    case FieldNameWithWildCards(n) => {
+                      left_var_get_field_name_wildcards(n).toSet
+                    }
                   }
                 }
-              })
+
+                Some(
+                  list_set.fold(Set.empty[Int])((x,y) => x.union(y))
+                    .toList
+                    .sorted
+                )
+
+              }
 
               case Left(ab) => {
-                val pos = ab.field match {
-                  case FieldPosition(p) => {
-                    left_var_check_num_field(p)
-                    p
-                  }
-                  case FieldName(n) => {
-                    left_var_get_field_name(n).get
-                  }
-                }
-                Some((for (i <- 0 to super_variable_left.get.get_number_of_fields-1) yield i).filter(_ != pos).toList)
+                val pos : List[Set[Int]]= ab.fields.map {
+                  x => x match {
+                    case FieldPosition(p) => {
+                      left_var_check_num_field(p)
+                      (for (i <- 0 to super_variable_left.get.get_number_of_fields-1) yield i)
+                        .filter(_ != p)
+                        .toSet
+                    }
+                    case FieldName(n) => {
+                      val p = left_var_get_field_name(n).get
+                      (for (i <- 0 to super_variable_left.get.get_number_of_fields-1) yield i)
+                        .filter(_ != p)
+                        .toSet
+                    }
+                    case FieldNameWithWildCards(n) => {
+                      val ps = left_var_get_field_name_wildcards(n).toSet
+                      (for (i <- 0 to super_variable_left.get.get_number_of_fields-1) yield i)
+                        .toSet
+                        .diff(ps)
+                    }
+                  }}
+                Some(
+                  pos.fold(
+                      (for (i <- 0 to super_variable_left.get.get_number_of_fields-1) yield i).toSet)
+                      ((x,y) => x.intersect(y)
+                    )
+                    .toList
+                    .sorted
+                )
               }
             }
 

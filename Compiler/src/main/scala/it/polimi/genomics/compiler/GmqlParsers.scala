@@ -83,6 +83,17 @@ trait GmqlParsers extends JavaTokenParsers {
   val EXACT:Parser[String] = """[e|E][x|X][a|A][c|C][t|T]""".r
   val FULLNAME:Parser[String] = """[f|F][u|U][l|L][l|L][n|N][a|A][m|M][e|E]""".r
 
+  val region_field_name_with_wildcards:Parser[String] =
+    (
+      (rep1(ident <~ ".") ~ "?" ~ rep("."~>ident)) ^^ {
+        x => x._1._1 ++ x._1._2 ++ x._2
+      } |
+      (rep(ident <~ ".") ~ "?" ~ rep1("."~>ident)) ^^ {
+        x => x._1._1 ++ x._1._2 ++ x._2
+      }
+      ) ^^ { x=> x.mkString(".")}
+
+
   val metadata_attribute:Parser[String] = rep1sep(rep1sep(ident,"|") ^^ {_.mkString("|")}, ".") ^^ {_.mkString(".")}
   val metadata_attribute_list:Parser[List[String]] = rep1sep(metadata_attribute, ",")
 
@@ -163,8 +174,21 @@ trait GmqlParsers extends JavaTokenParsers {
     (fixed_field_position ~ region_operator ~ region_cond_field_value) ^^
     {x => it.polimi.genomics.core.DataStructures.RegionCondition.Predicate(x._1._1, x._1._2, x._2)}
 
-  val region_strand_condition:Parser[StrandCondition] = (STRAND ~> "==" ~> """[a-zA-Z0-9_\\*\\+\\-]""".r) ^^
-    {x=> it.polimi.genomics.core.DataStructures.RegionCondition.StrandCondition(x)}
+  val region_strand_condition:Parser[StrandCondition] =
+    STRAND ~> "==" ~> (
+      ("""[\\+]""".r) |
+      ("""[\\-]""".r) |
+      ("""[\\*]""".r) |
+      ("'+'" ^^ {_ => "+"}) |
+      ("'-'" ^^ {_ => "-"}) |
+      ("'*'" ^^ {_ => "*"}) |
+      (("\""+"""[+]"""+"\"").r  ^^ {_ => "+"}) |
+      ("\"-\"" ^^ {_ => "-"}) |
+      ("\"*\"" ^^ {_ => "*"})
+    ) ^^ {
+    x =>
+      it.polimi.genomics.core.DataStructures.RegionCondition.StrandCondition(x)
+  }
   val region_chr_condition:Parser[ChrCondition] = (CHR ~> "==" ~> """[a-zA-Z0-9_\\*\\+\\-]+""".r) ^^
     {x=> it.polimi.genomics.core.DataStructures.RegionCondition.ChrCondition(x)}
   val region_left_condition:Parser[LeftEndCondition] = (LEFT ~> (region_operator ~ decimalNumber)) ^^
@@ -176,8 +200,12 @@ trait GmqlParsers extends JavaTokenParsers {
   val region_stop_condition:Parser[StopCondition] = (STOP ~> (region_operator ~ decimalNumber)) ^^
     {x=> it.polimi.genomics.core.DataStructures.RegionCondition.StopCondition(x._1,x._2.toLong)}
   val region_coordinate_condition:Parser[RegionCondition] =
-    region_strand_condition | region_chr_condition | region_left_condition |
-      region_right_condition | region_stop_condition | region_start_condition
+    region_strand_condition |
+      region_chr_condition |
+      region_left_condition |
+      region_right_condition |
+      region_stop_condition |
+      region_start_condition
 
   lazy val region_select_term:Parser[RegionCondition] = region_select_factor ~ ((AND ~> region_select_factor)*) ^^ { x=>
     val left_most = x._1
@@ -203,25 +231,38 @@ trait GmqlParsers extends JavaTokenParsers {
     }
   }
 
-  val region_select_factor:Parser[RegionCondition] = region_coordinate_condition |
+  val region_select_factor:Parser[RegionCondition] =
+    region_coordinate_condition |
     region_select_single_condition_fixed |
     region_select_single_condition |
     "(" ~> region_select_expr <~ ")" |
     (((NOT ~ "(" )~> region_select_expr <~ ")") ^^
       {x=>it.polimi.genomics.core.DataStructures.RegionCondition.NOT(x)})
 
-  val allBut:Parser[Either[AllBut,List[SingleProjectOnRegion]]] = ALLBUT ~>
-    (fixed_field_position ^^ {x => Left(AllBut(FieldPosition(x)))} |
-      region_field_name ^^ {x => Left(AllBut(FieldName(x)))} )
+  val allBut:Parser[Either[AllBut,List[SingleProjectOnRegion]]] =
+    ALLBUT ~>
+      rep1sep(
+        region_field_name_with_wildcards ^^ {FieldNameWithWildCards(_)} |
+        fixed_field_position ^^ {FieldPosition(_)} |
+        region_field_name ^^ {FieldName(_)}
+        , ",") ^^
+      {
+        x =>
+          Left(AllBut(x))
+      }
+
 
   val single_region_project:Parser[SingleProjectOnRegion] =
-    fixed_field_position ^^ {x => RegionProject(FieldPosition(x))} |
-      region_field_name ^^ {x => RegionProject(FieldName(x))}
+    region_field_name_with_wildcards ^^ {x => RegionProject(FieldNameWithWildCards(x))} |
+      fixed_field_position ^^ {x => RegionProject(FieldPosition(x))} |
+      region_field_name ^^ {x => RegionProject(FieldName(x))} 
 
   val region_project_list:Parser[Either[AllBut,List[SingleProjectOnRegion]]] =
     rep1sep(single_region_project, ",") ^^ {x => Right(x)}
 
-  val region_project_cond:Parser[Either[AllBut,List[SingleProjectOnRegion]]] = allBut | region_project_list
+  val region_project_cond:Parser[Either[AllBut,List[SingleProjectOnRegion]]] =
+      allBut |
+      region_project_list
 
   lazy val re_factor:Parser[RENode] = START ^^ {x=>RESTART()} |
     STOP ^^ {x => RESTOP()} | LEFT ^^ {x => RELEFT()} |
@@ -236,13 +277,18 @@ trait GmqlParsers extends JavaTokenParsers {
     (re_term <~ SUM) ~ re_expr ^^ {x => READD(x._1,x._2)} |
       (re_term <~ SUB) ~ re_expr ^^ {x => RESUB(x._1,x._2)} |
       re_term
+
   val single_region_modifier:Parser[SingleProjectOnRegion] =
-    ((RIGHT ^^ {x => FieldPosition(COORD_POS.RIGHT_POS)} |
-      LEFT ^^ {x => FieldPosition(COORD_POS.LEFT_POS)} |
-      ((START | STOP) ^^ {x =>
-        throw new CompilerException(x + " is not a valid name for region attribute")} |
-      any_field_identifier)) <~ AS) ~
-      re_expr ^^ {x => RegionModifier(x._1,x._2)}
+    (
+      (
+        RIGHT ^^ {x => FieldPosition(COORD_POS.RIGHT_POS)} |
+        LEFT ^^ {x => FieldPosition(COORD_POS.LEFT_POS)} |
+        START ^^ {x => FieldPosition(COORD_POS.START_POS)} |
+        STOP ^^ {x => FieldPosition(COORD_POS.STOP_POS)}|
+        any_field_identifier
+        ) <~ AS
+      ) ~ re_expr ^^ { x => RegionModifier(x._1,x._2)}
+
   val region_modifier_list:Parser[List[SingleProjectOnRegion]] = rep1sep(single_region_modifier, ",")
 
   val single_meta_project:Parser[SingleProjectOnMeta] = metadata_attribute ^^ {MetaProject(_)}
