@@ -358,4 +358,15 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
       None
   }
 
+  def get_field_by_name_with_wildcard(name : String) : List[Int] = {
+    val scaffold = name.replace(".", "\\.").replace("?", ".*")
+
+    this
+      .schema
+      .indices
+      .filter(x=> this.schema(x)._1.matches(scaffold))
+      .toList
+
+  }
+
 }

@@ -169,6 +169,12 @@ abstract class Operator (op_pos : Position,
     }
   }
 
+  def left_var_get_field_name_wildcards(name : String) : List[Int] = {
+
+    super_variable_left.get.get_field_by_name_with_wildcard(name)
+
+  }
+
   def right_var_get_field_name(name : String) : Option[Int] = {
     val fp = super_variable_right.get.get_field_by_name(name)
     if (fp.isDefined) {
@@ -229,6 +235,7 @@ trait BuildingOperator2 {
 trait FieldPositionOrName
 case class FieldPosition(pos : Int) extends FieldPositionOrName
 case class FieldName(name : String) extends FieldPositionOrName
+case class FieldNameWithWildCards(name_with_wildcards : String) extends FieldPositionOrName
 
 case class MetaJoinConditionTemp(attributes : List[String], join_dataset_name : VariableIdentifier)
 case class RegionPredicateTemp(field:String, operator : REG_OP,  value : Any)  extends RegionCondition {}
@@ -242,7 +249,7 @@ trait SingleProjectOnRegion
 case class RegionProject(field: FieldPositionOrName) extends SingleProjectOnRegion
 case class REFieldNameOrPosition(field: FieldPositionOrName) extends RENode
 case class RegionModifier(field: FieldPositionOrName, dag : RENode) extends SingleProjectOnRegion
-case class AllBut(field: FieldPositionOrName)
+case class AllBut(fields: List[FieldPositionOrName])
 
 trait CoverType extends Positional
 case class Cover() extends CoverType {override def toString() = "COVER"}
