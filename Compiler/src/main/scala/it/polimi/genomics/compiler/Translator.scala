@@ -108,7 +108,13 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
     SELECT | PROJECT | MAP | JOIN | HISTOGRAM | SUMMIT | FLAT | COVER | MERGE | EXTEND | ORDER | GROUP
 
   val comparison: Parser[String] = ("==" | "!=" | ">=" | "<=" | ">" | "<")
-  val arithmetic: Parser[String] = (STAR | MULT | DIV | SUB | SUM)
+  val arithmetic: Parser[String] =
+      STAR |
+      MULT |
+      DIV |
+      SUB |
+      SUM
+
   val keyword: Parser[String] = INTERSECT | ASC | OR | AND | NOT | LEFT | RIGHT | STRAND | CHR |
     START | STOP | META | UPSTREAM | DOWNSTREAM | MINDIST | DISTANCE | DISTLESS |
     DISTGREATER | IN | CONTIG | ANY | ALL | TOPG | TOP | AS | DESC
