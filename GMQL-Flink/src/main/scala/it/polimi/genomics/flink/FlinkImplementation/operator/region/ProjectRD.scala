@@ -3,7 +3,7 @@ package it.polimi.genomics.flink.FlinkImplementation.operator.region
 import it.polimi.genomics.core.DataStructures.RegionAggregate.{COORD_POS, RegionExtension}
 import it.polimi.genomics.core.DataStructures.RegionOperator
 import it.polimi.genomics.core.DataTypes._
-import it.polimi.genomics.core.{GDouble, GString, GValue}
+import it.polimi.genomics.core.{GDouble, GRecordKey, GString, GValue}
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
 import org.apache.flink.api.scala._
@@ -50,7 +50,7 @@ object ProjectRD {
     if(tupleAggregator.isDefined){
       val agg =
         tupleAggregator.get
-      projectedInput.map((a : FlinkRegionType) => {
+      projectedInput.flatMap((a : FlinkRegionType) => {
         extendRegion(a, agg)
       })
     } else {
@@ -71,9 +71,18 @@ object ProjectRD {
     }) )
   }
 
-  def extendRegion(r : FlinkRegionType, aggList : List[RegionExtension]) : FlinkRegionType = {
+  def extendRegion(r : FlinkRegionType, aggList : List[RegionExtension]) : Option[FlinkRegionType]= {
     if(aggList.isEmpty){
-      r
+      //r
+      if (r._3 >= r._4) // if left > right, the region is deleted
+      {
+        None
+      }
+      else if (r._3 < 0) //if left become < 0, set it to 0
+      {
+        Some((r._1, r._2, 0, r._4, r._5, r._6))
+      }
+      else Some(r)
     } else {
       val agg = aggList.head
       agg.output_index match {
@@ -81,6 +90,18 @@ object ProjectRD {
         case Some(COORD_POS.LEFT_POS) => extendRegion((r._1, r._2, computeFunction(r, agg).asInstanceOf[GDouble].v.toLong, r._4, r._5, r._6), aggList.drop(1))
         case Some(COORD_POS.RIGHT_POS) => extendRegion((r._1, r._2, r._3, computeFunction(r, agg).asInstanceOf[GDouble].v.toLong, r._5, r._6), aggList.drop(1))
         case Some(COORD_POS.STRAND_POS) => extendRegion((r._1, r._2, r._3, r._4, computeFunction(r, agg).asInstanceOf[GString].v.charAt(0), r._6), aggList.drop(1))
+        case Some(COORD_POS.START_POS) => {
+          if (r._5.equals('-')) {
+            extendRegion((r._1, r._2, r._3, computeFunction(r, agg).asInstanceOf[GDouble].v.toLong, r._5, r._6), aggList.drop(1))
+          } else
+            extendRegion((r._1, r._2, computeFunction(r, agg).asInstanceOf[GDouble].v.toLong, r._4, r._5, r._6), aggList.drop(1))
+        }
+        case Some(COORD_POS.STOP_POS) => {
+          if (r._5.equals('-')) {
+            extendRegion((r._1, r._2, computeFunction(r, agg).asInstanceOf[GDouble].v.toLong, r._4, r._5, r._6), aggList.drop(1))
+          } else
+            extendRegion((r._1, r._2, r._3, computeFunction(r, agg).asInstanceOf[GDouble].v.toLong, r._5, r._6), aggList.drop(1))
+        }
         case Some(v : Int) => extendRegion((r._1, r._2, r._3, r._4, r._5, {r._6.update(v, computeFunction(r, agg)); r._6} ), aggList.drop(1))
         case None => extendRegion((r._1, r._2, r._3, r._4, r._5, r._6 :+ computeFunction(r, agg)), aggList.drop(1))
       }
