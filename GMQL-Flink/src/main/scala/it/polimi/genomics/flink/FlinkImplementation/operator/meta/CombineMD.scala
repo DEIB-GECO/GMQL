@@ -23,11 +23,23 @@ object  CombineMD{
 
     //logger.warn("Executing CombineMD")
 
-    val leftName = leftNameIn + "."
-    val rightName = rightNameIn + "."
+//    val leftName = leftNameIn + "."
+//    val rightName = rightNameIn + "."
 
-    val left = executor.implement_md(leftDataset, env).map((meta) => (meta._1, leftName  + meta._2, meta._3))
-    val right = executor.implement_md(rightDataset, env).map((meta) => (meta._1, rightName  + meta._2, meta._3))
+    val left = executor.implement_md(leftDataset, env).map((meta) => {
+      if (!leftNameIn.isEmpty())
+        (meta._1, leftNameIn + "." + meta._2, meta._3)
+      else
+        (meta._1, meta._2, meta._3)
+    })
+    val right = executor.implement_md(rightDataset, env).map((meta) => {
+      if (!rightNameIn.isEmpty())
+      (meta._1, rightNameIn + "." + meta._2, meta._3)
+      else
+        (meta._1, meta._2, meta._3)
+
+
+  })
 
     val pairs: DataSet[(Long, Long)] =
       /*if(grouping.isInstanceOf[SomeMetaJoinOperator])*/{
