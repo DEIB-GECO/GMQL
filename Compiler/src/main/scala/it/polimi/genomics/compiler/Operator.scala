@@ -7,6 +7,7 @@ import it.polimi.genomics.core.DataStructures.IRVariable
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.AtomicCondition
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
 import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
+import it.polimi.genomics.core.DataStructures.MetaJoinCondition.AttributeEvaluationStrategy
 import it.polimi.genomics.core.DataStructures.RegionAggregate.RENode
 import it.polimi.genomics.core.DataStructures.RegionCondition.REG_OP._
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
@@ -237,7 +238,7 @@ case class FieldPosition(pos : Int) extends FieldPositionOrName
 case class FieldName(name : String) extends FieldPositionOrName
 case class FieldNameWithWildCards(name_with_wildcards : String) extends FieldPositionOrName
 
-case class MetaJoinConditionTemp(attributes : List[String], join_dataset_name : VariableIdentifier)
+case class MetaJoinConditionTemp(attributes : List[AttributeEvaluationStrategy], join_dataset_name : VariableIdentifier)
 case class RegionPredicateTemp(field:String, operator : REG_OP,  value : Any)  extends RegionCondition {}
 
 
