@@ -263,6 +263,9 @@ trait GmqlParsers extends JavaTokenParsers {
       re_term
 
   val single_region_modifier:Parser[SingleProjectOnRegion] =
+    ((region_field_name ^^ {FieldName(_)}) <~ AS) ~ stringLiteral ^^ {
+      x => RegionModifier(x._1, REStringConstant(x._2))
+    } |
     (
       (
         RIGHT ^^ {x => FieldPosition(COORD_POS.RIGHT_POS)} |
