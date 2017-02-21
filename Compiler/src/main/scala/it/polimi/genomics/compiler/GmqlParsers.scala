@@ -80,6 +80,17 @@ trait GmqlParsers extends JavaTokenParsers {
   val ASC:Parser[String] = """[a|A][s|S][c|C]""".r
   val DESC:Parser[String] = """[d|D][e|E][s|S][c|C]""".r
 
+  val region_field_name_with_wildcards:Parser[String] =
+    (
+      (rep1(ident <~ ".") ~ "?" ~ rep("."~>ident)) ^^ {
+        x => x._1._1 ++ x._1._2 ++ x._2
+      } |
+      (rep(ident <~ ".") ~ "?" ~ rep1("."~>ident)) ^^ {
+        x => x._1._1 ++ x._1._2 ++ x._2
+      }
+      ) ^^ { x=> x.mkString(".")}
+
+
   val metadata_attribute:Parser[String] = rep1sep(rep1sep(ident,"|") ^^ {_.mkString("|")}, ".") ^^ {_.mkString(".")}
   val metadata_attribute_list:Parser[List[String]] = rep1sep(metadata_attribute, ",")
 
@@ -212,18 +223,30 @@ trait GmqlParsers extends JavaTokenParsers {
     (((NOT ~ "(" )~> region_select_expr <~ ")") ^^
       {x=>it.polimi.genomics.core.DataStructures.RegionCondition.NOT(x)})
 
-  val allBut:Parser[Either[AllBut,List[SingleProjectOnRegion]]] = ALLBUT ~>
-    (fixed_field_position ^^ {x => Left(AllBut(FieldPosition(x)))} |
-      region_field_name ^^ {x => Left(AllBut(FieldName(x)))} )
+  val allBut:Parser[Either[AllBut,List[SingleProjectOnRegion]]] =
+    ALLBUT ~>
+      rep1sep(
+        region_field_name_with_wildcards ^^ {FieldNameWithWildCards(_)} |
+        fixed_field_position ^^ {FieldPosition(_)} |
+        region_field_name ^^ {FieldName(_)}
+        , ",") ^^
+      {
+        x =>
+          Left(AllBut(x))
+      }
+
 
   val single_region_project:Parser[SingleProjectOnRegion] =
-    fixed_field_position ^^ {x => RegionProject(FieldPosition(x))} |
-      region_field_name ^^ {x => RegionProject(FieldName(x))}
+    region_field_name_with_wildcards ^^ {x => RegionProject(FieldNameWithWildCards(x))} |
+      fixed_field_position ^^ {x => RegionProject(FieldPosition(x))} |
+      region_field_name ^^ {x => RegionProject(FieldName(x))} 
 
   val region_project_list:Parser[Either[AllBut,List[SingleProjectOnRegion]]] =
     rep1sep(single_region_project, ",") ^^ {x => Right(x)}
 
-  val region_project_cond:Parser[Either[AllBut,List[SingleProjectOnRegion]]] = allBut | region_project_list
+  val region_project_cond:Parser[Either[AllBut,List[SingleProjectOnRegion]]] =
+      allBut |
+      region_project_list
 
   lazy val re_factor:Parser[RENode] = START ^^ {x=>RESTART()} |
     STOP ^^ {x => RESTOP()} | LEFT ^^ {x => RELEFT()} |
