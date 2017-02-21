@@ -159,9 +159,10 @@ trait GmqlParsers extends JavaTokenParsers {
     (((NOT ~ "(" )~> meta_select_expr <~ ")") ^^ (x=>it.polimi.genomics.core.DataStructures.MetadataCondition.NOT(x)))
 
 
-  val select_sj_condition:Parser[MetaJoinConditionTemp] = (metadata_attribute_list <~ IN)~variableId  ^^ {
-    x => MetaJoinConditionTemp(x._1, x._2)
-  }
+  val select_sj_condition:Parser[MetaJoinConditionTemp] =
+    (rich_metadata_attribute_list <~ IN)~variableId  ^^ {
+      x => MetaJoinConditionTemp(x._1, x._2)
+    }
 
   val region_cond_field_value:Parser[Any] = field_value |
     META ~> "(" ~> metadata_attribute <~ ")" ^^ {MetaAccessor(_)}
