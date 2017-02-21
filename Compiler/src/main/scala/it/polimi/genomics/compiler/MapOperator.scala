@@ -18,9 +18,10 @@ case class MapOperator(op_pos : Position,
   with BuildingOperator2 with Serializable {
 
   override val operator_name = "MAP"
-  override val accepted_named_parameters = List("joinby")
+  override val accepted_named_parameters = List("joinby", "count_name")
   var refined_agg_function_list : List[RegionsToRegion] = List.empty
   var meta_join_param : Option[MetaJoinCondition] = None
+  var count_rename : Option[String] = None
 
   override def check_input_number = two_inputs
 
@@ -77,7 +78,32 @@ case class MapOperator(op_pos : Position,
     for (n <- parameters.named) {
       n.param_name.trim.toLowerCase match {
         case "joinby" => {
-          meta_join_param = Some(MetaJoinCondition(parser_named(metadata_attribute_list, n.param_name, n.param_value).get))
+
+          meta_join_param = Some(
+            MetaJoinCondition(
+              parser_named(
+                metadata_attribute_list,
+                n.param_name,
+                n.param_value
+              ).get))
+
+        }
+        case "count_name" => {
+
+          val count_provided_name = parser_named(
+            region_field_name,
+            n.param_name,
+            n.param_value)
+
+          if (left_var_check_field_name_exists(count_provided_name.get)) {
+            val msg = "'count_name' option of MAP operator at line " +
+              op_pos.line + ": field name " + count_provided_name.get + " " +
+              "already exists; cannot be reassigned."
+            throw new CompilerException(msg)
+          }
+
+          count_rename = count_provided_name
+
         }
       }
     }
@@ -92,7 +118,9 @@ case class MapOperator(op_pos : Position,
       refined_agg_function_list,
       super_variable_right.get,
       Some(input1.name),
-      Some(input2.get.name))
+      Some(input2.get.name),
+      count_rename
+    )
 
     CompilerDefinedVariable(output.name,output.pos,mapped)
   }

@@ -144,6 +144,18 @@ abstract class Operator (op_pos : Position,
     }
   }
 
+  def left_var_check_field_name_exists(name : String) : Boolean = {
+
+    val fp = super_variable_left.get.get_field_by_name(name)
+    if (fp.isDefined) {
+      true
+    }
+    else {
+      false
+    }
+
+  }
+
   def right_var_check_num_field(pos : Int) : Boolean = {
     if(pos < super_variable_right.get.get_number_of_fields){
       true
