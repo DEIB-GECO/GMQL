@@ -120,7 +120,13 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
         this.schema
       } ++ extended_values.getOrElse(List.empty)
         .filter(_.output_name.isDefined)
-        .map(x=>(x.output_name.get, ParsingType.DOUBLE))
+        .map(x=>(
+          x.output_name.get,
+          if(x.isInstanceOf[RegionExtension])
+            x.asInstanceOf[RegionExtension].out_type
+          else
+            ParsingType.DOUBLE))
+      
       new IRVariable(new_meta_dag, new_region_dag, new_schema)
     } else {
 
