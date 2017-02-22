@@ -2,9 +2,9 @@ package it.polimi.genomics.scidb.test.operator
 
 import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
 import it.polimi.genomics.core.DataStructures.JoinParametersRD._
-import it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinCondition
+import it.polimi.genomics.core.DataStructures.MetaJoinCondition.{Default, MetaJoinCondition}
 import it.polimi.genomics.core.DataStructures.MetadataCondition._
-import it.polimi.genomics.core.DataStructures.RegionCondition.{MetaAccessor, LeftEndCondition, StartCondition, ChrCondition}
+import it.polimi.genomics.core.DataStructures.RegionCondition.{ChrCondition, LeftEndCondition, MetaAccessor, StartCondition}
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.ParsingType
 import it.polimi.genomics.scidb.GmqlSciImplementation
@@ -48,7 +48,7 @@ object SelectTest
     val metaCondition3 = MissingAttribute("bert_value1")
     val SelectSourceMD = IRSelectMD(metaCondition, ReadSourceMD)
 
-    val SemiJoinMD = IRSemiJoin(ReadExtMD, MetaJoinCondition(List("bert_value2")), ReadSourceMD)  // toran solo il 2
+    val SemiJoinMD = IRSemiJoin(ReadExtMD, MetaJoinCondition(List(Default("bert_value2"))), ReadSourceMD)  // toran solo il 2
 
     val regionCondition =
       it.polimi.genomics.core.DataStructures.RegionCondition.AND(

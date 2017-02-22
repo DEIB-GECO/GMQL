@@ -2,7 +2,7 @@ package it.polimi.genomics.scidb.test.operator
 
 import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
 import it.polimi.genomics.core.DataStructures.JoinParametersRD._
-import it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinCondition
+import it.polimi.genomics.core.DataStructures.MetaJoinCondition.{Default, MetaJoinCondition}
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.ParsingType
 import it.polimi.genomics.scidb.GmqlSciImplementation
@@ -36,7 +36,7 @@ object MapTest
     val ReadExpMD = IRReadMD(List(), new FakeParser, EXP)
     val ReadExpRD = IRReadRD(List(), new FakeParser, EXP)
 
-    val MetaJoinMJD = IRJoinBy(MetaJoinCondition(List("bert_value1")), ReadAncMD, ReadExpMD)
+    val MetaJoinMJD = IRJoinBy(MetaJoinCondition(List(Default("bert_value1"))), ReadAncMD, ReadExpMD)
     val CombineMD = IRCombineMD(SomeMetaJoinOperator(MetaJoinMJD), ReadAncMD, ReadExpMD)
 
     var maxVal1 = new FakeR2R
