@@ -1,7 +1,7 @@
 package it.polimi.genomics.scidb.test
 
 import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
-import it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinCondition
+import it.polimi.genomics.core.DataStructures.MetaJoinCondition.{Default, MetaJoinCondition}
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.ParsingType
 
@@ -41,7 +41,7 @@ object DagTest
       ("peak",ParsingType.INTEGER)
     ).asJava)
 
-    val MJD = IRJoinBy(MetaJoinCondition(List("size")),
+    val MJD = IRJoinBy(MetaJoinCondition(List(Default("size"))),
       IRReadMD(List(),new FakeParser, input),
       IRReadMD(List(), new FakeParser, input))
 
