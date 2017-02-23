@@ -6,6 +6,7 @@ import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction._
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder._
 import it.polimi.genomics.core.DataStructures.JoinParametersRD._
+import it.polimi.genomics.core.DataStructures.MetaJoinCondition.{FullName, Exact, Default, AttributeEvaluationStrategy}
 import it.polimi.genomics.core.DataStructures.MetadataCondition.{MetadataCondition, META_OP}
 import it.polimi.genomics.core.DataStructures.MetadataCondition.META_OP._
 import it.polimi.genomics.core.DataStructures.RegionAggregate._
@@ -79,6 +80,8 @@ trait GmqlParsers extends JavaTokenParsers {
   val TOP:Parser[String] = """[t|T][o|O][p|P]""".r
   val ASC:Parser[String] = """[a|A][s|S][c|C]""".r
   val DESC:Parser[String] = """[d|D][e|E][s|S][c|C]""".r
+  val EXACT:Parser[String] = """[e|E][x|X][a|A][c|C][t|T]""".r
+  val FULLNAME:Parser[String] = """[f|F][u|U][l|L][l|L][n|N][a|A][m|M][e|E]""".r
 
   val region_field_name_with_wildcards:Parser[String] =
     (
@@ -93,6 +96,14 @@ trait GmqlParsers extends JavaTokenParsers {
 
   val metadata_attribute:Parser[String] = rep1sep(rep1sep(ident,"|") ^^ {_.mkString("|")}, ".") ^^ {_.mkString(".")}
   val metadata_attribute_list:Parser[List[String]] = rep1sep(metadata_attribute, ",")
+
+  val rich_metadata_attribute:Parser[AttributeEvaluationStrategy] =
+      metadata_attribute ^^ {Default} |
+      ((EXACT ~> "(") ~> metadata_attribute <~ ")") ^^ {Exact} |
+        ((FULLNAME ~> "(") ~> metadata_attribute <~ ")") ^^ {FullName}
+
+  val rich_metadata_attribute_list:Parser[List[AttributeEvaluationStrategy]] = rep1sep(rich_metadata_attribute, ",")
+
 
   val meta_value:Parser[String] = floatingPointNumber |
     (stringLiteral ^^ {
@@ -126,7 +137,8 @@ trait GmqlParsers extends JavaTokenParsers {
       left_most
     }
     else {
-      (List(left_most) ++ list_others).reduce((x,y) => it.polimi.genomics.core.DataStructures.MetadataCondition.AND(x,y))
+      (List(left_most) ++ list_others).reduce((x,y) =>
+        it.polimi.genomics.core.DataStructures.MetadataCondition.AND(x,y))
     }
   }
 
@@ -147,15 +159,20 @@ trait GmqlParsers extends JavaTokenParsers {
     (((NOT ~ "(" )~> meta_select_expr <~ ")") ^^ (x=>it.polimi.genomics.core.DataStructures.MetadataCondition.NOT(x)))
 
 
-  val select_sj_condition:Parser[MetaJoinConditionTemp] = (metadata_attribute_list <~ IN)~variableId  ^^ {
-    x => MetaJoinConditionTemp(x._1, x._2)
-  }
+  val select_sj_condition:Parser[MetaJoinConditionTemp] =
+    (rich_metadata_attribute_list <~ IN)~variableId  ^^ {
+      x => MetaJoinConditionTemp(x._1, x._2)
+    }
 
   val region_cond_field_value:Parser[Any] = field_value |
     META ~> "(" ~> metadata_attribute <~ ")" ^^ {MetaAccessor(_)}
-  val region_select_single_condition:Parser[RegionCondition] = (region_field_name ~ region_operator ~ region_cond_field_value) ^^
+
+  val region_select_single_condition:Parser[RegionCondition] =
+    (region_field_name ~ region_operator ~ region_cond_field_value) ^^
     {x => RegionPredicateTemp(x._1._1, x._1._2, x._2)}
-  val region_select_single_condition_fixed:Parser[RegionCondition] = (fixed_field_position ~ region_operator ~ region_cond_field_value) ^^
+
+  val region_select_single_condition_fixed:Parser[RegionCondition] =
+    (fixed_field_position ~ region_operator ~ region_cond_field_value) ^^
     {x => it.polimi.genomics.core.DataStructures.RegionCondition.Predicate(x._1._1, x._1._2, x._2)}
 
   val region_strand_condition:Parser[StrandCondition] =

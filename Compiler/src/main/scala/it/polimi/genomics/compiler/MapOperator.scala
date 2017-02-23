@@ -79,13 +79,12 @@ case class MapOperator(op_pos : Position,
       n.param_name.trim.toLowerCase match {
         case "joinby" => {
 
+
           meta_join_param = Some(
             MetaJoinCondition(
-              parser_named(
-                metadata_attribute_list,
+              parser_named(rich_metadata_attribute_list,
                 n.param_name,
-                n.param_value
-              ).get))
+                n.param_value).get))
 
         }
         case "count_name" => {
@@ -103,6 +102,13 @@ case class MapOperator(op_pos : Position,
           }
 
           count_rename = count_provided_name
+
+
+          meta_join_param = Some(
+            MetaJoinCondition(
+              parser_named(rich_metadata_attribute_list,
+                           n.param_name,
+                           n.param_value).get))
 
         }
       }

@@ -64,12 +64,40 @@ object DefaultRegionExtensionFactory extends RegionExtensionFactory{
         val strand = x(indexes.indexOf(COORD_POS.STRAND_POS)).asInstanceOf[GString].v
         if (strand.equals("-")) x(indexes.indexOf(COORD_POS.LEFT_POS)) else x(indexes.indexOf(COORD_POS.RIGHT_POS))
       }
-      case READD(a,b) => (x:Array[GValue]) => GDouble(
-        make_fun(a,indexes)(x).asInstanceOf[GDouble].v +
-          make_fun(b,indexes)(x).asInstanceOf[GDouble].v)
-      case RESUB(a,b) => (x:Array[GValue]) => GDouble(
-        make_fun(a,indexes)(x).asInstanceOf[GDouble].v -
-          make_fun(b,indexes)(x).asInstanceOf[GDouble].v)
+//      case READD(a,b) => (x:Array[GValue]) => GDouble(
+//        make_fun(a,indexes)(x).asInstanceOf[GDouble].v +
+//          make_fun(b,indexes)(x).asInstanceOf[GDouble].v)
+//      case RESUB(a,b) => (x:Array[GValue]) => GDouble(
+//        make_fun(a,indexes)(x).asInstanceOf[GDouble].v -
+//          make_fun(b,indexes)(x).asInstanceOf[GDouble].v)
+      case READD(a,b) => (x:Array[GValue]) => {
+        if (indexes.indexOf(COORD_POS.STRAND_POS) > -1) {
+          val strand = x(indexes.indexOf(COORD_POS.STRAND_POS)).asInstanceOf[GString].v
+          if (strand.equals("-")) GDouble(
+              make_fun(a, indexes)(x).asInstanceOf[GDouble].v -
+                make_fun(b, indexes)(x).asInstanceOf[GDouble].v)
+          else GDouble(
+              make_fun(a, indexes)(x).asInstanceOf[GDouble].v +
+                make_fun(b, indexes)(x).asInstanceOf[GDouble].v)
+        }
+        else GDouble(
+            make_fun(a,indexes)(x).asInstanceOf[GDouble].v +
+              make_fun(b,indexes)(x).asInstanceOf[GDouble].v)
+      }
+      case RESUB(a,b) => (x:Array[GValue]) => {
+        if (indexes.indexOf(COORD_POS.STRAND_POS) > -1) {
+          val strand = x(indexes.indexOf(COORD_POS.STRAND_POS)).asInstanceOf[GString].v
+          if (strand.equals("-")) GDouble(
+              make_fun(a, indexes)(x).asInstanceOf[GDouble].v +
+                make_fun(b, indexes)(x).asInstanceOf[GDouble].v)
+          else GDouble(
+              make_fun(a, indexes)(x).asInstanceOf[GDouble].v -
+                make_fun(b, indexes)(x).asInstanceOf[GDouble].v)
+        }
+        else GDouble(
+            make_fun(a,indexes)(x).asInstanceOf[GDouble].v -
+              make_fun(b,indexes)(x).asInstanceOf[GDouble].v)
+      }
       case REMUL(a,b) => (x:Array[GValue]) => GDouble(
         make_fun(a,indexes)(x).asInstanceOf[GDouble].v *
           make_fun(b,indexes)(x).asInstanceOf[GDouble].v)

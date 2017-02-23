@@ -12,7 +12,7 @@ import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaAggregateStruct
 import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinCondition
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
-import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionFunction, RegionsToRegion, RegionsToMeta, RegionExtension}
+import it.polimi.genomics.core.DataStructures.RegionAggregate._
 import it.polimi.genomics.core.DataStructures.RegionCondition.{MetaAccessor, RegionCondition}
 import it.polimi.genomics.core.ParsingType
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
@@ -209,7 +209,6 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
 
     val new_meta = IRCollapseMD(grouping,this.metaDag)
 
-
     val new_schema = List(("AccIndex", ParsingType.INTEGER),
                           ("JaccardIntersect", ParsingType.DOUBLE),
                           ("JaccardResult", ParsingType.DOUBLE)) ++
@@ -244,14 +243,14 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
       IRCombineMD(meta_join_cond,
         this.metaDag,
         subtrahend.metaDag,
-        "left",
-        "right")
+        "",
+        "")
 
     //difference does not change the schema
     new IRVariable(new_meta_dag, new_region_dag,this.schema)
   }
 
-  def UNION(right_dataset : IRVariable, left_name : String = "left", right_name : String = "right") : IRVariable = {
+  def UNION(right_dataset : IRVariable, left_name : String = "", right_name : String = "") : IRVariable = {
 
     val schema_reformatting : List[Int] = for (f <- this.schema) yield {
       right_dataset.get_field_by_name(f._1).getOrElse(-1)
