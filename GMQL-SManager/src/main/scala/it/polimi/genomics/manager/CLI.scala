@@ -77,13 +77,13 @@ object CLI {
         logger.info("Output is set to verbose: " + verbose)
 
       } else if ("-scriptpath".equals(args(i))) {
-        logger.info("scriptpath set to: " + scriptPath)
         val sFile = new File (args(i + 1))
         if(!sFile.exists()) {
           logger.error(s"Script file not found $scriptPath")
           return 0
         };
         scriptPath = sFile.getPath
+        logger.info("scriptpath set to: " + scriptPath)
 
       } else if ("-outputformat".equals(args(i).toLowerCase())) {
         val out = args(i + 1).toUpperCase().trim

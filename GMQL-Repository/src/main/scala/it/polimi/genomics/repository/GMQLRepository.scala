@@ -1,5 +1,6 @@
 package it.polimi.genomics.repository
 
+import java.io.InputStream
 import java.util
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
@@ -54,7 +55,7 @@ trait GMQLRepository {
     * @throws GMQLUserNotFound
     */
   @throws(classOf[GMQLDSException])
-  def DeleteDS(dataSetName:String, userName:String)
+  def deleteDS(dataSetName:String, userName:String)
 
 
   /**
@@ -69,7 +70,7 @@ trait GMQLRepository {
     * @throws GMQLSampleNotFound
     */
   @throws(classOf[GMQLDSException])
-  def AddSampleToDS(dataSet:String, userName:String, Sample:GMQLSample)
+  def addSampleToDS(dataSet:String, userName:String, Sample:GMQLSample)
 
   /**
     *
@@ -83,7 +84,7 @@ trait GMQLRepository {
     * @throws GMQLSampleNotFound
     */
   @throws(classOf[GMQLDSException])
-  def DeleteSampleFromDS(dataSet:String, userName:String, Sample:GMQLSample)
+  def deleteSampleFromDS(dataSet:String, userName:String, Sample:GMQLSample)
 
   /**
     *
@@ -94,7 +95,7 @@ trait GMQLRepository {
     * @throws GMQLUserNotFound
     */
   @throws(classOf[GMQLDSException])
-  def ListAllDSs(userName:String): java.util.List[IRDataSet]
+  def listAllDSs(userName:String): java.util.List[IRDataSet]
 
   /**
     *
@@ -105,7 +106,7 @@ trait GMQLRepository {
     * @return
     */
   @throws(classOf[GMQLDSException])
-  def ListDSSamples(dataSetName:String, userName:String):java.util.List[GMQLSample]
+  def listDSSamples(dataSetName:String, userName:String):java.util.List[GMQLSample]
 
   /**
     *
@@ -116,7 +117,7 @@ trait GMQLRepository {
     * @return
     */
   @throws(classOf[GMQLDSException])
-  def ListResultDSSamples(dataSetName:String, userName:String):(java.util.List[GMQLSample],java.util.List[(String,PARSING_TYPE)])
+  def listResultDSSamples(dataSetName:String, userName:String):(java.util.List[GMQLSample],java.util.List[GMQLSchemaField])
 
   /**
     * Copy data set from GMQL repository to local folder,
@@ -168,7 +169,7 @@ trait GMQLRepository {
     * @param schemaPath {@link String} of the path to the schema xml
     * @return
     */
-  def readSchemaFile(schemaPath:String): util.List[(String, ParsingType.Value)]
+  def readSchemaFile(schemaPath:String):  GMQLSchema
 
   /**
     *
@@ -229,6 +230,24 @@ trait GMQLRepository {
     */
   def getDSLocation(dataSet:String, userName:String): (RepositoryType.Value,DatasetOrigin.Value)
 
+
+  /**
+    * change the dataset name to a new name
+    *
+    * @param datasetName old dataset name as a String
+    * @param newDSName new dataset name as a String
+    */
+  def changeDSName(datasetName:String, userName:String, newDSName:String)
+
+  /**
+    * send streams of the sampe and its meta data.
+    *
+    * @param dataSetName dataset name as a string
+    * @param userName the owner of the dataset as a String
+    * @param sampleName The sample name, which is the file name with out the full path as a String
+    * @return Two Streams, one for the sample and the other for the metadata
+    */
+  def sampleStreams(dataSetName: String, userName: String, sampleName: String): (InputStream, InputStream)
 }
 
 

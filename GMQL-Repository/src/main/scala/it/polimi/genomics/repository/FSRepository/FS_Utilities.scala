@@ -266,7 +266,7 @@ object FS_Utilities {
     * @param x {@link String} of the data type
     * @return
     */
-  def attType(x: String) = x.toUpperCase match {
+  def attType(x: String): ParsingType.Value = x.toUpperCase match {
     case "STRING" => ParsingType.STRING
     case "CHAR" => ParsingType.STRING
     case "CHARACTAR" => ParsingType.STRING

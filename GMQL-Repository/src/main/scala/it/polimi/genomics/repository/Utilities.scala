@@ -27,7 +27,7 @@ class Utilities() {
   var MODE: String = System.getenv("GMQL_EXEC")
   var CoreConfigurationFiles: String = null
   var HDFSConfigurationFiles: String = null
-  var HADOOP_CONF_DIR:String = null
+  var HADOOP_CONF_DIR:String = "/usr/local/Cellar/hadoop/2.7.2/libexec/etc/hadoop/"
   var GMQLHOME: String = System.getenv("GMQL_HOME")
   var HADOOP_HOME:String = System.getenv("HADOOP_HOME")
   var GMQL_CONF_DIR:String = null
@@ -37,9 +37,9 @@ class Utilities() {
     *  Read Configurations from the system environment variables.
     *  The xml configurations will override any environment variables configurations.
     */
-  def apply(confFile:String = "../conf/GMQL.conf") = {
+  def apply(confFile:String = "../conf") = {
     try {
-      val file = new File(confFile)
+      var file = new File(confFile+"/GMQL.conf")
       val xmlFile = XML.loadFile(file)
       val properties = (xmlFile \\ "property")
       //      val schemaType = (xmlFile \\ "gmqlSchema").head.attribute("type").get.head.text
@@ -51,7 +51,12 @@ class Utilities() {
         att.toUpperCase() match {
           case Conf.GMQL_DFS_HOME => this.HDFSRepoDir = value;
           case Conf.GMQL_HOME => this.GMQLHOME = value;
-          case Conf.GMQL_EXEC => this.MODE = value.toUpperCase();
+          case Conf.GMQL_EXEC =>
+            this.MODE = value.toUpperCase() match {
+              case HDFS => HDFS;
+              case LOCAL => LOCAL
+              case _ => HDFS
+            };
           case Conf.HADOOP_CONF_DIR  => HADOOP_CONF_DIR = value
           case Conf.HADOOP_HOME =>  HADOOP_HOME = value
           case Conf.GMQL_CONF_DIR => GMQL_CONF_DIR = value
@@ -69,7 +74,7 @@ class Utilities() {
 
     this.GMQLHOME =  if (this.GMQLHOME == null)  "/user/gmql_repository" else  this.GMQLHOME
 
-    GMQL_CONF_DIR =  if (this.GMQL_CONF_DIR == null)  GMQLHOME+"/conf/" else GMQL_CONF_DIR
+    GMQL_CONF_DIR =  if (!(this.GMQL_CONF_DIR == null))  GMQL_CONF_DIR else confFile
 
     this.USERNAME  = if (this.USERNAME  == null) "gmql_user" else this.USERNAME
 
@@ -218,7 +223,7 @@ object Utilities {
   def apply(): Utilities = {
     if (instance == null) {
       instance = new Utilities();
-      instance.apply(confFolder+"/GMQL.conf")
+      instance.apply(confFolder)
     }
     instance
   }

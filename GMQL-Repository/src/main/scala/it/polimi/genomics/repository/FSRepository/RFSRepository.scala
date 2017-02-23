@@ -1,6 +1,6 @@
 package it.polimi.genomics.repository.FSRepository
 
-import java.io.{File, FilenameFilter}
+import java.io.{File, FilenameFilter, InputStream}
 import java.nio.file.Files
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
@@ -11,6 +11,7 @@ import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
 import it.polimi.genomics.repository.GMQLExceptions._
 import it.polimi.genomics.repository._
 import it.polimi.genomics.wsc.Knox.KnoxClient
+import org.apache.hadoop.fs.{FileSystem, Path}
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.Await
@@ -96,7 +97,7 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
     * @throws GMQLSampleNotFound
     */
   @throws(classOf[GMQLDSException])
-  override def AddSampleToDS(dataSet: String, userName: String, Sample: GMQLSample) = ???
+  override def addSampleToDS(dataSet: String, userName: String, Sample: GMQLSample) = ???
 
   /**
     *
@@ -106,7 +107,7 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
     * @throws GMQLUserNotFound
     */
   @throws(classOf[GMQLDSException])
-  override def DeleteDS(dataSetName: String, userName: String): Unit = {
+  override def deleteDS(dataSetName: String, userName: String): Unit = {
     val dataset = new GMQLDataSetXML(dataSetName, userName).loadDS()
     val dfsDir = General_Utilities().getHDFSRegionDir(userName)
     dataset.samples.map { x => KnoxClient.delDIR(dfsDir + x.name); KnoxClient.delDIR(dfsDir + x.meta) }
@@ -123,7 +124,7 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
     * @throws GMQLUserNotFound
     * @throws GMQLSampleNotFound
     */
-  override def DeleteSampleFromDS(dataSet: String, userName: String, sample: GMQLSample): Unit = ???
+  override def deleteSampleFromDS(dataSet: String, userName: String, sample: GMQLSample): Unit = ???
 
   /**
     *
@@ -131,7 +132,7 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
     * @throws GMQLDSException
     * @return
     */
-  override def ListResultDSSamples(dataSetName: String, userName: String):(java.util.List[GMQLSample],java.util.List[(String,PARSING_TYPE)])= {
+  override def listResultDSSamples(dataSetName: String, userName: String):(java.util.List[GMQLSample],java.util.List[GMQLSchemaField])= {
     import scala.concurrent.duration._
     val dsPath = General_Utilities().getHDFSRegionDir(userName) + dataSetName
     //User Knox client to connect to the remote cluster to list all the files under the result directory
@@ -146,7 +147,7 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
     KnoxClient.downloadFile(dsPath + "/test.schema",new File(General_Utilities().getTempDir() +"/test.schema"))
     val schema = readSchemaFile(General_Utilities().getTempDir() +"/test.schema")
 
-    (samples,schema)
+    (samples,schema.fields.asJava)
   }
 
   /**
@@ -188,4 +189,42 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
     * @return
     */
   override def searchMeta(dataSet: String, userName: String, query: String): java.util.List[GMQLSample] = ???
+
+  /**
+    *
+    * THIS FUNCTION IMPLEMENTATION IS NOT TESTED FOR REMOTE
+    * NEEDS TO BE REWRITEN
+    *
+    * @param dataSetName dataset name as a string
+    * @param userName the owner of the dataset as a String
+    * @param sampleName The sample name, which is the file name with out the full path as a String
+    * @return Two Streams, one for the sample and the other for the metadata
+    */
+  override def sampleStreams(dataSetName: String, userName: String, sampleName: String): (InputStream, InputStream) = {
+    val gMQLDataSetXML = new GMQLDataSetXML(dataSetName, userName).loadDS()
+
+    val sampleOption = gMQLDataSetXML.samples.find(_.name.split("\\.").head.endsWith(sampleName))
+    sampleOption match {
+      case Some(sample) =>
+        val pathRegion = new Path(sample.name)
+        val pathMeta = new Path(sample.meta)
+
+        val conf = FS_Utilities.gethdfsConfiguration
+        val fs = FileSystem.get(conf)
+        //check region file exists
+        if (!fs.exists(pathRegion)) {
+          logger.error("The Dataset sample Url is not found: " + sample.name)
+          throw new GMQLSampleNotFound
+        }
+        //check meta file exists
+        if (!fs.exists(pathMeta)) {
+          logger.error("The Dataset sample Url is not found: " + sample.meta)
+          throw new GMQLSampleNotFound
+        }
+        (fs.open(pathRegion), fs.open(pathMeta))
+      case None =>
+        logger.error("The Dataset sample Url is not found in the xml: ")
+        throw new GMQLSampleNotFound
+    }
+  }
 }

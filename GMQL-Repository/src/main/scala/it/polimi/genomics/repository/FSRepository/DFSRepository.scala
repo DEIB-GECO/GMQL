@@ -1,6 +1,6 @@
 package it.polimi.genomics.repository.FSRepository
 
-import java.io.{File, FileInputStream, FileOutputStream, FilenameFilter}
+import java.io._
 
 import com.google.common.io.Files
 import it.polimi.genomics.core.DataStructures.IRDataSet
@@ -9,7 +9,7 @@ import it.polimi.genomics.core.ParsingType._
 import it.polimi.genomics.repository
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
 import it.polimi.genomics.repository.GMQLExceptions.{GMQLDSException, GMQLDSNotFound, GMQLSampleNotFound, GMQLUserNotFound}
-import it.polimi.genomics.repository.{ GMQLRepository, GMQLSample, GMQLSchemaTypes, GMQLStatistics, Utilities => General_Utilities}
+import it.polimi.genomics.repository.{GMQLRepository, GMQLSample, GMQLSchemaField, GMQLSchemaTypes, GMQLStatistics, Utilities => General_Utilities}
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.slf4j.LoggerFactory
 
@@ -84,7 +84,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     * @param Sample GMQL sample {@link GMQLSample}.
     * @userName String of the user name.
     */
-  override def AddSampleToDS(dataSet: String, userName: String, Sample: GMQLSample): Unit = ???
+  override def addSampleToDS(dataSet: String, userName: String, Sample: GMQLSample): Unit = ???
 
   /**
     * Delete Data Set from the repository, Delete XML files from local File system and delete the samples and meta files from HDFS.
@@ -94,7 +94,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     * @throws GMQLDSException
     * @throws GMQLUserNotFound
     */
-  override def DeleteDS(dataSetName:String, userName:String): Unit = {
+  override def deleteDS(dataSetName:String, userName:String): Unit = {
     val dataset = new GMQLDataSetXML(dataSetName,userName).loadDS()
 
     //Delete files from HDFS
@@ -119,7 +119,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     * @throws GMQLUserNotFound
     * @throws GMQLSampleNotFound
     */
-  override def DeleteSampleFromDS(dataSet:String, userName: String, Sample:GMQLSample): Unit = ???
+  override def deleteSampleFromDS(dataSet:String, userName: String, Sample:GMQLSample): Unit = ???
 
   /**
     *   List of the samples that was generated from a GMQL script execution
@@ -128,7 +128,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     * @throws GMQLDSException
     * @return
     */
-  override def ListResultDSSamples(dataSetName:String , userName: String): (java.util.List[GMQLSample],java.util.List[(String,PARSING_TYPE)]) = {
+  override def listResultDSSamples(dataSetName:String, userName: String): (java.util.List[GMQLSample],java.util.List[GMQLSchemaField]) = {
     val conf = FS_Utilities.gethdfsConfiguration()
     val fs = FileSystem.get(conf);
     val dsPath = conf.get("fs.defaultFS") +repository.Utilities().getHDFSRegionDir(userName) + dataSetName
@@ -140,7 +140,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
             None
         }).toList.asJava;
     val schema = readSchemaFile(dsPath + "/test.schema")
-    (samples,schema)
+    (samples,schema.fields.asJava)
   }
   /**
     *
@@ -198,5 +198,41 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
       (if (FS_Utilities.deleteDFSDir(General_Utilities().getHDFSRegionDir( userName ))) "Deleted." else "Error"))
 
     super.unregisterUser(userName)
+  }
+
+
+  /**
+    *
+    * @param dataSetName dataset name as a string
+    * @param userName the owner of the dataset as a String
+    * @param sampleName The sample name, which is the file name with out the full path as a String
+    * @return Two Streams, one for the sample and the other for the metadata
+    */
+  override def sampleStreams(dataSetName: String, userName: String, sampleName: String): (InputStream, InputStream) = {
+    val gMQLDataSetXML = new GMQLDataSetXML(dataSetName, userName).loadDS()
+
+    val sampleOption = gMQLDataSetXML.samples.find(_.name.split("\\.").head.endsWith(sampleName))
+    sampleOption match {
+      case Some(sample) =>
+        val pathRegion = new Path(sample.name)
+        val pathMeta = new Path(sample.meta)
+
+        val conf = FS_Utilities.gethdfsConfiguration
+        val fs = FileSystem.get(conf)
+        //check region file exists
+        if (!fs.exists(pathRegion)) {
+          logger.error("The Dataset sample Url is not found: " + sample.name)
+          throw new GMQLSampleNotFound
+        }
+        //check meta file exists
+        if (!fs.exists(pathMeta)) {
+          logger.error("The Dataset sample Url is not found: " + sample.meta)
+          throw new GMQLSampleNotFound
+        }
+        (fs.open(pathRegion), fs.open(pathMeta))
+      case None =>
+        logger.error("The Dataset sample Url is not found in the xml: ")
+        throw new GMQLSampleNotFound
+    }
   }
 }

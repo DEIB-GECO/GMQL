@@ -139,6 +139,14 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
   }
 
   /**
+    * Set the data set name
+    * @param DSname
+    */
+  def setDSName(DSname:String): Unit ={
+    this.DSname = DSname
+  }
+
+  /**
     *  Find if the Dataset exists in the repository
     *
     * @throws GMQLUserNotFound exception that the user was not found as registered user
@@ -449,6 +457,16 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
     this.storeXML(generateDSXML(), Utilities().getDataSetsDir(this.userName ) + DSname + ".xml")
   }
 
+  def changeDSName(newDSName:String): Unit = {
+    new File(Utilities().getDataSetsDir( this.userName )+  DSname + ".xml").delete()
+    new File(Utilities().getSchemaDir( this.userName )+  DSname + ".schema").delete()
+    new File(Utilities().getMetaDir( this.userName )+  DSname + ".meta")
+      .renameTo(new File(Utilities().getMetaDir( this.userName )+newDSName+".meta"))
+
+    setDSName(newDSName)
+    this.storeXML(generateDSXML(), Utilities().getDataSetsDir(this.userName ) + newDSName + ".xml")
+    this.storeXML(generateSchemaXML(this.schema), Utilities().getSchemaDir( this.userName)  + DSname + ".schema")
+  }
   /**
     *  Delete sample from the dataset
     *

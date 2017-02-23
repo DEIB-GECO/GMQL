@@ -41,7 +41,11 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
 
   private final val date = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
 
-  def jobId: String = generateJobId(username, new java.io.File(script.scriptPath).getName.substring(0, new java.io.File(script.scriptPath).getName.indexOf(".")))
+  def jobId: String = {
+    val fileName = new java.io.File(script.scriptPath).getName
+    val name = if(fileName.indexOf(".") > 0) fileName.substring(0, fileName.indexOf(".")) else fileName
+    generateJobId(username,name)
+  }
 
   private final val logger = LoggerFactory.getLogger(this.getClass);
   val jobOutputMessages = new StringBuilder
@@ -167,8 +171,8 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
         status = Status.COMPILE_FAILED
       DAG = server.materializationList
     } catch {
-      case e: CompilerException => status = Status.COMPILE_FAILED; logError(e.getMessage)
-      case ex: Exception => status = Status.COMPILE_FAILED; logError(ex.getMessage)
+      case e: CompilerException => status = Status.COMPILE_FAILED; logError(e.getMessage); e.printStackTrace()
+      case ex: Exception => status = Status.COMPILE_FAILED; logError(ex.getMessage); ex.printStackTrace()
     }
 
     elapsedTime.compileTime = ((System.currentTimeMillis() - Compiletimestamp)/1000).toString;
@@ -187,7 +191,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
   def getRegionFolder(dsName:String,user:String): String = {
 //    val xmlFile = General_Utilities().getDataSetsDir(user) + dsName + ".xml"
 //    val xml = XML.loadFile(xmlFile)
-    val path = repositoryHandle.ListDSSamples(dsName,user).asScala.head.name//(xml \\ "url") (0).text
+    val path = repositoryHandle.listDSSamples(dsName,user).asScala.head.name//(xml \\ "url") (0).text
 
     val (location,ds_origin) = repositoryHandle.getDSLocation(dsName,user)
     if ( location == RepositoryType.HDFS)
@@ -275,13 +279,13 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
 
         outputVariablesList.map { ds =>
 
-          val (samples, sch) = repositoryHandle.ListResultDSSamples(ds + "/exp/", this.username)
+          val (samples, sch) = repositoryHandle.listResultDSSamples(ds + "/exp/", this.username)
 
           println("samples")
           samples.asScala foreach println _
 
 
-          repositoryHandle.createDs(new IRDataSet(ds, sch),
+          repositoryHandle.createDs(new IRDataSet(ds, sch.asScala.map(x=>(x.name,x.fieldType)).toList.asJava),
             this.username, samples, script.scriptPath,
             if(gMQLContext.outputFormat.equals(GMQLOutputFormat.GTF))GMQLSchemaTypes.GTF else GMQLSchemaTypes.Delimited)
 
@@ -298,7 +302,6 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     }
     else
       throw new RuntimeException("The code is not compiled..")
-
   }
 
   /**

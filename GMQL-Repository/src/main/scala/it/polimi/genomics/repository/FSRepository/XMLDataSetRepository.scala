@@ -8,13 +8,13 @@ import it.polimi.genomics.core.ParsingType
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
 import it.polimi.genomics.repository.GMQLExceptions._
-import it.polimi.genomics.repository.{DatasetOrigin, GMQLRepository, GMQLSample, GMQLSchemaTypes, RepositoryType, Utilities => General_Utilities}
+import it.polimi.genomics.repository.{DatasetOrigin, GMQLRepository, GMQLSample, GMQLSchema, GMQLSchemaField, GMQLSchemaTypes, RepositoryType, Utilities => General_Utilities}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConverters._
-import scala.xml.XML
+import scala.xml.{Node, XML}
 
 /**
   * Created by abdulrahman on 16/01/2017.
@@ -92,7 +92,7 @@ trait XMLDataSetRepository extends GMQLRepository{
     * @throws GMQLSampleNotFound
     */
   @throws(classOf[GMQLDSException])
-  override def AddSampleToDS(dataSet: String, userName: String = General_Utilities().USERNAME, Sample: GMQLSample) ={
+  override def addSampleToDS(dataSet: String, userName: String = General_Utilities().USERNAME, Sample: GMQLSample) ={
     val ds = new GMQLDataSetXML(dataSet,userName).loadDS()
     ds.addSample(Sample)
   }
@@ -124,7 +124,7 @@ trait XMLDataSetRepository extends GMQLRepository{
     * @throws GMQLDSException
     * @throws GMQLUserNotFound
     */
-  override def ListAllDSs(userName: String = General_Utilities().USERNAME): java.util.List[IRDataSet] = {
+  override def listAllDSs(userName: String = General_Utilities().USERNAME): java.util.List[IRDataSet] = {
     val dSs = new File(General_Utilities().getDataSetsDir(userName)).listFiles(new FilenameFilter() {
       def accept(dir: File, name: String): Boolean = {
         return name.endsWith(".xml")
@@ -163,7 +163,7 @@ trait XMLDataSetRepository extends GMQLRepository{
     * @throws GMQLUserNotFound
     */
   @throws(classOf[GMQLDSException])
-  override def DeleteDS(dataSetName:String, userName:String = General_Utilities().USERNAME): Unit = {
+  override def deleteDS(dataSetName:String, userName:String = General_Utilities().USERNAME): Unit = {
     new GMQLDataSetXML(dataSetName,userName).loadDS().Delete()
   }
 
@@ -176,7 +176,7 @@ trait XMLDataSetRepository extends GMQLRepository{
     * @throws GMQLUserNotFound
     * @throws GMQLSampleNotFound
     */
-  override def DeleteSampleFromDS(dataSet:String, userName: String = General_Utilities().USERNAME, sample:GMQLSample): Unit = {
+  override def deleteSampleFromDS(dataSet:String, userName: String = General_Utilities().USERNAME, sample:GMQLSample): Unit = {
     new GMQLDataSetXML(dataSet,userName).loadDS().delSample(sample)
   }
 
@@ -186,7 +186,7 @@ trait XMLDataSetRepository extends GMQLRepository{
     * @throws GMQLDSException
     * @return
     */
-  override def ListDSSamples(dataSetName:String, userName: String = General_Utilities().USERNAME): java.util.List[GMQLSample] ={
+  override def listDSSamples(dataSetName:String, userName: String = General_Utilities().USERNAME): java.util.List[GMQLSample] ={
     new GMQLDataSetXML(dataSetName,userName).loadDS().samples.asJava
   }
 
@@ -269,7 +269,7 @@ trait XMLDataSetRepository extends GMQLRepository{
   }
 
 
-  def readSchemaFile(schemaPath:String): util.List[(String, ParsingType.Value)] = {
+  def readSchemaFile(schemaPath:String): GMQLSchema = {
     val conf = new Configuration();
     val path = new Path(schemaPath);
     val fs = FileSystem.get(path.toUri(), conf);
@@ -277,8 +277,10 @@ trait XMLDataSetRepository extends GMQLRepository{
     val tabFields = List("chr","left","right","strand")
     val xmlFile = XML.load(fs.open(path))
     val cc = (xmlFile \\ "field")
-    cc.flatMap{x => if(gtfFields.contains(x.text.trim)||tabFields.contains(x.text.trim)) None else Some(x.text.trim, FS_Utilities.attType(x.attribute("type").get.head.text))}.toList.asJava
-
+    val schemaList = cc.flatMap{ x => if(gtfFields.contains(x.text.trim)||tabFields.contains(x.text.trim)) None else Some(new GMQLSchemaField(x.text.trim, FS_Utilities.attType(x.attribute("type").get.head.text)))}.toList
+    val schemaType = FS_Utilities.getType((xmlFile \\ "gmqlSchema" \ "@type").text)
+    val schemaname = (xmlFile \\ "gmqlSchemaCollection" \ "@name").text
+    new GMQLSchema(schemaname,schemaType, schemaList)
   }
 
   override def getDSLocation(dataSet: String, userName: String) = {
@@ -305,6 +307,26 @@ trait XMLDataSetRepository extends GMQLRepository{
     }
 
     (location,ds_origin)
+
+  }
+
+  override def changeDSName(datasetName: String, userName:String, newDSName: String) = {
+    // Check the dataset name, return if the dataset is already used in
+    // the repository of the this user or the public repository.
+    if (!DSExists(datasetName, userName)) {
+      logger.warn("The dataset name is Not found")
+      throw new GMQLNotValidDatasetNameException(s"The dataset name ($datasetName) is not found.")
+    }
+
+    // Check the dataset name, return if the dataset is already used in
+    // the repository of the this user or the public repository.
+    if (DSExists(newDSName, userName)) {
+      logger.warn("The dataset name is already registered")
+      throw new GMQLNotValidDatasetNameException(s"The dataset name ($newDSName) is already registered.")
+    }
+
+    val gMQLDataSetXML = new GMQLDataSetXML(datasetName, userName).loadDS()
+    gMQLDataSetXML.changeDSName(newDSName)
 
   }
 }

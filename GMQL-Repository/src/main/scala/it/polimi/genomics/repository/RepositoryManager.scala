@@ -158,13 +158,13 @@ object RepositoryManager {
           if (input.toLowerCase == "y") {
             var i = 0
             while (i < datasets.length) {
-                mr.DeleteDS(datasets(i).getName.split("\\.")(0), username)
+                mr.deleteDS(datasets(i).getName.split("\\.")(0), username)
                 i += 1;
             }
           }
           else return
         }
-        else mr.DeleteDS(args(1), username)
+        else mr.deleteDS(args(1), username)
       case "addsample" =>
         if (args.length < 3) {
           logger.warn(usage)
@@ -174,7 +174,7 @@ object RepositoryManager {
           username = args(3)
           Utilities().USERNAME = username
         }
-        mr.AddSampleToDS(args(1), username, new GMQLSample( args(2), args(2)+".meta"))
+        mr.addSampleToDS(args(1), username, new GMQLSample( args(2), args(2)+".meta"))
       case "deletesample" =>
         if (args.length < 3) {
           logger.warn(usage)
@@ -185,7 +185,7 @@ object RepositoryManager {
           Utilities().USERNAME = username
         }
 
-        mr.DeleteSampleFromDS(args(1), username, new GMQLSample( args(2), args(2)+".meta"))
+        mr.deleteSampleFromDS(args(1), username, new GMQLSample( args(2), args(2)+".meta"))
       case "list" =>
         if (args.length < 2) {
           logger.warn(usage)
@@ -196,12 +196,12 @@ object RepositoryManager {
           Utilities().USERNAME = username
         }
         if ("all" == args(1).toLowerCase) {
-          val dss = mr.ListAllDSs(username).asScala
+          val dss = mr.listAllDSs(username).asScala
           println(s"Total number of Datasets for user $username : ${dss.size}")
           dss.foreach(x=>println(x.position))
         }
         else {
-          val samples = mr.ListDSSamples(args(1), username).asScala
+          val samples = mr.listDSSamples(args(1), username).asScala
             println(s"Total number of samples in Dataset ${args(1)}: ${samples.size}")
             samples.foreach(x=>println(x.name))
         }

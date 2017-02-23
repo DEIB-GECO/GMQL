@@ -1,6 +1,6 @@
 package it.polimi.genomics.repository.FSRepository
 
-import java.io.{File, FileFilter, FilenameFilter}
+import java.io._
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
 import it.polimi.genomics.core.ParsingType
@@ -8,7 +8,8 @@ import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.repository.{Utilities => General_Utilities}
 import it.polimi.genomics.repository._
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
-import it.polimi.genomics.repository.GMQLExceptions.{GMQLDSException, GMQLNotValidDatasetNameException, GMQLUserNotFound}
+import it.polimi.genomics.repository.GMQLExceptions.{GMQLDSException, GMQLNotValidDatasetNameException, GMQLSampleNotFound, GMQLUserNotFound}
+import org.apache.hadoop.fs.{FileSystem, Path}
 import org.slf4j.LoggerFactory
 
 import scala.xml.XML
@@ -93,7 +94,7 @@ class LFSRepository extends GMQLRepository with XMLDataSetRepository{
     * @return
     */
   @deprecated
-  override def ListResultDSSamples(dataSetName:String , userName: String): (java.util.List[GMQLSample],java.util.List[(String,PARSING_TYPE)]) = {
+  override def listResultDSSamples(dataSetName:String, userName: String): (java.util.List[GMQLSample],java.util.List[GMQLSchemaField]) = {
     val dsPath = General_Utilities().getRegionDir(userName) + dataSetName
     val samples = new java.io.File(dsPath).listFiles(
       new FileFilter() {
@@ -102,7 +103,7 @@ class LFSRepository extends GMQLRepository with XMLDataSetRepository{
     ).map(x=> new GMQLSample(x.getPath)).toList.asJava
 
     val schema = readSchemaFile(dsPath+ "/test.schema")
-    (samples,schema)
+    (samples,schema.fields.asJava)
   }
 
 
@@ -113,4 +114,37 @@ class LFSRepository extends GMQLRepository with XMLDataSetRepository{
     * @return
     */
   override def searchMeta(dataSet: String, userName: String, query: String): java.util.List[GMQLSample] = ???
+
+  /**
+    *
+    * @param dataSetName dataset name as a string
+    * @param userName the owner of the dataset as a String
+    * @param sampleName The sample name, which is the file name with out the full path as a String
+    * @return Two Streams, one for the sample and the other for the metadata
+    */
+  override def sampleStreams(dataSetName: String, userName: String, sampleName: String): (InputStream, InputStream) = {
+    val gMQLDataSetXML = new GMQLDataSetXML(dataSetName, userName).loadDS()
+
+    val sampleOption = gMQLDataSetXML.samples.find(_.name.split("\\.").head.endsWith(sampleName))
+    sampleOption match {
+      case Some(sample) =>
+        val pathRegion = new File(sample.name)
+        val pathMeta = new File(sample.meta)
+
+        //check region file exists
+        if (!pathRegion.exists()) {
+          logger.error("The Dataset sample Url is not found: " + sample.name)
+          throw new GMQLSampleNotFound
+        }
+        //check meta file exists
+        if (!pathMeta.exists()) {
+          logger.error("The Dataset sample Url is not found: " + sample.meta)
+          throw new GMQLSampleNotFound
+        }
+        (new FileInputStream(pathRegion), new FileInputStream(pathMeta))
+      case None =>
+        logger.error("The Dataset sample Url is not found in the xml: ")
+        throw new GMQLSampleNotFound
+    }
+  }
 }

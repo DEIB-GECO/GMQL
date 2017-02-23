@@ -76,7 +76,7 @@ class GMQLSparkSubmit(job:GMQLJob) {
       val dir = if (General_Utilities().MODE == General_Utilities().HDFS)
         fsRegDir + x + "/"
       else General_Utilities().getRegionDir(job.username) + x +"/"
-      x+":::"+dir }.mkString(",")
+      x.substring(job.jobId.length+1)+":::"+dir }.mkString(",")
 
     println(outDir)
 
@@ -89,7 +89,7 @@ class GMQLSparkSubmit(job:GMQLJob) {
         "-scriptpath", job.script.scriptPath,
         "-inputDirs",job.inputDataSets.map{x =>x._1+":::"+x._2+"/"}.mkString(","),
         //TODO: Check how to get the schema path from the repository manager.
-        "-schemata",job.inputDataSets.map(x => x._2+":::"+getSchema(job,x._1)).mkString(","),
+//        "-schemata",job.inputDataSets.map(x => x._2+":::"+getSchema(job,x._1)).mkString(","),
         "-jobid", job.jobId,
         "-outputFormat",job.gMQLContext.outputFormat.toString,
         "-outputDirs", outDir,
