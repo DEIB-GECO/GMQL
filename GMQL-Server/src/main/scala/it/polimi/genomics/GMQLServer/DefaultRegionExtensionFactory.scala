@@ -2,7 +2,7 @@ package it.polimi.genomics.GMQLServer
 
 import it.polimi.genomics.core.DataStructures.Builtin.RegionExtensionFactory
 import it.polimi.genomics.core.DataStructures.RegionAggregate._
-import it.polimi.genomics.core.{GDouble, GString, GValue}
+import it.polimi.genomics.core.{ParsingType, GDouble, GString, GValue}
 
 /**
   * Created by pietro on 04/05/16.
@@ -23,6 +23,11 @@ object DefaultRegionExtensionFactory extends RegionExtensionFactory{
       override val output_name = output match {
         case Left(n) => Some(n)
         case _ => None
+      }
+
+      override val out_type = dag match {
+        case REStringConstant(_) => ParsingType.STRING
+        case _ => ParsingType.DOUBLE
       }
     }
   }
@@ -100,6 +105,7 @@ object DefaultRegionExtensionFactory extends RegionExtensionFactory{
         make_fun(a,indexes)(x).asInstanceOf[GDouble].v /
           make_fun(b,indexes)(x).asInstanceOf[GDouble].v)
       case REFloat(f) => (x:Array[GValue]) => GDouble(f)
+      case REStringConstant(c) => { (x:Array[GValue]) => GString(c)}
     }
   }
 }

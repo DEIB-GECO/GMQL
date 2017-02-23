@@ -1,6 +1,7 @@
 package it.polimi.genomics.core.DataStructures.RegionAggregate
 
-import it.polimi.genomics.core.{GDouble, GValue}
+import it.polimi.genomics.core.ParsingType.PARSING_TYPE
+import it.polimi.genomics.core.{ParsingType, GDouble, GValue}
 
 
 trait RENode extends Serializable
@@ -17,6 +18,7 @@ case class READD(o1:RENode, o2:RENode)extends RENode {override def toString() = 
 case class RESUB(o1:RENode, o2:RENode) extends RENode{override def toString() = "sub(" + o1 + "," + o2 +")"}
 case class REMUL(o1:RENode, o2:RENode) extends RENode{override def toString() = "mul(" + o1 + "," + o2 +")"}
 case class REDIV(o1:RENode, o2:RENode) extends RENode{override def toString() = "div(" + o1 + "," + o2 +")"}
+case class REStringConstant(const : String) extends RENode{override def toString() = "string = " + const}
 
 
 object COORD_POS {
@@ -36,6 +38,7 @@ trait RegionFunction extends Serializable {
 
 trait   RegionExtension extends RegionFunction {
   val fun : Array[GValue] => GValue
+  val out_type : PARSING_TYPE = ParsingType.DOUBLE
 }
 
 

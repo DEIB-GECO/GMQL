@@ -120,7 +120,13 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
         this.schema
       } ++ extended_values.getOrElse(List.empty)
         .filter(_.output_name.isDefined)
-        .map(x=>(x.output_name.get, ParsingType.DOUBLE))
+        .map(x=>(
+          x.output_name.get,
+          if(x.isInstanceOf[RegionExtension])
+            x.asInstanceOf[RegionExtension].out_type
+          else
+            ParsingType.DOUBLE))
+      
       new IRVariable(new_meta_dag, new_region_dag, new_schema)
     } else {
 
@@ -289,8 +295,17 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
           aggregates : List[RegionsToRegion],
           experiments : IRVariable,
           reference_name : Option[String] = None,
-          experiment_name : Option[String] = None) = {
-    apply_genometric_map(condition, aggregates, experiments,reference_name,experiment_name)
+          experiment_name : Option[String] = None,
+          count_name : Option[String] = None) = {
+
+    apply_genometric_map(
+      condition,
+      aggregates,
+      experiments,
+      reference_name,
+      experiment_name,
+      count_name
+    )
   }
 
 
@@ -304,7 +319,8 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
                            aggregates : List[RegionsToRegion],
                            experiments : IRVariable,
                            reference_name : Option[String],
-                           experiment_name : Option[String]): IRVariable ={
+                           experiment_name : Option[String],
+                           count_name_opt : Option[String]): IRVariable ={
     val new_join_result : OptionalMetaJoinOperator = if (condition.isDefined){
       SomeMetaJoinOperator(IRJoinBy(condition.get, this.metaDag, experiments.metaDag))
     } else {
@@ -319,7 +335,8 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
     val new_region_dag = IRGenometricMap(new_join_result, aggregates, this.regionDag, experiments.regionDag)
     new_region_dag.binSize = binS.size
 
-    val count_name = "count_" + reference_name.getOrElse("left") + "_" + experiment_name.getOrElse("right")
+    val count_name = count_name_opt
+      .getOrElse("count_" + reference_name.getOrElse("left") + "_" + experiment_name.getOrElse("right"))
 
     val new_schema = this.schema ++
       (aggregates.map(x=>new_schema_field(x.output_name.getOrElse("unknown"),x.resType)))

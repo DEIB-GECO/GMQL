@@ -98,9 +98,9 @@ trait GmqlParsers extends JavaTokenParsers {
   val metadata_attribute_list:Parser[List[String]] = rep1sep(metadata_attribute, ",")
 
   val rich_metadata_attribute:Parser[AttributeEvaluationStrategy] =
-      metadata_attribute ^^ {Default} |
-      ((EXACT ~> "(") ~> metadata_attribute <~ ")") ^^ {Exact} |
-        ((FULLNAME ~> "(") ~> metadata_attribute <~ ")") ^^ {FullName}
+      ((EXACT ~> "(") ~> metadata_attribute <~ ")") ^^ {Exact(_)} |
+        ((FULLNAME ~> "(") ~> metadata_attribute <~ ")") ^^ {FullName(_)} |
+        metadata_attribute ^^ {Default(_)}
 
   val rich_metadata_attribute_list:Parser[List[AttributeEvaluationStrategy]] = rep1sep(rich_metadata_attribute, ",")
 
@@ -280,6 +280,9 @@ trait GmqlParsers extends JavaTokenParsers {
       re_term
 
   val single_region_modifier:Parser[SingleProjectOnRegion] =
+    ((region_field_name ^^ {FieldName(_)}) <~ AS) ~ stringLiteral ^^ {
+      x => RegionModifier(x._1, REStringConstant(x._2))
+    } |
     (
       (
         RIGHT ^^ {x => FieldPosition(COORD_POS.RIGHT_POS)} |
