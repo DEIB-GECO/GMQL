@@ -7,14 +7,13 @@ Table of contents
 Engine Configurations 
 ===================
 
-Two set of configurations are set for the Engine **GMQL**:
+Two sets of configurations are set for **GMQL** Engine :
 	
-> - Repository Documentation, set in <i class="icon-cog"></i> [repo.xml](GMQL-Repository/src/main/resources/GMQL.conf) file.  
-> - Executor Configurations  set in <i class="icon-cog"></i> [impl.xml](GMQL-SManager/src/main/resources/impl.conf) file. 
+> - Repository configurations, set in <i class="icon-cog"></i> [repo.xml](GMQL-Repository/src/main/resources/GMQL.conf) file.  
+> - Executors configurations  set in <i class="icon-cog"></i> [impl.xml](GMQL-SManager/src/main/resources/impl.conf) file. 
 
 Repository Configurations: 
 -------------------------------------
-
 
 
 Property Name  | Default  | Meaning
