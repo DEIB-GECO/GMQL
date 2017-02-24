@@ -4,7 +4,6 @@ import java.io._
 import java.text.SimpleDateFormat
 import java.util.Date
 
-import com.google.common.io.Files
 import com.sun.jersey.core.util.Base64
 import it.polimi.genomics.GMQLServer.{GmqlServer, Implementation}
 import it.polimi.genomics.compiler._
@@ -12,8 +11,7 @@ import it.polimi.genomics.core.{GMQLOutputFormat, ImplementationPlatform}
 import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.{FileSystem, Path}
-import org.apache.hadoop.util.Progressable
+import org.apache.hadoop.fs.{FileSystem}
 import org.apache.log4j.{FileAppender, Level, PatternLayout}
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd, SparkListenerApplicationStart, SparkListenerStageCompleted}
 import org.apache.spark.{SparkConf, SparkContext}
@@ -26,7 +24,7 @@ import org.slf4j.{Logger, LoggerFactory}
   *
   */
 object GMQLExecuteCommand {
-  private final val logger = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME) //GMQLExecuteCommand.getClass);
+  private final val logger = LoggerFactory.getLogger(/*Logger.ROOT_LOGGER_NAME)*/ GMQLExecuteCommand.getClass);
 
   val dateFormat = new SimpleDateFormat("yyyy-MM-dd");
   System.setProperty("current.date", dateFormat.format(new Date()));
@@ -122,14 +120,13 @@ object GMQLExecuteCommand {
         logger.info("Output Format set to: " + outputFormat)
 
       } else if ("-scriptpath".equals(args(i))) {
-        logger.info("scriptpath set to: " + scriptPath)
         val sFile = new File (args(i + 1))
         if(!sFile.exists()) {
           logger.error(s"Script file not found $scriptPath")
           return 0
         };
         scriptPath = sFile.getPath
-
+        logger.info("scriptpath set to: " + scriptPath)
       } else if ("-logDir".equals(args(i))) {
         logDir = args(i + 1)
         logger.info("Log Directory is set to: " + logDir)
@@ -157,11 +154,14 @@ object GMQLExecuteCommand {
         logger.info("inputs set to: \n" + (args(i + 1).split(",")).mkString("\n"))
       } else if ("-outputDirs".equals(args(i))) {
         outputs = extractDSDir(args(i + 1))
-        logger.info("outputs set to: \n" + (args(i + 1).split(",")).mkString("\n"))
+        logger.info("outputs set to: \n" + (outputs).mkString("\n"))
       } else if ("-schemata".equals(args(i).toLowerCase())) {//List of [NAME:::schema] separated by comma
         //Input datasets Schemata can be sent from the Server Manager a string separated by :::
         schemata = extractInDSsSchema( args(i + 1))
         logger.info("Schema set to: " + args(i + 1))
+
+      }else {
+        logger.warn("( "+ args(i) + " ) NOT A VALID COMMAND ... ")
 
       }
     }
@@ -229,17 +229,18 @@ object GMQLExecuteCommand {
 
     //add appender to any Logger (here is root)
     org.apache.log4j.Logger.getRootLogger().addAppender(fa)
-    org.apache.log4j.Logger.getRootLogger().setLevel(org.apache.log4j.Level.INFO)
-    org.apache.log4j.Logger.getLogger("org").setLevel(if (!verbose) org.apache.log4j.Level.ERROR else org.apache.log4j.Level.INFO)
-//    org.apache.log4j.Logger.getLogger("it").setLevel(if (!verbose) org.apache.log4j.Level.DEBUG else org.apache.log4j.Level.DEBUG)
+//    org.apache.log4j.Logger.getRootLogger().setLevel(org.apache.log4j.Level.INFO)
+    org.apache.log4j.Logger.getLogger("org").setLevel(if (!verbose) org.apache.log4j.Level.WARN else org.apache.log4j.Level.INFO)
+//    org.apache.log4j.Logger.getLogger("it").setLevel(if (!verbose) org.apache.log4j.Level.WARN else org.apache.log4j.Level.DEBUG)
 //    org.apache.log4j.Logger.getLogger("it.polimi.genomics.spark.implementation.MetaOperators.SelectMeta.SelectIMDWithNoIndex").setLevel( org.apache.log4j.Level.DEBUG)
 //    org.apache.log4j.Logger.getLogger("it.polimi.genomics.cli").setLevel(if (!verbose) org.apache.log4j.Level.INFO else org.apache.log4j.Level.INFO)
-    org.apache.log4j.Logger.getLogger("org.apache.spark").setLevel(org.apache.log4j.Level.ERROR)
+    org.apache.log4j.Logger.getLogger("org.apache.spark").setLevel(org.apache.log4j.Level.WARN)
     org.apache.log4j.Logger.getLogger("akka").setLevel(org.apache.log4j.Level.ERROR)
 //    org.apache.log4j.Logger.getLogger("it.polimi.genomics.spark.implementation.GMQLSparkExecutor").setLevel(org.apache.log4j.Level.INFO)
 
 //    val root:ch.qos.logback.classic.Logger = org.slf4j.LoggerFactory.getLogger("org").asInstanceOf[ch.qos.logback.classic.Logger];
 //    root.setLevel(ch.qos.logback.classic.Level.WARN);
+
   }
 
   def readScriptFile(file: String): String = {
@@ -286,19 +287,18 @@ object GMQLExecuteCommand {
 
           //Case when the CLI is called from the Server Manager and the repository is set in this case.
           if (outputs.size > 0) {
-            if (!d.store_path.isEmpty)
-              {
-                logger.info(d.op_pos+ ","+ id + "_" + d.store_path + "/")
-                val path = id + "_" + d.store_path + "/"
-            d.store_path = outputs.get(path).getOrElse(path)
-            d
-              }
-            else
-              {
-                val path = id + "/"
-                d.store_path = outputs.get(path).getOrElse(path)
-                d
-              }
+            if (!d.store_path.isEmpty) {
+              val path = id + "_" + d.store_path + "/"
+              logger.info(d.store_path+", generated: " + path )
+              d.store_path = outputs.get(d.store_path).getOrElse(path)
+              logger.info("outputs: "+outputs.mkString("\n"))
+              d
+            }
+            else {
+              val path = id + "/"
+              d.store_path = outputs.get(d.store_path).get//.getOrElse(path)
+              d
+            }
           }
           else d
         case select: SelectOperator => val dsinput = select.input1 match {
@@ -323,7 +323,7 @@ object GMQLExecuteCommand {
       val conf = new SparkConf().setAppName("GMQL V2.1 Spark " + jobid)
         .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "64")
         .set("spark.driver.allowMultipleContexts","true")
-        .set("spark.sql.tungsten.enabled", "true")
+        .set("spark.sql.tungsten.enabled", "true")//.setMaster("local[*]")
       val sc: SparkContext = new SparkContext(conf)
       sc.addSparkListener(new SparkListener() {
         override def onApplicationStart(applicationStart: SparkListenerApplicationStart) {
@@ -378,8 +378,9 @@ object GMQLExecuteCommand {
         val fs = FileSystem.get(path.toUri(), new Configuration());
 
         if (!fs.exists(path)) {
-          println("ERROR: Dataset ( " + ds(0) + " ) is not found. "); sys.exit(0);
+          logger.warn(" Directory for Dataset ( " + ds(0) + " ) is not found. ");
         }
+
         (ds(0), DSdir)
       }.toMap
     else Map()
