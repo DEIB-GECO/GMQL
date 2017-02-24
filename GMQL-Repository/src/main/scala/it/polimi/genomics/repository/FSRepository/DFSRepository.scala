@@ -142,6 +142,19 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     val schema = readSchemaFile(dsPath + "/test.schema")
     (samples,schema.fields.asJava)
   }
+
+  /**
+    *
+    * @param datasetName String of the dataset name
+    * @param userName String of the username, the owner of the dataset
+    *     */
+  override def getSchema(datasetName: String, userName: String) = {
+    val conf = FS_Utilities.gethdfsConfiguration()
+    val fs = FileSystem.get(conf);
+    val dsPath = conf.get("fs.defaultFS") +repository.Utilities().getHDFSRegionDir(userName) + datasetName
+    readSchemaFile(dsPath + "/test.schema")
+  }
+
   /**
     *
     * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.

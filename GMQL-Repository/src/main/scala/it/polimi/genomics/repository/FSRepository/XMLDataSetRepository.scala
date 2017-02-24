@@ -283,6 +283,12 @@ trait XMLDataSetRepository extends GMQLRepository{
     new GMQLSchema(schemaname,schemaType, schemaList)
   }
 
+  /**
+    *
+    * @param dataSet String of the dataset name
+    * @param userName String of the name of the owner of the dataset
+    * @return The Location as either LOCAL, HDFS, or REMOTE
+    */
   override def getDSLocation(dataSet: String, userName: String) = {
     val LOCAL = ".*(LOCAL)".r
     val HDFS = ".*(HDFS)".r

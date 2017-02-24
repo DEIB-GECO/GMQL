@@ -172,6 +172,15 @@ trait GMQLRepository {
   def readSchemaFile(schemaPath:String):  GMQLSchema
 
   /**
+    *  get the dataset schema
+    *
+    * @param datasetName String of the dataset name
+    * @param userName String of the username, the owner of the dataset
+    * @return {@link GMQLSchema} as the schema of the dataset
+    */
+  def getSchema(datasetName:String, userName:String): GMQLSchema
+
+  /**
     *
     * Get the metadata of a Dataset
     *

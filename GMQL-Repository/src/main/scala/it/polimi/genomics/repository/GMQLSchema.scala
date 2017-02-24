@@ -9,12 +9,12 @@ import it.polimi.genomics.core.ParsingType
 /**
   *
   * @param name
-  * @param Type
+  * @param schemaType
   * @param fields
   */
 
-case class GMQLSchema ( name:String,
-                       Type:GMQLSchemaTypes.Value,
+case class GMQLSchema (name:String,
+                       schemaType:GMQLSchemaTypes.Value,
                        fields:List[GMQLSchemaField])
 
 /**
