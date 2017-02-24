@@ -123,7 +123,7 @@ object GMQLExecuteCommand {
         val sFile = new File (args(i + 1))
         if(!sFile.exists()) {
           logger.error(s"Script file not found $scriptPath")
-          return 0
+//          return 0
         };
         scriptPath = sFile.getPath
         logger.info("scriptpath set to: " + scriptPath)
@@ -168,7 +168,8 @@ object GMQLExecuteCommand {
 
     //If the Script path is not set and the script is not loaded in the options, close execution.
     if (scriptPath == null && script == null) {
-      println(usage); sys.exit()
+
+      println(usage); sys.exit(9)
     }
 
     // In case scriptPath is empty then set the path to test.GMQL file,
