@@ -57,24 +57,25 @@ case class JoinOperator(op_pos : Position,
         case 4 => JoinQuadruple(Some(atomics.get(0)), Some(atomics.get(1)), Some(atomics.get(2)), Some(atomics.get(3)))
       })
 
-      for (n <- parameters.named) {
-        n.param_name.trim.toLowerCase match {
-          case "joinby" => {
-            meta_join_param = Some(
-              MetaJoinCondition(
-                parser_named(
-                  rich_metadata_attribute_list,
-                  n.param_name,
-                  n.param_value).get))
-          }
-          case "output" => {
-            val info = "Available options are: CONTIG, INT, LEFT, RIGHT. "
-            output_builder = parser_named(region_builder, n.param_name, n.param_value, Some(info)).get
-          }
+    }
+
+    for (n <- parameters.named) {
+      n.param_name.trim.toLowerCase match {
+        case "joinby" => {
+          meta_join_param = Some(
+            MetaJoinCondition(
+              parser_named(
+                rich_metadata_attribute_list,
+                n.param_name,
+                n.param_value).get))
+        }
+        case "output" => {
+          val info = "Available options are: CONTIG, INT, LEFT, RIGHT. "
+          output_builder = parser_named(region_builder, n.param_name, n.param_value, Some(info)).get
         }
       }
-
     }
+
     true
   }
 
