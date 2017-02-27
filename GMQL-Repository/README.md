@@ -38,4 +38,4 @@ Files are stored in the repository in their original format. Managing the reposi
 * Copy dataset
 
 ## Shell API
-Go to [shell api](./SHELL_API.md)
+Go to [shell api](../docs/SHELL_API.md)
