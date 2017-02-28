@@ -112,25 +112,38 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
       new_meta_dag = IRProjectMD(projected_meta, extended_meta, new_meta_dag)
     }
     if (projected_values.isDefined || extended_values.isDefined){
+
       val new_region_dag = IRProjectRD(projected_values, extended_values, this.regionDag)
-      val new_schema = if (projected_values.isDefined)
+      val new_schema_pt1 =
+        if (projected_values.isDefined)
         {
           for (x <- projected_values.get) yield this.schema(x)
-        } else {
-        this.schema
-      } ++ extended_values.getOrElse(List.empty)
-        .filter(_.output_name.isDefined)
-        .map(x=>(
-          x.output_name.get,
-          if(x.isInstanceOf[RegionExtension])
-            x.asInstanceOf[RegionExtension].out_type
-          else
-            ParsingType.DOUBLE))
+        }
+        else
+        {
+          this.schema
+        }
+
+
+      val new_schema = new_schema_pt1 ++
+        extended_values.getOrElse(List.empty)
+          .filter(_.output_name.isDefined)
+          .map(x=>
+            (
+              x.output_name.get,
+              if(x.isInstanceOf[RegionExtension])
+                x.asInstanceOf[RegionExtension].out_type
+              else
+                ParsingType.DOUBLE
+              )
+          )
       
       new IRVariable(new_meta_dag, new_region_dag, new_schema)
+
     } else {
 
       new IRVariable(new_meta_dag, this.regionDag, this.schema)
+
     }
 
   }

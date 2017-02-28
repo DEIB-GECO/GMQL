@@ -133,9 +133,16 @@
       }
 
     override def translate_operator(status : CompilerStatus):CompilerDefinedVariable = {
+
+      val projected = super_variable_left.get.PROJECT(
+        meta_projection,
+        None,
+        region_project_fields,
+        region_modifier)
+
       CompilerDefinedVariable(
         output.name,
-        output.pos, super_variable_left.get.PROJECT(meta_projection ,None,region_project_fields,region_modifier)
+        output.pos, projected
       )
     }
 
