@@ -6,47 +6,48 @@ This section does not use GMQL compiler.  GMQL Directed Acyclic Graph (DAG) APIs
 
 Maven imports, needed to run GMQL in your application. You can choose between Spar, Flink, or SciDB Implementations. In case of Flink implementation you should include Flink GMQL implementation. It is better not to include both spark and Flink in the same execution.
 
-```  
-<dependency>
-    <groupId>it.polimi.genomics</groupId>
-    <artifactId>GMQL-Core</artifactId>
-    <version>2.0</version>
-</dependency>
+  
 
-<dependency>
-    <groupId>it.polimi.genomics</groupId>
-    <artifactId>GMQL-Spark</artifactId>
-    <version>4.0</version>
-</dependency>
+    <dependency>
+        <groupId>it.polimi.genomics</groupId>
+        <artifactId>GMQL-Core</artifactId>
+        <version>2.0</version>
+    </dependency>
+    
+    <dependency>
+        <groupId>it.polimi.genomics</groupId>
+        <artifactId>GMQL-Spark</artifactId>
+        <version>4.0</version>
+    </dependency>
+    
+    <dependency>
+        <groupId>it.polimi.genomics</groupId>
+        <artifactId>GMQL-Server</artifactId>
+        <version>2.0</version>
+    </dependency>
 
-<dependency>
-    <groupId>it.polimi.genomics</groupId>
-    <artifactId>GMQL-Server</artifactId>
-    <version>2.0</version>
-</dependency>
-```  
+
 All the imports bellow are used in all the documentation in GMQL APIs section, in addition to the call for GMQL server and the choose of the executor. To start writing GMQL application, start by defining the server implementation that you will use by setting the executor type. 
 
-```  
-import it.polimi.genomics.GMQLServer.GmqlServer
-import it.polimi.genomics.core.DataStructures
-import it.polimi.genomics.spark.implementation._
-import it.polimi.genomics.spark.implementation.loaders.BedParser._
-import org.apache.spark.{SparkConf, SparkContext}
 
-val conf = new SparkConf()
-      .setAppName("GMQL V2.1 Spark")
-      .setMaster("local[*]")
-      .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-val sc:SparkContext =new SparkContext(conf)
-
-val executor = new GMQLSparkExecutor(sc=sc)
-val server = new GmqlServer(executor)
-
-val expInput = Array("/home/V2Spark_TestFiles/Samples/exp/")
-val refInput = Array("/home/V2Spark_TestFiles/Samples/ref/")
-val output = "/home/V2Spark_TestFiles/Samples/out/"
-```  
+    import it.polimi.genomics.GMQLServer.GmqlServer
+    import it.polimi.genomics.core.DataStructures
+    import it.polimi.genomics.spark.implementation._
+    import it.polimi.genomics.spark.implementation.loaders.BedParser._
+    import org.apache.spark.{SparkConf, SparkContext}
+    
+    val conf = new SparkConf()
+          .setAppName("GMQL V2.1 Spark")
+          .setMaster("local[*]")
+          .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+    val sc:SparkContext =new SparkContext(conf)
+    
+    val executor = new GMQLSparkExecutor(sc=sc)
+    val server = new GmqlServer(executor)
+    
+    val expInput = Array("/home/V2Spark_TestFiles/Samples/exp/")
+    val refInput = Array("/home/V2Spark_TestFiles/Samples/ref/")
+    val output = "/home/V2Spark_TestFiles/Samples/out/"
 
 #### Full example
 
