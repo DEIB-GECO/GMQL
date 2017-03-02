@@ -15,12 +15,18 @@ class Utilities {
   var CLI_CLASS = "it.polimi.genomics.cli.GMQLExecuteCommand"
   var lib_dir_local = it.polimi.genomics.repository.Utilities().GMQLHOME + "/lib/"
   var lib_dir_hdfs = it.polimi.genomics.repository.Utilities().HDFSRepoDir + "/lib/"
+
   private val logger: Logger = LoggerFactory.getLogger(Utilities.getClass)
+
+  var LAUNCHER_MODE =  LOCAL_LAUNCHER
+  final val LOCAL_LAUNCHER = "LOCAL"
+  final val CLUSTER_LAUNCHER = "CLUSTER"
+  final val REMOTE_CLUSTER_LAUNCHER = "REMOTE_CLUSTER"
 
   def apply() = {
 
     try {
-      val file = new File(it.polimi.genomics.repository.Utilities().getConfDir + "/impl.conf")
+      val file = new File(it.polimi.genomics.repository.Utilities().getConfDir + "/impl.xml")
       val xmlFile = XML.loadFile(file)
       val properties = (xmlFile \\ "property")
       //      val schemaType = (xmlFile \\ "gmqlSchema").head.attribute("type").get.head.text
@@ -34,6 +40,7 @@ class Utilities {
           case Conf.LIB_DIR_HDFS => lib_dir_hdfs = value
           case Conf.LIB_DIR_LOCAL => lib_dir_local = value
           case Conf.CLI_CLASS => CLI_CLASS = value
+          case Conf.LAUNCHER_MODE => LAUNCHER_MODE = value
           case _ => logger.error(s"Not known configuration property: $x, $value")
         }
         logger.debug(s"XML config override environment variables. $att = $value ")
@@ -76,6 +83,7 @@ object Utilities {
   * Set of configurations for Server Manager
   */
 object Conf {
+  val LAUNCHER_MODE = "LOCAL"
   val SPARK_HOME = "SPARK_HOME"
   val CLI_JAR_NAME = "CLI_JAR_NAME"
   val LIB_DIR_LOCAL = "LIB_DIR_LOCAL"

@@ -19,16 +19,16 @@ class Utilities() {
   import Utilities.logger
   var USERNAME: String = System.getProperty("user.name")
   //USERNAME  = System.getenv("USER")
-  val HDFS: String = "YARN"
+  val HDFS: String = "HDFS"
   val LOCAL: String = "LOCAL"
 
-  var RepoDir: String = "/tmp/gmql_repository/data/"
+  var RepoDir: String = "/tmp/repo/data/"
   var HDFSRepoDir: String = System.getenv("GMQL_DFS_HOME")
-  var MODE: String = System.getenv("GMQL_EXEC")
+  var MODE: String = System.getenv("GMQL_REPO_TYPE")
   var CoreConfigurationFiles: String = null
   var HDFSConfigurationFiles: String = null
   var HADOOP_CONF_DIR:String = "/usr/local/Cellar/hadoop/2.7.2/libexec/etc/hadoop/"
-  var GMQLHOME: String = System.getenv("GMQL_HOME")
+  var GMQLHOME: String = System.getenv("GMQL_LOCAL_HOME")
   var HADOOP_HOME:String = System.getenv("HADOOP_HOME")
   var GMQL_CONF_DIR:String = null
 
@@ -39,7 +39,7 @@ class Utilities() {
     */
   def apply(confFile:String = "../conf") = {
     try {
-      var file = new File(confFile+"/GMQL.conf")
+      var file = new File(confFile+"/repo.xml")
       val xmlFile = XML.loadFile(file)
       val properties = (xmlFile \\ "property")
       //      val schemaType = (xmlFile \\ "gmqlSchema").head.attribute("type").get.head.text
@@ -50,8 +50,8 @@ class Utilities() {
         logger.debug(s"$att \t $value")
         att.toUpperCase() match {
           case Conf.GMQL_DFS_HOME => this.HDFSRepoDir = value;
-          case Conf.GMQL_HOME => this.GMQLHOME = value;
-          case Conf.GMQL_EXEC =>
+          case Conf.GMQL_LOCAL_HOME => this.GMQLHOME = value;
+          case Conf.GMQL_REPO_TYPE =>
             this.MODE = value.toUpperCase() match {
               case HDFS => HDFS;
               case LOCAL => LOCAL
@@ -72,16 +72,16 @@ class Utilities() {
     CoreConfigurationFiles =  HADOOP_CONF_DIR+"/core-site.xml"
     HDFSConfigurationFiles = HADOOP_CONF_DIR+"/hdfs-site.xml"
 
-    this.GMQLHOME =  if (this.GMQLHOME == null)  "/user/gmql_repository" else  this.GMQLHOME
+    this.GMQLHOME =  if (this.GMQLHOME == null)  "/tmp/repo/" else  this.GMQLHOME
 
     GMQL_CONF_DIR =  if (!(this.GMQL_CONF_DIR == null))  GMQL_CONF_DIR else confFile
 
     this.USERNAME  = if (this.USERNAME  == null) "gmql_user" else this.USERNAME
 
-    this.HDFSRepoDir = if (this.HDFSRepoDir == null)   "/tmp/gmql_repository/" else this.HDFSRepoDir
+    this.HDFSRepoDir = if (this.HDFSRepoDir == null)   "/user/repo/" else this.HDFSRepoDir
 
     this.MODE = if (this.MODE == null) {
-      logger.error("Environment variable GMQL_EXEC is empty... execution set to LOCAL")
+      logger.error("Environment variable GMQL_REPO_TYPE is empty... execution set to LOCAL")
       this.HDFS
     } else this.MODE
 
@@ -91,7 +91,7 @@ class Utilities() {
 //    HDFSConfigurationFiles = if (HDFSConfigurationFiles == null) "/usr/local/Cellar/hadoop/2.7.2/libexec/etc/hadoop/hdfs-site.xml" else HDFSConfigurationFiles
     logger.debug(CoreConfigurationFiles)
     logger.debug(HDFSConfigurationFiles)
-    logger.debug("GMQL_HOME is set to = " +  this.GMQLHOME)
+    logger.debug("GMQL_LOCAL_HOME is set to = " +  this.GMQLHOME)
     logger.debug("GMQL_DFS_HOME, HDFS Repository is set to = " +  this.HDFSRepoDir)
     logger.debug("MODE is set to = " +  this.MODE)
     logger.debug("User is set to = " +  this.USERNAME)
@@ -233,8 +233,8 @@ object Utilities {
   *  Configurations of GMQL
   */
 object Conf {
-  val GMQL_HOME = "GMQL_HOME"
-  val GMQL_EXEC = "GMQL_EXEC"
+  val GMQL_LOCAL_HOME = "GMQL_LOCAL_HOME"
+  val GMQL_REPO_TYPE = "GMQL_REPO_TYPE"
   val GMQL_DFS_HOME = "GMQL_DFS_HOME";
   val HADOOP_HOME = "HADOOP_HOME";
   val HADOOP_CONF_DIR = "HADOOP_CONF_DIR"
