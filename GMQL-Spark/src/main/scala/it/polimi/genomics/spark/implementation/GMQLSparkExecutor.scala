@@ -26,7 +26,7 @@ import org.apache.hadoop.fs.FileSystem
 import it.polimi.genomics.spark.implementation.MetaOperators.GroupOperator.{MetaGroupMGD, MetaJoinMJD2}
 import it.polimi.genomics.spark.implementation.MetaOperators.SelectMeta._
 import it.polimi.genomics.spark.implementation.MetaOperators._
-import it.polimi.genomics.spark.implementation.RegionsOperators.GenometricCover.{GenometricCover1}
+import it.polimi.genomics.spark.implementation.RegionsOperators.GenometricCover.GenometricCover
 import it.polimi.genomics.spark.implementation.RegionsOperators.GenometricMap._
 import it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions.TestingReadRD
 import it.polimi.genomics.spark.implementation.RegionsOperators._
@@ -266,7 +266,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
               case _ => SelectRD(this, regionCondition, filteredMeta, inputDataset, sc)
             }
           case IRPurgeRD(metaDataset: MetaOperator, inputDataset: RegionOperator) => PurgeRD(this, metaDataset, inputDataset, sc)
-          case irCover:IRRegionCover => GenometricCover1(this, irCover.cover_flag, irCover.min, irCover.max, irCover.aggregates, irCover.groups, irCover.input_dataset,2000/*irCover.binSize.getOrElse(defaultBinSize)*/, sc)
+          case irCover:IRRegionCover => GenometricCover(this, irCover.cover_flag, irCover.min, irCover.max, irCover.aggregates, irCover.groups, irCover.input_dataset,2000/*irCover.binSize.getOrElse(defaultBinSize)*/, sc)
           case IRUnionRD(schemaReformatting: List[Int], leftDataset: RegionOperator, rightDataset: RegionOperator) => UnionRD(this, schemaReformatting, leftDataset, rightDataset, sc)
           case IRMergeRD(dataset: RegionOperator, groups: Option[MetaGroupOperator]) => MergeRD(this, dataset, groups, sc)
           case IRGroupRD(groupingParameters: Option[List[GroupRDParameters.GroupingParameter]], aggregates: Option[List[RegionAggregate.RegionsToRegion]], regionDataset: RegionOperator) => GroupRD(this, groupingParameters, aggregates, regionDataset, sc)
