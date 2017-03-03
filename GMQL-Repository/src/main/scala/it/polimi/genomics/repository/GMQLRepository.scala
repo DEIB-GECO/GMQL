@@ -181,6 +181,15 @@ trait GMQLRepository {
   def getSchema(datasetName:String, userName:String): GMQLSchema
 
   /**
+    *  return the schema file as stream.
+    * @param datasetName String of the dataset name
+    * @param userName String of the username, the owner of the dataset
+    * @return [[InputStream]] for the schema file
+    */
+  def getSchemaStream(datasetName:String, userName:String): InputStream
+
+
+  /**
     *
     * Get the metadata of a Dataset
     *
@@ -257,6 +266,15 @@ trait GMQLRepository {
     * @return Two Streams, one for the sample and the other for the metadata
     */
   def sampleStreams(dataSetName: String, userName: String, sampleName: String): (InputStream, InputStream)
+
+  /**
+    *  Return a stream of the script file.
+    *
+    * @param dataSetName dataset name of the requested script
+    * @param userName the owner of the dataset and the script
+    * @return [[InputStream]] as the script string file.
+    */
+  def getScriptStream(dataSetName: String, userName: String): InputStream
 }
 
 
