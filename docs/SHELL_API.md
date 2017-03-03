@@ -1,6 +1,6 @@
 # Linux Shell API 
  	For more information about the dataset structure, please visit [Data set structure](./README.md) </br>
-	Syntax: ___RepositoryManager $COMMAND___.  
+	Syntax: RepositoryManager $COMMAND.  
 
 	Allowed Commands are :
 

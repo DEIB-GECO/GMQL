@@ -3,6 +3,7 @@
     <property name = "SPARK_HOME">/usr/local/spark/</property>
     <property name = "CLI_JAR_NAME">GMQL-Cli-2.0-jar-with-dependencies.jar</property>
     <property name = "CLI_CLASS">it.polimi.genomics.cli.GMQLExecuteCommand</property>
-    <property name = "LIB_DIR_LOCAL">/tmp/gmql_home/lib/</property>
-    <property name = "LIB_DIR_HDFS">/user/repository/lib/</property>
+    <property name = "LAUNCHER_MODE">LOCAL</property>
+    <property name = "LIB_DIR_LOCAL">../lib/</property>
+    <property name = "LIB_DIR_HDFS">/user/repo/lib/</property>
 </gmqlProperties>

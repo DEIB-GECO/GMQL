@@ -26,7 +26,7 @@ class LFSRepository extends GMQLRepository with XMLDataSetRepository{
     *
     * @param dataSetName  String of the dataset name.
     * @param userName String of the user name.
-    * @param Samples List of GMQL samples {@link GMQLSample}.
+    * @param Samples List of GMQL samples [[ GMQLSample]].
     * @param schemaPath String of the path to the xml file of the dataset schema.
     * @throws GMQLNotValidDatasetNameException
     * @throws GMQLUserNotFound
@@ -107,15 +107,6 @@ class LFSRepository extends GMQLRepository with XMLDataSetRepository{
   }
 
 
-  /**
-    *
-    * @param dataSetName String as the dataset name
-    * @param userName String of the username, the owner of the dataset
-    *     */
-  override def getSchema(dataSetName: String, userName: String) = {
-    val dsPath = General_Utilities().getRegionDir(userName) + dataSetName
-    readSchemaFile(dsPath+ "/test.schema")
-  }
   /**
     *
     * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.

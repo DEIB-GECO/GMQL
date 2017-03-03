@@ -144,7 +144,86 @@
             </plugin>
 
 
+            <!--<plugin>-->
+                <!--<groupId>org.apache.maven.plugins</groupId>-->
+                <!--<artifactId>maven-site-plugin</artifactId>-->
+                <!--<version>3.3</version>-->
+                <!--<configuration>-->
+                    <!--&lt;!&ndash;<reportPlugins>&ndash;&gt;-->
+                        <!--&lt;!&ndash;<plugin>&ndash;&gt;-->
+                            <!--&lt;!&ndash;<artifactId>maven-project-info-reports-plugin</artifactId>&ndash;&gt;-->
+                            <!--&lt;!&ndash;<version>2.2</version>&ndash;&gt;-->
+                        <!--&lt;!&ndash;</plugin>&ndash;&gt;-->
+                        <!--&lt;!&ndash;<plugin>&ndash;&gt;-->
+                            <!--&lt;!&ndash;<groupId>net.alchim31.maven</groupId>&ndash;&gt;-->
+                            <!--&lt;!&ndash;<artifactId>scala-maven-plugin</artifactId>&ndash;&gt;-->
+                            <!--&lt;!&ndash;<version>3.2.1</version>&ndash;&gt;-->
+                            <!--&lt;!&ndash;<configuration>&ndash;&gt;-->
+                                <!--&lt;!&ndash;<jvmArgs>&ndash;&gt;-->
+                                    <!--&lt;!&ndash;<jvmArg>-Xms64m</jvmArg>&ndash;&gt;-->
+                                    <!--&lt;!&ndash;<jvmArg>-Xmx1024m</jvmArg>&ndash;&gt;-->
+                                <!--&lt;!&ndash;</jvmArgs>&ndash;&gt;-->
+                            <!--&lt;!&ndash;</configuration>&ndash;&gt;-->
+                        <!--&lt;!&ndash;</plugin>&ndash;&gt;-->
+                    <!--&lt;!&ndash;</reportPlugins>&ndash;&gt;-->
+                <!--</configuration>-->
+            <!--</plugin>-->
+
+            <plugin>
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+                <version>3.2.2</version>
+                <executions>
+                    <execution>
+                        <id>Scaladoc</id>
+                        <goals>
+                            <goal>doc</goal>
+                        </goals>
+                        <phase>prepare-package</phase>
+                        <configuration>
+                            <args>
+                                <arg>-no-link-warnings</arg>
+                            </args>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>Compile</id>
+                        <goals>
+                            <goal>compile</goal>
+                            <goal>testCompile</goal>
+                        </goals>
+                        <configuration>
+                            <args>
+                                <arg>-dependencyfile</arg>
+                                <arg>${project.build.directory}/.scala_dependencies</arg>
+                            </args>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
+
+
     </build>
 
+    <!--<reporting>-->
+        <!--<plugins>-->
+            <!--<plugin>-->
+                <!--<groupId>org.apache.maven.plugins</groupId>-->
+                <!--<artifactId>maven-project-info-reports-plugin</artifactId>-->
+                <!--<version>2.9</version>-->
+            <!--</plugin>-->
+            <!--<plugin>-->
+                <!--<groupId>net.alchim31.maven</groupId>-->
+                <!--<artifactId>scala-maven-plugin</artifactId>-->
+                <!--<version>3.2.2</version>-->
+
+            <!--</plugin>-->
+            <!--<plugin>-->
+                <!--<groupId>org.apache.maven.plugins</groupId>-->
+                <!--<artifactId>maven-site-plugin</artifactId>-->
+                <!--<version>3.3</version>-->
+            <!--</plugin>-->
+        <!--</plugins>-->
+    <!--</reporting>-->
 </project>

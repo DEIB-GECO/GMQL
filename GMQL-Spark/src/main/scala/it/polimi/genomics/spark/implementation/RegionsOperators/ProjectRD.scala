@@ -23,33 +23,15 @@ object ProjectRD {
     logger.info("----------------ProjectRD executing..")
 
     val input = executor.implement_rd(inputDataset, env)
-    val projectedInput = if(projectedValues.isDefined)
-        input.map(a  => (a._1,  projectedValues.get.foldLeft(Array[GValue]())((Acc, b) => Acc :+ a._2(b)) ))
-    else input
 
-   if (tupleAggregator.isDefined) projectedInput.flatMap { a =>
-//      var out = a;
-//      val r = a;
-//      tupleAggregator.get.foreach { agg =>
-//        out = agg.output_index match {
-//          case Some(COORD_POS.CHR_POS) => (new GRecordKey(out._1._1, computeFunction(r, agg).asInstanceOf[GString].v, out._1._3, out._1._4, out._1._5), out._2)
-//          case Some(COORD_POS.LEFT_POS) => (new GRecordKey(out._1._1, out._1._2, computeFunction(r, agg).asInstanceOf[GDouble].v.toLong, out._1._4, out._1._5), out._2)
-//          case Some(COORD_POS.RIGHT_POS) => (new GRecordKey(out._1._1, out._1._2, out._1._3, computeFunction(r, agg).asInstanceOf[GDouble].v.toLong, out._1._5), out._2)
-//          case Some(COORD_POS.STRAND_POS) => (new GRecordKey(out._1._1, out._1._2, out._1._3, out._1._4, computeFunction(r, agg).asInstanceOf[GString].v.charAt(0)), out._2)
-//          case Some(v: Int) => (out._1, {
-//            out._2.update(v, computeFunction(r, agg));
-//            out._2
-//          })
-//          case None => (out._1, out._2 :+ computeFunction(r, agg))
-//        }
-//      }
-//
-//
-//      out
-
+   val extended = if (tupleAggregator.isDefined) input.flatMap { a =>
       extendRegion(a, a, tupleAggregator.get)
     }.cache()
-    else projectedInput
+    else input
+
+    if(projectedValues.isDefined)
+      extended.map(a  => (a._1,  projectedValues.get.foldLeft(Array[GValue]())((Acc, b) => Acc :+ a._2(b)) ))
+    else extended
   }
 
   def computeFunction(r : GRECORD, agg : RegionExtension) : GValue = {

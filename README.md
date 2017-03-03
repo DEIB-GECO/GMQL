@@ -1,36 +1,23 @@
 
-# GMQL Engine V2.1
-## Deployment
-GMQL Engine has several deployment modes: 
+GenoMetric Query Language (GMQL) Engine
+=======================================
 
-### Shell deployment without Repository.
-  
-  Example Code:
-  
-#### Local Execution (single machine)
-  ```
-    A = SELECT() /home/user1/ds/ref/;
-    B = SELECT() /home/user1/ds/exp/;
-    S = MAP() A B;
-    MATERIALIZE S INTO /home/user1/ds/out/S/;
-  ```
-   
-#### Yarn Execution (cluster)
-  
-  ```
-    A = SELECT() hdfs://127.0.0.1:9000/user/repo/user1/regions/ref/;
-    B = SELECT() hdfs://127.0.0.1:9000/user/repo/user1/regions/exp/;
-    S = MAP() A B;
-    MATERIALIZE S INTO hdfs://127.0.0.1:9000/user/repo/user1/regions/out/;
-  ```
-  
-### Shell Deployment with Repository.
+A GMQL script is expressed as a sequence of GMQL operations with the following structure:
+```
+<dataset> = operation(<parameters>) <datasets>
+```
+where each dataset stands for a [Genomic Data Model (GDM)](docs/GDM_DS_Structure.md) dataset. Operations are either unary (with one input dataset), or binary (with two input datasets), and construct one result dataset.
 
-  Example Code: 
-  
- ```
-    A = SELECT() ann;
-    B = SELECT() exp;
-    S = MAP() A B;
-    MATERIALIZE S INTO res;
-  ```
+###[GMQL Language Commands and documentation.](http://www.bioinformatics.deib.polimi.it/genomic_computing/GMQL/doc/GMQL_V2_manual.pdf)
+
+###[Engine architecture and deployments.](docs/gmql_architecture.md)
+
+###[Scripting GMQL programatically.](docs/GMQL_APIs.md)
+
+###[Repository Manager](GMQL-Repository/README.md)
+
+###[GDM DataSet architecture.](docs/GDM_DS_Structure.md)
+
+###[Repository Manager shell API](docs/SHELL_API.md)
+
+###[Engine Configurations.](docs/Configutations.md)

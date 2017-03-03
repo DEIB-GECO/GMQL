@@ -41,10 +41,10 @@ class GMQLExecute (){
     *   - Register the user in the history list (if not registered yet)
     *   - Register the jobID with to the user
     *
-    * @param script {@link GMQLScript}, contains script string in addition to the script path. script path is used in generating the jobID.
-    * @param gMQLContext {@link GMQLContext} contains job running environment
-    * @param jobid {@link BinSize} contains the defaults for the job binning parameters
-    * @return {@link GMQLJob} contains all the information of the job.
+    * @param script [[ GMQLScript]], contains script string in addition to the script path. script path is used in generating the jobID.
+    * @param gMQLContext [[ GMQLContext]] contains job running environment
+    * @param jobid [[ BinSize]] contains the defaults for the job binning parameters
+    * @return [[ GMQLJob]] contains all the information of the job.
     */
   def registerJob(script:GMQLScript, gMQLContext: GMQLContext, jobid:String = ""): GMQLJob ={
 
@@ -78,10 +78,10 @@ class GMQLExecute (){
 
   /**
     * Get the job instance from the job name.
-    * If the job is not found  {@link InvalidGMQLJobException} exception will be thrown
+    * If the job is not found  [[ InvalidGMQLJobException]] exception will be thrown
     *
-    * @param jobId {@link String} describe the GMQL job name (ID)
-    * @return {@link GMQLJob} instance
+    * @param jobId [[ String]] describe the GMQL job name (ID)
+    * @return [[ GMQLJob]] instance
     */
   private def getJob(jobId:String): GMQLJob ={
     val jobOption = JOBID_TO_JOB_INSTANCE.get(jobId);
@@ -96,8 +96,8 @@ class GMQLExecute (){
     * Try to Execute GMQL Job. The job will be checked for execution of the provided platform
     * and run in case of clear from errors.
     *
-    * @param jobId {@link String} as the JobID.
-    * @param launcher There is a set of launchers that implements {@link GMQLLauncher}.
+    * @param jobId [[ String]] as the JobID.
+    * @param launcher There is a set of launchers that implements [[ GMQLLauncher]].
     */
   def execute(jobId:String, launcher:GMQLLauncher)={
     val job = getJob(jobId);
@@ -134,9 +134,9 @@ class GMQLExecute (){
     *
     * retrieve GMQL job by providing the username and the job id
     *
-    * @param username {@link String} of the username (owner of the job)
-    * @param jobId {@link String} as the job id
-    * @return {@link GMQLJob} instance
+    * @param username [[ String]] of the username (owner of the job)
+    * @param jobId [[ String]] as the job id
+    * @return [[ GMQLJob]] instance
     */
   def getGMQLJob(username:String, jobId:String): GMQLJob ={
 
@@ -154,8 +154,8 @@ class GMQLExecute (){
   /**
     *  List all the jobs of the user
     *
-    * @param username {@link String} as the user name
-    * @return {@link util.List} of {@link String} as the job ids of the requested user.
+    * @param username [[ String]] as the user name
+    * @return [[ util.List]] of [[ String]] as the job ids of the requested user.
     */
   def getUserJobs(username:String):util.List[String]= {
     val jobsOption = USER_TO_JOBID.get(username);
@@ -169,7 +169,7 @@ class GMQLExecute (){
     *
     * return the job output datasets names.
     *
-    * @param jobId {@link String} as the GMQL Job id
+    * @param jobId [[ String]] as the GMQL Job id
     * @return List of Strings of the output datasets names
     */
   def getJobDatasets (jobId:String): util.List[String] = {
@@ -219,8 +219,8 @@ object GMQLExecute{
   /**
     * return all the log strings of a specific job.
     *
-    * @param username {@link String} of the username
-    * @param jobID {@link String} of the JobID
+    * @param username [[ String]] of the username
+    * @param jobID [[ String]] of the JobID
     * @return list of Strings of the log information.
     */
   def getJobLog(username:String,jobID:String): util.List[String] ={

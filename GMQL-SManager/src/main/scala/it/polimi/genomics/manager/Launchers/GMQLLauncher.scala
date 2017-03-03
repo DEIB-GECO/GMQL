@@ -3,7 +3,7 @@ package it.polimi.genomics.manager.Launchers
 import it.polimi.genomics.manager.{GMQLJob, Status}
 
 /**
-  * Abstarct class that defines the basic functions to run GMQL Job {@link GMQLJob}
+  * Abstarct class that defines the basic functions to run GMQL Job [[ GMQLJob]]
   *
   * @param job
   */
@@ -13,7 +13,7 @@ import it.polimi.genomics.manager.{GMQLJob, Status}
     *
     * Run GMQL Job and return the handle to this execution
     *
-    * @return {@link GMQLLauncher}
+    * @return [[ GMQLLauncher]]
     */
     def run(): GMQLLauncher
 
@@ -21,13 +21,13 @@ import it.polimi.genomics.manager.{GMQLJob, Status}
     *
     * return the Status of the job
     *
-    * @return The {@link GMQLJob} Status {@link Status}
+    * @return The [[ GMQLJob]] Status [[ Status]]
     */
     def getStatus(): Status.Value
 
   /**
     *
-    *  return the {@link GMQLJob} Application name
+    *  return the [[ GMQLJob]] Application name
     *
     * @return String of the application name
     */
@@ -35,7 +35,7 @@ import it.polimi.genomics.manager.{GMQLJob, Status}
 
   /**
     *
-    * Kill GMQL Job {@link GMQLJob}
+    * Kill GMQL Job [[ GMQLJob]]
     *
     */
     def killJob ()

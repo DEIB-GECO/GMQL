@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory
   */
 /**
   *
-  * @param sparkJob is a {@link GMQLJob}, sparkJob should contains information on running GMQL Job
+  * @param sparkJob is a [[ GMQLJob]], sparkJob should contains information on running GMQL Job
   *      such as the implementation platform and the context, along with the code and the state.
   */
 class GMQLSparkLauncher(sparkJob:GMQLJob) extends GMQLLauncher(sparkJob){
@@ -22,7 +22,7 @@ class GMQLSparkLauncher(sparkJob:GMQLJob) extends GMQLLauncher(sparkJob){
 
   /**
     * Run GMQL job
-    * @return {@link GMQLSparkLauncher} handle
+    * @return [[ GMQLSparkLauncher]] handle
     */
   def run(): GMQLSparkLauncher = {
     val importController = new GMQLSparkSubmit(job);

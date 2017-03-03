@@ -32,7 +32,7 @@ object FS_Utilities {
     *
     * validate the xml file of the schema using XSD template
     *
-    * @param xmlFile {@link String} of the path to the schema file to be checked
+    * @param xmlFile [[ String]] of the path to the schema file to be checked
     * @return
     */
   def validate(xmlFile: String): Boolean = {
@@ -53,9 +53,9 @@ object FS_Utilities {
 
   /**
     *
-    *  Give a list of {@link GMQLSample} from a directory
+    *  Give a list of [[ GMQLSample]] from a directory
     *
-    * @param URL {@link String} of the path to the directory to check the samples inside.
+    * @param URL [[ String]] of the path to the directory to check the samples inside.
     * @throws it.polimi.genomics.repository.GMQLExceptions.GMQLNotValidDatasetNameException
     */
   @deprecated
@@ -89,7 +89,7 @@ object FS_Utilities {
     *
     *   Return Hadoop Configuration File by reading Hadoop Core and HDFS config files
     *
-    * @return {@link Configuration} Hadoop configurations
+    * @return [[ Configuration]] Hadoop configurations
     */
   def gethdfsConfiguration(): Configuration = {
     val conf = new Configuration();
@@ -105,7 +105,7 @@ object FS_Utilities {
     *
     *  Return Hadoop Distributed File System handle
     *
-    * @return {@link FileSystem}
+    * @return [[ FileSystem]]
     */
   def getFileSystem: FileSystem = {
     val fs:FileSystem = null
@@ -209,7 +209,7 @@ object FS_Utilities {
     *
     *   Create directiry in HDFS
     *
-    * @param url {@link String} of the Directory location
+    * @param url [[ String]] of the Directory location
     * @throws
     * @return
     */
@@ -245,7 +245,7 @@ object FS_Utilities {
 
   /**
     *
-    *  Get the {@link GMQLSchemaTypes} of a specific String
+    *  Get the [[ GMQLSchemaTypes]] of a specific String
     *
     * @param schemaType String of the schema type
     * @return
@@ -263,7 +263,7 @@ object FS_Utilities {
     *
     * Get the data type correspondance type in GMQL
     *
-    * @param x {@link String} of the data type
+    * @param x [[ String]] of the data type
     * @return
     */
   def attType(x: String): ParsingType.Value = x.toUpperCase match {

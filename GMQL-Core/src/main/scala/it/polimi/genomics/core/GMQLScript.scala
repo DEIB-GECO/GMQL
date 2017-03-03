@@ -6,7 +6,7 @@ package it.polimi.genomics.core
   */
 /**
   *
-  * @param script {@link String} of the GMQL script
-  * @param scriptPath {@link String} of the path to the script on local file system
+  * @param script [[ String]] of the GMQL script
+  * @param scriptPath [[ String]] of the path to the script on local file system
   */
 case class GMQLScript (script:String, scriptPath:String)

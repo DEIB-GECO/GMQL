@@ -136,7 +136,7 @@ class GMQLLivyLauncher (livyJob:GMQLJob)  extends GMQLLauncher(livyJob){
     * Map the status recieved from Livy to GMQLJob Status
     *
     * @param state String from Livy
-    * @return {@link Status} of GMQL job
+    * @return [[ Status]] of GMQL job
     */
   private def stateAdapter(state:String): Status.Value ={
     state match {

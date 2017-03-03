@@ -335,4 +335,14 @@ trait XMLDataSetRepository extends GMQLRepository{
     gMQLDataSetXML.changeDSName(newDSName)
 
   }
+
+  /**
+    *
+    * @param datasetName String of the dataset name
+    * @param userName String of the username, the owner of the dataset
+    *     */
+  override def getSchema(datasetName: String, userName: String) = {
+    val schemaPath = General_Utilities().getSchemaDir( userName ) + datasetName + ".schema"
+    readSchemaFile(schemaPath)
+  }
 }

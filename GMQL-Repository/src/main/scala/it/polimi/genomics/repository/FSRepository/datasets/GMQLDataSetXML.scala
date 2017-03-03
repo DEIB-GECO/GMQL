@@ -40,12 +40,12 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
   Utilities()
 
   /**
-    *   Constructor with parameters to construct a {@link GMQLDataSetXML} object
+    *   Constructor with parameters to construct a [[ GMQLDataSetXML]] object
     *
-    * @param dataset  {@link IRDataSet} variable that contains the name of the dataset and the schema
+    * @param dataset  [[ IRDataSet]] variable that contains the name of the dataset and the schema
     * @param username the owner of the dataset
     * @param repo String field for the XML file, to describe the repository which this dataset is generated for
-    * @param fields List of {@link GMQLSample}, holds the samples URIs and meta data URIs.
+    * @param fields List of [[ GMQLSample]], holds the samples URIs and meta data URIs.
     * @throws GMQLUserNotFound
     */
   @throws(classOf[GMQLNotValidDatasetNameException])
@@ -63,9 +63,9 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
   }
 
   /**
-    *  Constructor with parameters to construct a {@link GMQLDataSetXML} object
+    *  Constructor with parameters to construct a [[ GMQLDataSetXML]] object
     *
-    * @param dataset {@link IRDataSet} variable that contains the name of the dataset and the schema
+    * @param dataset [[ IRDataSet]] variable that contains the name of the dataset and the schema
     * @param username The owner of the dataset
     * @throws GMQLUserNotFound
     */
@@ -77,7 +77,7 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
   }
 
   /**
-    *  Constructor with parameters to construct a {@link GMQLDataSetXML} object
+    *  Constructor with parameters to construct a [[ GMQLDataSetXML]] object
     *
     * @param datasetName String that describe the dataset name
     * @param username The owner of the dataset
@@ -91,11 +91,11 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
   }
 
   /**
-    *  Constructor with parameters to construct a {@link GMQLDataSetXML} object
+    *  Constructor with parameters to construct a [[ GMQLDataSetXML]] object
     *
-    * @param dataset {@link IRDataSet} variable that contains the name of the dataset and the schema
+    * @param dataset [[ IRDataSet]] variable that contains the name of the dataset and the schema
     * @param username the owner of the dataset
-    * @param fields List of {@link GMQLSample}, holds the samples URIs and meta data URIs.
+    * @param fields List of [[ GMQLSample]], holds the samples URIs and meta data URIs.
     * @param GMQLCodeUrl String as a URI to the location of GMQL script
     * @param repo String field for the XML file, to describe the repository which this dataset is generated for
     * @throws GMQLUserNotFound
@@ -108,13 +108,13 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
   }
 
   /**
-    *  Constructor with parameters to construct a {@link GMQLDataSetXML} object
+    *  Constructor with parameters to construct a [[ GMQLDataSetXML]] object
     *
-    * @param dataset {@link IRDataSet} variable that contains the name of the dataset and the schema
+    * @param dataset [[ IRDataSet]] variable that contains the name of the dataset and the schema
     * @param username the owner of the dataset
-    * @param fields List of {@link GMQLSample}, holds the samples URIs and meta data URIs.
+    * @param fields List of [[ GMQLSample]], holds the samples URIs and meta data URIs.
     * @param GMQLCodeUrl  String as a URI to the location of GMQL script
-    * @param schemaType {@link GMQLSchemaTypes} that shows the type of the schema
+    * @param schemaType [[ GMQLSchemaTypes]] that shows the type of the schema
     * @param repo String field for the XML file, to describe the repository which this dataset is generated for
     */
   @throws(classOf[GMQLNotValidDatasetNameException])
@@ -124,12 +124,12 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
   }
 
   /**
-    *  Constructor with parameters to construct a {@link GMQLDataSetXML} object
+    *  Constructor with parameters to construct a [[ GMQLDataSetXML]] object
     *
-    * @param dataset {@link IRDataSet} variable that contains the name of the dataset and the schema
+    * @param dataset [[ IRDataSet]] variable that contains the name of the dataset and the schema
     * @param username the owner of the dataset
-    * @param fields List of {@link GMQLSample}, holds the samples URIs and meta data URIs.
-    * @param schemaType {@link GMQLSchemaTypes} that shows the type of the schema
+    * @param fields List of [[ GMQLSample]], holds the samples URIs and meta data URIs.
+    * @param schemaType [[ GMQLSchemaTypes]] that shows the type of the schema
     * @param repo String field for the XML file, to describe the repository which this dataset is generated for
     */
   @throws(classOf[GMQLNotValidDatasetNameException])
@@ -255,8 +255,8 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
 
   /**
     * store XML file
-    * @param xmlString XML contents as a {@link String}
-    * @param location {@link String} to the location of the file
+    * @param xmlString XML contents as a [[ String]]
+    * @param location [[ String]] to the location of the file
     * @return
     */
   private def storeXML(xmlString: String, location: String) = {
@@ -399,7 +399,7 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
 
   /**
     *
-    * @param sample {@link GMQLSample} to add to the dataset
+    * @param sample [[ GMQLSample]] to add to the dataset
     * @throws GMQLSampleNotFound
     * @throws java.io.IOException
     * @return
@@ -470,7 +470,7 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
   /**
     *  Delete sample from the dataset
     *
-    * @param sample {@link GMQLSample} to add to the dataset
+    * @param sample [[ GMQLSample]] to add to the dataset
     * @return
     */
   def delSample(sample: GMQLSample): Int = {
@@ -518,7 +518,7 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
     *
     *   Get the meta data of specific sample in a dataset.
     *
-    * @param sample {@link GMQLSample} to add to the dataset
+    * @param sample [[ GMQLSample]] to add to the dataset
     * @throws GMQLSampleNotFound
     * @return
     */
@@ -534,7 +534,7 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
         line
       } != null) {
         val str: Array[String] = line.split("\t")
-        if (!(str(0) == s(0).ID))
+        if (str(0) == s(0).ID)
           st.append(str.tail.mkString("\t")).append("\n")
       }
       reader.close
@@ -546,7 +546,7 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
     *
     * Return the ID of the sample in the XML of the dataset
     *
-    * @param sample {@link GMQLSample} to add to the dataset
+    * @param sample [[ GMQLSample]] to add to the dataset
     * @param delete  Boolean of Wether to delete the sample from the dataset or keep it
     * @return
     */

@@ -27,9 +27,9 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     *
     * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @param userName The user name in which this dataSet belongs to.
-    * @param Samples List of GMQL samples {@link GMQLSample}.
+    * @param Samples List of GMQL samples [[ GMQLSample]].
     * @param GMQLScriptPath The path to the script text file that generated this data set.
-    * @param schemaType One of GMQL schema types as shown in {@link GMQLSchemaTypes}
+    * @param schemaType One of GMQL schema types as shown in [[ GMQLSchemaTypes]]
     */
   override def createDs(dataSet:IRDataSet, userName: String, Samples: java.util.List[GMQLSample], GMQLScriptPath: String,schemaType:GMQLSchemaTypes.Value): Unit = {
     //Create Temp folder to place the meta files temporarly in Local file system
@@ -56,7 +56,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     *     * Import Dataset into GMQL from Local file system.
     *
     * @param dataSetName String of the dataset name.
-    * @param Samples List of GMQL samples {@link GMQLSample}.
+    * @param Samples List of GMQL samples [[ GMQLSample]].
     * @param userName String of the user name to add this dataset to.
     * @param schemaPath String of the path to the xml file of the dataset's schema.
     */
@@ -81,7 +81,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     *  TODO: i did not finish it since The web interface does not use it for the moment
     *
     * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
-    * @param Sample GMQL sample {@link GMQLSample}.
+    * @param Sample GMQL sample [[ GMQLSample]].
     * @userName String of the user name.
     */
   override def addSampleToDS(dataSet: String, userName: String, Sample: GMQLSample): Unit = ???
@@ -113,7 +113,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
   /**
     *
     * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
-    * @param Sample GMQL sample {@link GMQLSample}.
+    * @param Sample GMQL sample [[ GMQLSample]].
     * @throws GMQLDSNotFound
     * @throws GMQLDSException
     * @throws GMQLUserNotFound
@@ -139,21 +139,11 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
           } else
             None
         }).toList.asJava;
-    val schema = readSchemaFile(dsPath + "/test.schema")
+    val schema =
+      readSchemaFile(dsPath + "/test.schema")
     (samples,schema.fields.asJava)
   }
 
-  /**
-    *
-    * @param datasetName String of the dataset name
-    * @param userName String of the username, the owner of the dataset
-    *     */
-  override def getSchema(datasetName: String, userName: String) = {
-    val conf = FS_Utilities.gethdfsConfiguration()
-    val fs = FileSystem.get(conf);
-    val dsPath = conf.get("fs.defaultFS") +repository.Utilities().getHDFSRegionDir(userName) + datasetName
-    readSchemaFile(dsPath + "/test.schema")
-  }
 
   /**
     *
@@ -227,10 +217,11 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     val sampleOption = gMQLDataSetXML.samples.find(_.name.split("\\.").head.endsWith(sampleName))
     sampleOption match {
       case Some(sample) =>
-        val pathRegion = new Path(sample.name)
-        val pathMeta = new Path(sample.meta)
+        logger.debug(s"Get stream of: $userName.$dataSetName->$sampleName")
+        val pathRegion = new Path(General_Utilities().getHDFSRegionDir(userName) + sample.name)
+        val pathMeta = new Path(General_Utilities().getHDFSRegionDir(userName) + sample.meta)
 
-        val conf = FS_Utilities.gethdfsConfiguration
+        val conf = FS_Utilities.gethdfsConfiguration()
         val fs = FileSystem.get(conf)
         //check region file exists
         if (!fs.exists(pathRegion)) {
