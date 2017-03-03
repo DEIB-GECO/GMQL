@@ -135,7 +135,7 @@ class GMQLSparkSubmit(job:GMQLJob) {
     * Serialize GMQL DAG
     *
     * TODO: DAG serialization is Not used currently, instead we are sending the script as a parameter
-    * @param dag input as a List of {@link Operator}
+    * @param dag input as a List of [[ Operator]]
     * @return String as the serialization of the DAG
     */
   def serializeDAG(dag: List[Operator]): String = {

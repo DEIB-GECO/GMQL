@@ -28,10 +28,10 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
   /**
     *
     * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
-    * @param Samples List of GMQL samples {@link GMQLSample}.
+    * @param Samples List of GMQL samples [[ GMQLSample]].
     * @param userName String of the user who own this dataset
     * @param GMQLScriptPath String that describe the path to the script text file on the local file system
-    * @param schemaType The schema type as one of the {@link GMQLSchemaTypes}
+    * @param schemaType The schema type as one of the [[ GMQLSchemaTypes]]
     * @throws GMQLNotValidDatasetNameException
     * @throws GMQLUserNotFound
     */
@@ -63,7 +63,7 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
     *
     * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @param Schema
-    * @param Samples List of GMQL samples {@link GMQLSample}.
+    * @param Samples List of GMQL samples [[ GMQLSample]].
     * @param GMQLScriptPaht
     * @throws GMQLDSNotFound
     * @throws GMQLUserNotFound
@@ -90,7 +90,7 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
   /**
     *
     * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
-    * @param Sample GMQL sample {@link GMQLSample}.
+    * @param Sample GMQL sample [[ GMQLSample]].
     * @throws GMQLDSNotFound
     * @throws GMQLDSException
     * @throws GMQLUserNotFound
@@ -118,7 +118,7 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
   /**
     *
     * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
-    * @param Sample GMQL sample {@link GMQLSample}.
+    * @param Sample GMQL sample [[ GMQLSample]].
     * @throws GMQLDSNotFound
     * @throws GMQLDSException
     * @throws GMQLUserNotFound

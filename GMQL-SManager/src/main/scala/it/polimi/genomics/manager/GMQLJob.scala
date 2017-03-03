@@ -33,9 +33,9 @@ import scala.xml.XML
   *  GMQL Job
   *  Hold the state of the job, the configuration of which this job runs on.
   *
-  * @param gMQLContext {@link GMQLContext} sets the implementation type and the defaults for binning
-  * @param script {@link GMQLScript} contains the script string and the script path
-  * @param username {@link String} as the executing user of this job
+  * @param gMQLContext [[GMQLContext]]  sets the implementation type and the defaults for binning
+  * @param script [[GMQLScript]] contains the script string and the script path
+  * @param username [[String]] as the executing user of this job
   */
 class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:String) {
 
@@ -71,8 +71,8 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     * Find the input datasets in the repository,
     * Modify DAG to include paths instead of Dataset names for both input and output.
     *
-    * @param id {@link String} as the Job ID
-    * @return a Tuple of a {@link String} as the Job ID, and a List of Strings as the output Datasets.
+    * @param id [[ String]] as the Job ID
+    * @return a Tuple of a [[ String]] as the Job ID, and a List of Strings as the output Datasets.
     */
   def compile(id:String = jobId): (String, List[String]) = {
     status = Status.COMPILING
@@ -206,8 +206,8 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     *
     * return the HDFS directory for a specific folder, including the file system name
     *
-    * @param dsName {@link String} of the dataset name
-    * @param user {@link String} as the user name, owner of the dataset
+    * @param dsName [[ String]] of the dataset name
+    * @param user [[ String]] as the user name, owner of the dataset
     * @return String of the absolute path of the dataset folder in HDFS
     */
   def getHDFSRegionFolder(path:String,user:String): String ={
@@ -223,8 +223,8 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     * Run GMQL Job using the laucher specified in the input parameters.
     *
     * @param id GMQL Job ID
-    * @param submitHand {@link GMQLLauncher} as the launcher to use to run GMQL Job
-    * @return {@link State} of the running job
+    * @param submitHand [[ GMQLLauncher]] as the launcher to use to run GMQL Job
+    * @return [[ State]] of the running job
     */
   def runGMQL(id:String = jobId,submitHand: GMQLLauncher= new GMQLLocalLauncher(this)):Status.Value = {
     this.status = Status.PENDING
@@ -345,14 +345,14 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
   def getMessage() = jobOutputMessages.toString()
 
   /**
-    * @return the status {@link Status} of the GMQL Job
+    * @return the status [[ Status]] of the GMQL Job
     */
   def getJobStatus: Status.Value = this.synchronized {
     this.status
   }
 
   /**
-    * @return the status {@link Status} of the GMQL Job.
+    * @return the status [[ Status]] of the GMQL Job.
     *      This status is the executor status.
     */
   def getExecJobStatus: Status.Value = this.synchronized {

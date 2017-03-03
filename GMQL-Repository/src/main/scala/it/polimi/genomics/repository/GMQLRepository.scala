@@ -19,7 +19,7 @@ trait GMQLRepository {
     *
     * @param dataSetName  String of the dataset name.
     * @param userName String of the user name.
-    * @param Samples List of GMQL samples {@link GMQLSample}.
+    * @param Samples List of GMQL samples [[ GMQLSample]].
     * @param schemaPath String of the path to the xml file of the dataset schema.
     * @throws GMQLNotValidDatasetNameException
     * @throws GMQLUserNotFound
@@ -60,7 +60,7 @@ trait GMQLRepository {
 
   /**
     *
-    *   Add {@link GMQLSample}  to dataset {@link IRDataSet} in the repository
+    *   Add [[ GMQLSample]]  to dataset [[ IRDataSet]] in the repository
     *
     * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @param Sample
@@ -74,7 +74,7 @@ trait GMQLRepository {
 
   /**
     *
-    *  Delete {@link GMQLSample} from a dataset {@link IRDataSet}
+    *  Delete [[ GMQLSample]] from a dataset [[ IRDataSet]]
     *
     * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @param Sample
@@ -88,9 +88,9 @@ trait GMQLRepository {
 
   /**
     *
-    *  List all the {@link IRDataSet} dataset of the user in the repository
+    *  List all the [[ IRDataSet]] dataset of the user in the repository
     *
-    * @param userName {@link String} of the user name
+    * @param userName [[ String]] of the user name
     * @throws GMQLDSException
     * @throws GMQLUserNotFound
     */
@@ -99,7 +99,7 @@ trait GMQLRepository {
 
   /**
     *
-    *   List all the samples {@link GMQLSample} of specific dataset in the repository
+    *   List all the samples [[ GMQLSample]] of specific dataset in the repository
     *
     * @param dataSet
     * @throws GMQLDSException
@@ -110,9 +110,9 @@ trait GMQLRepository {
 
   /**
     *
-    * List the result {@link GMQLSample} and the schema of an execution of GMQL script
+    * List the result [[ GMQLSample]] and the schema of an execution of GMQL script
     *
-    * @param dataSetName {@link String} of the dataset name
+    * @param dataSetName [[ String]] of the dataset name
     * @throws GMQLDSException
     * @return
     */
@@ -133,8 +133,8 @@ trait GMQLRepository {
     *
     *  Verify the existance of a dataset in the reposiotry under a specific username
     *
-    * @param dataSet {@link IRDataSet} of the dataset
-    * @param userName  {@link String} of the user name
+    * @param dataSet [[ IRDataSet]] of the dataset
+    * @param userName  [[ String]] of the user name
     * @throws GMQLDSException
     * @return
     */
@@ -145,7 +145,7 @@ trait GMQLRepository {
     *
     *  Verify the existance of a dataset in the public dataset
     *
-    * @param dataSet {@link IRDataSet} of the dataset
+    * @param dataSet [[ IRDataSet]] of the dataset
     * @throws GMQLDSException
     * @return
     */
@@ -166,7 +166,7 @@ trait GMQLRepository {
     *
     *   return the schema of the dataset
     *
-    * @param schemaPath {@link String} of the path to the schema xml
+    * @param schemaPath [[ String]] of the path to the schema xml
     * @return
     */
   def readSchemaFile(schemaPath:String):  GMQLSchema
@@ -176,7 +176,7 @@ trait GMQLRepository {
     *
     * @param datasetName String of the dataset name
     * @param userName String of the username, the owner of the dataset
-    * @return {@link GMQLSchema} as the schema of the dataset
+    * @return [[ GMQLSchema]] as the schema of the dataset
     */
   def getSchema(datasetName:String, userName:String): GMQLSchema
 
@@ -184,18 +184,18 @@ trait GMQLRepository {
     *
     * Get the metadata of a Dataset
     *
-    * @param dataSet {@link IRDataSet}, dataset identifier
-    * @param userName {@link String} of the user name
+    * @param dataSet [[ IRDataSet]], dataset identifier
+    * @param userName [[ String]] of the user name
     * @return
     */
   def getMeta(dataSet: String,userName:String):String
 
   /**
     *
-    *  Return a {@link String} of the meta data of specific sample
+    *  Return a [[ String]] of the meta data of specific sample
     *
-    * @param dataSet {@link IRDataSet}, dataset identifier
-    * @param userName {@link String} of the user name
+    * @param dataSet [[ IRDataSet]], dataset identifier
+    * @param userName [[ String]] of the user name
     * @param sample
     * @return
     */
@@ -205,9 +205,9 @@ trait GMQLRepository {
     *
     *  Return a list of {@ink GNQLSample} after searching the meta data with a query
     *
-    * @param dataSet {@link IRDataSet}, dataset identifier
-    * @param userName {@link String} of the user name
-    * @param query  {@link String} of the query
+    * @param dataSet [[ IRDataSet]], dataset identifier
+    * @param userName [[ String]] of the user name
+    * @param query  [[ String]] of the query
     * @return
     */
   def searchMeta(dataSet: String, userName:String, query:String): java.util.List[GMQLSample]
@@ -216,7 +216,7 @@ trait GMQLRepository {
     *
     *  Register user in the repository
     *
-    * @param userName {@link String} of the user name
+    * @param userName [[ String]] of the user name
     * @return
     */
   def registerUser(userName:String): Boolean
@@ -225,7 +225,7 @@ trait GMQLRepository {
     *
     *  Delete a user from the repsository
     *
-    * @param userName {@link String} of the user name
+    * @param userName [[ String]] of the user name
     * @return
     */
   def unregisterUser(userName:String): Boolean

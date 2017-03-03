@@ -26,7 +26,7 @@ class LFSRepository extends GMQLRepository with XMLDataSetRepository{
     *
     * @param dataSetName  String of the dataset name.
     * @param userName String of the user name.
-    * @param Samples List of GMQL samples {@link GMQLSample}.
+    * @param Samples List of GMQL samples [[ GMQLSample]].
     * @param schemaPath String of the path to the xml file of the dataset schema.
     * @throws GMQLNotValidDatasetNameException
     * @throws GMQLUserNotFound

@@ -101,7 +101,7 @@ class Utilities() {
     *
     * Constract the Directory to the tmp folder
     *
-    * @param userName {@link String} of the user name
+    * @param userName [[ String]] of the user name
     * @return Directory location of the temp folder
     */
   def getTempDir(userName: String = USERNAME): String = GMQLHOME + "/tmp/" + userName + "/"
@@ -110,7 +110,7 @@ class Utilities() {
     *
     * Constract the Directory to the regions folder on HDFS
     *
-    * @param userName {@link String} of the user name
+    * @param userName [[ String]] of the user name
     * @return Directory location of the regions folder in HDFS
     */
   def getHDFSRegionDir(userName: String = USERNAME): String = HDFSRepoDir + userName + "/regions/"
@@ -119,7 +119,7 @@ class Utilities() {
     *
     * Constract the Directory to the regions folder on Local file system
     *
-    * @param userName {@link String} of the user name
+    * @param userName [[ String]] of the user name
     * @return Directory location of the regions folder in Local File system
     */
   def getRegionDir(userName: String = USERNAME): String = RepoDir + userName + "/regions/"
@@ -128,7 +128,7 @@ class Utilities() {
     *
     * Constract the Directory to the dataset folder
     *
-    * @param userName {@link String} of the user name
+    * @param userName [[ String]] of the user name
     * @return Directory location of the datasets folder
     */
   def getDataSetsDir(userName: String = USERNAME): String = RepoDir + userName + "/datasets/"
@@ -137,7 +137,7 @@ class Utilities() {
     *
     * Constract the Directory to the schema folder
     *
-    * @param userName {@link String} of the user name
+    * @param userName [[ String]] of the user name
     * @return Directory location of the schema folder
     */
   def getSchemaDir(userName: String = USERNAME): String = RepoDir + userName + "/schema/"
@@ -146,7 +146,7 @@ class Utilities() {
     *
     * Constract the Directory to the metadata folder
     *
-    * @param userName {@link String} of the user name
+    * @param userName [[ String]] of the user name
     * @return Directory location of the metadata folder
     */
   def getMetaDir(userName: String = USERNAME): String = RepoDir + userName + "/metadata/"
@@ -155,7 +155,7 @@ class Utilities() {
     *
     *  Constract the Directory to the indexes folder
     *
-    * @param userName {@link String} of the user name
+    * @param userName [[ String]] of the user name
     * @return Directory location of the indexes folder
     */
   def getIndexDir(userName: String = USERNAME): String = RepoDir + userName + "/indexes/"
@@ -164,7 +164,7 @@ class Utilities() {
     *
     * Constract the Directory to the GMQL scripts folder
     *
-    * @param userName {@link String} of the user name
+    * @param userName [[ String]] of the user name
     * @return Directory location of the GMQL scripts history folder
     */
   def getScriptsDir(userName: String = USERNAME): String = RepoDir + userName + "/queries/"
@@ -173,7 +173,7 @@ class Utilities() {
     *
     * Constract the Directory to the GMQL Repository folder for Specific user
     *
-    * @param userName {@link String} of the user name
+    * @param userName [[ String]] of the user name
     * @return Directory location of the repository user's folder
     */
   def getUserDir(userName: String = USERNAME): String = RepoDir + userName + "/"
@@ -182,7 +182,7 @@ class Utilities() {
     *
     * Constract the Directory to the Log folder
     *
-    * @param userName {@link String} of the user name
+    * @param userName [[ String]] of the user name
     * @return Directory location of the logs folder
     */
   def getLogDir(userName: String = USERNAME) = RepoDir + userName + "/logs/"
