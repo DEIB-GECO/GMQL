@@ -1,6 +1,7 @@
 package it.polimi.genomics.manager
 
 
+import java.io.{File, PrintWriter}
 import java.text.SimpleDateFormat
 import java.util
 import java.util.Date
@@ -53,6 +54,9 @@ class GMQLExecute (){
 
     val job = new GMQLJob(gMQLContext,script,gMQLContext.username)
 
+    val scriptHistory = new File(General_Utilities().getScriptsDir(gMQLContext.username)+ job.jobId + ".gmql")
+
+    new PrintWriter(scriptHistory) { write(script.script); close }
 
     val jobProfile = if(jobid == "")job.compile() else job.compile(jobid)
     val jID = jobProfile._1
