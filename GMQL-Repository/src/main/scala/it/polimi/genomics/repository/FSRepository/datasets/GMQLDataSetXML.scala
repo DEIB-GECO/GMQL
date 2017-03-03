@@ -534,7 +534,7 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
         line
       } != null) {
         val str: Array[String] = line.split("\t")
-        if (!(str(0) == s(0).ID))
+        if (str(0) == s(0).ID)
           st.append(str.tail.mkString("\t")).append("\n")
       }
       reader.close

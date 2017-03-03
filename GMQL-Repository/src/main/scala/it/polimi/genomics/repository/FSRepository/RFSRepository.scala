@@ -150,16 +150,7 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
     (samples,schema.fields.asJava)
   }
 
-  /**
-    *
-    * @param dataSetName Data set name as a String
-    * @param userName String of the username, the owner of the dataset
-    *     */
-  override def getSchema(dataSetName: String, userName: String) = {
-    val dsPath = General_Utilities().getHDFSRegionDir(userName) + dataSetName
-    KnoxClient.downloadFile(dsPath + "/test.schema",new File(General_Utilities().getTempDir() +dataSetName+".schema"))
-    readSchemaFile(General_Utilities().getTempDir() +dataSetName+".schema")
-  }
+
   /**
     *
     * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.

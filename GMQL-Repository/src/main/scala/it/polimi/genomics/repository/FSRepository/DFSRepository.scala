@@ -139,21 +139,11 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
           } else
             None
         }).toList.asJava;
-    val schema = readSchemaFile(dsPath + "/test.schema")
+    val schema =
+      readSchemaFile(dsPath + "/test.schema")
     (samples,schema.fields.asJava)
   }
 
-  /**
-    *
-    * @param datasetName String of the dataset name
-    * @param userName String of the username, the owner of the dataset
-    *     */
-  override def getSchema(datasetName: String, userName: String) = {
-    val conf = FS_Utilities.gethdfsConfiguration()
-    val fs = FileSystem.get(conf);
-    val dsPath = conf.get("fs.defaultFS") +repository.Utilities().getHDFSRegionDir(userName) + datasetName
-    readSchemaFile(dsPath + "/test.schema")
-  }
 
   /**
     *
@@ -227,10 +217,11 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     val sampleOption = gMQLDataSetXML.samples.find(_.name.split("\\.").head.endsWith(sampleName))
     sampleOption match {
       case Some(sample) =>
-        val pathRegion = new Path(sample.name)
-        val pathMeta = new Path(sample.meta)
+        logger.debug(s"Get stream of: $userName.$dataSetName->$sampleName")
+        val pathRegion = new Path(General_Utilities().getHDFSRegionDir(userName) + sample.name)
+        val pathMeta = new Path(General_Utilities().getHDFSRegionDir(userName) + sample.meta)
 
-        val conf = FS_Utilities.gethdfsConfiguration
+        val conf = FS_Utilities.gethdfsConfiguration()
         val fs = FileSystem.get(conf)
         //check region file exists
         if (!fs.exists(pathRegion)) {
