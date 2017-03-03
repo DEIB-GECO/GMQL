@@ -5,6 +5,7 @@ import com.google.common.hash.Hashing
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.Direction
 import it.polimi.genomics.core.DataStructures.GroupMDParameters._
 import it.polimi.genomics.core.DataStructures.MetaOperator
+import it.polimi.genomics.core.{GDouble, GString, GValue}
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
@@ -76,6 +77,25 @@ object OrderMD {
           }
         }
 
+
+    val valueListDouble: Map[Long, List[GDouble]] = valueList.flatMap { g =>
+      try{
+        Some(g._1, List(new GDouble(g._2.head.toDouble)))
+      } catch {
+        case e : Throwable => None
+      }
+    }
+
+    val valueListString: Map[Long, List[GString]] = valueList.flatMap { g =>
+      try{
+        g._2.head.toDouble
+        None
+      } catch {
+        case e : Throwable => Some(g._1, List(new GString(g._2.head.toString)))
+      }
+    }
+
+
     //list of meta data that will be added
     //if grouping is defined there are 2 meta tuple for each sample
     //they are in the form
@@ -85,17 +105,42 @@ object OrderMD {
       if(grouping){
 
         //(groupId, List[SampleId, attribute used for grouping/ordering])
-        val groupedSamples : Map[Long, List[(Long, String)]] =
+       /* val groupedSamples : Map[Long, List[(Long, String)]] =
           valueList
             .groupBy{(s : (Long, List[String])) =>
               //drop the last and group by n-1 element
             Hashing.md5.newHasher.putString(s._2.init.mkString("§"), Charsets.UTF_8).hash.asLong
             }
             //take only - groupId, (sampleId, lastElement that will be used for ordering)
-            .map{g => (g._1, g._2.toList.map{s => (s._1, s._2.last)})}
+            .map{g => (g._1, g._2.toList.map{s => (s._1, s._2.last)})}*/
+
+        val groupedSamplesString : Map[Long, List[(Long, GString)]] =
+          valueListString
+            .groupBy{(s : (Long, List[GString])) =>
+              //drop the last and group by n-1 element
+              Hashing.md5.newHasher.putString(s._2.init.mkString("§"), Charsets.UTF_8).hash.asLong
+            }
+            //take only - groupId, (sampleId, lastElement that will be used for ordering)
+            .map{g =>
+            (g._1, g._2.toList
+              .map{s =>
+                (s._1, s._2.last)})}
+
+        val groupedSamplesDouble : Map[Long, List[(Long, GDouble)]] =
+          valueListDouble
+            .groupBy{(s : (Long, List[GDouble])) =>
+              //drop the last and group by n-1 element
+              Hashing.md5.newHasher.putString(s._2.init.mkString("§"), Charsets.UTF_8).hash.asLong
+            }
+            //take only - groupId, (sampleId, lastElement that will be used for ordering)
+            .map{g =>
+            (g._1, g._2.toList
+              .map{s =>
+                (s._1, s._2.last)})}
+
 
         //(GroupId, OrderedList[SampleId, attribute to be ordered])
-        val sortedGroups : Map[Long, List[(Long, String)]] =
+       /* val sortedGroups : Map[Long, List[(Long, String)]] =
           //sort each group by the last value
           ordering.last._2 match{
             case Direction.ASC => groupedSamples.map((g) => {
@@ -104,7 +149,31 @@ object OrderMD {
             case Direction.DESC => groupedSamples.map((g) => {
                 (g._1, g._2.sortWith((a,b) => a._2.compareTo(b._2) > 0))
               })
+          }*/
+        val sortedGroupsString : Map[Long, List[(Long, GString)]] =
+        //sort each group by the last value
+          ordering.last._2 match {
+            case Direction.ASC => groupedSamplesString.map((g) => {
+              (g._1, g._2.sortWith((a, b) => a._2.compareTo(b._2) < 0))
+            })
+            case Direction.DESC => groupedSamplesString.map((g) => {
+              (g._1, g._2.sortWith((a, b) => a._2.compareTo(b._2) > 0))
+            })
           }
+        val sortedGroupsDouble : Map[Long, List[(Long, GDouble)]] =
+        //sort each group by the last value
+          ordering.last._2 match{
+            case Direction.ASC => groupedSamplesDouble.map((g) => {
+              (g._1, g._2.sortWith((a,b) => a._2.compareTo(b._2) < 0))
+            })
+            case Direction.DESC => groupedSamplesDouble.map((g) => {
+              (g._1, g._2.sortWith((a,b) => a._2.compareTo(b._2) > 0))
+            })
+          }
+
+
+        val d :List[(Long, List[(Long, GValue)])]= sortedGroupsDouble.toList ++ sortedGroupsString.toList
+        val sortedGroups: Map[Long, List[(Long, GValue)]] = d.groupBy{ case(g,v) => g}.map(p => (p._1,p._2.flatMap{ case(g,v) => v}.toList))
 
         sortedGroups.map{g =>
           //TOPG
@@ -119,15 +188,20 @@ object OrderMD {
         }.flatMap(x=>x).toList
 
       } else {
-        val comparator : ((Long, List[String]), (Long, List[String])) => Boolean =
+        val comparator : ((Long, List[GValue]), (Long, List[GValue])) => Boolean =
           metaSampleComparator(ordering)
 
         //sort the list of sample by all the fields and take only the sampleId
         //OrderedList[SampleId]
-        val sortedSamples : List[Long] =
+        /*val sortedSamples : List[Long] =
           valueList.toList.sortWith{(a,b) =>
               comparator(a,b)
-            }.map(_._1)
+            }.map(_._1)*/
+        val sortedSamplesDouble : List[Long] = valueListDouble.toList.sortWith{(a,b) => comparator(a,b)}.map(_._1)
+
+        val sortedSamplesString : List[Long] = valueListString.toList.sortWith{(a,b) =>comparator(a,b)}.map(_._1)
+
+        val sortedSamples : List[Long] = sortedSamplesDouble ++ sortedSamplesString
 
         //TOP
         val filteredSortedSamples: List[Long] =
@@ -187,7 +261,7 @@ object OrderMD {
   /////////////////////
 
   //true if a < b
-  def metaSampleComparator(ordering : List[(String,Direction)])(a : (Long, List[String]), b : (Long, List[String])) : Boolean = {
+  def metaSampleComparator(ordering : List[(String,Direction)])(a : (Long, List[GValue]), b : (Long, List[GValue])) : Boolean = {
     val ord = ordering.toArray
     val size = ord.size
 
@@ -203,7 +277,7 @@ object OrderMD {
 
 
   //true if a < b
-  def comparatorHelper(ordering : List[(String,Direction)], a : (Long, List[String]), b : (Long, List[String])) : Option[Boolean] = {
+  def comparatorHelper(ordering : List[(String,Direction)], a : (Long, List[GValue]), b : (Long, List[GValue])) : Option[Boolean] = {
     if(ordering.size < 1){
       None
     } else {
