@@ -113,7 +113,26 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
     }
     if (projected_values.isDefined || extended_values.isDefined){
 
-      val new_region_dag = IRProjectRD(projected_values, extended_values, this.regionDag)
+      val all_proj_values : Option[List[Int]] =
+        if (projected_values.isDefined) {
+          val list = projected_values.get
+          val new_list =
+            if (extended_values.isDefined){
+              list ++ ((this.schema.size) to (this.schema.size + extended_values.get.size - 1)).toList
+            }
+            else {
+              list
+            }
+          Some(new_list)
+      } else {
+        None
+      }
+
+      val new_region_dag = IRProjectRD(
+        all_proj_values,
+        extended_values,
+        this.regionDag)
+
       val new_schema_pt1 =
         if (projected_values.isDefined)
         {
