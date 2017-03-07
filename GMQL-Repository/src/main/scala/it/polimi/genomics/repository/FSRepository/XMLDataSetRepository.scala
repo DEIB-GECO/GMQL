@@ -1,6 +1,6 @@
 package it.polimi.genomics.repository.FSRepository
 
-import java.io.{File, FileInputStream, FileOutputStream, FilenameFilter}
+import java.io._
 import java.util
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
@@ -289,7 +289,7 @@ trait XMLDataSetRepository extends GMQLRepository{
     * @param userName String of the name of the owner of the dataset
     * @return The Location as either LOCAL, HDFS, or REMOTE
     */
-  override def getDSLocation(dataSet: String, userName: String) = {
+  override def getDSLocation(dataSet: String, userName: String): (RepositoryType.Value, DatasetOrigin.Value) = {
     val LOCAL = ".*(LOCAL)".r
     val HDFS = ".*(HDFS)".r
     val REMOTE = ".*(REMOTE)".r
@@ -316,7 +316,7 @@ trait XMLDataSetRepository extends GMQLRepository{
 
   }
 
-  override def changeDSName(datasetName: String, userName:String, newDSName: String) = {
+  override def changeDSName(datasetName: String, userName:String, newDSName: String): Unit = {
     // Check the dataset name, return if the dataset is already used in
     // the repository of the this user or the public repository.
     if (!DSExists(datasetName, userName)) {
@@ -341,8 +341,28 @@ trait XMLDataSetRepository extends GMQLRepository{
     * @param datasetName String of the dataset name
     * @param userName String of the username, the owner of the dataset
     *     */
-  override def getSchema(datasetName: String, userName: String) = {
+  override def getSchema(datasetName: String, userName: String): GMQLSchema = {
+    val schemaPath = new File(General_Utilities().getSchemaDir( userName ) + datasetName + ".schema")
+    val xmlFile = XML.loadFile(schemaPath)
+    val cc = (xmlFile \\ "field")
+    val schemaList = cc.map{ x =>new GMQLSchemaField(x.text.trim, FS_Utilities.attType(x.attribute("type").get.head.text))}.toList
+    val schemaType = FS_Utilities.getType((xmlFile \\ "gmqlSchema" \ "@type").text)
+    val schemaname = (xmlFile \\ "gmqlSchemaCollection" \ "@name").text
+    new GMQLSchema(schemaname,schemaType, schemaList)
+  }
+
+  /**
+    *
+    * @param datasetName String of the dataset name
+    * @param userName String of the username, the owner of the dataset
+    */
+  override def getSchemaStream(datasetName: String, userName: String): InputStream = {
     val schemaPath = General_Utilities().getSchemaDir( userName ) + datasetName + ".schema"
-    readSchemaFile(schemaPath)
+    new FileInputStream(schemaPath)
+  }
+
+  override def getScriptStream(dataSetName: String, userName: String): InputStream = {
+    val scriptPath = General_Utilities().getScriptsDir( userName ) + dataSetName + ".gmql"
+    new FileInputStream(scriptPath)
   }
 }

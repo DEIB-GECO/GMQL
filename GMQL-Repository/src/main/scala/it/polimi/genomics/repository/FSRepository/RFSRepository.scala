@@ -207,8 +207,8 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
     val sampleOption = gMQLDataSetXML.samples.find(_.name.split("\\.").head.endsWith(sampleName))
     sampleOption match {
       case Some(sample) =>
-        val pathRegion = new Path(sample.name)
-        val pathMeta = new Path(sample.meta)
+        val pathRegion = new Path(General_Utilities().getHDFSRegionDir(userName) +sample.name)
+        val pathMeta = new Path(General_Utilities().getHDFSRegionDir(userName) +sample.meta)
 
         val conf = FS_Utilities.gethdfsConfiguration
         val fs = FileSystem.get(conf)

@@ -128,8 +128,14 @@ class LFSRepository extends GMQLRepository with XMLDataSetRepository{
     val sampleOption = gMQLDataSetXML.samples.find(_.name.split("\\.").head.endsWith(sampleName))
     sampleOption match {
       case Some(sample) =>
-        val pathRegion = new File(sample.name)
-        val pathMeta = new File(sample.meta)
+        val dsLocation = getDSLocation(dataSetName,userName)
+        val dir = if(dsLocation._1.equals(RepositoryType.LOCAL) && dsLocation._2.equals(DatasetOrigin.GENERATED))
+          General_Utilities().getRegionDir(userName)
+        else {
+          ""
+        }
+        val pathRegion = new File(dir +sample.name)
+        val pathMeta = new File(dir +sample.meta)
 
         //check region file exists
         if (!pathRegion.exists()) {

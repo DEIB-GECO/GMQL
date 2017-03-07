@@ -463,6 +463,14 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
     new File(Utilities().getMetaDir( this.userName )+  DSname + ".meta")
       .renameTo(new File(Utilities().getMetaDir( this.userName )+newDSName+".meta"))
 
+    try{
+      new File(Utilities().getScriptsDir( this.userName )+  DSname + ".gmql")
+        .renameTo(new File(Utilities().getScriptsDir( this.userName )+newDSName+".gmql"))
+      this.GMQLScriptUrl = Utilities().getScriptsDir( this.userName )+newDSName+".gmql"
+    }catch{
+      case ex:Throwable => logger.warn(s"Query file is not found for this dataset ${DSname}");ex.printStackTrace()
+    }
+
     setDSName(newDSName)
     this.storeXML(generateDSXML(), Utilities().getDataSetsDir(this.userName ) + newDSName + ".xml")
     this.storeXML(generateSchemaXML(this.schema), Utilities().getSchemaDir( this.userName)  + DSname + ".schema")
