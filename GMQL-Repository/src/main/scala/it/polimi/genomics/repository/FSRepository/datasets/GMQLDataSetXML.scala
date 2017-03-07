@@ -2,12 +2,14 @@ package it.polimi.genomics.repository.FSRepository.datasets
 
 import java.beans.Transient
 import java.io._
-import java.nio.charset.Charset
+import java.nio.charset.{Charset, CodingErrorAction}
 import java.nio.file.{Files, Path, Paths}
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
 import it.polimi.genomics.core.ParsingType._
 import it.polimi.genomics.repository.FSRepository.FS_Utilities
+
+import scala.io.Codec
 //import it.polimi.genomics.repository.FSRepository.Indexing.LuceneIndex
 import it.polimi.genomics.repository.GMQLExceptions.{GMQLDSNotFound, GMQLNotValidDatasetNameException, GMQLSampleNotFound, GMQLUserNotFound}
 import it.polimi.genomics.repository._
@@ -579,7 +581,13 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
   }
 
   def getMeta(): String = {
-    scala.io.Source.fromFile(Utilities().getMetaDir(userName ) + DSname + ".meta").mkString
+    implicit val codec = Codec.UTF8
+
+    codec.onMalformedInput(CodingErrorAction.REPLACE)
+    codec.onUnmappableCharacter(CodingErrorAction.REPLACE)
+
+    logger.info("GMQLDataSetXML->getMeta(): " + Utilities().getMetaDir(userName) + DSname + ".meta")
+    scala.io.Source.fromFile(Utilities().getMetaDir(userName) + DSname + ".meta").mkString
   }
 
   /**
