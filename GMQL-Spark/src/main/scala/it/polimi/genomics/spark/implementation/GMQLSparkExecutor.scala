@@ -158,13 +158,18 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
           }else {
             val jobname = outputFolderName
             val score = variable.schema.zipWithIndex.filter(x => x._1._1.toLowerCase().equals("score"))
+            val source = variable.schema.zipWithIndex.filter(x => x._1._1.toLowerCase().equals("source"))
+            val feature = variable.schema.zipWithIndex.filter(x => x._1._1.toLowerCase().equals("feature"))
             val scoreIndex = if (score.size > 0) score(0)._2 else -1
+            val sourceIndex = if (source.size > 0) source(0)._2 else -1
+            val featureIndex = if (feature.size > 0) feature(0)._2 else -1
+
             regionRDD.map { x =>
               val values = variable.schema.zip(x._2).flatMap { s => if (s._1._1.equals("score")) None else Some(s._1._1 + " \"" + s._2 + "\";") }.mkString(" ")
               (outSample + "_" + "%05d".format(newIDSbroad.value.get(x._1._1).get) + ".gtf",
                 x._1._2 //chrom
-                  + "\t" + "GMQL" //variable name
-                  + "\t" + "Region"
+                  + "\t" + {if(sourceIndex >=0) x._2(sourceIndex).toString else "GMQL" }//variable name
+                  + "\t" + {if (featureIndex >=0) x._2(featureIndex) else  "Region"}
                   + "\t" + x._1._3 + "\t" + x._1._4 + "\t" //start , stop
                   + {
                   if (scoreIndex >= 0) x._2(scoreIndex) else "0.0"
@@ -365,7 +370,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
         "<gmqlSchemaCollection name=\"DatasetName_SCHEMAS\" xmlns=\"http://genomic.elet.polimi.it/entities\">\n" +
         schemaPart +"\n"+
         schema.flatMap{x =>
-            if(outputFormat == GMQLOutputFormat.GTF && x._1.toLowerCase() == "score") None
+            if(outputFormat == GMQLOutputFormat.GTF && (x._1.toLowerCase() == "score" || x._1.toLowerCase()  == "source" ||x._1.toLowerCase() =="feature")) None
             else Some("           <field type=\"" + x._2.toString + "\">" + x._1 + "</field>")
         }.mkString("\n") +
           "\n\t</gmqlSchema>\n" +

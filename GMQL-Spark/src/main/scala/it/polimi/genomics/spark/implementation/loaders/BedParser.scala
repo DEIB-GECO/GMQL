@@ -61,10 +61,13 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
           else
             GDouble(0.0)
 
+          val source = GString(s(1).trim)
+          val feature = GString(s(2).trim)
+
           val restValues = if (otherPos.get.size > 1) {
             var i = 0
             val values = s(8) split semiCommaDelimiter
-            otherPos.get.tail.map { b =>
+            otherPos.get.tail.tail.tail.map { b =>
               val attVal = values(i).trim split spaceDelimiter;
               i += 1
 
@@ -83,7 +86,7 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
             }
           } else Array[GValue]()
 
-          score +: restValues
+          Array(source,feature,score )++ restValues
         }
         case _ => {
           if (otherPos.isDefined) otherPos.get.foldLeft(new Array[GValue](0))((a, b) => a :+ {
@@ -321,7 +324,7 @@ class CustomParser extends BedParser("\t", 0, 1, 2, Some(3), Some(Array((4, Pars
       case GTF => {
         parsingType = GTF
 
-        val valuesPositions = schema.flatMap { x => val name = x._1.toUpperCase();
+        val valuesPositions: Array[(Int, ParsingType.Value)] = schema.flatMap { x => val name = x._1.toUpperCase();
           if (name.equals("SEQNAME") || name.equals("SOURCE") ||name.equals("FEATURE") ||name.equals("FRAME") ||name.equals("SCORE") || checkCoordinatesName(name)) None
           else Some(8, x._2)
         }
@@ -331,8 +334,8 @@ class CustomParser extends BedParser("\t", 0, 1, 2, Some(3), Some(Array((4, Pars
           else Some(x._1, x._2)
         }.toList
 
-        val other = if (valuesPositions.length > 0)
-          (5, ParsingType.DOUBLE) +: valuesPositions
+        val other: Array[(Int, ParsingType.Value)] = if (valuesPositions.length > 0)
+          Array[(Int, ParsingType.Value)]((1, ParsingType.STRING) , (2, ParsingType.STRING), (5, ParsingType.DOUBLE)) ++ valuesPositions
         else
           Array((5, ParsingType.DOUBLE))
 
@@ -342,7 +345,7 @@ class CustomParser extends BedParser("\t", 0, 1, 2, Some(3), Some(Array((4, Pars
         strandPos = Some(6);
         otherPos = Some(other)
 
-        this.schema = List(("score", ParsingType.DOUBLE)) ++ valuesPositionsSchema
+        this.schema = List(("source", ParsingType.STRING),("feature", ParsingType.STRING),("score", ParsingType.DOUBLE)) ++ valuesPositionsSchema
       }
 
       case _ => {
