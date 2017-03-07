@@ -40,7 +40,6 @@ object GenometricDifference {
         //ref.map(_._1._1).distinct.cartesian(exp.map(_._1._1).distinct()).groupByKey().mapValues(x=>x.toArray).collectAsMap()
 //      }
 
-    println (groups)
     val Bgroups: Broadcast[Map[Long, Array[Long]]] = sc.broadcast(groups)
     //group the datasets
     val groupedRef: RDD[((Long, String, Int), (Long, Long, Long, Char, Array[GValue]))] =
@@ -55,7 +54,7 @@ object GenometricDifference {
         .cogroup(groupedExp).flatMap{x=> val ref = x._2._1; val exp = x._2._2;val key = x._1
         ref.map{ region =>
           var count = 0
-          val newID = Hashing.md5().newHasher().putLong(region._1).putLong(key._1).hash().asLong()
+          val newID = Hashing.md5().newHasher().putLong(region._1)/*.putLong(key._1)*/.hash().asLong()
           val aggregation = Hashing.md5().newHasher().putString(newID + key._2 + region._2 + region._3+region._4+region._5.mkString("/"),java.nio.charset.Charset.defaultCharset()).hash().asLong()
           for(experiment <- exp)
             if(/* cross */
@@ -108,16 +107,6 @@ object GenometricDifference {
         None
     }
 
-  def assignExperimentGroups(executor : GMQLSparkExecutor, ds: RDD[GRECORD], Bgroups: Broadcast[collection.Map[Long, Long]], sc : SparkContext): RDD[((Long, Int, String),(Long,  Long, Long, Char, Array[GValue]))] = {
-    ds.flatMap { region  => {
-      val group = Bgroups.value.map(_.swap) //TODO Check if the swap is really needed
-      val binStart = (region._1._3 / BINNING_PARAMETER).toInt
-      val binEnd = (region._1._4 / BINNING_PARAMETER).toInt
-      for (i <- binStart to binEnd)
-      yield ((group.get(region._1._1).get, i, region._1._2), (region._1._1, region._1._3, region._1._4, region._1._5, region._2))
-    }
-    }
-  }
   def binExpDS(rdd: RDD[GRECORD],bin: Long): RDD[((Long, String, Int), (Long, Long, Char, Array[GValue]))] =
     rdd.flatMap { x =>
       val startbin =(x._1._3 / bin).toInt
