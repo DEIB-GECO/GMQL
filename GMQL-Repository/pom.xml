@@ -207,7 +207,6 @@
                         </goals>
                         <phase>prepare-package</phase>
                         <configuration>
-                            <aggregate>true</aggregate>
                             <args>
                                 <arg>-no-link-warnings</arg>
                             </args>
