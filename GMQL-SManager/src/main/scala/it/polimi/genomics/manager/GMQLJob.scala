@@ -8,7 +8,7 @@ import it.polimi.genomics.GMQLServer.{GmqlServer, Implementation}
 import it.polimi.genomics.core.DataStructures.{IRDataSet, IRVariable}
 import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLocalLauncher}
 import it.polimi.genomics.repository.FSRepository.{DFSRepository, FS_Utilities => FSR_Utilities}
-import it.polimi.genomics.repository.{DatasetOrigin, GMQLRepository, GMQLSchemaTypes, RepositoryType, Utilities => General_Utilities}
+import it.polimi.genomics.repository.{DatasetOrigin, GMQLRepository, RepositoryType, Utilities => General_Utilities}
 import it.polimi.genomics.repository.GMQLExceptions.GMQLNotValidDatasetNameException
 import org.slf4j.LoggerFactory
 import java.util.Date
@@ -16,7 +16,7 @@ import java.text.SimpleDateFormat
 
 import scala.collection.JavaConverters._
 import Status._
-import it.polimi.genomics.core.{GMQLOutputFormat, GMQLScript}
+import it.polimi.genomics.core.{GMQLSchemaFormat, GMQLScript}
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import org.apache.hadoop.fs.FileSystem
 
@@ -287,7 +287,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
 
           repositoryHandle.createDs(new IRDataSet(ds, sch.asScala.map(x=>(x.name,x.fieldType)).toList.asJava),
             this.username, samples, script.scriptPath,
-            if(gMQLContext.outputFormat.equals(GMQLOutputFormat.GTF))GMQLSchemaTypes.GTF else GMQLSchemaTypes.Delimited)
+            if(gMQLContext.outputFormat.equals(GMQLSchemaFormat.GTF))GMQLSchemaFormat.GTF else GMQLSchemaFormat.TAB)
 
         }
         elapsedTime.createDsTime = (System.currentTimeMillis() - dstimestamp).toString

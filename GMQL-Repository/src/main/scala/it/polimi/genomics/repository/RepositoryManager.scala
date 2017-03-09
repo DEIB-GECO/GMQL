@@ -2,8 +2,6 @@ package it.polimi.genomics.repository
 
 import java.io.{File, FilenameFilter}
 
-import it.polimi.genomics.core.DataStructures.IRDataSet
-import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.repository.FSRepository.{DFSRepository, LFSRepository}
 import it.polimi.genomics.repository.{Utilities => u}
 import org.slf4j.LoggerFactory

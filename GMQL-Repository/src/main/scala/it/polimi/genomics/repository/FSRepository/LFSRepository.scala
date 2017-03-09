@@ -2,17 +2,12 @@ package it.polimi.genomics.repository.FSRepository
 
 import java.io._
 
-import it.polimi.genomics.core.DataStructures.IRDataSet
-import it.polimi.genomics.core.ParsingType
-import it.polimi.genomics.core.ParsingType.PARSING_TYPE
-import it.polimi.genomics.repository.{Utilities => General_Utilities}
-import it.polimi.genomics.repository._
+import it.polimi.genomics.core.GMQLSchemaField
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
 import it.polimi.genomics.repository.GMQLExceptions.{GMQLDSException, GMQLNotValidDatasetNameException, GMQLSampleNotFound, GMQLUserNotFound}
-import org.apache.hadoop.fs.{FileSystem, Path}
+import it.polimi.genomics.repository.{Utilities => General_Utilities, _}
 import org.slf4j.LoggerFactory
 
-import scala.xml.XML
 import scala.collection.JavaConverters._
 /**
   * Created by abdulrahman on 12/04/16.

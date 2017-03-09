@@ -2,18 +2,15 @@ package it.polimi.genomics.repository.FSRepository
 
 import java.io._
 
-import com.google.common.io.Files
 import it.polimi.genomics.core.DataStructures.IRDataSet
-import it.polimi.genomics.core.ParsingType
-import it.polimi.genomics.core.ParsingType._
+import it.polimi.genomics.core.{GMQLSchemaField, GMQLSchemaFormat}
 import it.polimi.genomics.repository
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
 import it.polimi.genomics.repository.GMQLExceptions.{GMQLDSException, GMQLDSNotFound, GMQLSampleNotFound, GMQLUserNotFound}
-import it.polimi.genomics.repository.{GMQLRepository, GMQLSample, GMQLSchemaField, GMQLSchemaTypes, GMQLStatistics, Utilities => General_Utilities}
+import it.polimi.genomics.repository.{GMQLRepository, GMQLSample, GMQLStatistics, Utilities => General_Utilities}
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.slf4j.LoggerFactory
 
-import scala.xml.XML
 import scala.collection.JavaConverters._
 /**
   * Created by abdulrahman on 12/04/16.
@@ -29,9 +26,9 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     * @param userName The user name in which this dataSet belongs to.
     * @param Samples List of GMQL samples [[ GMQLSample]].
     * @param GMQLScriptPath The path to the script text file that generated this data set.
-    * @param schemaType One of GMQL schema types as shown in [[ GMQLSchemaTypes]]
+    * @param schemaType One of GMQL schema types as shown in [[ GMQLSchemaFormat]]
     */
-  override def createDs(dataSet:IRDataSet, userName: String, Samples: java.util.List[GMQLSample], GMQLScriptPath: String,schemaType:GMQLSchemaTypes.Value): Unit = {
+  override def createDs(dataSet:IRDataSet, userName: String, Samples: java.util.List[GMQLSample], GMQLScriptPath: String,schemaType:GMQLSchemaFormat.Value): Unit = {
     //Create Temp folder to place the meta files temporarly in Local file system
     val tmpFolderName = General_Utilities().getTempDir(userName)+dataSet.position+"_/"
     val tmpFolder = new File(tmpFolderName)

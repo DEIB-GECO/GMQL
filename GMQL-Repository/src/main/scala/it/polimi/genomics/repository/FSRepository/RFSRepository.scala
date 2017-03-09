@@ -1,22 +1,18 @@
 package it.polimi.genomics.repository.FSRepository
 
-import java.io.{File, FilenameFilter, InputStream}
-import java.nio.file.Files
+import java.io.{File, InputStream}
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
-import it.polimi.genomics.core.ParsingType
-import it.polimi.genomics.core.ParsingType.PARSING_TYPE
-import it.polimi.genomics.repository.{Utilities => General_Utilities}
+import it.polimi.genomics.core.{GMQLSchemaField, GMQLSchemaFormat}
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
 import it.polimi.genomics.repository.GMQLExceptions._
-import it.polimi.genomics.repository._
+import it.polimi.genomics.repository.{Utilities => General_Utilities, _}
 import it.polimi.genomics.wsc.Knox.KnoxClient
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.Await
-import scala.xml.XML
 import scala.collection.JavaConverters._
+import scala.concurrent.Await
 
 /**
   * Created by abdulrahman on 12/04/16.
@@ -31,13 +27,13 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
     * @param Samples List of GMQL samples [[ GMQLSample]].
     * @param userName String of the user who own this dataset
     * @param GMQLScriptPath String that describe the path to the script text file on the local file system
-    * @param schemaType The schema type as one of the [[ GMQLSchemaTypes]]
+    * @param schemaType The schema type as one of the [[ GMQLSchemaFormat]]
     * @throws GMQLNotValidDatasetNameException
     * @throws GMQLUserNotFound
     */
   @throws(classOf[GMQLNotValidDatasetNameException])
   @throws(classOf[GMQLUserNotFound])
-  override def createDs(dataSet: IRDataSet, userName: String, Samples: java.util.List[GMQLSample], GMQLScriptPath: String, schemaType: GMQLSchemaTypes.Value): Unit = {
+  override def createDs(dataSet: IRDataSet, userName: String, Samples: java.util.List[GMQLSample], GMQLScriptPath: String, schemaType: GMQLSchemaFormat.Value): Unit = {
 
     val tempDir = General_Utilities().getTempDir( userName) + "/" + dataSet.position + "_/"
     val tempDirectory = new File(tempDir)

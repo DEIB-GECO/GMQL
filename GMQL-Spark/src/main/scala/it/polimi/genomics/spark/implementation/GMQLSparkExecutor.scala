@@ -17,7 +17,7 @@ import it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinConditio
 import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionExtension, RegionsToMeta}
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
 import it.polimi.genomics.core.DataStructures._
-import it.polimi.genomics.core.{BinSize, DataTypes, GMQLLoaderBase, GMQLOutputFormat}
+import it.polimi.genomics.core._
 import it.polimi.genomics.core.DataTypes._
 import it.polimi.genomics.core.ParsingType._
 import it.polimi.genomics.core.exception.SelectFormatException
@@ -43,7 +43,7 @@ import scala.xml.Elem
 
 class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : Int = 100000, REF_PARALLILISM: Int = 20,
                         testingIOFormats:Boolean = false, sc:SparkContext,
-                        outputFormat:GMQLOutputFormat.Value = GMQLOutputFormat.TAB)
+                        outputFormat:GMQLSchemaFormat.Value = GMQLSchemaFormat.TAB)
   extends Implementation with java.io.Serializable{
 
 
@@ -151,7 +151,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
 
           val regionsPartitioner = new HashPartitioner(Ids.count.toInt)
 
-          val keyedRDD = if(!(outputFormat == GMQLOutputFormat.GTF)){
+          val keyedRDD = if(!(outputFormat == GMQLSchemaFormat.GTF)){
              regionRDD.map(x => (outSample+"_"+ "%05d".format(newIDSbroad.value.get(x._1._1).get)+".gdm",
                x._1._2 + "\t" + x._1._3 + "\t" + x._1._4 + "\t" + x._1._5 + "\t" + x._2.mkString("\t")))
                .partitionBy(regionsPartitioner).mapPartitions(x=>x.toList.sortBy{s=> val data = s._2.split("\t"); (data(0),data(1).toLong,data(2).toLong)}.iterator)
@@ -191,7 +191,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
 
           writeMultiOutputFiles.saveAsMultipleTextFiles(keyedRDD, RegionOutputPath)
 
-          val metaKeyValue = if(!(outputFormat == GMQLOutputFormat.GTF)){
+          val metaKeyValue = if(!(outputFormat == GMQLSchemaFormat.GTF)){
             metaRDD.map(x => (outSample+"_"+ "%05d".format(newIDSbroad.value.get(x._1).get) + ".gdm.meta", x._2._1 + "\t" + x._2._2)).repartition(1).sortBy(x=>(x._1,x._2))
           }else{
             metaRDD.map(x => (outSample+"_"+ "%05d".format(newIDSbroad.value.get(x._1).get) + ".gtf.meta", x._2._1 + "\t" + x._2._2)).repartition(1).sortBy(x=>(x._1,x._2))
@@ -200,7 +200,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
 
           writeMultiOutputFiles.fixOutputMetaLocation(MetaOutputPath)
         }
-        storeSchema(generateSchema(variable.schema),variableDir)
+        storeSchema(GMQLSchema.generateSchemaXML(variable.schema,outputFormat),variableDir)
       }
     } catch {
       case e : SelectFormatException => {
@@ -351,38 +351,5 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
       br.close();
   }
 
-  def generateSchema(schema : List[(String, PARSING_TYPE)]): String ={
-    val schemaPart = if(outputFormat == GMQLOutputFormat.GTF) {
-      "\t<gmqlSchema type=\"gtf\">\n"+
-      "           <field type=\"STRING\">seqname</field>\n" +
-        "           <field type=\"STRING\">source</field>\n"+
-        "           <field type=\"STRING\">feature</field>\n"+
-        "           <field type=\"LONG\">start</field>\n"+
-        "           <field type=\"LONG\">end</field>\n"+
-        "           <field type=\"DOUBLE\">score</field>\n"+
-        "           <field type=\"CHAR\">strand</field>\n"+
-      "           <field type=\"STRING\">frame</field>"
 
-    }else {
-  "      <gmqlSchema type=\"Peak\">\n" +
-  "           <field type=\"STRING\">chr</field>\n" +
-  "           <field type=\"LONG\">left</field>\n" +
-  "           <field type=\"LONG\">right</field>\n" +
-  "           <field type=\"CHAR\">strand</field>"
-    }
-
-    val schemaHeader =
-    //http://www.bioinformatics.deib.polimi.it/GMQL/
-      "<?xml version='1.0' encoding='UTF-8'?>\n" +
-        "<gmqlSchemaCollection name=\"DatasetName_SCHEMAS\" xmlns=\"http://genomic.elet.polimi.it/entities\">\n" +
-        schemaPart +"\n"+
-        schema.flatMap{x =>
-            if(outputFormat == GMQLOutputFormat.GTF && (x._1.toLowerCase() == "score" || x._1.toLowerCase()  == "source" ||x._1.toLowerCase() =="feature" || x._1.toLowerCase()  == "frame")) None
-            else Some("           <field type=\"" + x._2.toString + "\">" + x._1 + "</field>")
-        }.mkString("\n") +
-          "\n\t</gmqlSchema>\n" +
-     "</gmqlSchemaCollection>"
-
-      schemaHeader
-  }
 }

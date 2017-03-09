@@ -5,7 +5,7 @@ import java.nio.file.{Files, Paths}
 import java.text.SimpleDateFormat
 import java.util.Date
 
-import it.polimi.genomics.core.{BinSize, GMQLOutputFormat, GMQLScript, ImplementationPlatform}
+import it.polimi.genomics.core.{BinSize, GMQLSchemaFormat, GMQLScript, ImplementationPlatform}
 import it.polimi.genomics.manager.Launchers.{GMQLLocalLauncher, GMQLSparkLauncher}
 import it.polimi.genomics.repository.FSRepository.{DFSRepository, LFSRepository}
 import it.polimi.genomics.repository.{Utilities => repo_Utilities}
@@ -56,7 +56,7 @@ object CLI {
     var scriptPath: String = null;
     var username: String = System.getProperty("user.name")
     var outputPath = ""
-    var outputFormat = GMQLOutputFormat.TAB
+    var outputFormat = GMQLSchemaFormat.TAB
     var verbose = false
     var i = 0;
 
@@ -88,13 +88,13 @@ object CLI {
       } else if ("-outputformat".equals(args(i).toLowerCase())) {
         val out = args(i + 1).toUpperCase().trim
         outputFormat =
-          if(out == GMQLOutputFormat.TAB.toString)
-            GMQLOutputFormat.TAB
-          else if(out == GMQLOutputFormat.GTF.toString)
-            GMQLOutputFormat.GTF
+          if(out == GMQLSchemaFormat.TAB.toString)
+            GMQLSchemaFormat.TAB
+          else if(out == GMQLSchemaFormat.GTF.toString)
+            GMQLSchemaFormat.GTF
           else {
-            logger.warn(s"Not knwon format $out, Setting the output format for ${GMQLOutputFormat.TAB}")
-            GMQLOutputFormat.TAB
+            logger.warn(s"Not knwon format $out, Setting the output format for ${GMQLSchemaFormat.TAB}")
+            GMQLSchemaFormat.TAB
           }
         logger.info(s"Output Format set to: $out" + outputFormat)
 

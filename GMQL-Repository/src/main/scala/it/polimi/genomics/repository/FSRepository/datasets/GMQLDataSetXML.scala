@@ -6,6 +6,7 @@ import java.nio.charset.{Charset, CodingErrorAction}
 import java.nio.file.{Files, Path, Paths}
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
+import it.polimi.genomics.core.{GMQLSchema, GMQLSchemaFormat}
 import it.polimi.genomics.core.ParsingType._
 import it.polimi.genomics.repository.FSRepository.FS_Utilities
 
@@ -38,7 +39,7 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
   var Repo = LOCAL
 
   def schemaDir: String = Utilities().RepoDir + this.userName + "/schema/" + DSname + ".schema";
-  var schemaType: GMQLSchemaTypes.Value = GMQLSchemaTypes.Delimited
+  var schemaType: GMQLSchemaFormat.Value = GMQLSchemaFormat.TAB
   Utilities()
 
   /**
@@ -116,11 +117,11 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
     * @param username the owner of the dataset
     * @param fields List of [[ GMQLSample]], holds the samples URIs and meta data URIs.
     * @param GMQLCodeUrl  String as a URI to the location of GMQL script
-    * @param schemaType [[ GMQLSchemaTypes]] that shows the type of the schema
+    * @param schemaType [[ GMQLSchemaFormat]] that shows the type of the schema
     * @param repo String field for the XML file, to describe the repository which this dataset is generated for
     */
   @throws(classOf[GMQLNotValidDatasetNameException])
-  def this(dataset: IRDataSet, username: String, fields: List[GMQLSample], GMQLCodeUrl: String, schemaType: GMQLSchemaTypes.Value,repo:String ) {
+  def this(dataset: IRDataSet, username: String, fields: List[GMQLSample], GMQLCodeUrl: String, schemaType: GMQLSchemaFormat.Value, repo:String ) {
     this(dataset, username, fields, GMQLCodeUrl,repo )
     this.schemaType = schemaType
   }
@@ -131,11 +132,11 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
     * @param dataset [[ IRDataSet]] variable that contains the name of the dataset and the schema
     * @param username the owner of the dataset
     * @param fields List of [[ GMQLSample]], holds the samples URIs and meta data URIs.
-    * @param schemaType [[ GMQLSchemaTypes]] that shows the type of the schema
+    * @param schemaType [[ GMQLSchemaFormat]] that shows the type of the schema
     * @param repo String field for the XML file, to describe the repository which this dataset is generated for
     */
   @throws(classOf[GMQLNotValidDatasetNameException])
-  def this(dataset: IRDataSet, username: String, fields: List[GMQLSample], schemaType: GMQLSchemaTypes.Value,repo:String ) {
+  def this(dataset: IRDataSet, username: String, fields: List[GMQLSample], schemaType: GMQLSchemaFormat.Value, repo:String ) {
     this(dataset, username, repo, fields )
     this.schemaType = schemaType
   }
@@ -275,42 +276,18 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
     * @return
     */
   private def generateSchemaXML(schema: InternalSchema): String = {
-    val schemaPart = if(Repo.startsWith("GENERATED")){
-      if (schemaType.equals(GMQLSchemaTypes.GTF)) {
-        Some(
-          "           <field type=\"STRING\">seqname</field>\n" +
-          "           <field type=\"STRING\">source</field>\n" +
-          "           <field type=\"STRING\">feature</field>\n" +
-          "           <field type=\"LONG\">start</field>\n" +
-          "           <field type=\"LONG\">end</field>\n" +
-          "           <field type=\"DOUBLE\">score</field>\n" +
-          "           <field type=\"CHAR\">strand</field>\n" +
-          "           <field type=\"STRING\">frame</field>\n")
-
-      } else {
-        Some(
-          "           <field type=\"STRING\">chr</field>\n" +
-          "           <field type=\"LONG\">left</field>\n" +
-          "           <field type=\"LONG\">right</field>\n" +
-          "           <field type=\"CHAR\">strand</field>\n")
-      }
+    if(Repo.startsWith("GENERATED")){
+      GMQLSchema.generateSchemaXML(schema,schemaType)
     }else{
-        None
-      }
-
-    val schemaHeader =
-    //http://www.bioinformatics.deib.polimi.it/GMQL/
       "<?xml version='1.0' encoding='UTF-8'?>\n" +
         "<gmqlSchemaCollection name=\"" + DSname + "\" xmlns=\"http://genomic.elet.polimi.it/entities\">\n" +
-    "\t<gmqlSchema type=\""+schemaType.toString+"\">\n"+
-        schemaPart.getOrElse("") +
-        schema.flatMap { x =>
-          if (schemaType.equals(GMQLSchemaTypes.GTF) && x._1.toLowerCase() == "score"|| x._1.toLowerCase()  == "source" ||x._1.toLowerCase() =="feature" || x._1.toLowerCase()  == "frame") None
-          else Some("           <field type=\"" + x._2.toString + "\">" + x._1 + "</field>")}.mkString("\n") + "\n" +
+        "\t<gmqlSchema type=\""+schemaType.toString+"\">\n"+
+        schema.map { x =>
+         "\t\t<field type=\"" + x._2.toString + "\">" + x._1 + "</field>"
+        }.mkString("\n") + "\n" +
         "\t</gmqlSchema>\n" +
         "</gmqlSchemaCollection>"
-
-      schemaHeader
+      }
   }
 
   /**

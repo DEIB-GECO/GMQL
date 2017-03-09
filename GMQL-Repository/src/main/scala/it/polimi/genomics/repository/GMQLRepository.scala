@@ -1,11 +1,9 @@
 package it.polimi.genomics.repository
 
 import java.io.InputStream
-import java.util
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
-import it.polimi.genomics.core.ParsingType
-import it.polimi.genomics.core.ParsingType._
+import it.polimi.genomics.core.{GMQLSchema, GMQLSchemaField, GMQLSchemaFormat}
 import it.polimi.genomics.repository.GMQLExceptions._
 
 /**
@@ -42,7 +40,7 @@ trait GMQLRepository {
     * @throws it.polimi.genomics.repository.GMQLExceptions.GMQLSampleNotFound
     */
   @throws(classOf[GMQLDSException])
-  def createDs(dataSet:IRDataSet, userName:String, Samples:java.util.List[GMQLSample], GMQLScriptPaht:String = "ROOT_DS",schemaType:GMQLSchemaTypes.Value=GMQLSchemaTypes.Delimited)
+  def createDs(dataSet:IRDataSet, userName:String, Samples:java.util.List[GMQLSample], GMQLScriptPaht:String = "ROOT_DS",schemaType:GMQLSchemaFormat.Value=GMQLSchemaFormat.TAB)
 
 
   /**

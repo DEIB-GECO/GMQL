@@ -2,8 +2,8 @@ package it.polimi.genomics.repository.FSRepository
 
 import java.nio.file.{FileSystems, Paths}
 
-import it.polimi.genomics.core.ParsingType
-import it.polimi.genomics.repository.{GMQLSample, GMQLSchemaTypes,Utilities => General_Utilities}
+import it.polimi.genomics.core.{GMQLSchemaFormat, ParsingType}
+import it.polimi.genomics.repository.{GMQLSample, Utilities => General_Utilities}
 import java.io._
 
 import org.apache.hadoop.conf.Configuration
@@ -245,17 +245,17 @@ object FS_Utilities {
 
   /**
     *
-    *  Get the [[ GMQLSchemaTypes]] of a specific String
+    *  Get the [[ GMQLSchemaFormat]] of a specific String
     *
     * @param schemaType String of the schema type
     * @return
     */
-  def getType(schemaType:String): GMQLSchemaTypes.Value ={
+  def getType(schemaType:String): GMQLSchemaFormat.Value ={
     schemaType. toLowerCase() match {
-      case "gtf" => GMQLSchemaTypes.GTF
-      case "del" => GMQLSchemaTypes.Delimited
-      case "vcf" => GMQLSchemaTypes.VCF
-      case _ => GMQLSchemaTypes.Delimited
+      case "gtf" => GMQLSchemaFormat.GTF
+      case "del" => GMQLSchemaFormat.TAB
+      case "vcf" => GMQLSchemaFormat.VCF
+      case _ => GMQLSchemaFormat.TAB
     }
   }
 

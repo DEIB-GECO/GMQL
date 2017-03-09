@@ -7,7 +7,7 @@ import java.util.Date
 import com.sun.jersey.core.util.Base64
 import it.polimi.genomics.GMQLServer.{GmqlServer, Implementation}
 import it.polimi.genomics.compiler._
-import it.polimi.genomics.core.{GMQLOutputFormat, ImplementationPlatform}
+import it.polimi.genomics.core.{GMQLSchemaFormat, ImplementationPlatform}
 import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.hadoop.conf.Configuration
@@ -82,7 +82,7 @@ object GMQLExecuteCommand {
     var username: String = System.getProperty("user.name")
     var outputPath = ""
     var jobid = ""
-    var outputFormat = GMQLOutputFormat.TAB
+    var outputFormat = GMQLSchemaFormat.TAB
     var schemata = Map[String, String]()
     var inputs = Map[String, String]()
     var outputs = Map[String, String]()
@@ -134,13 +134,13 @@ object GMQLExecuteCommand {
       } else if ("-outputformat".equals(args(i).toLowerCase())) {
         val out = args(i + 1).toUpperCase().trim
         outputFormat =
-          if(out == GMQLOutputFormat.TAB.toString)
-            GMQLOutputFormat.TAB
-          else if(out == GMQLOutputFormat.GTF.toString)
-            GMQLOutputFormat.GTF
+          if(out == GMQLSchemaFormat.TAB.toString)
+            GMQLSchemaFormat.TAB
+          else if(out == GMQLSchemaFormat.GTF.toString)
+            GMQLSchemaFormat.GTF
           else {
-            logger.warn(s"Not knwon format $out, Setting the output format for ${GMQLOutputFormat.TAB}")
-            GMQLOutputFormat.TAB
+            logger.warn(s"Not knwon format $out, Setting the output format for ${GMQLSchemaFormat.TAB}")
+            GMQLSchemaFormat.TAB
           }
         logger.info(s"Output Format set to: $out" + outputFormat)
 
@@ -319,7 +319,7 @@ object GMQLExecuteCommand {
     operators
   }
 
-  def getImplemenation(executionType:String,jobid:String , outputFormat: GMQLOutputFormat.Value) ={
+  def getImplemenation(executionType:String,jobid:String , outputFormat: GMQLSchemaFormat.Value) ={
     if (executionType.equals(it.polimi.genomics.core.ImplementationPlatform.SPARK.toString.toLowerCase())) {
       val conf = new SparkConf().setAppName("GMQL V2.1 Spark " + jobid)
         .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "64")

@@ -12,6 +12,7 @@ object test {
 
     println(new File(".").getAbsoluteFile.toString)
     val rep = new LFSRepository();
-    rep.readSchemaFile("/Users/abdulrahman/Desktop/ann/test.schema")
+    println(rep.readSchemaFile("/Users/abdulrahman/Downloads/chr1_only/test.schema"))
+
   }
 }
