@@ -273,7 +273,7 @@ trait XMLDataSetRepository extends GMQLRepository{
     val conf = new Configuration();
     val path = new Path(schemaPath);
     val fs = FileSystem.get(path.toUri(), conf);
-    val gtfFields = List("seqname","start","end","strand","frame")
+    val gtfFields = List("seqname","start","end","strand")
     val tabFields = List("chr","left","right","strand")
     val xmlFile = XML.load(fs.open(path))
     val cc = (xmlFile \\ "field")

@@ -160,12 +160,19 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
             val score = variable.schema.zipWithIndex.filter(x => x._1._1.toLowerCase().equals("score"))
             val source = variable.schema.zipWithIndex.filter(x => x._1._1.toLowerCase().equals("source"))
             val feature = variable.schema.zipWithIndex.filter(x => x._1._1.toLowerCase().equals("feature"))
-            val scoreIndex = if (score.size > 0) score(0)._2 else -1
-            val sourceIndex = if (source.size > 0) source(0)._2 else -1
-            val featureIndex = if (feature.size > 0) feature(0)._2 else -1
+            val frame = variable.schema.zipWithIndex.filter(x => x._1._1.toLowerCase().equals("frame"))
+            val scoreIndex = if (score.size > 0) score.head._2 else -1
+            val sourceIndex = if (source.size > 0) source.head._2 else -1
+            val featureIndex = if (feature.size > 0) feature.head._2 else -1
+            val frameIndex = if (frame.size > 0) frame.head._2 else -1
 
             regionRDD.map { x =>
-              val values = variable.schema.zip(x._2).flatMap { s => if (s._1._1.equals("score")) None else Some(s._1._1 + " \"" + s._2 + "\";") }.mkString(" ")
+
+              val values = variable.schema.zip(x._2).flatMap { s =>
+                if (s._1._1.equals("score")||s._1._1.equals("source")||s._1._1.equals("feature")||s._1._1.equals("frame")) None
+                else Some(s._1._1 + " \"" + s._2 + "\";")
+              }.mkString(" ")
+
               (outSample + "_" + "%05d".format(newIDSbroad.value.get(x._1._1).get) + ".gtf",
                 x._1._2 //chrom
                   + "\t" + {if(sourceIndex >=0) x._2(sourceIndex).toString else "GMQL" }//variable name
@@ -175,7 +182,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
                   if (scoreIndex >= 0) x._2(scoreIndex) else "0.0"
                 } //score
                   + "\t" + (if (x._1._5.equals('*')) '.' else x._1._5) + "\t" //strand
-                  + "." //frame
+                  + {if (frameIndex >=0) x._2(frameIndex) else  "."} //frame
                   + "\t" + values
               )
             }.partitionBy(regionsPartitioner)
@@ -370,7 +377,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
         "<gmqlSchemaCollection name=\"DatasetName_SCHEMAS\" xmlns=\"http://genomic.elet.polimi.it/entities\">\n" +
         schemaPart +"\n"+
         schema.flatMap{x =>
-            if(outputFormat == GMQLOutputFormat.GTF && (x._1.toLowerCase() == "score" || x._1.toLowerCase()  == "source" ||x._1.toLowerCase() =="feature")) None
+            if(outputFormat == GMQLOutputFormat.GTF && (x._1.toLowerCase() == "score" || x._1.toLowerCase()  == "source" ||x._1.toLowerCase() =="feature" || x._1.toLowerCase()  == "frame")) None
             else Some("           <field type=\"" + x._2.toString + "\">" + x._1 + "</field>")
         }.mkString("\n") +
           "\n\t</gmqlSchema>\n" +

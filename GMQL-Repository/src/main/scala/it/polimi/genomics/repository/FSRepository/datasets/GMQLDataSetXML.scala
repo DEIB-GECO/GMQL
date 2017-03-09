@@ -305,7 +305,7 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
     "\t<gmqlSchema type=\""+schemaType.toString+"\">\n"+
         schemaPart.getOrElse("") +
         schema.flatMap { x =>
-          if (schemaType.equals(GMQLSchemaTypes.GTF) && x._1.toLowerCase() == "score"|| x._1.toLowerCase()  == "source" ||x._1.toLowerCase() =="feature") None
+          if (schemaType.equals(GMQLSchemaTypes.GTF) && x._1.toLowerCase() == "score"|| x._1.toLowerCase()  == "source" ||x._1.toLowerCase() =="feature" || x._1.toLowerCase()  == "frame") None
           else Some("           <field type=\"" + x._2.toString + "\">" + x._1 + "</field>")}.mkString("\n") + "\n" +
         "\t</gmqlSchema>\n" +
         "</gmqlSchemaCollection>"
