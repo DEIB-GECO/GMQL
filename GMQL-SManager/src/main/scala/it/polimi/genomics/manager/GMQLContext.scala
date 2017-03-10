@@ -1,5 +1,6 @@
 package it.polimi.genomics.manager
 
+import it.polimi.genomics.GMQLServer.Implementation
 import it.polimi.genomics.core
 import it.polimi.genomics.core.{BinSize, ImplementationPlatform}
 import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
@@ -35,12 +36,28 @@ case class GMQLContext(val implPlatform: core.ImplementationPlatform.Value, val 
     */
   def this() = this(core.ImplementationPlatform.SPARK, new LFSRepository(), core.GMQLSchemaFormat.TAB)
 
+  /**
+    * Construct GMQL Context with the repository type
+    *
+    * @param gMQLRepository  one of [[GMQLRepository]] subclasses
+    * @return [[GMQLContext]] instance
+    */
   def this(gMQLRepository: GMQLRepository) = this(core.ImplementationPlatform.SPARK, gMQLRepository, core.GMQLSchemaFormat.TAB)
 
+  /**
+    * Construct GMQL Context with the repository type, and output format type
+    *
+    * @param gMQLRepository  one of [[GMQLRepository]] subclasses
+    * @param outputFormat one of the [[it.polimi.genomics.core.GMQLSchemaFormat]] values.
+    * @return [[GMQLContext]] instance
+    */
   def this(gMQLRepository: GMQLRepository, outputFormat: core.GMQLSchemaFormat.Value) = this(core.ImplementationPlatform.SPARK, gMQLRepository, outputFormat)
 
 
-  val implementation = if (implPlatform == ImplementationPlatform.SPARK) {
+  /**
+    * the implementation instance as the executor that will run GMQL script.
+    */
+  val implementation: Implementation = if (implPlatform == ImplementationPlatform.SPARK) {
     new GMQLSparkExecutor(binSize = binSize, sc = sc, outputFormat = outputFormat)
   } else /*if(implPlatform == ImplementationPlatform.FLINK)*/ {
     new FlinkImplementation(binSize = binSize, outputFormat = outputFormat)

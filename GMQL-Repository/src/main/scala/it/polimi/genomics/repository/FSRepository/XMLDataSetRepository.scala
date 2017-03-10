@@ -10,7 +10,7 @@ import it.polimi.genomics.repository.GMQLExceptions._
 import it.polimi.genomics.repository.{DatasetOrigin, GMQLRepository, GMQLSample, RepositoryType, Utilities => General_Utilities}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
-import org.slf4j.LoggerFactory
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
 import scala.xml.XML
@@ -19,7 +19,7 @@ import scala.xml.XML
   * Created by abdulrahman on 16/01/2017.
   */
 trait XMLDataSetRepository extends GMQLRepository{
-  private final val logger = LoggerFactory.getLogger(this.getClass)
+  private final val logger: Logger = LoggerFactory.getLogger(this.getClass)
   General_Utilities()
   /**
     *
@@ -255,7 +255,8 @@ trait XMLDataSetRepository extends GMQLRepository{
 
   /**
     *
-    * @param username
+    * @param userName [[ String]] of the user name
+    * @return
     */
   override def unregisterUser(userName: String = General_Utilities().USERNAME): Boolean = {
     try {

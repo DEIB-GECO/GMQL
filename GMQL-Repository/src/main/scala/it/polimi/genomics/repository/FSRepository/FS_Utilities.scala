@@ -8,9 +8,9 @@ import java.io._
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, LocalFileSystem, Path}
-import org.slf4j.LoggerFactory
+import org.slf4j.{Logger, LoggerFactory}
 import javax.xml.transform.stream.StreamSource
-import javax.xml.validation.SchemaFactory
+import javax.xml.validation.{Schema, SchemaFactory, Validator}
 
 import it.polimi.genomics.repository.GMQLExceptions.GMQLNotValidDatasetNameException
 import org.apache.hadoop.hdfs.DistributedFileSystem
@@ -22,10 +22,10 @@ import org.xml.sax.SAXException
   * Created by abdulrahman on 12/04/16.
   */
 object FS_Utilities {
-  val logger = LoggerFactory.getLogger(this.getClass)
+  val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
-  val conf = FS_Utilities.gethdfsConfiguration()
-  val fs = FileSystem.get(conf)
+  val conf: Configuration = FS_Utilities.gethdfsConfiguration()
+  val fs: FileSystem = FileSystem.get(conf)
   conf.get("fs.defaultFS")
 
   /**
@@ -39,10 +39,10 @@ object FS_Utilities {
     val xsdFile =  General_Utilities().getConfDir() + "/gmqlSchemaCollection.xsd"
 
     try {
-      val schemaLang = "http://www.w3.org/2001/XMLSchema"
-      val factory = SchemaFactory.newInstance(schemaLang)
-      val schema = factory.newSchema(new StreamSource(xsdFile))
-      val validator = schema.newValidator()
+      val schemaLang: String = "http://www.w3.org/2001/XMLSchema"
+      val factory: SchemaFactory = SchemaFactory.newInstance(schemaLang)
+      val schema: Schema = factory.newSchema(new StreamSource(xsdFile))
+      val validator: Validator = schema.newValidator()
       validator.validate(new StreamSource(xmlFile))
     } catch {
       case ex: SAXException => logger.debug("XSD validate SAXException", ex);  throw ex
@@ -210,7 +210,7 @@ object FS_Utilities {
     *   Create directiry in HDFS
     *
     * @param url [[ String]] of the Directory location
-    * @throws
+    * @throws [[IOException]]
     * @return
     */
   @throws[IOException]

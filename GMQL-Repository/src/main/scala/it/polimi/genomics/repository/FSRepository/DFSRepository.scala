@@ -79,7 +79,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     *
     * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @param Sample GMQL sample [[ GMQLSample]].
-    * @userName String of the user name.
+    * @param userName String of the user name.
     */
   override def addSampleToDS(dataSet: String, userName: String, Sample: GMQLSample): Unit = ???
 

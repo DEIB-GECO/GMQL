@@ -7,7 +7,7 @@ import java.util.Date
 
 import it.polimi.genomics.core.{BinSize, GMQLSchemaFormat, GMQLScript, ImplementationPlatform}
 import it.polimi.genomics.manager.Launchers.{GMQLLocalLauncher, GMQLSparkLauncher}
-import it.polimi.genomics.repository.FSRepository.{DFSRepository, LFSRepository}
+import it.polimi.genomics.repository.FSRepository.{DFSRepository, LFSRepository, XMLDataSetRepository}
 import it.polimi.genomics.repository.{Utilities => repo_Utilities}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.slf4j.{Logger, LoggerFactory}
@@ -18,14 +18,14 @@ import org.slf4j.{Logger, LoggerFactory}
 object CLI {
   private final val logger = LoggerFactory.getLogger(this.getClass) //GMQLExecuteCommand.getClass);
 
-  val dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+  val dateFormat: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
   System.setProperty("current.date", dateFormat.format(new Date()));
 
-  private final val SYSTEM_TMPE_DIR = System.getProperty("java.io.tmpdir")
+  private final val SYSTEM_TMPE_DIR: String = System.getProperty("java.io.tmpdir")
   private final val DEFAULT_SCHEMA_FILE:String = "/test.schema";
-  private final val date = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+  private final val date: String = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
 
-  private final val usage = "GMQL-Submit " +
+  private final val usage: String = "GMQL-Submit " +
     " [-username USER] " +
     "[-exec FLINK|SPARK] [-binsize BIN_SIZE] [-jobid JOB_ID] " +
     "[-verbose true|false] " +
@@ -52,12 +52,12 @@ object CLI {
   def main(args: Array[String]): Unit = {
 
     //Setting the default options
-    var executionType = ImplementationPlatform.SPARK.toString.toLowerCase();
+    var executionType: String = ImplementationPlatform.SPARK.toString.toLowerCase();
     var scriptPath: String = null;
     var username: String = System.getProperty("user.name")
-    var outputPath = ""
-    var outputFormat = GMQLSchemaFormat.TAB
-    var verbose = false
+    var outputPath: String = ""
+    var outputFormat: GMQLSchemaFormat.Value = GMQLSchemaFormat.TAB
+    var verbose: Boolean = false
     var i = 0;
 
     for (i <- 0 until args.length if (i % 2 == 0)) {
@@ -105,17 +105,17 @@ object CLI {
     }
 
     //GMQL script
-    val gmqlScript = new GMQLScript( new String(Files.readAllBytes(Paths.get(scriptPath))),scriptPath)
+    val gmqlScript: GMQLScript = new GMQLScript( new String(Files.readAllBytes(Paths.get(scriptPath))),scriptPath)
 
     //Default bin parameters
-    val binSize = new BinSize(5000, 5000, 1000)
+    val binSize: BinSize = new BinSize(5000, 5000, 1000)
 
     // Set the repository based on the global variables.
-    val repository = if(repo_Utilities().MODE == repo_Utilities().HDFS) new DFSRepository() else new LFSRepository()
+    val repository: XMLDataSetRepository = if(repo_Utilities().MODE == repo_Utilities().HDFS) new DFSRepository() else new LFSRepository()
 
     //Spark context setting
     // number of executers is set to the number of the running machine cores.
-    val conf = new SparkConf()
+    val conf: SparkConf = new SparkConf()
       .setAppName("GMQL V2 Spark")
       .setMaster("local[*]")
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "64")
@@ -124,10 +124,10 @@ object CLI {
     val sc:SparkContext =new SparkContext(conf)
 
     //GMQL context contains all the GMQL job needed information
-    val gmqlContext = new GMQLContext(ImplementationPlatform.SPARK, repository, outputFormat, binSize, username,sc)
+    val gmqlContext: GMQLContext = new GMQLContext(ImplementationPlatform.SPARK, repository, outputFormat, binSize, username,sc)
 
     //create GMQL server manager instance, if it is not created yet.
-    val server = GMQLExecute()
+    val server: GMQLExecute = GMQLExecute()
 
     //register Job
     val job = server.registerJob(gmqlScript, gmqlContext, "")

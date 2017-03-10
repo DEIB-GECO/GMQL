@@ -9,6 +9,7 @@ import it.polimi.genomics.core.DataStructures.IRDataSet
 import it.polimi.genomics.core.{GMQLSchema, GMQLSchemaFormat}
 import it.polimi.genomics.core.ParsingType._
 import it.polimi.genomics.repository.FSRepository.FS_Utilities
+import org.slf4j.Logger
 
 import scala.io.Codec
 //import it.polimi.genomics.repository.FSRepository.Indexing.LuceneIndex
@@ -27,15 +28,17 @@ import scala.collection.JavaConverters._
   * @param dataSet
   */
 case class GMQLDataSetXML(val dataSet: IRDataSet) {
-  val logger = LoggerFactory.getLogger(this.getClass)
+  val logger: Logger = LoggerFactory.getLogger(this.getClass)
   type InternalSchema = List[(String, PARSING_TYPE)]
 
   var schema: InternalSchema = dataSet.schema.asScala.toList
   var GMQLScriptUrl: String = ""
-  var samples = List[GMQLSample]()
-  var DSname = dataSet.position
-  var userName = "temp"
-  val LOCAL = "GENERATED"
+  var samples: List[GMQLSample] = List[GMQLSample]()
+  var DSname: String = dataSet.position
+  var userName: String = "temp"
+
+  //TODO: Change Repo to use [[DataSetOrigin]] class
+  val LOCAL: String = "GENERATED"
   var Repo = LOCAL
 
   def schemaDir: String = Utilities().RepoDir + this.userName + "/schema/" + DSname + ".schema";

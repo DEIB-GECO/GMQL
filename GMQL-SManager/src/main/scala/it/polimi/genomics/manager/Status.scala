@@ -5,18 +5,21 @@ package it.polimi.genomics.manager;
  * Email: abdulrahman.kaitoua@polimi.it
  *
  */
-
+/**
+  * GMQL Job status enum.
+  *
+  */
 object Status extends Enumeration {
   type Status = Value
-  val COMPILING = Value("COMPILING")
-  val COMPILE_FAILED = Value("COMPILE_FAILED")
-  val COMPILE_SUCCESS= Value("COMPILE_SUCCESS")
-  val PENDING= Value("PENDING")
-  val RUNNING = Value("RUNNING")
-  val EXEC_SUCCESS= Value("EXEC_SUCCESS")
-  val DS_CREATION_RUNNING= Value("DS_CREATION_RUNNING")
-  val DS_CREATION_FAILED = Value("DS_CREATION_FAILED")
-  val DS_CREATION_SUCCESS = Value("DS_CREATION_SUCCESS")
-  val EXEC_FAILED= Value("EXEC_FAILED")
-  val SUCCESS = Value("SUCCESS")
+  val COMPILING: Status.Value = Value("COMPILING")
+  val COMPILE_FAILED: Status.Value = Value("COMPILE_FAILED")
+  val COMPILE_SUCCESS: Status.Value= Value("COMPILE_SUCCESS")
+  val PENDING: Status.Value= Value("PENDING")
+  val RUNNING : Status.Value= Value("RUNNING")
+  val EXEC_SUCCESS: Status.Value= Value("EXEC_SUCCESS")
+  val DS_CREATION_RUNNING: Status.Value= Value("DS_CREATION_RUNNING")
+  val DS_CREATION_FAILED: Status.Value = Value("DS_CREATION_FAILED")
+  val DS_CREATION_SUCCESS : Status.Value= Value("DS_CREATION_SUCCESS")
+  val EXEC_FAILED: Status.Value= Value("EXEC_FAILED")
+  val SUCCESS : Status.Value= Value("SUCCESS")
 }

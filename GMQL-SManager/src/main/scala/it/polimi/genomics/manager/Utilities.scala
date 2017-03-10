@@ -4,31 +4,32 @@ import java.io.File
 
 import org.slf4j.{Logger, LoggerFactory}
 
-import scala.xml.XML
+import scala.xml.{Elem, NodeSeq, XML}
 
 /**
   * Created by abdulrahman on 08/02/2017.
   */
 class Utilities {
   var SPARK_HOME: String = System.getenv("SPARK_HOME")
-  var CLI_JAR = "GMQL-Cli-2.0-jar-with-dependencies.jar"
-  var CLI_CLASS = "it.polimi.genomics.cli.GMQLExecuteCommand"
-  var lib_dir_local = it.polimi.genomics.repository.Utilities().GMQLHOME + "/lib/"
-  var lib_dir_hdfs = it.polimi.genomics.repository.Utilities().HDFSRepoDir + "/lib/"
+  var CLI_JAR: String = "GMQL-Cli-2.0-jar-with-dependencies.jar"
+  var CLI_CLASS: String = "it.polimi.genomics.cli.GMQLExecuteCommand"
+  var lib_dir_local: String = it.polimi.genomics.repository.Utilities().GMQLHOME + "/lib/"
+  var lib_dir_hdfs: String = it.polimi.genomics.repository.Utilities().HDFSRepoDir + "/lib/"
 
   private val logger: Logger = LoggerFactory.getLogger(Utilities.getClass)
 
-  var LAUNCHER_MODE =  LOCAL_LAUNCHER
-  final val LOCAL_LAUNCHER = "LOCAL"
-  final val CLUSTER_LAUNCHER = "CLUSTER"
-  final val REMOTE_CLUSTER_LAUNCHER = "REMOTE_CLUSTER"
+  //TODO: Acticvate the launcher modes
+  var LAUNCHER_MODE: String =  LOCAL_LAUNCHER
+  final val LOCAL_LAUNCHER: String = "LOCAL"
+  final val CLUSTER_LAUNCHER: String = "CLUSTER"
+  final val REMOTE_CLUSTER_LAUNCHER: String = "REMOTE_CLUSTER"
 
   def apply() = {
 
     try {
-      val file = new File(it.polimi.genomics.repository.Utilities().getConfDir + "/impl.xml")
-      val xmlFile = XML.loadFile(file)
-      val properties = (xmlFile \\ "property")
+      val file: File = new File(it.polimi.genomics.repository.Utilities().getConfDir + "/impl.xml")
+      val xmlFile: Elem = XML.loadFile(file)
+      val properties: NodeSeq = (xmlFile \\ "property")
       //      val schemaType = (xmlFile \\ "gmqlSchema").head.attribute("type").get.head.text
       properties.map { x =>
         val att = x.attribute("name").get.head.text;

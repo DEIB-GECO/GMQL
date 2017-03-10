@@ -9,7 +9,7 @@ import it.polimi.genomics.repository.GMQLExceptions._
 import it.polimi.genomics.repository.{Utilities => General_Utilities, _}
 import it.polimi.genomics.wsc.Knox.KnoxClient
 import org.apache.hadoop.fs.{FileSystem, Path}
-import org.slf4j.LoggerFactory
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Await
@@ -18,7 +18,7 @@ import scala.concurrent.Await
   * Created by abdulrahman on 12/04/16.
   */
 class RFSRepository extends GMQLRepository with XMLDataSetRepository {
-  private final val logger = LoggerFactory.getLogger(this.getClass)
+  private final val logger: Logger = LoggerFactory.getLogger(this.getClass)
   General_Utilities()
 
   /**

@@ -2,25 +2,17 @@ package it.polimi.genomics.manager
 
 
 import java.io.{File, PrintWriter}
-import java.text.SimpleDateFormat
 import java.util
-import java.util.Date
-import java.util.concurrent.{Executors, TimeUnit}
+import java.util.concurrent.{ExecutorService, Executors, TimeUnit}
 
-import it.polimi.genomics.core
-import it.polimi.genomics.core.{BinSize, GMQLScript, ImplementationPlatform}
-import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
+import it.polimi.genomics.core.GMQLScript
 import it.polimi.genomics.manager.Exceptions.{InvalidGMQLJobException, NoJobsFoundException}
-import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLivyLauncher, GMQLSparkLauncher}
-import it.polimi.genomics.repository.GMQLRepository
+import it.polimi.genomics.manager.Launchers.GMQLLauncher
 import it.polimi.genomics.repository.{Utilities => General_Utilities}
-import it.polimi.genomics.repository.FSRepository.{LFSRepository, FS_Utilities => FSR_Utilities}
-import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
-import org.apache.spark.{SparkConf, SparkContext}
-import org.slf4j.LoggerFactory
+import org.slf4j.{Logger, LoggerFactory}
 
-import scala.collection.immutable.HashMap
 import scala.collection.JavaConverters._
+import scala.collection.immutable.HashMap
 /**
  * Created by Abdulrahman Kaitoua on 10/09/15.
  * Email: abdulrahman.kaitoua@polimi.it
@@ -28,10 +20,10 @@ import scala.collection.JavaConverters._
  */
 class GMQLExecute (){
 
-  private final val logger = LoggerFactory.getLogger(this.getClass);
-  private final val NUM_THREADS = 5;
-  private final val execService = Executors.newFixedThreadPool(NUM_THREADS);
-  private var JOBID_TO_JOB_INSTANCE:Map[String,GMQLJob] = new HashMap;
+  private final val logger: Logger = LoggerFactory.getLogger(this.getClass);
+  private final val NUM_THREADS: Int = 5;
+  private final val execService: ExecutorService = Executors.newFixedThreadPool(NUM_THREADS);
+  private var JOBID_TO_JOB_INSTANCE:Map[String, GMQLJob] = new HashMap;
   private var USER_TO_JOBID:Map[String, List[String]] = new HashMap;
   private var JOBID_TO_OUT_DSs:Map[String, List[String]] = new HashMap;
 
@@ -52,18 +44,18 @@ class GMQLExecute (){
 
     logger.info("Execution Platform is set to "+gMQLContext.implPlatform+"\n\tScriptPath = "+script.scriptPath+"\n\tUsername = "+gMQLContext.username)
 
-    val job = new GMQLJob(gMQLContext,script,gMQLContext.username)
+    val job: GMQLJob = new GMQLJob(gMQLContext,script,gMQLContext.username)
 
-    val scriptHistory = new File(General_Utilities().getScriptsDir(gMQLContext.username)+ job.jobId + ".gmql")
+    val scriptHistory: File = new File(General_Utilities().getScriptsDir(gMQLContext.username)+ job.jobId + ".gmql")
 
     new PrintWriter(scriptHistory) { write(script.script); close }
 
-    val jobProfile = if(jobid == "")job.compile() else job.compile(jobid)
-    val jID = jobProfile._1
-    val outDSs = jobProfile._2
+    val jobProfile: (String, List[String]) = if(jobid == "")job.compile() else job.compile(jobid)
+    val jID: String = jobProfile._1
+    val outDSs: List[String] = jobProfile._2
 
-    val uToj = USER_TO_JOBID.get(gMQLContext.username);
-    val jToDSs = JOBID_TO_OUT_DSs.get(jID)
+    val uToj: Option[List[String]] = USER_TO_JOBID.get(gMQLContext.username);
+    val jToDSs: Option[List[String]] = JOBID_TO_OUT_DSs.get(jID)
 
     //if the user is not found create empty lists of jobs and out Datasets.
     var jobs: List[String]= if (!uToj.isDefined) List[String](); else uToj.get
@@ -118,7 +110,7 @@ class GMQLExecute (){
   @deprecated
   def scheduleGMQLJob(jobId:String)={
 
-    val job = getJob(jobId);
+    val job: GMQLJob = getJob(jobId);
 
     execService.submit(new Runnable() {
       @Override

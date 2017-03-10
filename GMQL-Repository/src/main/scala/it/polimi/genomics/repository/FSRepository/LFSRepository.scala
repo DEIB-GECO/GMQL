@@ -6,14 +6,14 @@ import it.polimi.genomics.core.GMQLSchemaField
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
 import it.polimi.genomics.repository.GMQLExceptions.{GMQLDSException, GMQLNotValidDatasetNameException, GMQLSampleNotFound, GMQLUserNotFound}
 import it.polimi.genomics.repository.{Utilities => General_Utilities, _}
-import org.slf4j.LoggerFactory
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
 /**
   * Created by abdulrahman on 12/04/16.
   */
 class LFSRepository extends GMQLRepository with XMLDataSetRepository{
-  private final val logger = LoggerFactory.getLogger(this.getClass)
+  private final val logger: Logger = LoggerFactory.getLogger(this.getClass)
   General_Utilities()
 
   /**

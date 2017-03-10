@@ -1,28 +1,23 @@
 package it.polimi.genomics.manager
 
-import java.io._
 import java.nio.file.Paths
-
-import it.polimi.genomics.compiler._
-import it.polimi.genomics.GMQLServer.{GmqlServer, Implementation}
-import it.polimi.genomics.core.DataStructures.{IRDataSet, IRVariable}
-import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLocalLauncher}
-import it.polimi.genomics.repository.FSRepository.{DFSRepository, FS_Utilities => FSR_Utilities}
-import it.polimi.genomics.repository.{DatasetOrigin, GMQLRepository, RepositoryType, Utilities => General_Utilities}
-import it.polimi.genomics.repository.GMQLExceptions.GMQLNotValidDatasetNameException
-import org.slf4j.LoggerFactory
-import java.util.Date
 import java.text.SimpleDateFormat
+import java.util.Date
+
+import it.polimi.genomics.GMQLServer.GmqlServer
+import it.polimi.genomics.compiler._
+import it.polimi.genomics.core.DataStructures.{IRDataSet, IRVariable}
+import it.polimi.genomics.core.{GMQLSchemaFormat, GMQLScript}
+import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLocalLauncher}
+import it.polimi.genomics.manager.Status._
+import it.polimi.genomics.repository.FSRepository.{FS_Utilities => FSR_Utilities}
+import it.polimi.genomics.repository.GMQLExceptions.GMQLNotValidDatasetNameException
+import it.polimi.genomics.repository.{DatasetOrigin, GMQLRepository, RepositoryType, Utilities => General_Utilities}
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
-import Status._
-import it.polimi.genomics.core.{GMQLSchemaFormat, GMQLScript}
-import it.polimi.genomics.core.ParsingType.PARSING_TYPE
-import org.apache.hadoop.fs.FileSystem
-
 import scala.collection.immutable.HashMap
 import scala.collection.mutable
-import scala.xml.XML
 
 /**
  * Created by Abdulrahman Kaitoua on 10/09/15.
@@ -39,7 +34,7 @@ import scala.xml.XML
   */
 class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:String) {
 
-  private final val date = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+  private final val date: String = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
 
   def jobId: String = {
     val fileName = new java.io.File(script.scriptPath).getName
@@ -47,18 +42,18 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     generateJobId(username,name)
   }
 
-  private final val logger = LoggerFactory.getLogger(this.getClass);
-  val jobOutputMessages = new StringBuilder
+  private final val logger: Logger = LoggerFactory.getLogger(this.getClass);
+  val jobOutputMessages: StringBuilder = new StringBuilder
 
 //  var script = fixFileFormat(scriptPath)
 //  val regionsURL = if (General_Utilities().MODE == FS_Utilities.HDFS) FS_Utilities.getInstance().HDFSRepoDir else FS_Utilities.getInstance().RepoDir
   case class ElapsedTime (var compileTime:String,var executionTime:String,var createDsTime:String =" Included in The execution time. (details in the log File)")
-  val elapsedTime =ElapsedTime("","","")
+  val elapsedTime: ElapsedTime =ElapsedTime("","","")
 
-  var status = PENDING
-  var outputVariablesList = List[String]()
-  val server = new GmqlServer(gMQLContext.implementation, Some(gMQLContext.binSize.Map))
-  val translator = new Translator(server, "")
+  var status: Status.Value = PENDING
+  var outputVariablesList: List[String] = List[String]()
+  val server: GmqlServer = new GmqlServer(gMQLContext.implementation, Some(gMQLContext.binSize.Map))
+  val translator: Translator = new Translator(server, "")
   var operators: List[Operator] = List[Operator]()
   var inputDataSets:Map[String, String] = new HashMap;
   var submitHandle: GMQLLauncher = null
@@ -113,7 +108,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
       }.toMap
 
 
-      val fsRegDir = FSR_Utilities.gethdfsConfiguration().get("fs.defaultFS")+
+      val fsRegDir: String = FSR_Utilities.gethdfsConfiguration().get("fs.defaultFS")+
                     General_Utilities().getHDFSRegionDir()
       //extract the materialize operators, change the Store path to be $JobID_$StorePath
       operators = languageParserOperators.map(x => x match {
@@ -189,8 +184,6 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     * @return String of the dataset location
     */
   def getRegionFolder(dsName:String,user:String): String = {
-//    val xmlFile = General_Utilities().getDataSetsDir(user) + dsName + ".xml"
-//    val xml = XML.loadFile(xmlFile)
     val path = repositoryHandle.listDSSamples(dsName,user).asScala.head.name//(xml \\ "url") (0).text
 
     val (location,ds_origin) = repositoryHandle.getDSLocation(dsName,user)
