@@ -2,7 +2,7 @@ package it.polimi.genomics.compiler
 
 
 import it.polimi.genomics.GMQLServer.GmqlServer
-import it.polimi.genomics.core.GMQLOutputFormat
+import it.polimi.genomics.core.GMQLSchemaFormat
 import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.{SparkConf, SparkContext}
@@ -103,7 +103,7 @@ object gmqlc {
       .set("spark.driver.allowMultipleContexts","true")
 //      .set("spark.sql.tungsten.enabled", "true")
     val sc:SparkContext =new SparkContext(conf)
-    val server = new GmqlServer(new GMQLSparkExecutor(testingIOFormats = false,sc=sc,outputFormat = GMQLOutputFormat.TAB), Some(1000)/*Some(args(3).toInt)*/)
+    val server = new GmqlServer(new GMQLSparkExecutor(testingIOFormats = false,sc=sc,outputFormat = GMQLSchemaFormat.GTF), Some(1000)/*Some(args(3).toInt)*/)
 //    val server = new GmqlServer(new FlinkImplementation(), Some(10000))
     val translator = new Translator(server, "/Users/pietro/Desktop/test_gmql/testout/")
 
@@ -222,13 +222,33 @@ object gmqlc {
     val project = "A = SELECT( cell == 'K562' AND antibody == 'c-Jun' ) project;\n" +
       "B = PROJECT( region_update: score AS score * 2)A;\n" +
       "MATERIALIZE B INTO AddedDatasetPlusMinus2;"
+
+    val covertToGTF = "S = SELECT() /Users/abdulrahman/Polimi/IDEA/GMQLV2/GMQL-Flink/src/test/datasets/cover2/;\n" +
+      "C = COVER(2,ANY) S;" +
+      "MATERIALIZE C INTO GTF_out2;"
+
+    val projectEirini = "DATA_SET_VAR = SELECT(assay == 'iCLIP') /Users/abdulrahman/Downloads/job_eirini_abdo_20170228_112927_data/;\n" +
+      "RES = PROJECT(ALLBUT score; region_update: new_score AS score/100.0 )DATA_SET_VAR;\n" +
+      "MATERIALIZE RES INTO res_gtf;"
+
+    val gtfScource = "DATA_SET_VAR = SELECT(region:frame == 'jjjj') /Users/abdulrahman/Polimi/IDEA/GMQLV2/res_gtf/exp/;\n" +
+    "MATERIALIZE DATA_SET_VAR INTO res_gtf1;"
+
+    val  summitBin = "RAW = SELECT( antibody_target == 'ATF3') /Users/abdulrahman/Downloads/job_summit_abdulrahman_20170302_091615_raw/;\n" +
+      "SUMMIT_TEST = HISTOGRAM(1,ALL) RAW;\n" +
+      "MATERIALIZE SUMMIT_TEST into histogram;"
+
+    val coverEirini = "DATA_SET_VAR = SELECT()/Users/abdulrahman/Downloads/bug/real_example/dataset/;\n" +
+      "RES1 = COVER(2,ANY) DATA_SET_VAR;\n" +
+      "MATERIALIZE RES1 INTO EX1;"
+
 //    val execQuery = args(2) match {
 //      case "histo" => Histogram
 //      case "map" => Map_server
 //    }
     val test_double_select = ""
       try {
-        if (translator.phase2(translator.phase1(union))) {
+        if (translator.phase2(translator.phase1(gtfScource))) {
           server.run()
           //server.getDotGraph()
         }
@@ -236,7 +256,7 @@ object gmqlc {
         case e: CompilerException => println(e.getMessage)
       }
 
-      println("\n\nQuery" +"\n" + union + "\n\n")
+      println("\n\nQuery" +"\n" + gtfScource + "\n\n")
       // "open /Users/pietro/Desktop/test_gmql/output/".!
       //  Console.readLine()
   }
