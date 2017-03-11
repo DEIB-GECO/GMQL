@@ -40,19 +40,25 @@ class GMQLExecute (){
     * @return [[ GMQLJob]] contains all the information of the job.
     */
   def registerJob(script:GMQLScript, gMQLContext: GMQLContext, jobid:String = ""): GMQLJob ={
+    def saveScript(fileName:String) = {
+      val scriptHistory: File = new File(General_Utilities().getScriptsDir(gMQLContext.username)+ fileName + ".gmql")
+      new PrintWriter(scriptHistory) { write(script.script); close }
+    }
 
 
     logger.info("Execution Platform is set to "+gMQLContext.implPlatform+"\n\tScriptPath = "+script.scriptPath+"\n\tUsername = "+gMQLContext.username)
 
     val job: GMQLJob = new GMQLJob(gMQLContext,script,gMQLContext.username)
 
-    val scriptHistory: File = new File(General_Utilities().getScriptsDir(gMQLContext.username)+ job.jobId + ".gmql")
-
-    new PrintWriter(scriptHistory) { write(script.script); close }
+    //query script of the job
+    saveScript(job.jobId)
 
     val jobProfile: (String, List[String]) = if(jobid == "")job.compile() else job.compile(jobid)
     val jID: String = jobProfile._1
     val outDSs: List[String] = jobProfile._2
+
+    //query script of the dataset
+    outDSs.foreach(saveScript)
 
     val uToj: Option[List[String]] = USER_TO_JOBID.get(gMQLContext.username);
     val jToDSs: Option[List[String]] = JOBID_TO_OUT_DSs.get(jID)
