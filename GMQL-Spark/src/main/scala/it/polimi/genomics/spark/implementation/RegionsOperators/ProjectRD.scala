@@ -1,12 +1,11 @@
 package it.polimi.genomics.spark.implementation.RegionsOperators
 
 
-import it.polimi.genomics.core.{GValue, GString, GDouble}
 import it.polimi.genomics.core.DataStructures.RegionAggregate.{COORD_POS, RegionExtension}
 import it.polimi.genomics.core.DataStructures.RegionOperator
 import it.polimi.genomics.core.DataTypes._
-import it.polimi.genomics.core.GRecordKey
 import it.polimi.genomics.core.exception.SelectFormatException
+import it.polimi.genomics.core.{GDouble, GRecordKey, GString, GValue}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD

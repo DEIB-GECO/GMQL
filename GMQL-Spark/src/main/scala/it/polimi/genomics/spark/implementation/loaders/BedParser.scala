@@ -1,31 +1,33 @@
 package it.polimi.genomics.spark.implementation.loaders
 
-import java.io.{File, FileInputStream, InputStream}
+import java.io.InputStream
 
-import it.polimi.genomics.core.DataStructures.IRDataSet
-import it.polimi.genomics.core.GMQLLoader
-import it.polimi.genomics.core.ParsingType.PARSING_TYPE
-import it.polimi.genomics.core.{GDouble, GString, GValue}
-import it.polimi.genomics.core.{DataTypes, GRecordKey, ParsingType}
+import it.polimi.genomics.core._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
-import org.slf4j.LoggerFactory
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.xml.XML
-//import it.polimi.genomics.repository.{Utilities => General_Utilities}
-//import it.polimi.genomics.repository.FSRepository.{LFSRepository, Utilities => FSR_Utilities}
 
 /**
   * Created by abdulrahman kaitoua on 25/05/15.
   */
+/**
+  * GMQL Bed Parser, it is a parser that parse delimited text files,
+  *
+  * @param delimiter [[String]] of the delimiter used to separate columns, can be TAB, space, special Char, or something else.
+  * @param chrPos [[Int]] of the position index of chromosome column in the delimited file, this is compulsory column.
+  * @param startPos [[Int]] of the position index of region start column in the delimited file, this is compulsory column.
+  * @param stopPos [[Int]] of the position index of region stop column in the delimited file, this is compulsory column.
+  * @param strandPos [[Int]] of the position index of strand column in the delimited file, this is compulsory column.
+  * @param otherPos [[Array]] of the other columns positions, this is [[Option]] and can be [[None]]. The Array has tuple of (position as [[Int]],[[ParsingType]])
+  */
 class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopPos: Int, var strandPos: Option[Int], var otherPos: Option[Array[(Int, ParsingType.PARSING_TYPE)]]) extends GMQLLoader[(Long, String), Option[DataTypes.GRECORD], (Long, String), Option[DataTypes.MetaType]] with java.io.Serializable {
 
-  private val logger = LoggerFactory.getLogger(classOf[BedParser]);
-  var parsingType = "tab"
-  final val GTF = "gtf"
-  final val VCF = "vcf"
-  final val spaceDelimiter = " "
-  final val semiCommaDelimiter = ";"
+  private val logger: Logger = LoggerFactory.getLogger(classOf[BedParser]);
+  var parsingType = GMQLSchemaFormat.TAB
+  final val spaceDelimiter: String = " "
+  final val semiCommaDelimiter: String = ";"
 
   /**
     * Meta Data Parser to parse String to GMQL META TYPE (ATT, VALUE)
@@ -45,17 +47,17 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
   /**
     * Parser of String to GMQL Spark GRECORD
     *
-    * @param t
-    * @return
+    * @param t [[Tuple2]] of the ID and the [[String]] line to be parsed.
+    * @return [[GRecord]] as GMQL record representation.
     */
   override def region_parser(t: (Long, String)): Option[DataTypes.GRECORD] = {
 
     try {
 
-      val s = t._2 split delimiter
+      val s: Array[String] = t._2 split delimiter
 
       val other = parsingType match {
-        case GTF => {
+        case GMQLSchemaFormat.GTF => {
           val score = if (!s(5).trim.equals(".") && !s(5).trim.equals("null")) // When the values is not present it is considered . and we cast it into 0.0
             GDouble(s(5).trim.toDouble)
           else
@@ -105,7 +107,7 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
       Some((new GRecordKey(t._1, s(chrPos).trim, s(startPos).trim.toLong, s(stopPos).trim.toLong,
         if (strandPos.isDefined) {
           val c = s(strandPos.get).trim.charAt(0)
-//          if(c != '*') println(t._2+"\t"+c+"\n"+s.mkString("\t"))
+          //          if(c != '*') println(t._2+"\t"+c+"\n"+s.mkString("\t"))
           if (c.equals('+') || c.equals('-')) {
             c
           } else {
@@ -225,6 +227,9 @@ object NarrowPeakParser extends BedParser("\t", 0, 1, 2, Some(5), Some(Array((3,
     ("peak", ParsingType.DOUBLE))
 }
 
+/**
+  * @deprecated
+  */
 object testOrder extends BedParser("\t", 0, 1, 2, Some(3), Some(Array((4, ParsingType.STRING), (5, ParsingType.DOUBLE), (6, ParsingType.DOUBLE), (7, ParsingType.DOUBLE), (8, ParsingType.DOUBLE), (9, ParsingType.DOUBLE)))) {
 
   schema = List(("name", ParsingType.STRING),
@@ -271,33 +276,33 @@ object RnaSeqParser extends BedParser("\t", 0, 1, 2, Some(3), Some(Array((4, Par
   */
 class CustomParser extends BedParser("\t", 0, 1, 2, Some(3), Some(Array((4, ParsingType.DOUBLE)))) {
 
-  private val logger = LoggerFactory.getLogger(classOf[CustomParser]);
+  private val logger: Logger = LoggerFactory.getLogger(classOf[CustomParser]);
   //val schema = List(("name", ParsingType.STRING), ("score", ParsingType.DOUBLE))
   def setSchema(dataset: String): BedParser = {
 
-    val conf = new Configuration();
-    val path = new Path(dataset);
-    val fs = FileSystem.get(path.toUri(), conf);
+    val conf: Configuration = new Configuration();
+    val path: Path = new Path(dataset);
+    val fs: FileSystem = FileSystem.get(path.toUri(), conf);
 
     val XMLfile:InputStream = fs.open(new Path(dataset+"/test.schema"))
 
-//    println ("HI ",dataset,Utilities.getInstance().gethdfsConfiguration().get("fs.defaultFS") +Utilities.getInstance().HDFSRepoDir + Utilities.USERNAME + "/regions" + dataset+"/test.schema")
+    //    println ("HI ",dataset,Utilities.getInstance().gethdfsConfiguration().get("fs.defaultFS") +Utilities.getInstance().HDFSRepoDir + Utilities.USERNAME + "/regions" + dataset+"/test.schema")
 
-    var schematype = "tab"
+    var schematype = GMQLSchemaFormat.TAB
     var schema: Array[(String, ParsingType.Value)] = null
 
     try {
       val schemaXML = XML.load(XMLfile);
       val cc = (schemaXML \\ "field")
-      schematype = (schemaXML \\ "gmqlSchema").head.attribute("type").get.head.text
-      schema = cc.map(x => (x.text.trim, attType(x.attribute("type").get.head.text))).toArray
+      schematype = GMQLSchemaFormat.getType((schemaXML \\ "gmqlSchema").head.attribute("type").get.head.text.trim.toLowerCase())
+      schema = cc.map(x => (x.text.trim, ParsingType.attType(x.attribute("type").get.head.text))).toArray
     } catch {
       case x: Throwable => x.printStackTrace(); logger.error(x.getMessage); throw new RuntimeException(x.getMessage)
     }
 
-    schematype.trim.toLowerCase() match {
-      case VCF =>{
-        parsingType = VCF
+    schematype match {
+      case  GMQLSchemaFormat.VCF =>{
+        parsingType = GMQLSchemaFormat.VCF
 
         val valuesPositions = schema.zipWithIndex.flatMap { x => val name = x._1._1;
           if (checkCoordinatesName(name)) None
@@ -322,8 +327,8 @@ class CustomParser extends BedParser("\t", 0, 1, 2, Some(3), Some(Array((4, Pars
 
         this.schema = valuesPositionsSchema
       }
-      case GTF => {
-        parsingType = GTF
+      case GMQLSchemaFormat.GTF => {
+        parsingType = GMQLSchemaFormat.GTF
 
         val valuesPositions: Array[(Int, ParsingType.Value)] = schema.flatMap { x => val name = x._1.toUpperCase();
           if (name.equals("SEQNAME") || name.equals("SOURCE") ||name.equals("FEATURE") ||name.equals("FRAME") ||name.equals("SCORE") || checkCoordinatesName(name)) None
@@ -399,27 +404,24 @@ class CustomParser extends BedParser("\t", 0, 1, 2, Some(3), Some(Array((4, Pars
 
 
 
-//    println (this.schema.mkString("\t"))
+    //    println (this.schema.mkString("\t"))
 
     this
 
   }
 
-
+  /**
+    * check the name of the coordinates in the schema xml file.
+    *
+    * @param fieldName the column name in the schemas
+    * @return return True when the column is a coordinate column, otherwise false.
+    */
   def checkCoordinatesName(fieldName:String):Boolean={
     (fieldName.toUpperCase().equals("CHROM") || fieldName.toUpperCase().equals("CHROMOSOME") ||
       fieldName.toUpperCase().equals("CHR") || fieldName.toUpperCase().equals("START") ||
       fieldName.toUpperCase().equals("STOP") || fieldName.toUpperCase().equals("LEFT") ||
       fieldName.toUpperCase().equals("RIGHT") || fieldName.toUpperCase().equals("END") ||
       fieldName.toUpperCase().equals("STRAND") || fieldName.toUpperCase().equals("STR"))
-  }
-  def attType(x: String) = x.toUpperCase match {
-    case "STRING" => ParsingType.STRING
-    case "CHAR" => ParsingType.STRING
-    case "CHARACTAR" => ParsingType.STRING
-    case "BOOLEAN" => ParsingType.STRING
-    case "BOOL" => ParsingType.STRING
-    case _ => ParsingType.DOUBLE
   }
 }
 

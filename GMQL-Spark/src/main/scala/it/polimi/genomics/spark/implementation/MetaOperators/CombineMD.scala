@@ -51,14 +51,11 @@ object CombineMD{
         }
       }
 
-      leftOut.union(rightOut)//.sortBy(x=>x._1)
+      leftOut.union(rightOut)
 
     } else {
       val leftIds = left.keys.distinct().collect()
       val rightIds = right.keys.distinct().collect()
-
-//      leftIds.foreach(x=>println(x))
-//      rightIds.foreach(x=>println(x))
 
       val leftOut = left.flatMap{l=>
         rightIds.map{r =>

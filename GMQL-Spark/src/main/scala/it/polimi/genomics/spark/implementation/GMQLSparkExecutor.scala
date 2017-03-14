@@ -113,23 +113,9 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
         if(testingIOFormats){
           metaRDD.map(x=>x._1+","+x._2._1 + "," + x._2._2).saveAsTextFile(MetaOutputPath)
           regionRDD.map(x=>x._1+"\t"+x._2.mkString("\t")).saveAsTextFile(RegionOutputPath)
-
         }else {
-//          val fsRegDir = FSR_Utilities.gethdfsConfiguration().get("fs.defaultFS")+
-//            General_Utilities().getHDFSRegionDir(General_Utilities().USERNAME)
-//          val localRegDir = General_Utilities().getLocalRegionDir(General_Utilities().USERNAME)
-
-          val MetaOutputPath =
-//            if (General_Utilities().MODE == General_Utilities().HDFS)
-//            fsRegDir + variableDir + "/meta/"
-//          else localRegDir +
-            variableDir + "/meta/"
-
-          val RegionOutputPath =
-//            if (General_Utilities().MODE == General_Utilities().HDFS)
-//            fsRegDir + variable.regionDag.asInstanceOf[IRStoreRD].path.toString + "/exp/"
-//          else localRegDir +
-            variableDir + "/exp/"
+          val MetaOutputPath = variableDir + "/meta/"
+          val RegionOutputPath = variableDir + "/exp/"
 
           logger.debug(MetaOutputPath)
           logger.debug(RegionOutputPath)

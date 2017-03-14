@@ -7,7 +7,6 @@ package it.polimi.genomics.spark.implementation.loaders
  */
 
 import java.io._
-import java.net.URI
 
 //import it.polimi.genomics.repository.{Utilities => General_Utilities}
 import org.apache.hadoop.conf.Configuration
@@ -20,23 +19,55 @@ import org.apache.spark.rdd.RDD
 
 import scala.reflect.ClassTag
 
+/**
+  *  Write the output files in separated files based on the sample id.
+  */
 object writeMultiOutputFiles{
+
+  /**
+    * Generate file for each key ( sample ID)
+    */
   class RDDMultipleTextOutputFormat extends MultipleTextOutputFormat[Text, Text] {
     override def generateFileNameForKeyValue(key: Text, value: Text, name: String): String = {
-      key.toString// + "/" + name
+      key.toString
     }
 
     override def generateActualKey(key: Text, value: Text) = null
   }
 
+  /**
+    * Save the RDD rows based on the sample id in separated files.
+    *
+    * @param src [[RDD]] of the key value pair. The key is the sample id and the value is the row as string
+    * @param root [[String]] as the path to the folder location
+    * @tparam T The type of the rows
+    */
   def saveAsMultipleTextFiles[T:ClassTag](src: RDD[(String,String)],  root: String) {
     saveAsMultipleTextFiles(src, root, None)
   }
 
+  /**
+    *
+    * Save the RDD rows based on the sample id in separated files.
+    *
+    * @deprecated
+    * @param src [[RDD]] of the key value pair. The key is the sample id and the value is the row as string
+    * @param root [[String]] as the path to the folder location
+    * @param codec The default codec to be used to compress the data
+    * @tparam T The type of the rows
+    */
   def saveAsMultipleTextFiles[T:ClassTag](src: RDD[(String,String)], root: String, codec: Class[_ <: CompressionCodec]) {
     saveAsMultipleTextFiles(src, root, Option(codec))
   }
 
+  /**
+    * Save the RDD rows based on the sample id in separated files.
+    *
+    * @param src [[RDD]] of the key value pair. The key is the sample id and the value is the row as string
+    * @param root [[String]] as the path to the folder location
+    * @param codec [[Option]]  as the default codec to be used to compress the data
+    * @tparam T The type of the rows
+    */
   def saveAsMultipleTextFiles[T:ClassTag](src: RDD[(String,String)], root: String, codec: Option[Class[_ <: CompressionCodec]]) {
     val hadoopConf = new Configuration()
     val jobConf = new JobConf(hadoopConf)
@@ -55,21 +86,22 @@ object writeMultiOutputFiles{
       .saveAsHadoopDataset(jobConf)
   }
 
-  def fixOutputMetaLocation(originalPath:String)= {
+  /**
+    * Move the meta data from the /meta folder to /exp file to be in the same folder with the samples files.
+    *
+    * @param originalPath [[String]] of the meta directory
+    */
+  def fixOutputMetaLocation(originalPath:String): Unit = {
     println(originalPath)
     val conf = new Configuration();
     val path = new org.apache.hadoop.fs.Path(originalPath);
     val fs = FileSystem.get(path.toUri(), conf);
-//    if(General_Utilities().MODE== General_Utilities().HDFS)
       try {
-        import org.apache.hadoop.conf._
         import org.apache.hadoop.fs._
-//        val fs = FileSystem.get(URI.create(originalPath),new Configuration());
         val files = fs.listStatus(new Path(originalPath));
         files.foreach { sampleFile =>
           val pt = new Path(sampleFile.getPath.toString)
           val dist = new Path(new Path(originalPath).getParent.toString+"/exp/"+sampleFile.getPath.getName)
-//          println (pt.toString,dist.toString,this.getClass)
           if(pt.getName !="_SUCCESS")
             fs.rename(pt,dist)
         }
@@ -78,36 +110,15 @@ object writeMultiOutputFiles{
       } catch {
         case ex1:IOException => println(ex1.getMessage)
       }
-//    else
-//      try {
-//        println ("LOCAL")
-//        val files = new java.io.File(originalPath).listFiles(
-//          new FileFilter() {
-//            @Override def accept(pathname: java.io.File) = !pathname.getName.startsWith("_") && !pathname.getName.startsWith(".");
-//          }
-//        )
-//        files.foreach { sampleFile =>
-//          val source = new File(sampleFile.getPath)
-//          val dist = new File(new File(originalPath).getParent+"/exp/"+sampleFile.getName)
-//          //          println(sampleFile.getPath,new File(originalPath).getParent,sampleFile.getName)
-//          org.apache.commons.io.FileUtils.moveFile(source,dist)
-//        }
-//        org.apache.commons.io.FileUtils.deleteDirectory(new java.io.File(originalPath))
-//      }catch{
-//        case ex:FileNotFoundException => println(ex.getMessage)
-//      }
   }
 
-  def fixOutputNamingLocation(originalPath:String,outName:String)= {
-    import scala.io.Source
+  @deprecated
+  def fixOutputNamingLocation(originalPath:String,outName:String): Unit = {
     val conf = new Configuration();
     val path = new org.apache.hadoop.fs.Path(originalPath);
     val fs = FileSystem.get(path.toUri(), conf);
-//    if(General_Utilities().MODE== General_Utilities().HDFS)
       try {
-        import org.apache.hadoop.conf._
         import org.apache.hadoop.fs._
-//        val fs = FileSystem.get(URI.create(originalPath),new Configuration());
         val files = fs.listStatus(new Path(originalPath));
 
         files.foreach { sampleFolder =>
@@ -119,7 +130,7 @@ object writeMultiOutputFiles{
             if (listOfFiles.size > 0) {
               for (f <- listOfFiles) {
                 br=new BufferedReader(new InputStreamReader(fs.open(new Path(f.getPath.toString)))); var line:String = br.readLine();
-                while ( line  != null/*sc.textFile(f.getPath.toUri.toString)*/)
+                while ( line  != null)
                 {fw.append(line+"\n"); line= br.readLine() ;}
                 br.close
                 fs.delete(f.getPath,true)
@@ -129,40 +140,11 @@ object writeMultiOutputFiles{
             println(sampleFolder.getPath.getName, fs.delete(sampleFolder.getPath,true))
           }
           else fs.delete(sampleFolder.getPath,true)
-          //            println(sampleFolder.getPath.getParent.getName)
         }
         fs.delete(new Path(originalPath),true)
 
       } catch {
         case ex1:IOException => println(ex1.getMessage)
       }
-//    else
-//      try {
-//        val files = new java.io.File(originalPath).listFiles()
-//        files.foreach { sampleFolder =>
-//          if (sampleFolder.isDirectory) {
-//            val fw = new FileWriter(sampleFolder.getParentFile.getParent + "/" + sampleFolder.getName + outName, true)
-//            val listOfFiles = sampleFolder.listFiles(
-//              new FileFilter() {
-//                @Override def accept(pathname: java.io.File) = !pathname.getName.startsWith(".");
-//              }
-//            )
-//            if (listOfFiles.size > 0) {
-//              for (f <- listOfFiles) {
-//                for (line <- Source.fromFile(f).getLines())
-//                  fw.append(line+"\n")
-//                f.delete()
-//              }
-//              fw.close()
-//            }
-//            org.apache.commons.io.FileUtils.deleteDirectory(sampleFolder)
-//          }
-//          else sampleFolder.delete()
-//          //        println(sampleFolder.getParent)
-//        }
-//        org.apache.commons.io.FileUtils.deleteDirectory(new java.io.File(originalPath))
-//      }catch{
-//        case ex:FileNotFoundException => println(ex.getMessage)
-//      }
   }
 }

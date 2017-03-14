@@ -32,7 +32,25 @@ case class GMQLSchemaField(name:String, fieldType:ParsingType.Value)
   */
 object GMQLSchemaFormat extends Enumeration{
   type outputFormat = Value
-  val TAB, GTF , VCF = Value
+  val TAB = Value("tab")
+  val GTF = Value("gtf")
+  val VCF = Value("vcf")
+
+  /**
+    *
+    *  Get the [[ GMQLSchemaFormat]] of a specific String
+    *
+    * @param schemaType String of the schema type
+    * @return
+    */
+  def getType(schemaType:String): GMQLSchemaFormat.Value ={
+    schemaType. toLowerCase() match {
+      case "gtf" => GMQLSchemaFormat.GTF
+      case "del" => GMQLSchemaFormat.TAB
+      case "vcf" => GMQLSchemaFormat.VCF
+      case _ => GMQLSchemaFormat.TAB
+    }
+  }
 }
 
 object GMQLSchema {

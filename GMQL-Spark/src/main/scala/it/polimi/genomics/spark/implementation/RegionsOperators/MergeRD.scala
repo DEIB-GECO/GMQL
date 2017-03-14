@@ -1,8 +1,8 @@
 package it.polimi.genomics.spark.implementation.RegionsOperators
 
 import it.polimi.genomics.core.DataStructures.{MetaGroupOperator, RegionOperator}
-import it.polimi.genomics.core.{GRecordKey, DataTypes}
 import it.polimi.genomics.core.DataTypes._
+import it.polimi.genomics.core.GRecordKey
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext

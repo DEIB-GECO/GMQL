@@ -4,7 +4,7 @@ import java.io._
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
-import it.polimi.genomics.core.{GMQLSchema, GMQLSchemaField, GMQLSchemaFormat}
+import it.polimi.genomics.core.{GMQLSchema, GMQLSchemaField, GMQLSchemaFormat, ParsingType}
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
 import it.polimi.genomics.repository.GMQLExceptions._
 import it.polimi.genomics.repository.{DatasetOrigin, GMQLRepository, GMQLSample, RepositoryType, Utilities => General_Utilities}
@@ -73,9 +73,9 @@ trait XMLDataSetRepository extends GMQLRepository{
       val xmlFile = XML.load(schemaPath)
       val schemaFields = (xmlFile \\ "field")
       val schemaType = (xmlFile \\ "gmqlSchema").head.attribute("type").get.head.text
-      val schema = schemaFields.map { x => (x.text.trim, FS_Utilities.attType(x.attribute("type").get.head.text)) }.toList.asJava
+      val schema = schemaFields.map { x => (x.text.trim, ParsingType.attType(x.attribute("type").get.head.text)) }.toList.asJava
       val dataSet = new IRDataSet(dataSetName, schema)
-      val gMQLDataSetXML = new GMQLDataSetXML(dataSet, userName, Samples.asScala.toList, FS_Utilities.getType(schemaType), "IMPORTED_"+General_Utilities().MODE  )
+      val gMQLDataSetXML = new GMQLDataSetXML(dataSet, userName, Samples.asScala.toList, GMQLSchemaFormat.getType(schemaType), "IMPORTED_"+General_Utilities().MODE  )
       gMQLDataSetXML.Create()
   }
 
@@ -277,8 +277,8 @@ trait XMLDataSetRepository extends GMQLRepository{
     val tabFields = List("chr","left","right","strand")
     val xmlFile = XML.load(fs.open(path))
     val cc = (xmlFile \\ "field")
-    val schemaList = cc.flatMap{ x => if(gtfFields.contains(x.text.trim)||tabFields.contains(x.text.trim)) None else Some(new GMQLSchemaField(x.text.trim, FS_Utilities.attType(x.attribute("type").get.head.text)))}.toList
-    val schemaType = FS_Utilities.getType((xmlFile \\ "gmqlSchema" \ "@type").text)
+    val schemaList = cc.flatMap{ x => if(gtfFields.contains(x.text.trim)||tabFields.contains(x.text.trim)) None else Some(new GMQLSchemaField(x.text.trim, ParsingType.attType(x.attribute("type").get.head.text)))}.toList
+    val schemaType = GMQLSchemaFormat.getType((xmlFile \\ "gmqlSchema" \ "@type").text)
     val schemaname = (xmlFile \\ "gmqlSchemaCollection" \ "@name").text
     new GMQLSchema(schemaname,schemaType, schemaList)
   }
@@ -345,8 +345,8 @@ trait XMLDataSetRepository extends GMQLRepository{
     val schemaPath = new File(General_Utilities().getSchemaDir( userName ) + datasetName + ".schema")
     val xmlFile = XML.loadFile(schemaPath)
     val cc = (xmlFile \\ "field")
-    val schemaList = cc.map{ x =>new GMQLSchemaField(x.text.trim, FS_Utilities.attType(x.attribute("type").get.head.text))}.toList
-    val schemaType = FS_Utilities.getType((xmlFile \\ "gmqlSchema" \ "@type").text)
+    val schemaList = cc.map{ x =>new GMQLSchemaField(x.text.trim, ParsingType.attType(x.attribute("type").get.head.text))}.toList
+    val schemaType = GMQLSchemaFormat.getType((xmlFile \\ "gmqlSchema" \ "@type").text)
     val schemaname = (xmlFile \\ "gmqlSchemaCollection" \ "@name").text
     new GMQLSchema(schemaname,schemaType, schemaList)
   }

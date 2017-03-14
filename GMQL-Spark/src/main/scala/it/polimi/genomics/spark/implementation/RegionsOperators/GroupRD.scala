@@ -1,10 +1,10 @@
 package it.polimi.genomics.spark.implementation.RegionsOperators
 
 import com.google.common.hash.Hashing
-import it.polimi.genomics.core.DataStructures.GroupRDParameters.{FIELD, GroupingParameter}
+import it.polimi.genomics.core.DataStructures.GroupRDParameters.FIELD
 import it.polimi.genomics.core.DataStructures.{GroupRDParameters, RegionAggregate, RegionOperator}
+import it.polimi.genomics.core.DataTypes.GRECORD
 import it.polimi.genomics.core.GValue
-import it.polimi.genomics.core.DataTypes.{GRECORD}
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext

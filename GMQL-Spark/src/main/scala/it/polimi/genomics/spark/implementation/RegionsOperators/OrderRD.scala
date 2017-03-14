@@ -5,16 +5,13 @@ import com.google.common.hash.Hashing
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.Direction
 import it.polimi.genomics.core.DataStructures.GroupMDParameters._
 import it.polimi.genomics.core.DataStructures.RegionOperator
-import it.polimi.genomics.core.{GRecordKey}
-import it.polimi.genomics.core.{GValue, GDouble}
 import it.polimi.genomics.core.DataTypes._
 import it.polimi.genomics.core.exception.SelectFormatException
+import it.polimi.genomics.core.{GDouble, GRecordKey, GValue}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
-import org.apache.spark.{Partitioner, RangePartitioner, SparkContext}
-import org.apache.spark.rdd.{ShuffledRDD, RDD}
+import org.apache.spark.rdd.{RDD, ShuffledRDD}
+import org.apache.spark.{Partitioner, SparkContext}
 import org.slf4j.LoggerFactory
-
-import scala.reflect._
 
 /**
  * Created by abdulrahman kaitoua on 13/07/15.
@@ -26,7 +23,7 @@ object OrderRD {
   def apply(executor : GMQLSparkExecutor, ordering : List[(Int, Direction)], topParameter : TopParameter, inputDataset : RegionOperator, sc : SparkContext) : RDD[GRECORD] = {
     logger.info("----------------OrderRD executing..")
 
-    val ds:RDD[GRECORD] = //: RDD[(Long, String, Long, Long, Char, Array[GValue])] =
+    val ds:RDD[GRECORD] =
       executor.implement_rd(inputDataset, sc)
 
 

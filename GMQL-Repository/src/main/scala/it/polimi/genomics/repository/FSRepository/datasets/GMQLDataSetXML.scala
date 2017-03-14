@@ -6,7 +6,7 @@ import java.nio.charset.{Charset, CodingErrorAction}
 import java.nio.file.{Files, Path, Paths}
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
-import it.polimi.genomics.core.{GMQLSchema, GMQLSchemaFormat}
+import it.polimi.genomics.core.{GMQLSchema, GMQLSchemaFormat, ParsingType}
 import it.polimi.genomics.core.ParsingType._
 import it.polimi.genomics.repository.FSRepository.FS_Utilities
 import org.slf4j.Logger
@@ -206,7 +206,7 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
       // Loading schema
       val schemaFields = (XML.loadFile(this.schemaDir) \\ "field")
       import it.polimi.genomics.repository.FSRepository._
-      this.schema = schemaFields.map(x => (x.text.trim, FS_Utilities.attType(x.attribute("type").get.head.text))).toList
+      this.schema = schemaFields.map(x => (x.text.trim, ParsingType.attType(x.attribute("type").get.head.text))).toList
       this
     } else throw new GMQLDSNotFound()
 

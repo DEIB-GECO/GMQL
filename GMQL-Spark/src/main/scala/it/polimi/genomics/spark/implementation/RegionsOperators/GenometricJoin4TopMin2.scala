@@ -27,9 +27,7 @@ object GenometricJoin4TopMin2 {
       executor.implement_rd(rightDataset, sc)
 
     // load grouping
-    val Bgroups: RDD[(Long, Long)] =
-//      if(metajoinCondition.isInstanceOf[SomeMetaJoinOperator]){
-        /*Some(sc.broadcast(*/executor.implement_mjd(metajoinCondition, sc).flatMap{x=>
+    val Bgroups: RDD[(Long, Long)] = executor.implement_mjd(metajoinCondition, sc).flatMap{x=>
           val hs = Hashing.md5.newHasher.putLong(x._1)
           val exp = x._2
           x._2.map{ exp_id =>
@@ -39,10 +37,7 @@ object GenometricJoin4TopMin2 {
           val e = for(ex <- exp)
             yield(ex,groupID)
           e :+ (x._1,groupID)
-        }//.groupBy(_._1).map(x=>(x._1,x._2.map(s=>s._2))).collectAsMap()))
-//      } else {
-//        sc.emptyRDD
-//      }
+        }
 
     // assign group to ref
     val groupedDs : RDD[(Long,Long, String, Long, Long, Char, Array[GValue]/*, Long*/)] =
@@ -50,11 +45,9 @@ object GenometricJoin4TopMin2 {
     // (Expid, refID, chr, start, stop, strand, values, aggregationId)
 
     // assign group and bin experiment
-    val binnedExp: RDD[((Long, String, Int), (Long,Long, Long, Char, Array[GValue], Int,Int))] = //: RDD[(Long, Int, Int, Long, String, Long, Long, Char, Array[GValue])] =
-      binExperiment(exp,Bgroups,BINNING_PARAMETER)
-//        binnedExp.collect().foreach(x=>println("expBinned: "+x))
-    // (ExpID,chr ,bin), start, stop, strand, values,BinStart)
+    val binnedExp: RDD[((Long, String, Int), (Long,Long, Long, Char, Array[GValue], Int,Int))] =binExperiment(exp,Bgroups,BINNING_PARAMETER)
 
+    // (ExpID,chr ,bin), start, stop, strand, values,BinStart)
     joinCondition.map((q) => {
       val qList = q.toList()
 
@@ -73,16 +66,13 @@ object GenometricJoin4TopMin2 {
       val binnedRegions: RDD[((Long, String, Int), (Long,Long, Long, Char, Array[GValue], Int))] =
         prepareDs(groupedDs, firstRoundParameters,secondRoundParameters,BINNING_PARAMETER,MAXIMUM_DISTANCE)
 
-//      binnedRegions.collect().foreach(x=>println("refBinned: "+x))
       //(sampleId   , chr       , start    , stop   , strand , values , aggId    , binStart      , bin          )
       //(binStart   , binStop   , bin      , id     , chr    , start  , stop     , strand        , values       )
 
 
       //Key of join (expID, chr, bin)
       //result : aggregation,(groupid, Chr, rStart,rStop, rStrand, rValues, eStart, eStop, eStrand, eValues, Distance)
-
       val joined =  binnedRegions.join(binnedExp) //TODO Set the parallelism factors
-//      joined.collect().foreach(x=>println("join: "+x))
       val firstRound: RDD[((Long, Int), (Long, String, Long, Long, Char, Array[GValue], Long, Long, Char, Array[GValue], Long))] = if (!minDistanceParameter.isDefined) {
           joined.flatMap { x => val r = x._2._1;
             val e = x._2._2;
@@ -120,7 +110,7 @@ object GenometricJoin4TopMin2 {
                       ((r._4.equals('-')) && e._3 <= r._2) // reference with negative strand => experiment must be earlier
                     )
                 )
-            if (first_match && //TODO check if this valid
+            if (first_match &&
               same_strand && intersect_distance && (no_stream || UPSTREAM || DOWNSTREAM)
             ) {
               val aggregationId: Long = Hashing.md5.newHasher.putString(r._1 + e._1 + r._2 + r._3 + r._4 + r._5.mkString("/"),java.nio.charset.Charset.defaultCharset()).hash().asLong
@@ -165,7 +155,7 @@ object GenometricJoin4TopMin2 {
                       ((r._4.equals('-')) && e._3 <= r._2) // reference with negative strand => experiment must be earlier
                     )
                 )
-            if (first_match && //TODO check if this valid
+            if (first_match &&
               same_strand && intersect_distance && (no_stream || UPSTREAM || DOWNSTREAM)
             ) {
               val aggregationId: Long = Hashing.md5.newHasher.putString(r._1 + e._1 + r._2 + r._3 + r._4 + r._5.mkString("/"),java.nio.charset.Charset.defaultCharset()).hash().asLong
@@ -183,18 +173,6 @@ object GenometricJoin4TopMin2 {
               itr.takeWhile(s=> {if(count >0 && s._3._9 != buffer) {count = count -1 ;buffer = s._3._9   ; true} else if (s._3._9==buffer) true else  false})/*take(minDistanceParameter.get.asInstanceOf[MinDistance].number)*/.map(s=> ((x._1._1,s._1),(x._1._2,s._2,s._3._1,s._3._2,s._3._3,s._3._4,s._3._5,s._3._6,s._3._7,s._3._8,s._3._9)))}
                                                                                                                                                                     //[((Long, Int), (Long, String, Long, Long, Char, Array[GValue], Long, Long, Char, Array[GValue], Long))]
         }
-      // ( aggregation,bin),(groupid, Chr, rStart,rStop, rStrand, rValues, eStart, eStop, eStrand, eValues, Distance)
-//      val minDistance: RDD[((Long, Int), (Long, String, Long, Long, Char, Array[GValue], Long, Long, Char, Array[GValue], Long))] =
-//        if (minDistanceParameter.isDefined) {
-//          val firstGroup = firstRound.groupByKey()
-//            .flatMap{x=>val itr = x._2.toList.sortBy(_._11)(Ordering[Long]); var buffer = Long.MinValue; var count = minDistanceParameter.get.asInstanceOf[MinDistance].number
-//            itr.takeWhile(s=> {if(count >0 && s._11 != buffer) {count = count -1 ;buffer = s._11   ; true} else if (s._11==buffer) true else  false})/*take(minDistanceParameter.get.asInstanceOf[MinDistance].number)*/.map(s=> (x._1._1,(x._1._2,s)))}
-//          firstGroup.groupByKey()
-//            .flatMap{x=>val itr = x._2.toList.sortBy(_._2._11)(Ordering[Long]); var buffer = Long.MinValue; var count = minDistanceParameter.get.asInstanceOf[MinDistance].number
-//              itr.takeWhile(s=> {if(count >0 && s._2._11 != buffer) {count = count -1 ;buffer = s._2._11   ; true} else if (s._2._11==buffer) true else  false})/*take(minDistanceParameter.get.asInstanceOf[MinDistance].number)*/.map(s=> ((x._1,s._1),s._2))}
-//        } else {
-//          firstRound
-//        }
 
       val res: RDD[GRECORD] =
         if (secondRoundParameters.max.isDefined || secondRoundParameters.min.isDefined || secondRoundParameters.stream.isDefined) {
@@ -302,26 +280,19 @@ object GenometricJoin4TopMin2 {
 
     val keyBin = (regionStart / binSize).toInt
     val a  = // TODO should check the Strand too for upstream and downstream
-//      if(!stream.isDefined || stream.get.equals('-')){
       if(end1 > start1){
         val binStart1 = if ( (start1 / binSize).toInt < 0 ) 0 else (start1 / binSize).toInt
         val binEnd1 = if ( (end1 / binSize).toInt < 0 ) 0 else (end1 / binSize).toInt
         (binStart1 to binEnd1).map((v) => (keyBin, v))
-        //          for (i <- binStart1 to binEnd1)
-        //            yield((binStart1, i))
-
       } else {
         List()
       }
 
     val b =
-//      if(!stream.isDefined || stream.get.equals('+')){
       if(end2 > start2){
         val binStart2 = (start2 / binSize).toInt
         val binEnd2 = (end2 / binSize).toInt
         (binStart2 to binEnd2).map((v) => (keyBin, v))
-        //          for (i <- binStart2 to binEnd2)
-        //            yield((binStart2, i))
       } else {
         List()
       }
@@ -330,9 +301,6 @@ object GenometricJoin4TopMin2 {
   }
 
   def binExperiment(ds: RDD[GRECORD], Bgroups: RDD[(Long, Long)], BINNING_PARAMETER: Long): RDD[((Long, String, Int), (Long, Long, Long, Char, Array[GValue], Int, Int))] = {
-    // : RDD[(Long, Int, Long, String, Long, Long, Char, Array[GValue])] = {
-    //assignExperimentGroups(executor : FlinkImplementation, ds: DataSet[FlinkRegionType], groups: DataSet[(Long, Long)], env : ExecutionEnvironment): DataSet[(Long, Int, Int, Long, String, Long, Long, Char, Array[GValue])] = {
-
     if (!ds.isEmpty())
       ds.keyBy(x => x._1._1).join(Bgroups,new HashPartitioner(Bgroups.count.toInt)).flatMap { x =>
         val region = x._2._1
