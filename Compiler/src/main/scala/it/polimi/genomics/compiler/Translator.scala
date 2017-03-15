@@ -126,8 +126,8 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
     rep1(
       comparison |
         arithmetic |
-        gmql_identifier |
         metadata_attribute |
+        gmql_identifier |
         decimalNumber |
         floatingPointNumber |
         "," |
