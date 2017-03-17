@@ -231,7 +231,7 @@ object gmqlc {
       "RES = PROJECT(ALLBUT score; region_update: new_score AS score/100.0 )DATA_SET_VAR;\n" +
       "MATERIALIZE RES INTO res_gtf;"
 
-    val gtfScource = "DATA_SET_VAR = SELECT(region:frame == 'jjjj') /Users/abdulrahman/Polimi/IDEA/GMQLV2/res_gtf/exp/;\n" +
+    val gtfScource = "DATA_SET_VAR = SELECT() /Users/abdulrahman/Polimi/IDEA/GMQLV2/res_gtf/exp/;\n" +
     "MATERIALIZE DATA_SET_VAR INTO res_gtf1;"
 
     val  summitBin = "RAW = SELECT( antibody_target == 'ATF3') /Users/abdulrahman/Downloads/job_summit_abdulrahman_20170302_091615_raw/;\n" +

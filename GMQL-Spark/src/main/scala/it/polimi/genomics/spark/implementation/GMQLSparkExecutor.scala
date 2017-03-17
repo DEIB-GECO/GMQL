@@ -138,7 +138,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
           val regionsPartitioner = new HashPartitioner(Ids.count.toInt)
 
           val keyedRDD = if(!(outputFormat == GMQLSchemaFormat.GTF)){
-             regionRDD.map(x => (outSample+"_"+ "%05d".format(newIDSbroad.value.get(x._1._1).get)+".gdm",
+             regionRDD.map(x => (outSample+"_"+ "%05d".format(newIDSbroad.value.get(x._1._1).getOrElse(x._1._1))+".gdm",
                x._1._2 + "\t" + x._1._3 + "\t" + x._1._4 + "\t" + x._1._5 + "\t" + x._2.mkString("\t")))
                .partitionBy(regionsPartitioner).mapPartitions(x=>x.toList.sortBy{s=> val data = s._2.split("\t"); (data(0),data(1).toLong,data(2).toLong)}.iterator)
           }else {
@@ -159,7 +159,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
                 else Some(s._1._1 + " \"" + s._2 + "\";")
               }.mkString(" ")
 
-              (outSample + "_" + "%05d".format(newIDSbroad.value.get(x._1._1).get) + ".gtf",
+              (outSample + "_" + "%05d".format(newIDSbroad.value.get(x._1._1).getOrElse(x._1._1)) + ".gtf",
                 x._1._2 //chrom
                   + "\t" + {if(sourceIndex >=0) x._2(sourceIndex).toString else "GMQL" }//variable name
                   + "\t" + {if (featureIndex >=0) x._2(featureIndex) else  "Region"}

@@ -200,9 +200,9 @@ trait XMLDataSetRepository extends GMQLRepository{
 
     // Check the dataset name, return if the dataset is already used in
     // the repository of the this user or the public repository.
-    if (DSExists(dataSetName, userName)) {
-      logger.warn("The dataset name is already registered")
-      throw new GMQLNotValidDatasetNameException(s"The dataset name ($dataSetName) is already registered")
+    if (!DSExists(dataSetName, userName)) {
+      logger.warn("The dataset name is not found..")
+      throw new GMQLNotValidDatasetNameException(s"The dataset name ($dataSetName) is Not found in the repository")
     }
 
     val gMQLDataSetXML = new GMQLDataSetXML(dataSetName, userName).loadDS()
