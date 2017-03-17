@@ -132,7 +132,7 @@ object GMQLExecuteCommand {
         logger.info("Log Directory is set to: " + logDir)
 
       } else if ("-outputformat".equals(args(i).toLowerCase())) {
-        val out = args(i + 1).toUpperCase().trim
+        val out = args(i + 1).toLowerCase().trim
         outputFormat =
           if(out == GMQLSchemaFormat.TAB.toString)
             GMQLSchemaFormat.TAB
