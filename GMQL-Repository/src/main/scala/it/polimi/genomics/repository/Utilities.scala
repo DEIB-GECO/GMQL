@@ -39,8 +39,9 @@ class Utilities() {
     */
   def apply(confFile:String = "../conf") = {
     try {
-      var file = new File(confFile+"/repo.xml")
-      val xmlFile = XML.loadFile(file)
+      var file = new File(confFile+"/repository.xml")
+      val xmlFile =  if(file.exists()) XML.loadFile(file)
+        else XML.loadFile(new File("GMQL-Repository/src/main/resources/repository.xml"))
       val properties = (xmlFile \\ "property")
       //      val schemaType = (xmlFile \\ "gmqlSchema").head.attribute("type").get.head.text
 

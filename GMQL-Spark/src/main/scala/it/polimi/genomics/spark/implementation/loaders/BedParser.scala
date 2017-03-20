@@ -277,7 +277,7 @@ object RnaSeqParser extends BedParser("\t", 0, 1, 2, Some(3), Some(Array((4, Par
 class CustomParser extends BedParser("\t", 0, 1, 2, Some(3), Some(Array((4, ParsingType.DOUBLE)))) {
 
   private val logger: Logger = LoggerFactory.getLogger(classOf[CustomParser]);
-  //val schema = List(("name", ParsingType.STRING), ("score", ParsingType.DOUBLE))
+
   def setSchema(dataset: String): BedParser = {
 
     val conf: Configuration = new Configuration();
@@ -285,9 +285,6 @@ class CustomParser extends BedParser("\t", 0, 1, 2, Some(3), Some(Array((4, Pars
     val fs: FileSystem = FileSystem.get(path.toUri(), conf);
 
     val XMLfile:InputStream = fs.open(new Path(dataset+"/test.schema"))
-
-    //    println ("HI ",dataset,Utilities.getInstance().gethdfsConfiguration().get("fs.defaultFS") +Utilities.getInstance().HDFSRepoDir + Utilities.USERNAME + "/regions" + dataset+"/test.schema")
-
     var schematype = GMQLSchemaFormat.TAB
     var schema: Array[(String, ParsingType.Value)] = null
 
@@ -399,12 +396,6 @@ class CustomParser extends BedParser("\t", 0, 1, 2, Some(3), Some(Array((4, Pars
         this.schema = valuesPositionsSchema.toList
       }
     }
-
-
-
-
-
-    //    println (this.schema.mkString("\t"))
 
     this
 

@@ -1,7 +1,0 @@
-<?xml version = "1.0" encoding="UTF-8" standalone="yes"?>
-<gmqlProperties xmlns = "http://genomic.elet.polimi.it/entities">
-    <property name = "GMQL_LOCAL_HOME">/tmp/repo/</property>
-    <property name = "GMQL_DFS_HOME">/user/repo/</property>
-    <property name = "GMQL_REPO_TYPE">YARN</property>
-<!-- ﻿<property name = "HADOOP_HOME">/usr/local/hadoop/</property> -->
-</gmqlProperties>
