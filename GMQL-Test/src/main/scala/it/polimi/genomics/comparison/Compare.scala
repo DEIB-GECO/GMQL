@@ -26,8 +26,8 @@ object Compare {
   private final val FLINK = "FLINK"
   private final val SPARK = "SPARK"
   private final val ALL = "ALL"
-  val root:ch.qos.logback.classic.Logger = org.slf4j.LoggerFactory.getLogger("org").asInstanceOf[ch.qos.logback.classic.Logger];
-  root.setLevel(ch.qos.logback.classic.Level.WARN);
+//  val root:ch.qos.logback.classic.Logger = org.slf4j.LoggerFactory.getLogger("org").asInstanceOf[ch.qos.logback.classic.Logger];
+//  root.setLevel(ch.qos.logback.classic.Level.WARN);
 
 
   def main(args: Array[String]) {
