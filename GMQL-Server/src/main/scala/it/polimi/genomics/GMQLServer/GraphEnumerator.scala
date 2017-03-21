@@ -60,7 +60,7 @@ object GraphEnumerator {
             case IRGroupRD(groupingParameters : Option[List[GroupRDParameters.GroupingParameter]], aggregates : Option[List[RegionAggregate.RegionsToRegion]], regionDataset : RegionOperator) => List(regionDataset)
             case IROrderRD(ordering : List[(Int, Direction)], topPar : TopParameter, inputDataset : RegionOperator) => List(inputDataset)
             case IRGenometricJoin(metajoinCondition : Option[MetaJoinOperator], joinCondition : List[JoinQuadruple], regionBuilder : RegionBuilder, leftDataset : RegionOperator, rightDataset : RegionOperator) => List(leftDataset, rightDataset) ++ { if(metajoinCondition.isDefined) List(metajoinCondition.get) else List()}
-            case IRDifferenceRD(metaJoin : Option[MetaJoinOperator], leftDataset : RegionOperator, rightDataset : RegionOperator) => List(leftDataset, rightDataset) ++ { if(metaJoin.isDefined) List(metaJoin.get) else List()}
+            case IRDifferenceRD(metaJoin : Option[MetaJoinOperator], leftDataset : RegionOperator, rightDataset : RegionOperator, _) => List(leftDataset, rightDataset) ++ { if(metaJoin.isDefined) List(metaJoin.get) else List()}
             case IRJoinBy(condition :  MetaJoinCondition, leftDataset : MetaOperator, rightDataset : MetaOperator) => List(leftDataset, rightDataset)
             case IRGroupBy(groupAttributes: MetaGroupByCondition, inputDataset: MetaOperator) => List(inputDataset)
           }
