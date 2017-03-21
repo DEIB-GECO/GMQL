@@ -82,6 +82,8 @@ trait GmqlParsers extends JavaTokenParsers {
   val DESC:Parser[String] = """[d|D][e|E][s|S][c|C]""".r
   val EXACT:Parser[String] = """[e|E][x|X][a|A][c|C][t|T]""".r
   val FULLNAME:Parser[String] = """[f|F][u|U][l|L][l|L][n|N][a|A][m|M][e|E]""".r
+  val TRUE:Parser[String] = """[t|T][r|R][u|U][e|E]""".r
+  val FALSE:Parser[String] = """[f|F][a|A][l|L][s|S][e|E]""".r
 
   val region_field_name_with_wildcards:Parser[String] =
     (
@@ -365,5 +367,8 @@ trait GmqlParsers extends JavaTokenParsers {
     })
 
   val map_aggfun_list:Parser[List[RegionsToRegionTemp]] = repsep(map_aggfun, ",")
+
+
+  val difference_type:Parser[Boolean] = TRUE ^^ {x => true} | FALSE ^^ {x => false}
 
 }

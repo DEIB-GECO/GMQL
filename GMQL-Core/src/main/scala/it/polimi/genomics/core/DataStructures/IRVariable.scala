@@ -261,15 +261,21 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
   }
 
   //Difference A B: is translated to A.DIFFERENCE(B)
-  def DIFFERENCE(condition : Option[MetaJoinCondition] = None, subtrahend : IRVariable) = {
+  def DIFFERENCE(condition : Option[MetaJoinCondition] = None,
+                 subtrahend : IRVariable,
+                 is_exact : Boolean = false) = {
+
     val meta_join_cond = if (condition.isDefined){
       SomeMetaJoinOperator(IRJoinBy(condition.get, this.metaDag, subtrahend.metaDag))
     }
     else {
-      NoMetaJoinOperator(IRJoinBy(it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinCondition(List.empty), this.metaDag, subtrahend.metaDag))
+      NoMetaJoinOperator(
+        IRJoinBy(it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinCondition(List.empty),
+          this.metaDag, subtrahend.metaDag))
     }
 
-    val new_region_dag = IRDifferenceRD(meta_join_cond, this.regionDag, subtrahend.regionDag)
+    val new_region_dag = IRDifferenceRD(meta_join_cond, this.regionDag, subtrahend.regionDag, is_exact)
+
     new_region_dag.binSize = binS.size
     val new_meta_dag = /*this.metaDag*/
       IRCombineMD(meta_join_cond,

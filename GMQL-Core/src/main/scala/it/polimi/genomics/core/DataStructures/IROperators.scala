@@ -288,7 +288,10 @@ case class IRCollapseMD(grouping : Option[MetaGroupOperator], input_dataset : Me
  * @param left_dataset The dataset to be cleaned (minuend)
  * @param right_dataset The region that must not be overlapped (subtrahend)
  */
-case class IRDifferenceRD(meta_join : OptionalMetaJoinOperator, left_dataset : RegionOperator, right_dataset : RegionOperator) extends RegionOperator {
+case class IRDifferenceRD(meta_join : OptionalMetaJoinOperator,
+                          left_dataset : RegionOperator,
+                          right_dataset : RegionOperator,
+                          exact : Boolean = false) extends RegionOperator {
 
 }
 
