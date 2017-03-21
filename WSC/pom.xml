@@ -27,19 +27,22 @@
             <groupId>com.typesafe.play</groupId>
             <artifactId>play-ws_2.10</artifactId>
             <version>2.4.6</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-classic</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
             <groupId>it.polimi.genomics</groupId>
             <artifactId>GMQL-Core</artifactId>
             <version>2.0</version>
-        </dependency>
-
-        <!-- http://mvnrepository.com/artifact/org.slf4j/slf4j-log4j12 -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-log4j12</artifactId>
-            <version>1.7.21</version>
         </dependency>
 
     </dependencies>
