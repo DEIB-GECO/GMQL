@@ -303,11 +303,11 @@ trait GmqlParsers extends JavaTokenParsers {
   val join_midistance:Parser[AtomicCondition] = MINDIST ~> "(" ~> wholeNumber <~ ")" ^^
     {x => MinDistance(x.toInt)}
   val join_distless:Parser[AtomicCondition] =
-    ((DISTANCE ~> ("<" | "<=") ~> ("-" ~> wholeNumber) |
+    ((DISTANCE ~> ("<=" | "<") ~> ("-" ~> wholeNumber) |
       DISTLESS ~> "(" ~> ("-" ~> wholeNumber)  <~ ")") ^^ {x => DistLess(-x.toLong)}) |
-      ((DISTANCE ~> ("<" | "<=") ~> wholeNumber |
+      ((DISTANCE ~> ("<=" | "<") ~> wholeNumber |
     DISTLESS ~> "(" ~> wholeNumber <~ ")") ^^ {x => DistLess(x.toLong)})
-  val join_distgreater:Parser[AtomicCondition] = (DISTANCE ~> (">" | "=>") ~> wholeNumber |
+  val join_distgreater:Parser[AtomicCondition] = (DISTANCE ~> ( "=>" | ">") ~> wholeNumber |
     DISTGREATER ~> "(" ~> wholeNumber <~ ")") ^^ {x => DistGreater(x.toLong)}
   val join_atomic_condition:Parser[AtomicCondition] = join_up | join_down |
     join_distgreater | join_distless | join_midistance
