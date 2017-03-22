@@ -17,8 +17,9 @@ case class DifferenceOperator(op_pos : Position,
   with BuildingOperator2 with Serializable {
 
   override val operator_name = "DIFFERENCE"
-  override val accepted_named_parameters = List("joinby")
+  override val accepted_named_parameters = List("joinby", "exact")
   var meta_join_param : Option[MetaJoinCondition] = None
+  var diff_type : Boolean = false
 
   override def check_input_number = two_inputs
 
@@ -39,6 +40,12 @@ case class DifferenceOperator(op_pos : Position,
                            n.param_name,
                            n.param_value).get))
         }
+        case "exact" => {
+          diff_type =
+              parser_named(difference_type,
+                n.param_name,
+                n.param_value).get
+        }
       }
     }
 
@@ -49,7 +56,9 @@ case class DifferenceOperator(op_pos : Position,
 
     val differenced = super_variable_left.get.DIFFERENCE(
       meta_join_param,
-      super_variable_right.get)
+      super_variable_right.get,
+      diff_type
+    )
 
     CompilerDefinedVariable(output.name,output.pos,differenced)
   }

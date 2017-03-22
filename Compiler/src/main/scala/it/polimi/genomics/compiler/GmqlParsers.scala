@@ -82,6 +82,8 @@ trait GmqlParsers extends JavaTokenParsers {
   val DESC:Parser[String] = """[d|D][e|E][s|S][c|C]""".r
   val EXACT:Parser[String] = """[e|E][x|X][a|A][c|C][t|T]""".r
   val FULLNAME:Parser[String] = """[f|F][u|U][l|L][l|L][n|N][a|A][m|M][e|E]""".r
+  val TRUE:Parser[String] = """[t|T][r|R][u|U][e|E]""".r
+  val FALSE:Parser[String] = """[f|F][a|A][l|L][s|S][e|E]""".r
 
   val region_field_name_with_wildcards:Parser[String] =
     (
@@ -303,11 +305,11 @@ trait GmqlParsers extends JavaTokenParsers {
   val join_midistance:Parser[AtomicCondition] = MINDIST ~> "(" ~> wholeNumber <~ ")" ^^
     {x => MinDistance(x.toInt)}
   val join_distless:Parser[AtomicCondition] =
-    ((DISTANCE ~> ("<" | "<=") ~> ("-" ~> wholeNumber) |
+    ((DISTANCE ~> ("<=" | "<") ~> ("-" ~> wholeNumber) |
       DISTLESS ~> "(" ~> ("-" ~> wholeNumber)  <~ ")") ^^ {x => DistLess(-x.toLong)}) |
-      ((DISTANCE ~> ("<" | "<=") ~> wholeNumber |
+      ((DISTANCE ~> ("<=" | "<") ~> wholeNumber |
     DISTLESS ~> "(" ~> wholeNumber <~ ")") ^^ {x => DistLess(x.toLong)})
-  val join_distgreater:Parser[AtomicCondition] = (DISTANCE ~> (">" | "=>") ~> wholeNumber |
+  val join_distgreater:Parser[AtomicCondition] = (DISTANCE ~> ( ">=" | ">") ~> wholeNumber |
     DISTGREATER ~> "(" ~> wholeNumber <~ ")") ^^ {x => DistGreater(x.toLong)}
   val join_atomic_condition:Parser[AtomicCondition] = join_up | join_down |
     join_distgreater | join_distless | join_midistance
@@ -365,5 +367,8 @@ trait GmqlParsers extends JavaTokenParsers {
     })
 
   val map_aggfun_list:Parser[List[RegionsToRegionTemp]] = repsep(map_aggfun, ",")
+
+
+  val difference_type:Parser[Boolean] = TRUE ^^ {x => true} | FALSE ^^ {x => false}
 
 }
