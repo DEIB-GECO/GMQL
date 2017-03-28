@@ -213,7 +213,7 @@ class GmqlSciImplementation
         // -------------------------------------------------------------------------------------------------------------
         // Region Operators --------------------------------------------------------------------------------------------
 
-        case IRDifferenceRD(mj, positive, negative) => new GmqlDifferenceRD(prepare(mj.getOperator).asInstanceOf[GmqlMetaJoinOperator],
+        case IRDifferenceRD(mj, positive, negative,_) => new GmqlDifferenceRD(prepare(mj.getOperator).asInstanceOf[GmqlMetaJoinOperator],
                                                                             prepare(positive).asInstanceOf[GmqlRegionOperator],
                                                                             prepare(negative).asInstanceOf[GmqlRegionOperator])
 

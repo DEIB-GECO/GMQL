@@ -31,12 +31,11 @@ object TestSelect {
 
     val output = "/home/abdulrahman/SparkOutput/V2DAG"+formatter.format(new Date(System.currentTimeMillis()))+"/"
 
+    import DataStructures.MetadataCondition._
     val meta_con =
-      DataStructures.MetadataCondition.AND(
-        DataStructures.MetadataCondition.Predicate("cell",DataStructures.MetadataCondition.META_OP.GTE, "11"),
-        DataStructures.MetadataCondition.NOT(
-          DataStructures.MetadataCondition.Predicate("provider", DataStructures.MetadataCondition.META_OP.NOTEQ, "UCSC")
-        )
+      AND(
+        Predicate("cell",META_OP.GTE, "11"),
+        NOT(Predicate("provider", META_OP.NOTEQ, "UCSC"))
       )
 
     val   reg_con =

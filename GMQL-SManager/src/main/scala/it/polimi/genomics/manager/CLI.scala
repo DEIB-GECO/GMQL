@@ -51,6 +51,15 @@ object CLI {
 
   def main(args: Array[String]): Unit = {
 
+    try{
+      //    DOMConfigurator.configure("GMQL-Core/logback.xml")
+      val root:ch.qos.logback.classic.Logger = org.slf4j.LoggerFactory.getLogger("org.apache.spark").asInstanceOf[ch.qos.logback.classic.Logger];
+      root.setLevel(ch.qos.logback.classic.Level.WARN);
+//      org.slf4j.LoggerFactory.getLogger("it.polimi.genomics.manager").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.INFO)
+    }catch{
+      case _:Throwable => logger.warn("log4j.xml is not found in conf")
+    }
+
     //Setting the default options
     var executionType: String = ImplementationPlatform.SPARK.toString.toLowerCase();
     var scriptPath: String = null;
