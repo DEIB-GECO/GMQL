@@ -39,10 +39,10 @@
     </repositories>
 
     <properties>
-        <maven.compiler.source>1.7</maven.compiler.source>
-        <maven.compiler.target>1.7</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
         <encoding>UTF-8</encoding>
-        <scala.version>2.10.4</scala.version>
+        <scala.version>2.11.8</scala.version>
     </properties>
 
     <dependencies>
@@ -59,17 +59,21 @@
             <version>2.0</version>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/org.apache.flink/flink-scala_2.11 -->
         <dependency>
             <groupId>org.apache.flink</groupId>
-            <artifactId>flink-scala</artifactId>
-            <version>0.10.1</version>
+            <artifactId>flink-scala_2.11</artifactId>
+            <version>1.2.0</version>
         </dependency>
 
+
+        <!-- https://mvnrepository.com/artifact/org.apache.flink/flink-clients_2.11 -->
         <dependency>
             <groupId>org.apache.flink</groupId>
-            <artifactId>flink-clients</artifactId>
-            <version>0.10.1</version>
+            <artifactId>flink-clients_2.11</artifactId>
+            <version>1.2.0</version>
         </dependency>
+
 
         <dependency>
             <groupId>log4j</groupId>
@@ -222,8 +226,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.3</version>
                 <configuration>
-                    <source>1.7</source>
-                    <target>1.7</target>
+                    <source>1.8</source>
+                    <target>1.8</target>
                 </configuration>
             </plugin>
 

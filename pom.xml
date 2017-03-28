@@ -13,11 +13,11 @@
         <module>GMQL-dot</module>
         <module>Compiler</module>
         <module>GMQL-Test</module>
-        <!--<module>GMQL-SciDB</module>-->
-        <!--<module>SciDB-ScalaAPI</module>-->
+        <module>GMQL-SciDB</module>
+        <module>SciDB-ScalaAPI</module>
         <module>GMQL-Repository</module>
         <module>GMQL-SManager</module>
-        <!--<module>GMQL-Importer</module>-->
+        <module>GMQL-Importer</module>
         <module>WSC</module>
     </modules>
     <name>${project.artifactId}</name>
@@ -41,10 +41,10 @@
 
 
     <properties>
-        <maven.compiler.source>1.7</maven.compiler.source>
-        <maven.compiler.target>1.7</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
         <encoding>UTF-8</encoding>
-        <scala.version>2.10.6</scala.version>
+        <scala.version>2.11.8</scala.version>
     </properties>
 
     <dependencies>

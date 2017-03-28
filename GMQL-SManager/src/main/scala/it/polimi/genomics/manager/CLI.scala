@@ -1,6 +1,6 @@
 package it.polimi.genomics.manager
 
-import java.io.File
+import java.io.{File, IOException}
 import java.nio.file.{Files, Paths}
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -113,9 +113,13 @@ object CLI {
         }
     }
 
+    val gmqlScript: GMQLScript = try{
     //GMQL script
-    val gmqlScript: GMQLScript = new GMQLScript( new String(Files.readAllBytes(Paths.get(scriptPath))),scriptPath)
-
+     new GMQLScript( new String(Files.readAllBytes(Paths.get(scriptPath))),scriptPath)
+    }catch
+      {
+        case x:IOException => x.printStackTrace();new GMQLScript("","")
+      }
     //Default bin parameters
     val binSize: BinSize = new BinSize(5000, 5000, 1000)
 

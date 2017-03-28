@@ -1,16 +1,14 @@
 package it.polimi.genomics.comparison
 
-import java.io.{File, PrintWriter}
+import java.io.File
 
 import it.polimi.genomics.DotImplementation.DotImplementation
 import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.compiler.{MaterializeOperator, Translator}
 import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
-import it.polimi.genomics.repository.{Utilities => General_Utilities}
-import it.polimi.genomics.repository.FSRepository.{LFSRepository, FS_Utilities => FSR_Utilities}
+import it.polimi.genomics.repository.FSRepository.{FS_Utilities => FSR_Utilities}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.tooling.{Comparators, DataGenerator, DocumentManager, FS_tools}
-import org.apache.flink.optimizer.postpass.SparseKeySchema
 import org.apache.spark.{SparkConf, SparkContext}
 import org.slf4j.LoggerFactory
 

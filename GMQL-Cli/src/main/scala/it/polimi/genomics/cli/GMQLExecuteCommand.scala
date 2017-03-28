@@ -205,12 +205,12 @@ object GMQLExecuteCommand {
         server.run()
       }else{
         logger.error("Compile failed..")
-        exit(0);
+        System.exit(0);
       }
     } catch {
-      case e: CompilerException => logger.error(e.getMessage) ; exit(0)
-      case ex:Exception => logger.error("exception: \t"+ex.getMessage);/*ex.printStackTrace();*/ exit(0)
-      case e : Throwable =>logger.error("Throwable: "+e.getMessage);/* e.printStackTrace(); */exit(0)
+      case e: CompilerException => logger.error(e.getMessage) ; System.exit(0)
+      case ex:Exception => logger.error("exception: \t"+ex.getMessage);/*ex.printStackTrace();*/ System.exit(0)
+      case e : Throwable =>logger.error("Throwable: "+e.getMessage);/* e.printStackTrace(); */System.exit(0)
     }
   }
 

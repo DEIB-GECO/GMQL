@@ -18,14 +18,14 @@
         <!-- http://mvnrepository.com/artifact/com.typesafe.play/play_2.10 -->
         <dependency>
             <groupId>com.typesafe.play</groupId>
-            <artifactId>play_2.10</artifactId>
+            <artifactId>play_2.11</artifactId>
             <version>2.4.6</version>
         </dependency>
 
         <!-- http://mvnrepository.com/artifact/com.typesafe.play/play-ws_2.10 -->
         <dependency>
             <groupId>com.typesafe.play</groupId>
-            <artifactId>play-ws_2.10</artifactId>
+            <artifactId>play-ws_2.11</artifactId>
             <version>2.4.6</version>
             <exclusions>
                 <exclusion>
@@ -84,8 +84,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.3</version>
                 <configuration>
-                    <source>1.7</source>
-                    <target>1.7</target>
+                    <source>1.8</source>
+                    <target>1.8</target>
                 </configuration>
             </plugin>
 
