@@ -11,12 +11,11 @@ import it.polimi.genomics.core.{GMQLSchemaFormat, ImplementationPlatform}
 import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.{FileSystem}
+import org.apache.hadoop.fs.FileSystem
 import org.apache.log4j.{FileAppender, Level, PatternLayout}
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd, SparkListenerApplicationStart, SparkListenerStageCompleted}
 import org.apache.spark.{SparkConf, SparkContext}
-import org.slf4j.{Logger, LoggerFactory}
-;
+import org.slf4j.LoggerFactory
 
 /**
   * Created by Abdulrahman Kaitoua on 10/09/15.
@@ -233,7 +232,7 @@ object GMQLExecuteCommand {
 //    org.apache.log4j.Logger.getRootLogger().setLevel(org.apache.log4j.Level.INFO)
     org.apache.log4j.Logger.getLogger("org").setLevel(if (!verbose) org.apache.log4j.Level.WARN else org.apache.log4j.Level.INFO)
 //    org.apache.log4j.Logger.getLogger("it").setLevel(if (!verbose) org.apache.log4j.Level.WARN else org.apache.log4j.Level.DEBUG)
-//    org.apache.log4j.Logger.getLogger("it.polimi.genomics.spark.implementation.MetaOperators.SelectMeta.SelectIMDWithNoIndex").setLevel( org.apache.log4j.Level.DEBUG)
+    org.apache.log4j.Logger.getLogger("it.polimi.genomics.spark").setLevel( org.apache.log4j.Level.DEBUG)
 //    org.apache.log4j.Logger.getLogger("it.polimi.genomics.cli").setLevel(if (!verbose) org.apache.log4j.Level.INFO else org.apache.log4j.Level.INFO)
     org.apache.log4j.Logger.getLogger("org.apache.spark").setLevel(org.apache.log4j.Level.WARN)
     org.apache.log4j.Logger.getLogger("akka").setLevel(org.apache.log4j.Level.ERROR)
@@ -268,7 +267,6 @@ object GMQLExecuteCommand {
     val dag = objectInputStream1.readObject().asInstanceOf[java.util.ArrayList[Operator]];
 
     println("hi\n" + dag.toString)
-    import scala.collection.JavaConverters._
     var DAG: List[Operator] = List[Operator]()
     for (i <- 0 to dag.size() - 1) {
       DAG = DAG :+ dag.get(i)
@@ -322,7 +320,7 @@ object GMQLExecuteCommand {
   def getImplemenation(executionType:String,jobid:String , outputFormat: GMQLSchemaFormat.Value) ={
     if (executionType.equals(it.polimi.genomics.core.ImplementationPlatform.SPARK.toString.toLowerCase())) {
       val conf = new SparkConf().setAppName("GMQL V2.1 Spark " + jobid)
-        .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "64")
+        .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "128")
         .set("spark.driver.allowMultipleContexts","true")
         .set("spark.sql.tungsten.enabled", "true")//.setMaster("local[*]")
       val sc: SparkContext = new SparkContext(conf)
