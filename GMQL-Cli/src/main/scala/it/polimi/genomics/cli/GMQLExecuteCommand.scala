@@ -324,23 +324,23 @@ object GMQLExecuteCommand {
         .set("spark.driver.allowMultipleContexts","true")
         .set("spark.sql.tungsten.enabled", "true")//.setMaster("local[*]")
       val sc: SparkContext = new SparkContext(conf)
-      sc.addSparkListener(new SparkListener() {
-        override def onApplicationStart(applicationStart: SparkListenerApplicationStart) {
-          logger.debug("Spark ApplicationStart: " + applicationStart.appName);
-        }
-
-        override def onStageCompleted(stageCompleted: SparkListenerStageCompleted): Unit = {
-          logger.debug("Number of tasks "+stageCompleted.stageInfo.numTasks+ "\tinfor:"+ stageCompleted.stageInfo.rddInfos.mkString("\n"))
-          logger.debug("Spark Stage ended: " +stageCompleted.stageInfo.name+
-            /*", with details ("+ stageCompleted.stageInfo.details+*/
-            " ,execTime: "+ stageCompleted.stageInfo.completionTime.getOrElse(0));
-        }
-
-        override def onApplicationEnd(applicationEnd: SparkListenerApplicationEnd) {
-          logger.debug("Spark ApplicationEnd: " + applicationEnd.time);
-        }
-
-      });
+//      sc.addSparkListener(new SparkListener() {
+//        override def onApplicationStart(applicationStart: SparkListenerApplicationStart) {
+//          logger.debug("Spark ApplicationStart: " + applicationStart.appName);
+//        }
+//
+//        override def onStageCompleted(stageCompleted: SparkListenerStageCompleted): Unit = {
+//          logger.debug("Number of tasks "+stageCompleted.stageInfo.numTasks+ "\tinfor:"+ stageCompleted.stageInfo.rddInfos.mkString("\n"))
+//          logger.debug("Spark Stage ended: " +stageCompleted.stageInfo.name+
+//            /*", with details ("+ stageCompleted.stageInfo.details+*/
+//            " ,execTime: "+ stageCompleted.stageInfo.completionTime.getOrElse(0));
+//        }
+//
+//        override def onApplicationEnd(applicationEnd: SparkListenerApplicationEnd) {
+//          logger.debug("Spark ApplicationEnd: " + applicationEnd.time);
+//        }
+//
+//      });
       new GMQLSparkExecutor(testingIOFormats = false, sc = sc, outputFormat = outputFormat)
     } else /*if(executionType.equals(FLINK)) */ {
       new FlinkImplementation()
