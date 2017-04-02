@@ -8,7 +8,7 @@ import play.api.libs.ws.{WSAPI, WSAuthScheme}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
-import it.polimi.genomics.manager.Utilities
+import it.polimi.genomics.wsc.WSUtilities
 
 /**
   * Created by abdulrahman on 30/05/16.
@@ -22,11 +22,11 @@ object KnoxClient {
   // Standard Play-style WSAPI
   def wsAPI: WSAPI = standaloneWSAPI
 
-  val GATEWAY = Utilities().KNOX_GATEWAY
-  val SERVICE_PATH = Utilities().KNOX_SERVICE_PATH
+  val GATEWAY = WSUtilities().KNOX_GATEWAY
+  val SERVICE_PATH = WSUtilities().KNOX_SERVICE_PATH
 
-  val USERNAME = Utilities().KNOX_USERNAME
-  val PASSWORD = Utilities().KNOX_PASSWORD
+  val USERNAME = WSUtilities().KNOX_USERNAME
+  val PASSWORD = WSUtilities().KNOX_PASSWORD
 
   def downloadFile(inputfile: String, outputFile: File) = {
     DownloadFile(inputfile, outputFile)

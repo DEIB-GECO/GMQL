@@ -24,13 +24,6 @@ class Utilities {
   final val CLUSTER_LAUNCHER: String = "CLUSTER"
   final val REMOTE_CLUSTER_LAUNCHER: String = "REMOTE_CLUSTER"
 
-  var KNOX_GATEWAY: String = null
-  var KNOX_SERVICE_PATH:String   = null
-  var KNOX_USERNAME:String       = null
-  var KNOX_PASSWORD:String       = null
-
-  var LIVY_BASE_URL:String       = null
-  var REMOTE_CLI_JAR_PATH:String = null
 
   def apply() = {
 
@@ -50,13 +43,6 @@ class Utilities {
           case Conf.LIB_DIR_LOCAL => lib_dir_local = value
           case Conf.CLI_CLASS => CLI_CLASS = value
           case Conf.LAUNCHER_MODE => LAUNCHER_MODE = value
-
-          case Conf.KNOX_GATEWAY => KNOX_GATEWAY = value
-          case Conf.KNOX_SERVICE_PATH => KNOX_SERVICE_PATH = value
-          case Conf.KNOX_USERNAME => KNOX_USERNAME = value
-          case Conf.KNOX_PASSWORD => KNOX_PASSWORD = value
-          case Conf.LIVY_BASE_URL => LIVY_BASE_URL = value
-          case Conf.REMOTE_CLI_JAR_PATH => REMOTE_CLI_JAR_PATH = value
 
           case _ => logger.error(s"Not known configuration property: $x, $value")
         }
@@ -107,10 +93,4 @@ object Conf {
   val LIB_DIR_HDFS = "LIB_DIR_HDFS"
   val CLI_CLASS = "CLI_CLASS"
 
-  val KNOX_GATEWAY = "KNOX_GATEWAY"
-  val KNOX_SERVICE_PATH = "KNOX_SERVICE_PATH"
-  val KNOX_USERNAME = "KNOX_USERNAME"
-  val KNOX_PASSWORD = "KNOX_PASSWORD"
-  val LIVY_BASE_URL = "LIVY_BASE_URL"
-  val REMOTE_CLI_JAR_PATH = "REMOTE_CLI_JAR_PATH"
 }

@@ -1,129 +1,88 @@
-package it.polimi.genomics.wsc.Livy
+package it.polimi.genomics.manager.Launchers
 
-import it.polimi.genomics.manager.{Status, Utilities}
-import it.polimi.genomics.wsc.Knox.LooseWSAPI
+
+import it.polimi.genomics.wsc.Knox.{KnoxClient, LooseWSAPI}
+import it.polimi.genomics.wsc.Livy.StandAloneWSAPI
+import it.polimi.genomics.wsc.WSUtilities
+import org.slf4j.LoggerFactory
+import play.api.libs.json.{JsArray, JsObject, JsString}
 import play.api.libs.ws.WSAuthScheme
 
-import scala.util.Random
 import scala.concurrent.duration._
 import scala.concurrent.Await
-import play.api.libs.json._
 
 /**
-  * Created by abdulrahman on 25/05/16.
-  * Updated by andreagulino on 10/03/17
+  * Created by abdulrahman on 26/05/16.
+  * Edited by andreagulino on 20/03/17.
   */
+class LivyClient(jobId:String, cliArgs: JsArray, outDir: String) {
 
-object LivyClient {
 
+  var applicationID: Option[String] = _
+
+
+  private final val logger   = LoggerFactory.getLogger(this.getClass);
+
+
+  /* Livy Client Config */
   val WSAPI_Livy = new StandAloneWSAPI()
+  val livyBaseUrl = WSUtilities().LIVY_BASE_URL
+
+
+  /* Knox Client Config */
   val WSAPI_Knox = new LooseWSAPI()
-
-  // Knox Authentication
-  val kUser = Utilities().KNOX_USERNAME
-  val kPass = Utilities().KNOX_PASSWORD
-
-  // Livy Base URL
-  val livyBaseUrl = Utilities().LIVY_BASE_URL
-
-  val ran = "job_" + Random.nextInt(100000)
+  val kUser = WSUtilities().KNOX_USERNAME
+  val kPass = WSUtilities().KNOX_PASSWORD
 
 
+  val jsData = JsObject(Seq(
+    "proxyUser" -> JsString(WSUtilities().KNOX_USERNAME),
+    "name"      -> JsString(jobId),
+    /*
+    These parameters are commented because not allowed by CINECA
 
-  def main(args: Array[String]): Unit = {
+    "numExecutors"   -> JsNumber(15),   //YARN only
+    "executorCores"  -> JsNumber(15),
+    "executorMemory" -> JsString("3G"),
+    "driverCores"    -> JsNumber(3),
+    "driverMemory"    -> JsString("8G"),
 
+    */
+    "file"      ->JsString(WSUtilities().CLI_JAR_PATH),
+    "className" ->JsString(WSUtilities().CLI_CLASS),
+    "args"      -> cliArgs
+  ))
 
-    if( args.isEmpty ) {
-      println("args0:"+
-        "\t 1 - Get job status (job id in arg1) \n" +
-        "\t 2 - Perform query (query script in arg1)  \n" +
-        "\t 3 - Get application id and log for livy job id (arg1)")
-      return
-    }
+  private def getLogURL(appId: String, hostNumber: String ): String = {
 
-
-
-    try {
-      if (args.size > 1 && args(0) == "1") {
-
-        // Get Status
-        val status = getStatus(args(1))
-        // Check If succeed to get the status
-        if( status.isDefined ) {
-          println(status.get)
-        } else {
-          println("Cannot get the status of the application (maybe is too old)")
-        }
-
-
-
-      } else if(args.size > 1 && args(0) == "2") {
-
-        // Query
-        println(query(args(1)))
-
-
-      } else if(args.size > 1 && args(0) == "3") {
-
-        val status = getStatus(args(1))
-
-        // Check If succeed to get the status
-        if( status.isDefined ) {
-
-          // Check if execution succeeded
-          if(status.get.equals(Status.EXEC_SUCCESS)) {
-
-            // Get app name
-            val app_name = getAppName(args(1))
-
-            // Check if app name is defined
-            if (app_name.isDefined) {
-              println(getLog(app_name.get))
-            } else {
-              println("Failed to get the app name.")
-            }
-          } else {
-            println("Cannot get the log while the job is still running")
-          } // end check exec succ.
-        } else {
-          println("Cannot get the status of the application (maybe is too old)")
-        }
-
-      } else {
-        println("No operation defined for the provided args.")
-      }
-
-    } finally {
-      // required, else there'll be threads hanging around
-      // you might not care to do this though.
-      WSAPI_Livy.close()
-      WSAPI_Knox.close()
-    }
+    WSUtilities().KNOX_GATEWAY+
+      "jobstoryui/jobstory/jobhistory/logs/bi"+
+      hostNumber +
+      ".pico.cineca.it:45454/"+
+      "container_"+appId+"_01_000001"+"/"+
+      "container_"+appId+"_01_000001"+"/"+
+      "/akaitoua/stderr?start=0"
   }
 
+  // Livy ID and Application ID can be retrieved after a job is launched
+  var livyJobID:Option[String] = None
 
-  def getStatus(livyJobId:String): Option[Status.Value] = {
-    def statusHolder = {
-      WSAPI_Livy.url(livyBaseUrl+"/"+livyJobId)
-        .withHeaders("Accept" -> "application/json")
-        .withRequestTimeout(10000)
-    }
-
-    val result = Await.result(statusHolder.get(), 2.seconds)
-    if( result.status == 404 ) {
-      None
-    } else {
-      val state =  (result.json \\ "state")(0).toString()
-      print(" \n\n\n### STATE IS "+state+" ####\n\n\n")
-      Some(stateAdapter(state))
-    }
+  /*
+   Json object to be sent to Livy Server encapsulating both
+     - spark-submit parameters
+     - GMQL-Cli parameters
+   */
 
 
+  /**
+    * Run the job invoking Livy API
+    * @return [[ GMQLLauncher]]
+    */
+   def run(): Unit = {
 
+    print("Calling livy API with json object:")
+    print(jsData.toString())
 
-  }
-
-  private def query(script: String): String = {
 
     def holder = {
       WSAPI_Livy.url(livyBaseUrl)
@@ -132,83 +91,122 @@ object LivyClient {
         .withRequestTimeout(10000)
     }
 
-    val jsData = JsObject(Seq(
-      "proxyUser"      -> JsString(Utilities().KNOX_USERNAME),
-      "name"           -> JsString("GMQL Livy Test"),
-      /*"numExecutors"   -> JsNumber(15),
-      "executorCores"  -> JsNumber(15),
-      "executorMemory" -> JsString("3G"),
-      "driverCores"    -> JsNumber(3),
-      "driverMemory"   -> JsString("8G"), */
-      "file"           -> JsString(Utilities().REMOTE_CLI_JAR_PATH),
-      "className"      -> JsString(Utilities().CLI_CLASS),
-      "args"           -> JsArray(Seq(
-        JsString("-script"), JsString(script),
-        JsString("-scriptpath"), JsString("test.gmql"),
-        JsString("-jobid"), JsString(ran),
-        JsString("-username"), JsString("abdo")
-      ))
-    ))
 
 
-
-    (Await.result(holder.post(jsData), 10.seconds).json \\ "id")   (0) toString()
-
+    livyJobID = Some( (Await.result(holder.post(jsData), 10.seconds).json \\ "id") (0) toString)
   }
 
+  /**
+    * Kill the job calling Livy API  todo: is it good to kill the job in this way?
+    */
+   def killJob() = {
 
-  def getAppName(livyJobId:String): Option[String] = {
-
-    println("Getting App Name")
-
-    def holder = {
-      WSAPI_Livy.url(livyBaseUrl + "/" + livyJobId + "/log")
-        .withHeaders("Accept"       -> "application/json")
-        .withHeaders("Content-Type" -> "application/json")
+    def deleteHolder = {
+      WSAPI_Livy.url(livyBaseUrl+"/"+livyJobID.get)
+        .withHeaders("Accept" -> "application/json")
         .withRequestTimeout(10000)
     }
 
+    deleteHolder.delete()
+  }
 
-    val res =  Await.result(holder.get(), 2.seconds)
+  /**
+    * Get the status of the query (actually the status of the execution)
+    * @return The [[ GMQLJob]] Status [[ Status]]
+    */
+   def getStatus(): String ={
 
-    println("RESPONSE STATUS CODE: "+res.status)
+    if( livyJobID.isDefined ) {
 
-    if( res.status == 404 ) {
-      None
-    }  else {
+      def statusHolder = {
+        WSAPI_Livy.url(livyBaseUrl + "/" + livyJobID.get)
+          .withHeaders("Accept" -> "application/json")
+          .withRequestTimeout(10000)
+      }
 
-      val log = res.json \\ "log" toString()
-      val pattern_an = "(application_[0-9]+_[0-9]+)".r
-      pattern_an.findFirstIn(log)
+      val result = Await.result(statusHolder.get(), 2.seconds)
 
+      if (result.status == 404) {
+        ""
+      } else {
+        (result.json \\ "state") (0).toString()
+
+      }
+    } else {
+      ""
     }
 
   }
 
 
-  def getLog(appName:String) : String = {
+  /**
+    *
+    * Extracts the app name by looking for it in the Livy log
+    *
+    * @return String of the application name or empty String
+    */
+    def getAppName (): String = {
 
+    var appName = ""
+
+
+    if(livyJobID.isDefined) {
+
+      def holder = {
+        WSAPI_Livy.url(livyBaseUrl + "/" + livyJobID + "/log")
+          .withHeaders("Accept"       -> "application/json")
+          .withHeaders("Content-Type" -> "application/json")
+          .withRequestTimeout(10000)
+      }
+
+
+      val log_str =  Await.result(holder.get(), 2.seconds).json \\ "log" toString
+      val pattern = "(application_[0-9]+_[0-9]+)".r
+      appName  = pattern.findFirstIn(log_str).get
+
+    }
+      applicationID = Some(appName)
+      appName
+
+  }
+
+  /**
+    * get the log of the execution of GMQL job running using this launcher
+    * Notice: this is a workaround that exploits knox gateway to get the html log page of yarn history
+    *         log can be retrieved only when the execution is completed.
+    *
+    * @return List[String] as the log of the execution. An error message if called before end of execution or failed to retrieve.
+    */
+   def getLog(): List[String] = {
+
+    val isAppIdDefined   = applicationID.isDefined
+    val isExecSuccess    =  getStatus().equals("\"success\"")
+
+    if( !isAppIdDefined || !isExecSuccess ) {
+      return "Cannot get the log while the job is still running.".split("\n").toList
+    }
+
+
+    // Since the URL where the log is retrieved can change (and we cannot know it),
+    // we do several attempts until we find a web page containing a <pre> tag
     val attempts = Array("01", "02", "03", "04", "05", "06")
-
 
     for( attempt <- attempts ) {
 
-      var app_id = appName.replaceAll("application_", "")
+      var app_id = applicationID.get.replaceAll("application_", "")
 
       val a = WSAPI_Knox.url(getLogURL(app_id, attempt))
         .withRequestTimeout(10000)
         .withAuth(kUser, kPass, WSAuthScheme.BASIC)
-        .withHeaders("Accept"       -> "application/json")
+        .withHeaders("Accept" -> "application/json")
         .withHeaders("Content-Type" -> "application/json")
 
 
+      var log_res = Await.result(a.get(), 2.seconds)
 
-      var log_res =  Await.result(a.get(), 2.seconds)
+      // In order to locate the log inside the html we use regex after escaping the string
 
       val pattern_log = "<pre>.*</pre>".r
-
-      println("\n\n\nBody:")
-      println(log_res.body)
 
       val escaped = log_res.body.toString
         .replaceAll("\n", "GECONEWLINE")
@@ -218,58 +216,26 @@ object LivyClient {
         .replaceAll("\f", "GECOFORMFEED")
 
 
-      println("\n\n\nEscaped:")
-      println(escaped)
-
       val matched_log = pattern_log.findFirstIn(escaped)
 
-      if( !matched_log.isEmpty ) {
-        return matched_log.get.replace("<pre>", "").replace("</pre>","")
+      if (!matched_log.isEmpty) {
+        val log_string =  matched_log.get.replace("<pre>", "").replace("</pre>", "")
           .replaceAll("GECONEWLINE"  , "\n")
           .replaceAll("GECOCARRIAGE" , "\r")
           .replaceAll("GECOTAB"      , "\t")
           .replaceAll("GECOBACKSLASH", "\b")
           .replaceAll("GECOFORMFEED" , "\f")
-      } else {
-        println("Attempt URL ("+getLogURL(app_id, attempt)+") failed.")
 
+
+        return log_string.split("\n").toList
       }
 
     }
 
-    "Cannot retrieve the Log."
-
+    "Failed retrieving the Log.".split("\n").toList
 
   }
 
-  private def getLogURL(appId: String, hostNumber: String ): String = {
-
-    "https://biginsights.pico.cineca.it:8443/gateway/"+
-      "jobstoryui/jobstory/jobhistory/logs/bi"+
-      hostNumber +
-      ".pico.cineca.it:45454/"+
-      "container_"+appId+"_01_000001"+"/"+
-      "container_"+appId+"_01_000001"+"/"+
-      "/akaitoua/stderr?start=0"
-  }
-
-
-  /**
-    *
-    * Map the status recieved from Livy to GMQLJob Status
-    *
-    * @param state String from Livy
-    * @return [[ Status]] of GMQL job
-    */
-  private def stateAdapter(state:String): Status.Value ={
-    state match {
-      case "\"pending\"" => Status.PENDING
-      case "\"running\"" => Status.RUNNING
-      case "\"success\"" => Status.EXEC_SUCCESS
-      case "\"starting\"" => Status.PENDING
-      case _ => Status.EXEC_FAILED
-    }
-  }
 
 
 }
