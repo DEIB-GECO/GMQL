@@ -73,4 +73,16 @@ class GMQLSparkLauncher(sparkJob:GMQLJob) extends GMQLLauncher(sparkJob){
     }
   }
 
+  override var applicationID: Option[String] = _
+
+  /**
+    * get the log of the execution of GMQL job running using this launcher
+    *
+    * @return List[String] as the log of the execution
+    */
+  override def getLog(): List[String] = {
+    import scala.io.Source
+    Source.fromFile(job.loggerPath).getLines().toList
+
+  }
 }

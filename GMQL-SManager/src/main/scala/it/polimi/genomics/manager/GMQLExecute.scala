@@ -225,9 +225,9 @@ object GMQLExecute{
     * @param jobID [[ String]] of the JobID
     * @return list of Strings of the log information.
     */
+  @deprecated
   def getJobLog(username:String,jobID:String): util.List[String] ={
-    import scala.io.Source
-    Source.fromFile(General_Utilities().getLogDir(username)+jobID.toLowerCase()+".log").getLines().toList.asJava
+    instance.getGMQLJob(username, jobID).getLog.asJava
   }
 }
 

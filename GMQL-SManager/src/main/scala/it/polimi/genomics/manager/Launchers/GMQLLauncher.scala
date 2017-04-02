@@ -9,6 +9,8 @@ import it.polimi.genomics.manager.{GMQLJob, Status}
   */
   abstract class GMQLLauncher(val job:GMQLJob) {
 
+  var applicationID:Option[String]
+
   /**
     *
     * Run GMQL Job and return the handle to this execution
@@ -39,6 +41,13 @@ import it.polimi.genomics.manager.{GMQLJob, Status}
     *
     */
     def killJob ()
+
+  /**
+    * get the log of the execution of GMQL job running using this launcher
+    *
+    * @return List[String] as the log of the execution
+    */
+  def getLog():List[String]
 
   }
 

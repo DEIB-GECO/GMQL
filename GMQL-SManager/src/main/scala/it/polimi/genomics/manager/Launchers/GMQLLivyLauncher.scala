@@ -174,4 +174,13 @@ class GMQLLivyLauncher (livyJob:GMQLJob)  extends GMQLLauncher(livyJob){
 
     deleteHolder.delete()
   }
+
+  override var applicationID: Option[String] = _
+
+  /**
+    * get the log of the execution of GMQL job running using this launcher
+    *
+    * @return List[String] as the log of the execution
+    */
+  override def getLog(): List[String] = ???
 }

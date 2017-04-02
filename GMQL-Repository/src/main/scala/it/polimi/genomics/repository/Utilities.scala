@@ -27,7 +27,7 @@ class Utilities() {
   var HDFSRepoDir: String = System.getenv("GMQL_DFS_HOME")
   // Mode can be only "HDFS" or "REMOTE"
   var MODE: String = System.getenv("GMQL_REPO_TYPE")
-  var GMQL_REPO_TYPE: String = System.getenv("MODE")
+  var GMQL_REPO_TYPE: String = System.getenv("GMQL_REPO_TYPE")
   var CoreConfigurationFiles: String = null
   var HDFSConfigurationFiles: String = null
   var HADOOP_CONF_DIR:String = "/usr/local/Cellar/hadoop/2.7.2/libexec/etc/hadoop/"
@@ -93,7 +93,7 @@ class Utilities() {
     } else this.MODE
 
     RepoDir = this.GMQLHOME + "/data/"
-    
+
     //    CoreConfigurationFiles = if (CoreConfigurationFiles == null) "/usr/local/Cellar/hadoop/2.7.2/libexec/etc/hadoop/core-site.xml" else CoreConfigurationFiles
     //    HDFSConfigurationFiles = if (HDFSConfigurationFiles == null) "/usr/local/Cellar/hadoop/2.7.2/libexec/etc/hadoop/hdfs-site.xml" else HDFSConfigurationFiles
     logger.debug(CoreConfigurationFiles)
