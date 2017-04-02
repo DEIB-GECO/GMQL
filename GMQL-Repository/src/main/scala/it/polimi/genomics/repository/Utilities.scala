@@ -6,6 +6,7 @@ package it.polimi.genomics.repository
 
 import java.io.File
 
+import it.polimi.genomics.repository.FSRepository.{DFSRepository, LFSRepository, RFSRepository}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.xml.XML
@@ -220,6 +221,19 @@ class Utilities() {
     */
   def setConfDir(confDir:String) = {
     GMQL_CONF_DIR = confDir
+  }
+
+  /**
+    * Get the right instance of the repository according to the type specified
+    * in the config file
+    * @return an implementation of GMQLRepository
+    */
+  def getRepository(): GMQLRepository = {
+    GMQL_REPO_TYPE match {
+      case this.LOCAL  => new LFSRepository()
+      case this.HDFS   => new DFSRepository()
+      case this.REMOTE => new RFSRepository()
+    }
   }
 }
 
