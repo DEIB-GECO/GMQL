@@ -8,11 +8,11 @@ import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
 import it.polimi.genomics.repository.GMQLExceptions._
 import it.polimi.genomics.repository.{Utilities => General_Utilities, _}
 import it.polimi.genomics.wsc.Knox.KnoxClient
-import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.hadoop.fs.{Path}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
-import scala.concurrent.Await
+import scala.concurrent.{Await}
 
 /**
   * Created by abdulrahman on 12/04/16.
@@ -35,19 +35,21 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
   @throws(classOf[GMQLUserNotFound])
   override def createDs(dataSet: IRDataSet, userName: String, Samples: java.util.List[GMQLSample], GMQLScriptPath: String, schemaType: GMQLSchemaFormat.Value): Unit = {
 
-    val tempDir = General_Utilities().getTempDir( userName) + "/" + dataSet.position + "_/"
+    val tempDir = General_Utilities().getTempDir(userName) + "/" + dataSet.position + "_/"
     val tempDirectory = new File(tempDir)
     tempDirectory.mkdirs()
+
+    println("\n Created tempDir: "+tempDir)
 
     //download meta data files from remote server to local temporary directory to be able to build the meta descriptor of the dataset
     val samples = Samples.asScala.map { x =>
       val metaFile = tempDir + new File(x.meta).getName
       KnoxClient.downloadFile(General_Utilities().getHDFSRegionDir(userName) + x.meta, new File(metaFile))
       new GMQLSample(x.name, metaFile, x.ID)
-    }.toList
+    }.toList.asJava
 
     //create DS as a set of XML files in the local repository, this will read the meta files from the temp directory.
-    super.createDs(dataSet, userName, Samples, GMQLScriptPath,schemaType)
+    super.createDs(dataSet, userName, samples, GMQLScriptPath,schemaType)
 
     //clean temp from the meta files.
     tempDirectory.delete()
@@ -72,12 +74,15 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
       // Import the dataset schema and Script files to the local folder
       super.importDs(dataSetName: String, userName: String, Samples: java.util.List[GMQLSample], schemaPath: String)
 
-      //move data using KNOX to the remote Cluster.
+      //move data and schema using KNOX to the remote Cluster.
       Samples.asScala.map { x =>
-        KnoxClient.mkdirs(General_Utilities().HDFSRepoDir + (new File(x.name).getParent))
-        KnoxClient.uploadFile(x.name, General_Utilities().HDFSRepoDir + x.name)
-        KnoxClient.uploadFile(x.name + ".meta", General_Utilities().HDFSRepoDir + x.name + ".meta")
+        KnoxClient.mkdirs(General_Utilities().getHDFSRegionDir(userName) + (new File(x.name).getParent))
+        KnoxClient.uploadFile(x.name, General_Utilities().getHDFSRegionDir(userName) + x.name)
+        KnoxClient.uploadFile(x.name + ".meta", General_Utilities().getHDFSRegionDir(userName) + x.name + ".meta")
       }
+
+      KnoxClient.uploadFile(schemaPath, General_Utilities().getHDFSRegionDir(userName) +  new Path(Samples.get(0).name).getParent.toString+  "/test.schema")
+
     } else {
       logger.info("The dataset schema does not confirm the schema style (XSD)")
     }
@@ -132,16 +137,33 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
     import scala.concurrent.duration._
     val dsPath = General_Utilities().getHDFSRegionDir(userName) + dataSetName
     //User Knox client to connect to the remote cluster to list all the files under the result directory
-    val contents = Await.result(KnoxClient.listFiles(dsPath), 10.second)
+    val contents = Await.result(KnoxClient.listFiles(dsPath), 20.second)
 
     //Search only for the files in the list not directories
     val files = contents flatMap { x => if (x._2.equals("FILE")) Some(x._1) else None }
 
     //filter the listed files to include only the region files that has a corresponding meta files.
-    val samples = files.flatMap(x => if (x.endsWith("meta") || x.endsWith("schema") || x.endsWith("_SUCCESS")) None else Some(new GMQLSample(dataSetName + x, dataSetName + x + ".meta"))).toList.asJava
+    val samples = files.flatMap(x =>
+      if (x.endsWith("meta") || x.endsWith("schema") || x.endsWith("_SUCCESS"))
+        None
+      else
+        Some(new GMQLSample(dataSetName + x, dataSetName + x + ".meta"))
+    ).toList.asJava
 
-    KnoxClient.downloadFile(dsPath + "/test.schema",new File(General_Utilities().getTempDir() +dataSetName+".schema"))
-    val schema = readSchemaFile(General_Utilities().getTempDir() + dataSetName +".schema")
+
+    println("\n\n\n\n listResultDSSamples:n receiving datasetName :"+dataSetName)
+
+    // todo: check if to remove this
+    val tempDir = General_Utilities().getTempDir(userName) + "/"
+    val tempDirectory = new File(tempDir)
+    tempDirectory.mkdirs()
+    println("\n Created tempDir: "+tempDir)
+
+    val schema_temp = General_Utilities().getTempDir() +"test.schema"
+
+    KnoxClient.downloadFile(dsPath + "/test.schema",new File(schema_temp))
+
+    val schema = readSchemaFile(schema_temp)
 
     (samples,schema.fields.asJava)
   }
@@ -189,9 +211,6 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
 
   /**
     *
-    * THIS FUNCTION IMPLEMENTATION IS NOT TESTED FOR REMOTE
-    * NEEDS TO BE REWRITEN
-    *
     * @param dataSetName dataset name as a string
     * @param userName the owner of the dataset as a String
     * @param sampleName The sample name, which is the file name with out the full path as a String
@@ -203,25 +222,15 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
     val sampleOption = gMQLDataSetXML.samples.find(_.name.split("\\.").head.endsWith(sampleName))
     sampleOption match {
       case Some(sample) =>
-        val pathRegion = new Path(General_Utilities().getHDFSRegionDir(userName) +sample.name)
-        val pathMeta = new Path(General_Utilities().getHDFSRegionDir(userName) +sample.meta)
+        val pathRegion = General_Utilities().getHDFSRegionDir(userName) +sample.name
+        val pathMeta   = General_Utilities().getHDFSRegionDir(userName) +sample.meta
 
-        val conf = FS_Utilities.gethdfsConfiguration
-        val fs = FileSystem.get(conf)
-        //check region file exists
-        if (!fs.exists(pathRegion)) {
-          logger.error("The Dataset sample Url is not found: " + sample.name)
-          throw new GMQLSampleNotFound
-        }
-        //check meta file exists
-        if (!fs.exists(pathMeta)) {
-          logger.error("The Dataset sample Url is not found: " + sample.meta)
-          throw new GMQLSampleNotFound
-        }
-        (fs.open(pathRegion), fs.open(pathMeta))
+
+        (KnoxClient.downloadAsStream(pathRegion),KnoxClient.downloadAsStream(pathMeta))
       case None =>
         logger.error("The Dataset sample Url is not found in the xml: ")
         throw new GMQLSampleNotFound
     }
   }
+
 }
