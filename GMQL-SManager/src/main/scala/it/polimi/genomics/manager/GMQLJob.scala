@@ -110,8 +110,14 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
       }.toMap
 
 
-      val fsRegDir: String = FSR_Utilities.gethdfsConfiguration().get("fs.defaultFS")+
-                    General_Utilities().getHDFSRegionDir()
+      val fsRegDir: String =
+        if( General_Utilities().GMQL_REPO_TYPE == General_Utilities().REMOTE)
+          General_Utilities().REMOTE_HDFS_HOST+General_Utilities().getHDFSRegionDir()
+        else
+          FSR_Utilities.gethdfsConfiguration().get("fs.defaultFS")+General_Utilities().getHDFSRegionDir()
+
+
+
       //extract the materialize operators, change the Store path to be $JobID_$StorePath
       operators = languageParserOperators.map(x => x match {
         case select: SelectOperator => logger.info(select.op_pos + "\t" + select.output + "\t" + select.parameters);

@@ -14,7 +14,7 @@ import play.api.libs.json._
   * Updated by andreagulino on 10/03/17
   */
 
-object InvyClient {
+object LivyClient {
 
   val WSAPI_Livy = new StandAloneWSAPI()
   val WSAPI_Knox = new LooseWSAPI()
