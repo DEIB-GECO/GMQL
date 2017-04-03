@@ -7,7 +7,7 @@ import java.util.concurrent.{ExecutorService, Executors, TimeUnit}
 
 import it.polimi.genomics.core.GMQLScript
 import it.polimi.genomics.manager.Exceptions.{InvalidGMQLJobException, NoJobsFoundException}
-import it.polimi.genomics.manager.Launchers.GMQLLauncher
+import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLocalLauncher, GMQLRemoteLauncher, GMQLSparkLauncher}
 import it.polimi.genomics.repository.{Utilities => General_Utilities}
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -101,6 +101,7 @@ class GMQLExecute (){
     * @param jobId [[ String]] as the JobID.
     * @param launcher There is a set of launchers that implements [[ GMQLLauncher]].
     */
+  @deprecated
   def execute(jobId:String, launcher:GMQLLauncher)={
     val job = getJob(jobId);
     try {
@@ -110,6 +111,31 @@ class GMQLExecute (){
     }catch {
       case ex:Throwable =>logger.error("exception in execution .. \n" + ex.getMessage); ex.printStackTrace() ; job.status = Status.EXEC_FAILED ;Thread.currentThread().interrupt();
     }
+  }
+
+
+  /*
+  **
+  * Try to Execute GMQL Job. The job will be checked for execution of the provided platform
+  * and run in case of clear from errors.
+  *
+  * @param jobId [[ String]] as the JobID.
+    * @param launcher There is a set of launchers that implements [[ GMQLLauncher]].
+  */
+  def execute(job:GMQLJob):Unit={
+    val launcher_mode = Utilities().LAUNCHER_MODE
+
+    val launcher: GMQLLauncher =
+      launcher_mode match {
+        case "CLUSTER" => new GMQLSparkLauncher(job)
+        case "REMOTE_CLUSTER" => new GMQLRemoteLauncher(job)
+        case "LOCAL" => new GMQLLocalLauncher(job)
+        case _ => throw new Exception("Unknown launcher mdoe.")
+      }
+
+
+    execute(job.jobId,launcher)
+
   }
 
 
@@ -225,9 +251,9 @@ object GMQLExecute{
     * @param jobID [[ String]] of the JobID
     * @return list of Strings of the log information.
     */
+  @deprecated
   def getJobLog(username:String,jobID:String): util.List[String] ={
-    import scala.io.Source
-    Source.fromFile(General_Utilities().getLogDir(username)+jobID.toLowerCase()+".log").getLines().toList.asJava
+    instance.getGMQLJob(username, jobID).getLog.asJava
   }
 }
 

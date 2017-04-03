@@ -8,16 +8,29 @@ A GMQL script is expressed as a sequence of GMQL operations with the following s
 ```
 where each dataset stands for a [Genomic Data Model (GDM)](docs/GDM_DS_Structure.md) dataset. Operations are either unary (with one input dataset), or binary (with two input datasets), and construct one result dataset.
 
-###[GMQL Language Commands and documentation.](http://www.bioinformatics.deib.polimi.it/genomic_computing/GMQL/doc/GMQL_V2_manual.pdf)
+For Quick Start please refer to:
+> [Installation Guide](https://github.com/DEIB-GECO/GMQL_Package/)
 
-###[Engine architecture and deployments.](docs/gmql_architecture.md)
+For detailed GMQL language documentation:
+> [GMQL Language Commands and documentation.](http://www.bioinformatics.deib.polimi.it/genomic_computing/GMQL/doc/GMQL_V2_manual.pdf)
 
-###[Scripting GMQL programatically.](docs/GMQL_APIs.md)
 
-###[Repository Manager](GMQL-Repository/README.md)
+For a look on GDMS architecture:
+> [Engine architecture and deployments.](docs/gmql_architecture.md)
 
-###[GDM DataSet architecture.](docs/GDM_DS_Structure.md)
 
-###[Repository Manager shell API](docs/SHELL_API.md)
+For programatical importing of GDMS kernel JARs in Scala applications and programatically scripting GMQL in Scala: 
+> [Scripting GMQL programatically.](docs/GMQL_APIs.md)
 
-###[Engine Configurations.](docs/Configutations.md)
+For more information about GDMS repository architecture and repository manager:
+> [Repository Manager](GMQL-Repository/README.md)
+
+
+GDMS repository is based on a dataset notion, for more information about the data module and GDM dataset architecture:
+> [GDM DataSet architecture.](docs/GDM_DS_Structure.md)
+
+Shell API is provided for GDMS repository, to list datasets, add, delete, alter datasets in GDMS repository:
+> [Repository Manager shell API](docs/SHELL_API.md)
+
+The first step in the installation is to understand the engine configurations, currently we have two sets of configurations. One set of configurations for the repository and the other for the executor.
+> [Engine Configurations.](docs/Configutations.md)

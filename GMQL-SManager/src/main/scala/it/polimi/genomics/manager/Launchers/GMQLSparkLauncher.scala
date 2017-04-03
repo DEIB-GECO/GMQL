@@ -15,6 +15,8 @@ import org.slf4j.LoggerFactory
   */
 class GMQLSparkLauncher(sparkJob:GMQLJob) extends GMQLLauncher(sparkJob){
 
+  override var applicationID: Option[String] = _
+
   private final val logger = LoggerFactory.getLogger(this.getClass);
 
   //Spark application handler
@@ -46,9 +48,9 @@ class GMQLSparkLauncher(sparkJob:GMQLJob) extends GMQLLauncher(sparkJob){
     }
   }
 
-  override def getAppName (): String =
-  {
-    launcherHandler.getAppId
+  override def getAppName (): String = {
+    applicationID = Some(launcherHandler.getAppId)
+    applicationID.get
   }
 
   //TODO: GMQL job should be killed in YARN environment too.
@@ -73,4 +75,14 @@ class GMQLSparkLauncher(sparkJob:GMQLJob) extends GMQLLauncher(sparkJob){
     }
   }
 
+  /**
+    * get the log of the execution of GMQL job running using this launcher
+    *
+    * @return List[String] as the log of the execution
+    */
+  override def getLog(): List[String] = {
+    import scala.io.Source
+    Source.fromFile(job.loggerPath).getLines().toList
+
+  }
 }

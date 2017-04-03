@@ -59,7 +59,7 @@ class GMQLLoader {
           //if repo exists I do DELETE THEN ADD
           //if(repo.DSExists())
           try{
-            repo.DeleteDS(datasetName,gmqlUser)
+            repo.deleteDS(datasetName,gmqlUser)
           }catch {
             case e:GMQLDSNotFound => logger.debug("Dataset " + datasetName + " is not defined before!!")
           }

@@ -36,6 +36,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
 
   private final val date: String = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
 
+
   def jobId: String = {
     val fileName = new java.io.File(script.scriptPath).getName
     val name = if(fileName.indexOf(".") > 0) fileName.substring(0, fileName.indexOf(".")) else fileName
@@ -43,6 +44,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
   }
 
   private final val logger: Logger = LoggerFactory.getLogger(this.getClass);
+  final val loggerPath = General_Utilities().getLogDir(username)+jobId.toLowerCase()+".log"
   val jobOutputMessages: StringBuilder = new StringBuilder
 
 //  var script = fixFileFormat(scriptPath)
@@ -108,8 +110,14 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
       }.toMap
 
 
-      val fsRegDir: String = FSR_Utilities.gethdfsConfiguration().get("fs.defaultFS")+
-                    General_Utilities().getHDFSRegionDir()
+      val fsRegDir: String =
+        if( General_Utilities().GMQL_REPO_TYPE == General_Utilities().REMOTE)
+          General_Utilities().REMOTE_HDFS_HOST+General_Utilities().getHDFSRegionDir()
+        else
+          FSR_Utilities.gethdfsConfiguration().get("fs.defaultFS")+General_Utilities().getHDFSRegionDir()
+
+
+
       //extract the materialize operators, change the Store path to be $JobID_$StorePath
       operators = languageParserOperators.map(x => x match {
         case select: SelectOperator => logger.info(select.op_pos + "\t" + select.output + "\t" + select.parameters);
@@ -356,6 +364,13 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
       else Status.PENDING
   }
 
+  /**
+    * return all the log strings of a specific job.
+    * @return list of Strings of the log information.
+    */
+  def getLog:List[String] ={
+    submitHandle.getLog()
+  }
 
   /**
     *  Generate GMQL Job ID by concatinating the username with the script file name,

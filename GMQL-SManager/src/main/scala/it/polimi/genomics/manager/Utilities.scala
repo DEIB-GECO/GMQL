@@ -24,6 +24,7 @@ class Utilities {
   final val CLUSTER_LAUNCHER: String = "CLUSTER"
   final val REMOTE_CLUSTER_LAUNCHER: String = "REMOTE_CLUSTER"
 
+
   def apply() = {
 
     try {
@@ -42,6 +43,7 @@ class Utilities {
           case Conf.LIB_DIR_LOCAL => lib_dir_local = value
           case Conf.CLI_CLASS => CLI_CLASS = value
           case Conf.LAUNCHER_MODE => LAUNCHER_MODE = value
+
           case _ => logger.error(s"Not known configuration property: $x, $value")
         }
         logger.debug(s"XML config override environment variables. $att = $value ")
@@ -84,10 +86,11 @@ object Utilities {
   * Set of configurations for Server Manager
   */
 object Conf {
-  val LAUNCHER_MODE = "LOCAL"
+  val LAUNCHER_MODE = "LAUNCHER_MODE"
   val SPARK_HOME = "SPARK_HOME"
   val CLI_JAR_NAME = "CLI_JAR_NAME"
   val LIB_DIR_LOCAL = "LIB_DIR_LOCAL"
   val LIB_DIR_HDFS = "LIB_DIR_HDFS"
   val CLI_CLASS = "CLI_CLASS"
+
 }

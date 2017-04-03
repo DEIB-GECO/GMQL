@@ -6,6 +6,7 @@ package it.polimi.genomics.repository
 
 import java.io.File
 
+import it.polimi.genomics.repository.FSRepository.{DFSRepository, LFSRepository, RFSRepository}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.xml.XML
@@ -21,16 +22,20 @@ class Utilities() {
   //USERNAME  = System.getenv("USER")
   val HDFS: String = "HDFS"
   val LOCAL: String = "LOCAL"
+  val REMOTE: String = "REMOTE"
 
   var RepoDir: String = "/tmp/repo/data/"
   var HDFSRepoDir: String = System.getenv("GMQL_DFS_HOME")
+  // Mode can be only "HDFS" or "REMOTE"
   var MODE: String = System.getenv("GMQL_REPO_TYPE")
+  var GMQL_REPO_TYPE: String = System.getenv("GMQL_REPO_TYPE")
   var CoreConfigurationFiles: String = null
   var HDFSConfigurationFiles: String = null
   var HADOOP_CONF_DIR:String = "/usr/local/Cellar/hadoop/2.7.2/libexec/etc/hadoop/"
   var GMQLHOME: String = System.getenv("GMQL_LOCAL_HOME")
   var HADOOP_HOME:String = System.getenv("HADOOP_HOME")
   var GMQL_CONF_DIR:String = null
+  var REMOTE_HDFS_HOST:String = null
 
 
   /**
@@ -41,7 +46,7 @@ class Utilities() {
     try {
       var file = new File(confFile+"/repository.xml")
       val xmlFile =  if(file.exists()) XML.loadFile(file)
-        else XML.loadFile(new File("GMQL-Repository/src/main/resources/repository.xml"))
+      else XML.loadFile(new File("GMQL-Repository/src/main/resources/repository.xml"))
       val properties = (xmlFile \\ "property")
       //      val schemaType = (xmlFile \\ "gmqlSchema").head.attribute("type").get.head.text
 
@@ -58,9 +63,11 @@ class Utilities() {
               case LOCAL => LOCAL
               case _ => HDFS
             };
+            this.GMQL_REPO_TYPE = value
           case Conf.HADOOP_CONF_DIR  => HADOOP_CONF_DIR = value
           case Conf.HADOOP_HOME =>  HADOOP_HOME = value
           case Conf.GMQL_CONF_DIR => GMQL_CONF_DIR = value
+          case Conf.REMOTE_HDFS_HOST => REMOTE_HDFS_HOST = value
           case _ => logger.error(s"Not known configuration property: $x, $value")
         }
         logger.debug(s"XML config override environment variables. $att = $value ")
@@ -83,18 +90,19 @@ class Utilities() {
 
     this.MODE = if (this.MODE == null) {
       logger.error("Environment variable GMQL_REPO_TYPE is empty... execution set to LOCAL")
-      this.HDFS
+      this.LOCAL
     } else this.MODE
 
     RepoDir = this.GMQLHOME + "/data/"
 
-//    CoreConfigurationFiles = if (CoreConfigurationFiles == null) "/usr/local/Cellar/hadoop/2.7.2/libexec/etc/hadoop/core-site.xml" else CoreConfigurationFiles
-//    HDFSConfigurationFiles = if (HDFSConfigurationFiles == null) "/usr/local/Cellar/hadoop/2.7.2/libexec/etc/hadoop/hdfs-site.xml" else HDFSConfigurationFiles
+    //    CoreConfigurationFiles = if (CoreConfigurationFiles == null) "/usr/local/Cellar/hadoop/2.7.2/libexec/etc/hadoop/core-site.xml" else CoreConfigurationFiles
+    //    HDFSConfigurationFiles = if (HDFSConfigurationFiles == null) "/usr/local/Cellar/hadoop/2.7.2/libexec/etc/hadoop/hdfs-site.xml" else HDFSConfigurationFiles
     logger.debug(CoreConfigurationFiles)
     logger.debug(HDFSConfigurationFiles)
     logger.debug("GMQL_LOCAL_HOME is set to = " +  this.GMQLHOME)
     logger.debug("GMQL_DFS_HOME, HDFS Repository is set to = " +  this.HDFSRepoDir)
     logger.debug("MODE is set to = " +  this.MODE)
+    logger.debug("GMQL_REPO_TYPE is set to = " +  this.GMQL_REPO_TYPE)
     logger.debug("User is set to = " +  this.USERNAME)
   }
 
@@ -214,6 +222,19 @@ class Utilities() {
   def setConfDir(confDir:String) = {
     GMQL_CONF_DIR = confDir
   }
+
+  /**
+    * Get the right instance of the repository according to the type specified
+    * in the config file
+    * @return an implementation of GMQLRepository
+    */
+  def getRepository(): GMQLRepository = {
+    GMQL_REPO_TYPE match {
+      case this.LOCAL  => new LFSRepository()
+      case this.HDFS   => new DFSRepository()
+      case this.REMOTE => new RFSRepository()
+    }
+  }
 }
 
 object Utilities {
@@ -240,6 +261,7 @@ object Conf {
   val HADOOP_HOME = "HADOOP_HOME";
   val HADOOP_CONF_DIR = "HADOOP_CONF_DIR"
   val GMQL_CONF_DIR = "GMQL_CONF_DIR"
+  val REMOTE_HDFS_HOST = "REMOTE_HDFS_HOST"
 }
 
 
