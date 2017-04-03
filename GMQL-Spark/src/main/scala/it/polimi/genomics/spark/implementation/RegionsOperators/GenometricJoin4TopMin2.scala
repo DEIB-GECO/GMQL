@@ -250,7 +250,7 @@ object GenometricJoin4TopMin2 {
       val maxDistance : Long =
         if(firstRound.max.isDefined) firstRound.max.get
         else if(secondRound.max.isDefined) Math.max(secondRound.max.get,max)
-        else max
+        else if(firstRound.min.isDefined)firstRound.min.get + max else max
       val start1 : Long = if(!firstRound.stream.isDefined || (firstRound.stream.get.equals(r._6)) || (r._6.equals('*') && firstRound.stream.get.equals('+')) ) r._4 - maxDistance else r._5
       val end1 : Long = if(firstRound.min.isDefined) r._4 - firstRound.min.get else 0L
       val split : Boolean = firstRound.min.isDefined

@@ -131,7 +131,7 @@ object CLI {
     val conf: SparkConf = new SparkConf()
       .setAppName("GMQL V2 Spark")
       .setMaster("local[*]")
-      .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "64")
+      .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "128")
       .set("spark.driver.allowMultipleContexts","true")
       .set("spark.sql.tungsten.enabled", "true")
     val sc:SparkContext =new SparkContext(conf)
@@ -146,6 +146,6 @@ object CLI {
     val job = server.registerJob(gmqlScript, gmqlContext, "")
 
     //Run the job
-    server.execute(job.jobId, new GMQLSparkLauncher(job))
+    server.execute(job.jobId, new GMQLLocalLauncher(job))
   }
 }

@@ -12,6 +12,7 @@ import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
+import org.apache.log4j.xml.DOMConfigurator
 import org.apache.log4j.{FileAppender, Level, PatternLayout}
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd, SparkListenerApplicationStart, SparkListenerStageCompleted}
 import org.apache.spark.{SparkConf, SparkContext}
@@ -24,7 +25,14 @@ import org.slf4j.LoggerFactory
   */
 object GMQLExecuteCommand {
   private final val logger = LoggerFactory.getLogger(/*Logger.ROOT_LOGGER_NAME)*/ GMQLExecuteCommand.getClass);
-
+  try{
+        DOMConfigurator.configure("../conf/logback.xml")
+    val root:ch.qos.logback.classic.Logger = org.slf4j.LoggerFactory.getLogger("org").asInstanceOf[ch.qos.logback.classic.Logger];
+    root.setLevel(ch.qos.logback.classic.Level.WARN);
+    org.slf4j.LoggerFactory.getLogger("it.polimi.genomics.cli").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.INFO)
+  }catch{
+    case _:Throwable => logger.warn("log4j.xml is not found in conf")
+  }
   val dateFormat = new SimpleDateFormat("yyyy-MM-dd");
   System.setProperty("current.date", dateFormat.format(new Date()));
 
@@ -232,7 +240,7 @@ object GMQLExecuteCommand {
 //    org.apache.log4j.Logger.getRootLogger().setLevel(org.apache.log4j.Level.INFO)
     org.apache.log4j.Logger.getLogger("org").setLevel(if (!verbose) org.apache.log4j.Level.WARN else org.apache.log4j.Level.INFO)
 //    org.apache.log4j.Logger.getLogger("it").setLevel(if (!verbose) org.apache.log4j.Level.WARN else org.apache.log4j.Level.DEBUG)
-    org.apache.log4j.Logger.getLogger("it.polimi.genomics.spark").setLevel( org.apache.log4j.Level.DEBUG)
+    org.apache.log4j.Logger.getLogger("it.polimi.genomics.spark").setLevel( org.apache.log4j.Level.INFO)
 //    org.apache.log4j.Logger.getLogger("it.polimi.genomics.cli").setLevel(if (!verbose) org.apache.log4j.Level.INFO else org.apache.log4j.Level.INFO)
     org.apache.log4j.Logger.getLogger("org.apache.spark").setLevel(org.apache.log4j.Level.WARN)
     org.apache.log4j.Logger.getLogger("akka").setLevel(org.apache.log4j.Level.ERROR)

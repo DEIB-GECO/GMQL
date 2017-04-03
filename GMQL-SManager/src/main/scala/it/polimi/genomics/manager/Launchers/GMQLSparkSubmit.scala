@@ -46,20 +46,20 @@ class GMQLSparkSubmit(job:GMQLJob) {
     * @return
     */
   def runSparkJob(): SparkAppHandle = {
-    println("SparkHome: "+SPARK_HOME)
-    println("HADOOP CONF: "+HADOOP_CONF_DIR)
-    println("YARN CONF: "+YARN_CONF_DIR)
-    println("GMQL HOME: "+GMQL_HOME)
-    println("GMQLJAR: "+GMQLjar)
-    println("MASTER CLASS : "+MASTER_CLASS)
-    println("AppID: "+APPID)
-    println("user: "+job.username)
-    println ("script: "+ job.script.script)
-    println("DS in Dir: "+job.inputDataSets.map(x => x._1+":::"+x._2+"/").mkString(","))
-    println("ds in to schema: "+job.inputDataSets.map(x => x._2+":::"+getSchema(job,x._1)).mkString(","))
-    println("JobID: "+ job.jobId)
-    println("out format: "+ job.gMQLContext.outputFormat.toString)
-    println("log: " +General_Utilities().getLogDir(job.username))
+//    println("SparkHome: "+SPARK_HOME)
+//    println("HADOOP CONF: "+HADOOP_CONF_DIR)
+//    println("YARN CONF: "+YARN_CONF_DIR)
+//    println("GMQL HOME: "+GMQL_HOME)
+//    println("GMQLJAR: "+GMQLjar)
+//    println("MASTER CLASS : "+MASTER_CLASS)
+//    println("AppID: "+APPID)
+//    println("user: "+job.username)
+//    println ("script: "+ job.script.script)
+//    println("DS in Dir: "+job.inputDataSets.map(x => x._1+":::"+x._2+"/").mkString(","))
+//    println("ds in to schema: "+job.inputDataSets.map(x => x._2+":::"+getSchema(job,x._1)).mkString(","))
+//    println("JobID: "+ job.jobId)
+//    println("out format: "+ job.gMQLContext.outputFormat.toString)
+//    println("log: " +General_Utilities().getLogDir(job.username))
 
 
     val env = Map(
@@ -78,7 +78,7 @@ class GMQLSparkSubmit(job:GMQLJob) {
       else General_Utilities().getRegionDir(job.username) + x +"/"
       x.substring(job.jobId.length+1)+":::"+dir }.mkString(",")
 
-    println(outDir)
+//    println(outDir)
 
    val d =  new SparkLauncher(env.asJava)
       .setSparkHome(SPARK_HOME)

@@ -274,8 +274,8 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
 
           val (samples, sch) = repositoryHandle.listResultDSSamples(ds + "/exp/", this.username)
 
-          println("samples")
-          samples.asScala foreach println _
+//          println("samples")
+//          samples.asScala foreach println _
 
 
           repositoryHandle.createDs(new IRDataSet(ds, sch.asScala.map(x=>(x.name,x.fieldType)).toList.asJava),

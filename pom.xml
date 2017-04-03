@@ -9,15 +9,15 @@
         <module>GMQL-Cli</module>
         <module>GMQL-Server</module>
         <module>GMQL-Spark</module>
-        <module>GMQL-Flink</module>
+        <!--<module>GMQL-Flink</module>-->
         <module>GMQL-dot</module>
         <module>Compiler</module>
         <module>GMQL-Test</module>
-        <module>GMQL-SciDB</module>
-        <module>SciDB-ScalaAPI</module>
+        <!--<module>GMQL-SciDB</module>-->
+        <!--<module>SciDB-ScalaAPI</module>-->
         <module>GMQL-Repository</module>
         <module>GMQL-SManager</module>
-        <module>GMQL-Importer</module>
+        <!--<module>GMQL-Importer</module>-->
         <module>WSC</module>
     </modules>
     <name>${project.artifactId}</name>

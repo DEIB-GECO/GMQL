@@ -204,7 +204,7 @@ object DefaultRegionsToMetaFactory extends ExtendFunctionFactory {
 //        else
 //          GDouble(0)
     }
-    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>GDouble(v1.asInstanceOf[GDouble].v/v2)}
+    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>if(v1.asInstanceOf[GDouble].v>0) GDouble(v1.asInstanceOf[GDouble].v/v2)else GDouble(0)}
   }
 
   private def getBAG(position:Int, new_name:Option[String]) = new RegionsToMeta {

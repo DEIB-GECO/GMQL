@@ -222,12 +222,12 @@ object RepositoryManager {
         if ("all" == args(1).toLowerCase) {
           val dss = mr.listAllDSs(username).asScala
           println(s"Total number of Datasets for user $username : ${dss.size}")
-          dss.foreach(x => println(x.position))
+          dss.sortBy(_.position).foreach(x => println(x.position))
         }
         else {
           val samples = mr.listDSSamples(args(1), username).asScala
           println(s"Total number of samples in Dataset ${args(1)}: ${samples.size}")
-          samples.foreach(x => println(x.name))
+          samples.sortBy(_.name).foreach(x => println(x.name))
         }
       case "copydstolocal" =>
         var DatasetName = ""
