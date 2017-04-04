@@ -1,0 +1,11 @@
+
+<?xml version = "1.0" encoding="UTF-8" standalone="yes"?>
+<gmqlProperties xmlns = "http://genomic.elet.polimi.it/impl">
+    <property name = "CLI_JAR_PATH">/user/hdfs-user/GMQL-Cli-2.0-jar-with-dependencies.jar</property>
+    <property name = "CLI_CLASS">it.polimi.genomics.cli.GMQLExecuteCommand</property>
+    <property name = "KNOX_GATEWAY">https:cluster-host:8443/gateway/default</property>
+    <property name = "KNOX_SERVICE_PATH">/webhdfs/v1/</property>
+    <property name = "KNOX_USERNAME"></property>
+    <property name = "KNOX_PASSWORD"></property>
+    <property name = "LIVY_BASE_URL">http://your-host:8998/batches</property>
+</gmqlProperties>
