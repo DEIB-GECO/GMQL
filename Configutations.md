@@ -27,6 +27,7 @@ GMQL_DFS_HOME | /user/repo/ | The home folder <i class="icon-folder-open"></i> o
 [HADOOP_HOME](http://hadoop.apache.org/)|/usr/local/hadoop/|The location of Hadoop installation. `Considered only when GMQL_REPO is set to HDFS.`
 HADOOP_CONF_DIR|/usr/local/hadoop/etc/hadoop/|The location of Hadoop configuration folder <i class="icon-folder-open"></i>. `Considered only when GMQL_REPO is set to HDFS.`
 GMQL_CONF_DIR|$GMQL_INSTALLATION/conf|The folder location <i class="icon-folder-open"></i> of GMQL configuration files. 
+REMOTE_HDFS_NAMESPACE | hdfs://your-host:8020/ | Cluster host and port. This is required only if you are running on remote setup.
 
 Launcher Configurations: 
 -------------------------------------
