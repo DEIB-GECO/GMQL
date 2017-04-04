@@ -14,7 +14,7 @@ class GMQLRemoteLauncher(job:GMQLJob) extends GMQLLauncher(job){
 
 
   val outDir = job.outputVariablesList.map{x=>
-    val dir = Utilities().REMOTE_HDFS_HOST +
+    val dir = Utilities().getHDFSNameSpace() +
       Utilities().getHDFSRegionDir(job.username)+x+"/";
     x.substring(job.jobId.length+1)+":::"+dir
   }.mkString(",")

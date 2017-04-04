@@ -111,7 +111,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
 
 
       val fsRegDir: String =
-        General_Utilities().getHDFSHost() + General_Utilities().getHDFSRegionDir()
+        General_Utilities().getHDFSNameSpace() + General_Utilities().getHDFSRegionDir()
 
 
 

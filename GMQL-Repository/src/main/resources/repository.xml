@@ -3,5 +3,6 @@
     <property name = "GMQL_LOCAL_HOME">/Users/abdulrahman/gmql_repository/</property>
     <property name = "GMQL_DFS_HOME">/user/gmql_repo/</property>
     <property name = "GMQL_REPO_TYPE">HDFS</property>
- ﻿<property name = "HADOOP_HOME">/usr/local/Cellar/hadoop/2.7.2/libexec/etc/hadoop/</property>
+   ﻿<property name = "HADOOP_HOME">/usr/local/Cellar/hadoop/2.7.2/libexec/etc/hadoop/</property>
+    <property name="REMOTE_HDFS_NAMESPACE">hdfs://your-host:8020/</property>
 </gmqlProperties>

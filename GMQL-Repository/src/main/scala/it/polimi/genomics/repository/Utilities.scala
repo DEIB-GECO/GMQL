@@ -35,7 +35,7 @@ class Utilities() {
   var GMQLHOME: String = System.getenv("GMQL_LOCAL_HOME")
   var HADOOP_HOME:String = System.getenv("HADOOP_HOME")
   var GMQL_CONF_DIR:String = null
-  var REMOTE_HDFS_HOST:String = null
+  var REMOTE_HDFS_NAMESPACE:String = null
 
 
   /**
@@ -67,7 +67,7 @@ class Utilities() {
           case Conf.HADOOP_CONF_DIR  => HADOOP_CONF_DIR = value
           case Conf.HADOOP_HOME =>  HADOOP_HOME = value
           case Conf.GMQL_CONF_DIR => GMQL_CONF_DIR = value
-          case Conf.REMOTE_HDFS_HOST => REMOTE_HDFS_HOST = value
+          case Conf.REMOTE_HDFS_NAMESPACE => REMOTE_HDFS_NAMESPACE = value
           case _ => logger.error(s"Not known configuration property: $x, $value")
         }
         logger.debug(s"XML config override environment variables. $att = $value ")
@@ -236,9 +236,9 @@ class Utilities() {
     }
   }
 
-  def getHDFSHost(): String = {
+  def getHDFSNameSpace(): String = {
     if( GMQL_REPO_TYPE equals REMOTE )
-     REMOTE_HDFS_HOST
+     REMOTE_HDFS_NAMESPACE
     else
       FS_Utilities.gethdfsConfiguration().get("fs.defaultFS")
   }
@@ -269,7 +269,7 @@ object Conf {
   val HADOOP_HOME = "HADOOP_HOME";
   val HADOOP_CONF_DIR = "HADOOP_CONF_DIR"
   val GMQL_CONF_DIR = "GMQL_CONF_DIR"
-  val REMOTE_HDFS_HOST = "REMOTE_HDFS_HOST"
+  val REMOTE_HDFS_NAMESPACE = "REMOTE_HDFS_NAMESPACE"
 }
 
 
