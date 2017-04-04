@@ -8,7 +8,7 @@ import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.compiler._
 import it.polimi.genomics.core.DataStructures.{IRDataSet, IRVariable}
 import it.polimi.genomics.core.{GMQLSchemaFormat, GMQLScript}
-import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLocalLauncher}
+import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLocalLauncher, GMQLRemoteLauncher}
 import it.polimi.genomics.manager.Status._
 import it.polimi.genomics.repository.FSRepository.{FS_Utilities => FSR_Utilities}
 import it.polimi.genomics.repository.GMQLExceptions.GMQLNotValidDatasetNameException
@@ -20,10 +20,10 @@ import scala.collection.immutable.HashMap
 import scala.collection.mutable
 
 /**
- * Created by Abdulrahman Kaitoua on 10/09/15.
- * Email: abdulrahman.kaitoua@polimi.it
- *
- */
+  * Created by Abdulrahman Kaitoua on 10/09/15.
+  * Email: abdulrahman.kaitoua@polimi.it
+  *
+  */
 /**
   *  GMQL Job
   *  Hold the state of the job, the configuration of which this job runs on.
@@ -47,8 +47,8 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
   final val loggerPath = General_Utilities().getLogDir(username)+jobId.toLowerCase()+".log"
   val jobOutputMessages: StringBuilder = new StringBuilder
 
-//  var script = fixFileFormat(scriptPath)
-//  val regionsURL = if (General_Utilities().MODE == FS_Utilities.HDFS) FS_Utilities.getInstance().HDFSRepoDir else FS_Utilities.getInstance().RepoDir
+  //  var script = fixFileFormat(scriptPath)
+  //  val regionsURL = if (General_Utilities().MODE == FS_Utilities.HDFS) FS_Utilities.getInstance().HDFSRepoDir else FS_Utilities.getInstance().RepoDir
   case class ElapsedTime (var compileTime:String,var executionTime:String,var createDsTime:String =" Included in The execution time. (details in the log File)")
   val elapsedTime: ElapsedTime =ElapsedTime("","","")
 
@@ -93,7 +93,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
       inputDataSets = languageParserOperators.flatMap { x =>
         x match {
           case select: SelectOperator =>
-//            logger.info(select.op_pos + "\t" + select.output + "\t" + select.parameters);
+            //            logger.info(select.op_pos + "\t" + select.output + "\t" + select.parameters);
             val DSname: String = select.input1 match {
               case p: VariablePath => p.path
               case p: Variable => p.name
@@ -111,21 +111,22 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
 
 
       val fsRegDir: String =
-        if( General_Utilities().GMQL_REPO_TYPE == General_Utilities().REMOTE)
-          General_Utilities().REMOTE_HDFS_HOST+General_Utilities().getHDFSRegionDir()
-        else
-          FSR_Utilities.gethdfsConfiguration().get("fs.defaultFS")+General_Utilities().getHDFSRegionDir()
+        General_Utilities().getHDFSHost() + General_Utilities().getHDFSRegionDir()
 
 
 
-      //extract the materialize operators, change the Store path to be $JobID_$StorePath
+      //extract the select and materialize operators, change the Store path to be $JobID_$StorePath
       operators = languageParserOperators.map(x => x match {
         case select: SelectOperator => logger.info(select.op_pos + "\t" + select.output + "\t" + select.parameters);
           val dsinput = select.input1 match {
             case p: VariablePath =>
               if (repositoryHandle.DSExists(p.path, username)) {
                 val user = if (repositoryHandle.DSExistsInPublic(p.path)) "public" else this.username
-                val newPath = getRegionFolder(p.path, user)
+                //todo: find a better way to avoid accesing hdfs at compilation time
+                val newPath =
+                  if(Utilities().LAUNCHER_MODE equals Utilities().REMOTE_CLUSTER_LAUNCHER)
+                    General_Utilities().getSchemaDir(user) + p.path + ".schema"
+                  else  getRegionFolder(p.path, user)
                 println(newPath)
                 new VariablePath(newPath, p.parser_name);
               } else {
@@ -134,8 +135,10 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
             case p: VariableIdentifier => {
               if (repositoryHandle.DSExists(p.IDName, username)) {
                 val user = if (repositoryHandle.DSExistsInPublic(p.IDName)) "public" else this.username
-                val newPath = getRegionFolder(p.IDName, user)
-                println(newPath)
+                val newPath =
+                  if(Utilities().LAUNCHER_MODE equals Utilities().REMOTE_CLUSTER_LAUNCHER)
+                    General_Utilities().getSchemaDir(user) + p.IDName + ".schema"
+                  else  getRegionFolder(p.IDName, user)
                 new VariableIdentifier(newPath);
               } else {
                 p
@@ -143,18 +146,18 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
             }
           }
           new SelectOperator(select.op_pos, dsinput, select.input2,select.output,select.parameters)
-          /*val ds = new IRDataSet(DSname, List[(String, PARSING_TYPE)]().asJava)
-          if (repositoryHandle.DSExists(ds, username)) {
-            val user = if (repositoryHandle.DSExistsInPublic(ds)) "public" else this.username
-            Some(DSname, getHDFSRegionFolder(DSname, user))
-          } else {
-            logger.warn(DSname + " is not a dataset in the repository...error");
-            None
-          }*/
+        /*val ds = new IRDataSet(DSname, List[(String, PARSING_TYPE)]().asJava)
+        if (repositoryHandle.DSExists(ds, username)) {
+          val user = if (repositoryHandle.DSExistsInPublic(ds)) "public" else this.username
+          Some(DSname, getHDFSRegionFolder(DSname, user))
+        } else {
+          logger.warn(DSname + " is not a dataset in the repository...error");
+          None
+        }*/
         case d: MaterializeOperator =>
           if (!d.store_path.isEmpty){
             if (General_Utilities().MODE == General_Utilities().HDFS)
-                         d.store_path = fsRegDir + id + "_" + d.store_path + "/"
+              d.store_path = fsRegDir + id + "_" + d.store_path + "/"
             else d.store_path = id + "_" + d.store_path + "/"
             d
           }
@@ -207,7 +210,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     *
     * return the HDFS directory for a specific folder, including the file system name
     *
-    * @param dsName [[ String]] of the dataset name
+    * @param path [[ String]] of the dataset
     * @param user [[ String]] as the user name, owner of the dataset
     * @return String of the absolute path of the dataset folder in HDFS
     */
@@ -215,9 +218,10 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     if(path.startsWith("hdfs"))
       (new org.apache.hadoop.fs.Path(path)).getParent.toString
     else
-      FSR_Utilities.gethdfsConfiguration().get("fs.defaultFS") +
+      General_Utilities().getHDFSHost() +
         General_Utilities().getHDFSRegionDir(user)+Paths.get(path).getParent.toString
   }
+
 
   /**
     *
@@ -358,10 +362,10 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     */
   def getExecJobStatus: Status.Value = this.synchronized {
     if(submitHandle != null)
-      {
-        this.submitHandle.getStatus()
-      }
-      else Status.PENDING
+    {
+      this.submitHandle.getStatus()
+    }
+    else Status.PENDING
   }
 
   /**

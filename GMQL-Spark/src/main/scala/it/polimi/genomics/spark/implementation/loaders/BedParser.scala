@@ -284,7 +284,8 @@ class CustomParser extends BedParser("\t", 0, 1, 2, Some(3), Some(Array((4, Pars
     val path: Path = new Path(dataset);
     val fs: FileSystem = FileSystem.get(path.toUri(), conf);
 
-    val XMLfile:InputStream = fs.open(new Path(dataset+"/test.schema"))
+    //todo: remove this hard fix used for remote execution
+    val XMLfile:InputStream = fs.open(new Path(dataset+ (if(!dataset.endsWith("schema"))"/test.schema" else "")))
     var schematype = GMQLSchemaFormat.TAB
     var schema: Array[(String, ParsingType.Value)] = null
 

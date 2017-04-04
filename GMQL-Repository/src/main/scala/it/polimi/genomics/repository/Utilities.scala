@@ -6,7 +6,7 @@ package it.polimi.genomics.repository
 
 import java.io.File
 
-import it.polimi.genomics.repository.FSRepository.{DFSRepository, LFSRepository, RFSRepository}
+import it.polimi.genomics.repository.FSRepository.{DFSRepository, FS_Utilities, LFSRepository, RFSRepository}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.xml.XML
@@ -42,9 +42,9 @@ class Utilities() {
     *  Read Configurations from the system environment variables.
     *  The xml configurations will override any environment variables configurations.
     */
-  def apply(confFile:String = "../conf") = {
+  def apply(confDir:String = "../conf") = {
     try {
-      var file = new File(confFile+"/repository.xml")
+      var file = new File(confDir+"/repository.xml")
       val xmlFile =  if(file.exists()) XML.loadFile(file)
       else XML.loadFile(new File("GMQL-Repository/src/main/resources/repository.xml"))
       val properties = (xmlFile \\ "property")
@@ -82,7 +82,7 @@ class Utilities() {
 
     this.GMQLHOME =  if (this.GMQLHOME == null)  "/tmp/repo/" else  this.GMQLHOME
 
-    GMQL_CONF_DIR =  if (!(this.GMQL_CONF_DIR == null))  GMQL_CONF_DIR else confFile
+    GMQL_CONF_DIR =  if (!(this.GMQL_CONF_DIR == null))  GMQL_CONF_DIR else confDir
 
     this.USERNAME  = if (this.USERNAME  == null) "gmql_user" else this.USERNAME
 
@@ -235,6 +235,14 @@ class Utilities() {
       case this.REMOTE => new RFSRepository()
     }
   }
+
+  def getHDFSHost(): String = {
+    if( GMQL_REPO_TYPE equals REMOTE )
+     REMOTE_HDFS_HOST
+    else
+      FS_Utilities.gethdfsConfiguration().get("fs.defaultFS")
+  }
+
 }
 
 object Utilities {

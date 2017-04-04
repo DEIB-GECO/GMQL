@@ -127,9 +127,15 @@ class GMQLExecute (){
 
     val launcher: GMQLLauncher =
       launcher_mode match {
-        case "CLUSTER" => new GMQLSparkLauncher(job)
-        case "REMOTE_CLUSTER" => new GMQLRemoteLauncher(job)
-        case "LOCAL" => new GMQLLocalLauncher(job)
+        case "CLUSTER" =>
+          logger.info("Using Spark Launcher")
+          new GMQLSparkLauncher(job)
+        case "REMOTE_CLUSTER" =>
+          logger.info("Using Remote Launcher")
+            new GMQLRemoteLauncher(job)
+        case "LOCAL" =>
+          logger.info("Using Local Launcher")
+          new GMQLLocalLauncher(job)
         case _ => throw new Exception("Unknown launcher mdoe.")
       }
 

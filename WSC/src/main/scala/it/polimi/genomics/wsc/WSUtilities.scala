@@ -14,7 +14,6 @@ class WSUtilities {
   private val logger: Logger = LoggerFactory.getLogger(WSUtilities.getClass)
 
   //todo: find better solution
-  val CONF_DIR = "../conf"
 
   var KNOX_GATEWAY: String       = _
   var KNOX_SERVICE_PATH:String   = _
@@ -25,10 +24,10 @@ class WSUtilities {
   var CLI_JAR_PATH:String        = _
   var CLI_CLASS:String           = _
 
-  def apply() = {
+  def apply(confFolder: String) = {
 
     try {
-      val file: File = new File(CONF_DIR+ "/remote.xml")
+      val file: File = new File(confFolder+ "/remote.xml")
       val xmlFile: Elem = XML.loadFile(file)
       val properties: NodeSeq = (xmlFile \\ "property")
       //      val schemaType = (xmlFile \\ "gmqlSchema").head.attribute("type").get.head.text
@@ -59,10 +58,12 @@ class WSUtilities {
 object WSUtilities {
   private var instance: WSUtilities = null
 
+  var confFolder: String = "../conf/"
+
   def apply(): WSUtilities = {
     if (instance == null) {
       instance = new WSUtilities();
-      instance.apply()
+      instance.apply(confFolder)
     }
     instance
   }
