@@ -218,7 +218,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     if(path.startsWith("hdfs"))
       (new org.apache.hadoop.fs.Path(path)).getParent.toString
     else
-      General_Utilities().getHDFSHost() +
+      General_Utilities().getHDFSNameSpace() +
         General_Utilities().getHDFSRegionDir(user)+Paths.get(path).getParent.toString
   }
 
