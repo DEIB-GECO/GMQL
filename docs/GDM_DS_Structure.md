@@ -21,8 +21,8 @@ The samples of the same dataset should confirm to a common schema for the attrib
 	</gmqlSchemaCollection>
 ```
 
-Different datasets has different schemas, GMQL engine will take care of the heterogeneity of the datasets while performing GMQL operations.
+Different datasets have different schemas, GMQL engine will take care of the heterogeneity of the datasets while performing GMQL operations.
 
-The meta file contains attribute values separated bt a tab. In the bellow example, we show two samples ( ID:1 and  ID:2 ). 
+The meta file contains attribute values separated by a tab. In the below example, we show two samples ( ID:1 and  ID:2 ). 
 
 ![GDM](GDM.png)
