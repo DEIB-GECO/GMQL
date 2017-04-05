@@ -57,9 +57,9 @@ GMQL Modules are structured with minimal dependancies as possible, this gives th
 
 <img src="Modules_dependencies.png" alt="GMQL Modules dependencies" style="width:600px;height:600px;">
 Several deployments are possible for GMQL Engine. The most used three deployments are:
-> -  Engine with no repository.
-> -  Engine with repository.
-> - Web services.
+ -  Engine with no repository.
+ -  Engine with repository.
+ - Web services.
 
 ### GMQL Engine Kernel
 The access point for GMQL deployment is the Command line interface (CLI). As shown in the figure bellow, the CLI contains the compiler and the engine implementations as dependencies. These modules are usually packed in a JAR, as executable, and run using Spark-Submit (in case of Spark as implementation). 
