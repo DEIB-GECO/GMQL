@@ -5,12 +5,12 @@ GMQL Architecture
 ================
 
 GMQL is a **Scalable Data Management Engine for Genomic Data**.  The Engine contains four layers as shown in the figure bellow :
-> - Access Layer, includes 
+- Access Layer, includes 
 	-  Intermediate Representation (IR) APIs,
 	-  Shell command line interface,
 	-  Web Services,
 	-  and Web Interface.
-> - Engine Abstractions
+- Engine Abstractions
 	- Directed Acyclic Graph (DAG)
 	- GMQL Compiler, compiles GMQL script plain text to DAG execution plan.
 	- Server Manager, manages the multiuser execution and the workflow of the executors and the repositories
