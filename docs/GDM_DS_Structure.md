@@ -6,7 +6,7 @@ GMQL data set is based on [Genomic Data Model (GDM)](http://www.sciencedirect.co
 
 The sample file contains regions information, a region is an interval that is described by a chromosome number, start position, end position, strand, and a set of optional values that describe the region (such as score, p-value, or q-value). 
 
-The samples of the same dataset should confirm to a common schema for the attributes, this schema is either a well known schema (can be seleted from a list of well known schemas, such as [BED](https://genome.ucsc.edu/FAQ/FAQformat#format1), Narrow peaks, or Broad Peaks formats) or uploaded with the dataset. For example, the schema file for the example bellow is described in an XML file as follows:
+The samples of the same dataset should confirm to a common schema for the attributes, this schema is either a well known schema (can be seleted from a list of well known schemas, such as [BED](https://genome.ucsc.edu/FAQ/FAQformat#format1), [Narrow peaks](https://genome.ucsc.edu/FAQ/FAQformat#format12), or [Broad Peaks](https://genome.ucsc.edu/FAQ/FAQformat#format13) formats) or uploaded with the dataset. For example, the schema file for the example bellow is described in an XML file as follows:
 
 ```
 	<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
