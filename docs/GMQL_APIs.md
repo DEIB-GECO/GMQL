@@ -2,9 +2,9 @@
 GMQL APIs
 =========
 
-This section does not use GMQL compiler.  GMQL Directed Acyclic Graph (DAG) APIs are called directly. We constructed an API  for each command of GMQL (11 commands), which allow the use of GMQL in programming languages. GMQL Engines was developed using [SCALA language](https://www.scala-lang.org/), the following examples are created in SCALA.
+This section does not use GMQL compiler.  GMQL Directed Acyclic Graph (DAG) APIs are called directly. We constructed an API  for each command of GMQL (11 commands); they allow the use of GMQL in programming languages. GMQL Engine was developed using [SCALA language](https://www.scala-lang.org/), the following examples are created in SCALA.
 
-Maven imports, needed to run GMQL in your application. You can choose between Spar, Flink, or SciDB Implementations. In case of Flink implementation you should include Flink GMQL implementation. It is better not to include both spark and Flink in the same execution.
+Maven imports, needed to run GMQL in your application. You can choose between Spark, Flink, or SciDB Implementations. In case of Flink implementation, you should include Flink GMQL implementation. It is better not to include both Spark and Flink in the same execution.
 
   
 
@@ -27,7 +27,7 @@ Maven imports, needed to run GMQL in your application. You can choose between Sp
     </dependency>
 
 
-All the imports bellow are used in all the documentation in GMQL APIs section, in addition to the call for GMQL server and the choose of the executor. To start writing GMQL application, start by defining the server implementation that you will use by setting the executor type. 
+All the imports below are used in all the documentation in GMQL APIs section, in addition to the call for GMQL server and the choice of the executor. To start writing a GMQL application, start by defining the server implementation that you will use by setting the executor type. 
 
 
     import it.polimi.genomics.GMQLServer.GmqlServer
@@ -51,9 +51,9 @@ All the imports bellow are used in all the documentation in GMQL APIs section, i
 
 #### Full example
 
-All GMQL applications should contain the data parsing and reading operation and the materialising operation, as shown bellow, all the rest of the operations can fit in between the read and the store operations. The type of the parser to use is dependent on the dataset regions schema. There are set of builtin parsers , such as Bed parser, Narrow peaks parser, and broad peaks parser. In addition to the CustomParser, which takes as an argument the path to the schema XML file. The first command should be reading the input datasets, remember that this is lazy processing, nothing will run until the server command *server.run()* is executed. 
+All GMQL applications should contain the data parsing and reading operation and the materialising operation, as shown below, all the rest of the operations can fit in between the read and the store operations. The type of the parser to use is dependent on the dataset regions schema. There are set of built-in parsers, such as Bed parser, Narrow peaks parser, and Broad peaks parser, in addition to the CustomParser, which takes as an argument the path to the schema XML file. The first command should be reading the input datasets; remember that this is lazy processing, nothing will run until the server command *server.run()* is executed. 
 
-Each GMQL operation returns [IRVariable](../GMQL-Core/src/main/scala/it/polimi/genomics/core/DataStructures/IRVariable.scala), each IRVariable can be materialised or used in as input for other IR variables
+Each GMQL operation returns [IRVariable](../GMQL-Core/src/main/scala/it/polimi/genomics/core/DataStructures/IRVariable.scala), each IRVariable can be materialised or used as input for other IR variables
 ```  
 //Set data parsers
 val DS1: IRVariable = server READ ex_data_path USING BedParser
