@@ -43,5 +43,5 @@ LIB_DIR_HDFS | /user/repo/lib/ | Location on HDFS of the library folder, where t
 
 > - GMQL Engine can be connected to several repositories types; such as Local repository, [HDFS](https://hadoop.apache.org/docs/r1.2.1/hdfs_design.html) repository, or Remote repository. Currently, only one repository type can be set for each installation.
 > - The genomic engine can run on several types of implementations. The supported implementations are: [Apache Spark](http://spark.apache.org/), [Apache Flink](https://flink.apache.org/), and [SciDB](http://www.paradigm4.com/). the default one is Spark.
-> - Apache Spark, and Flink can have one of three Launchers: LOCAL, CLUSTER, and REMOTE_CLUSTER. The remote cluster is executed though calls through web services (enabled for Spark though [Livy](http://livy.io/)).
+> - Apache Spark, and Flink can have one of three Launchers: LOCAL, CLUSTER, and REMOTE_CLUSTER. The remote cluster is executed though calls through web services (enabled for Spark through [Livy](http://livy.io/)).
 
