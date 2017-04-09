@@ -3,6 +3,7 @@ package it.polimi.genomics.pythonapi
 import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.{SparkConf, SparkContext}
+import it.polimi.genomics.pythonapi.operators.{Operator, SelectOperator}
 
 /**
   * Created by Luca Nanni on 08/04/17.
@@ -50,7 +51,10 @@ object GMQLManager {
     this.server = new GmqlServer(new GMQLSparkExecutor(sc=sc))
   }
 
-
-
-
+  def getOperator(operatorName: String): Operator =
+  {
+    operatorName match {
+      case "select" => SelectOperator
+    }
+  }
 }
