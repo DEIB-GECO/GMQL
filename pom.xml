@@ -9,7 +9,6 @@
         <module>GMQL-Cli</module>
         <module>GMQL-Server</module>
         <module>GMQL-Spark</module>
-        <!--<module>GMQL-Flink</module>-->
         <module>GMQL-dot</module>
         <module>Compiler</module>
         <module>GMQL-Test</module>
