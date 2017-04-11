@@ -25,8 +25,8 @@ object Wrapper
   var parser = new CustomParser()
 
   //thread safe counter for unique string pointer to dataset
-  //'cause we ccould have two pointer at the same dataset and we
-  // can not distinguesh them by default
+  //'cause we could have two pointer at the same dataset and we
+  // can not distinguesh them
   //example:
   // R shell
   //r = readDataset("/Users/simone/Downloads/job_filename_guest_new14_20170316_162715_DATA_SET_VAR")
@@ -66,11 +66,10 @@ object Wrapper
     val dataAsTheyAre = GMQLServer.READ(dataPath).USING(parser)
 
     var index = counter.getAndIncrement()
-    // TODO: which one?
-    //vv = vv + ("dataset"+index -> dataAsTheyAre)
-    vv = vv + (data_input_path+"_"+index -> dataAsTheyAre)
+    val out_p = "dataset"+index
+    vv = vv + (out_p -> dataAsTheyAre)
 
-    return data_input_path+"_"+index
+    return out_p
   }
 
   def materialize(data_to_materialize: String, data_output_path: String): Unit =
@@ -81,10 +80,9 @@ object Wrapper
     GMQLServer.run()
   }
 
-  def select(Predicate:String, data_input_path: String, data_output_path: String): Unit =
+  def select(predicate:String,region:String,semijoin:Any, input_dataset: String): String =
   {
-    parser.setSchema(data_input_path)
-    val dataAsTheyAre = vv.get(data_input_path).get
+    val dataAsTheyAre = vv.get(input_dataset).get
 
     val meta_con =
       DataStructures.MetadataCondition.AND(
@@ -102,8 +100,10 @@ object Wrapper
     //        )
 
     val select = dataAsTheyAre.SELECT(meta_con,reg_con)
-    vv = vv + (data_output_path -> select )
+    val out_p = input_dataset+"/select"
+    vv = vv + (out_p -> select )
 
+    return out_p
     //GMQLServer setOutputPath data_output_path MATERIALIZE select
     //GMQLServer.run()
   }
@@ -120,16 +120,15 @@ object Wrapper
     */
   }
 
-  def extend(metadata:List[Array[String]], data_input_path: String): Unit =
+  def extend(metadata:List[Array[String]], input_dataset: String): String =
   {
-    parser.setSchema(data_input_path)
-    val dataAsTheyAre = vv.get(data_input_path).get
-    //GMQLServer.READ(data_input_path).USING(parser)
-
+    val dataAsTheyAre = vv.get(input_dataset).get
     var metaList = RegionToMetaAggregates(metadata,dataAsTheyAre)
-
     var extend = dataAsTheyAre.EXTEND(metaList)
-    vv = vv + (data_input_path+"/extend" -> extend )
+
+    val out_p = input_dataset+"/extend"
+    vv = vv + (out_p -> extend )
+    return out_p
   }
 
   def group(groupBy:Any, data_input_path: String, data_output_path: String): Unit =
@@ -149,52 +148,58 @@ object Wrapper
   }
 
 
-  def merge(groupBy:Any, data_input_path: String, data_output_path: String): Unit =
+  def merge(groupBy:Any, input_dataset: String): Unit =
   {
-    parser.setSchema(data_input_path)
-    val dataAsTheyAre = GMQLServer.READ(data_input_path).USING(parser)
+    val dataAsTheyAre = vv.get(input_dataset).get
 
     var groupList: Option[List[String]] = GroupByList(groupBy)
-
     var merge = dataAsTheyAre.MERGE(groupList)
+
+    val out_p = input_dataset+"/merge"
+    vv = vv + (out_p -> merge )
+    return out_p
+
     //GMQLServer setOutputPath data_output_path MATERIALIZE merge
     //GMQLServer.run()
   }
 
   def order(data_input_path: String, data_output_path: String): Unit =
   {
+    /*
     parser.setSchema(data_input_path)
     val dataAsTheyAre = GMQLServer.READ(data_input_path).USING(parser)
-
+*/
 
     //GMQLServer setOutputPath data_output_path MATERIALIZE select
     //GMQLServer.run()
   }
 
-  def union(right_data_input_path: String, right_name: String, left_data_input_path: String, left_name: String, data_output_path: String): Unit =
+  def union(right_dataset: String, right_name: String,
+            left_dataset: String, left_name: String): Unit =
   {
-    parser.setSchema(left_data_input_path)
-    val leftDataAsTheyAre = GMQLServer.READ(left_data_input_path).USING(parser)
-
-    parser.setSchema(right_data_input_path)
-    val rightDataAsTheyAre = GMQLServer.READ(right_data_input_path).USING(parser)
+    val rightDataAsTheyAre = vv.get(right_dataset).get
+    val leftDataAsTheyAre = vv.get(left_dataset).get
 
     val union = leftDataAsTheyAre.UNION(rightDataAsTheyAre,left_name,right_name)
+
+    val out_p = left_dataset+right_dataset+"/union"
+    vv = vv + (out_p -> union )
+    return out_p
+
     //GMQLServer setOutputPath data_output_path MATERIALIZE union
     //GMQLServer.run()
   }
 
-  def difference(joinBy:List[Array[String]],left_data_input_path: String,right_data_input_path: String, data_output_path: String): Unit =
+  //TODO: implement joinBy
+  def difference(joinBy:List[Array[String]],left_dataset: String,right_dataset: String): Unit =
   {
-    parser.setSchema(left_data_input_path)
-    val leftDataAsTheyAre = GMQLServer.READ(left_data_input_path).USING(parser)
-
-    parser.setSchema(right_data_input_path)
-    val rightDataAsTheyAre = GMQLServer.READ(right_data_input_path).USING(parser)
-
-
+    val leftDataAsTheyAre = vv.get(left_dataset).get
+    val rightDataAsTheyAre = vv.get(right_dataset).get
 
     val difference = leftDataAsTheyAre.DIFFERENCE(None,rightDataAsTheyAre)
+    val out_p = left_dataset+right_dataset+"/difference"
+    vv = vv + (out_p -> difference )
+    return out_p
 
     //GMQLServer setOutputPath data_output_path MATERIALIZE difference
     //GMQLServer.run()
@@ -251,7 +256,8 @@ object Wrapper
     //GMQLServer.run()
   }
 
-  def map(aggregates:List[Array[String]],right_data_input_path: String, exp_name: String, left_data_input_path: String, ref_name: String,count_name: String, data_output_path: String): Unit =
+  def map(aggregates:List[Array[String]],right_data_input_path: String, exp_name: String,
+          left_data_input_path: String, ref_name: String,count_name: String): Unit =
   {
     parser.setSchema(left_data_input_path)
     val leftDataAsTheyAre = GMQLServer.READ(left_data_input_path).USING(parser)
@@ -274,9 +280,10 @@ object Wrapper
   }
 
 
-
-
-
+/*  Aggregates is structured in R as: c("nuovoP","SUM","pvalue") that represent an array.
+the first elem is the output name, the second the aggregate function and the third
+is the value present in the schema
+*/
   def RegionToMetaAggregates(aggregates:List[Array[String]],data:IRVariable): List[RegionsToMeta] =
   {
     var list:List[RegionsToMeta] = List()
@@ -334,7 +341,7 @@ object Wrapper
 
     if (groupBy == null)
     {
-      println("ok is Null")
+      println("groupBy is Null")
       return groupList
     }
 
@@ -343,17 +350,17 @@ object Wrapper
       case groupBy: String =>
       {
         groupBy match{
-          case "" => {groupList = None; println("ok is single string but empty")}
+          case "" => {groupList = None; println("groupBy is single string but empty")}
           case _ => {
             var temp: Array[String] = Array(groupBy)
             groupList = Some(temp.toList)
             println(groupBy)
-            println("ok is single string")}
+            println("groupBy is single string")}
         }
       }
       case groupBy: Array[String] => {
         groupList = Some(groupBy.toList)
-        println("ok is array string")
+        println("groupBy is array string")
       }
       //case groupBy: Array[Array[String]] => {print("Data structure not supported yet, null"); return null}
     }
