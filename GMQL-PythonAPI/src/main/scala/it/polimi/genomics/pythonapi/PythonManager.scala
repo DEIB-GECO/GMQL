@@ -6,7 +6,7 @@ import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.core.DataStructures.IRVariable
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
-import it.polimi.genomics.pythonapi.operators.{Operator, SelectOperator}
+import it.polimi.genomics.pythonapi.operators.{ExpressionBuilder, OperatorManager}
 import it.polimi.genomics.spark.implementation.loaders.{BedParser, NarrowPeakParser}
 import org.slf4j.LoggerFactory
 
@@ -54,11 +54,30 @@ object PythonManager {
     this.sparkContext.stop()
   }
 
-  def getOperator(operatorName: String): Operator =
+  def getVariable(index : Int) : IRVariable = {
+    this.variables.get(index).get
+  }
+
+  def putNewVariable(variable : IRVariable): Int =
   {
-    operatorName match {
-      case "select" => SelectOperator
-    }
+    val index = this.counter.getAndIncrement()
+    this.variables(index) = variable
+    index
+  }
+
+  def getServer : GmqlServer = {
+    this.server
+  }
+
+  def getOperatorManager = {
+    // generate a new operator manager
+    val op = OperatorManager
+    op
+  }
+
+  def getNewExpressionBuilder : ExpressionBuilder = {
+    val expressionBuilder = new ExpressionBuilder()
+    expressionBuilder
   }
 
   def read_dataset(dataset_path: String, parserName: String): Int =
@@ -72,6 +91,15 @@ object PythonManager {
     index
   }
 
+  def materialize(index : Int, outputPath : String): Unit =
+  {
+    // get the variable from the map
+    val variableToMaterialize = this.variables.get(index)
+    this.server setOutputPath outputPath MATERIALIZE variableToMaterialize.get
+    //starting the server execution
+    this.server.run()
+  }
+
   def getParser(parserName: String) : BedParser =
   {
     parserName match {
@@ -79,4 +107,7 @@ object PythonManager {
       case _ => NarrowPeakParser.asInstanceOf[BedParser]
     }
   }
+
+
+
 }
