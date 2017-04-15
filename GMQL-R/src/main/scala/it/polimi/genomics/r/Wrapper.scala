@@ -20,13 +20,12 @@ import scala.collection.mutable.ListBuffer
 
 object Wrapper
 {
-  var sparkContext:SparkContext = _
   var GMQLServer: GmqlServer = _
-  var parser = new CustomParser()
 
   //thread safe counter for unique string pointer to dataset
   //'cause we could have two pointer at the same dataset and we
-  // can not distinguesh them
+  //can not distinguish them
+
   //example:
   // R shell
   //r = readDataset("/Users/simone/Downloads/job_filename_guest_new14_20170316_162715_DATA_SET_VAR")
@@ -36,53 +35,47 @@ object Wrapper
 
   var vv: Map[String,IRVariable] = Map[String,IRVariable]()
 
-  def SetSparkContext(): Unit =
+  def runGMQL(): Unit =
   {
-    var sparkConf = new SparkConf().setMaster("local[*]").setAppName("GMQL-R")
-    sparkContext = new SparkContext(sparkConf)
-    println("Spark Context up")
-  }
-
-  def runGMQLServer(): Unit  =
-  {
-    if(sparkContext==null) {
-      println("you must initialize sparkContext first")
+    val sparkConf = new SparkConf().setMaster("local[*]").setAppName("GMQL-R")
+    val sparkContext = new SparkContext(sparkConf)
+    val executor = new GMQLSparkExecutor(sc = sparkContext)
+    GMQLServer = new GmqlServer(executor)
+    if(GMQLServer==null)
+    {
+      println("GMQLServer is null")
       return
     }
-    GMQLServer = new GmqlServer(new GMQLSparkExecutor(sc=sparkContext))
-    println("Gmql server up")
-  }
-
-  //debug
-  def stopGMQL(): Unit =
-  {
-    sparkContext.stop()
+    println("GMQL server is up")
   }
 
   def readDataset(data_input_path: String): String =
   {
+    val parser = new CustomParser()
     val dataPath  = data_input_path+ "/files"
     parser.setSchema(dataPath)
+
     val dataAsTheyAre = GMQLServer.READ(dataPath).USING(parser)
 
-    var index = counter.getAndIncrement()
+    val index = counter.getAndIncrement()
     val out_p = "dataset"+index
     vv = vv + (out_p -> dataAsTheyAre)
 
-    return out_p
+    out_p
   }
 
   def materialize(data_to_materialize: String, data_output_path: String): Unit =
   {
-    val materialize = vv.get(data_to_materialize).get
+    val materialize = vv(data_to_materialize)
 
     GMQLServer setOutputPath data_output_path MATERIALIZE materialize
     GMQLServer.run()
   }
 
+
   def select(predicate:String,region:String,semijoin:Any, input_dataset: String): String =
   {
-    val dataAsTheyAre = vv.get(input_dataset).get
+    val dataAsTheyAre = vv(input_dataset)
 
     val meta_con =
       DataStructures.MetadataCondition.AND(
@@ -101,131 +94,166 @@ object Wrapper
 
     val select = dataAsTheyAre.SELECT(meta_con,reg_con)
     val out_p = input_dataset+"/select"
-    vv = vv + (out_p -> select )
+    vv = vv + (out_p -> select)
+    out_p
 
-    return out_p
-    //GMQLServer setOutputPath data_output_path MATERIALIZE select
-    //GMQLServer.run()
   }
 
-  def project(data_input_path: String, data_output_path: String): Unit =
+  def project(input_dataset: String): Unit =
   {
-    /*
-    parser.setSchema(data_input_path)
-    val dataAsTheyAre = GMQLServer.READ(data_input_path).USING(parser)
+    //TODO
+  }
 
-    val project = dataAsTheyAre.PROJECT()
-    //GMQLServer setOutputPath data_output_path MATERIALIZE project
-    //GMQLServer.run()
+  def extend(metadata:Array[Array[String]], input_dataset: String): String = {
+    val dataAsTheyAre = vv(input_dataset)
+
+    val (error, metaList) = RegionToMetaAggregates(metadata, dataAsTheyAre)
+    if (metaList == null)
+      return error
+
+    val extend = dataAsTheyAre.EXTEND(metaList)
+
+    val out_p = input_dataset + "/extend"
+    vv = vv + (out_p -> extend)
+
+    out_p
+  }
+
+  def group(groupBy:Any,metaAggregates:List[Array[String]],regionGroup:Any,
+            regionAggregates:Any, input_dataset: String): String = {
+    //TODO
+    /*  def GROUP(meta_keys : Option[MetaGroupByCondition] = None,
+    meta_aggregates : Option[List[RegionsToMeta]] = None,
+    meta_group_name : String = "_group",
+    region_keys : Option[List[GroupingParameter]],
+    region_aggregates : Option[List[RegionsToRegion]])
     */
+
+    val dataAsTheyAre = vv(input_dataset)
+    //val groupList: Option[List[String]] = AttributesList(groupBy)
+
+    //val metaAggrList = RegionToMetaAggregates(metaAggregates,dataAsTheyAre)
+    //val regionAggrList = RegionToRegionAggregates(metaAggregates,dataAsTheyAre)
+
+    val group = dataAsTheyAre.GROUP(None, None, "_group", None, None)
+
+    val out_p = input_dataset + "/group"
+    vv = vv + (out_p -> group)
+
+    out_p
   }
 
-  def extend(metadata:List[Array[String]], input_dataset: String): String =
+  /*GMQL MERGE*/
+  def merge(groupBy:Any, input_dataset: String): String =
   {
-    val dataAsTheyAre = vv.get(input_dataset).get
-    var metaList = RegionToMetaAggregates(metadata,dataAsTheyAre)
-    var extend = dataAsTheyAre.EXTEND(metaList)
-
-    val out_p = input_dataset+"/extend"
-    vv = vv + (out_p -> extend )
-    return out_p
-  }
-
-  def group(groupBy:Any, data_input_path: String, data_output_path: String): Unit =
-  {
-    /*
-    parser.setSchema(data_input_path)
-    val dataAsTheyAre = GMQLServer.READ(data_input_path).USING(parser)
-
-    var groupList: Option[List[String]] = GroupByList(groupBy)
-    if (groupList == null)
-      return
-
-    //var group = dataAsTheyAre.GROUP()
-    //GMQLServer setOutputPath data_output_path MATERIALIZE group
-    //GMQLServer.run()
-    */
-  }
-
-
-  def merge(groupBy:Any, input_dataset: String): Unit =
-  {
-    val dataAsTheyAre = vv.get(input_dataset).get
-
-    var groupList: Option[List[String]] = GroupByList(groupBy)
-    var merge = dataAsTheyAre.MERGE(groupList)
+    val dataAsTheyAre = vv(input_dataset)
+    val groupList: Option[List[String]] = AttributesList(groupBy)
+    val merge = dataAsTheyAre.MERGE(groupList)
 
     val out_p = input_dataset+"/merge"
-    vv = vv + (out_p -> merge )
-    return out_p
+    vv = vv + (out_p -> merge)
 
-    //GMQLServer setOutputPath data_output_path MATERIALIZE merge
-    //GMQLServer.run()
+    out_p
   }
 
-  def order(data_input_path: String, data_output_path: String): Unit =
+  def order(input_dataset: String): Unit =
   {
-    /*
-    parser.setSchema(data_input_path)
-    val dataAsTheyAre = GMQLServer.READ(data_input_path).USING(parser)
-*/
-
-    //GMQLServer setOutputPath data_output_path MATERIALIZE select
-    //GMQLServer.run()
+    //val dataAsTheyAre = vv(input_dataset)
+    //TODO
   }
 
+  /*GMQL UNION*/
   def union(right_dataset: String, right_name: String,
-            left_dataset: String, left_name: String): Unit =
+            left_dataset: String, left_name: String): String =
   {
-    val rightDataAsTheyAre = vv.get(right_dataset).get
-    val leftDataAsTheyAre = vv.get(left_dataset).get
+    val leftDataAsTheyAre = vv(left_dataset)
+    val rightDataAsTheyAre = vv(right_dataset)
 
     val union = leftDataAsTheyAre.UNION(rightDataAsTheyAre,left_name,right_name)
 
     val out_p = left_dataset+right_dataset+"/union"
-    vv = vv + (out_p -> union )
-    return out_p
+    vv = vv + (out_p -> union)
 
-    //GMQLServer setOutputPath data_output_path MATERIALIZE union
-    //GMQLServer.run()
+    out_p
   }
 
-  //TODO: implement joinBy
-  def difference(joinBy:List[Array[String]],left_dataset: String,right_dataset: String): Unit =
+  //TODO: metajoinCondition?
+  def difference(joinBy:Any,left_dataset: String,right_dataset: String): String =
   {
-    val leftDataAsTheyAre = vv.get(left_dataset).get
-    val rightDataAsTheyAre = vv.get(right_dataset).get
+    val leftDataAsTheyAre = vv(left_dataset)
+    val rightDataAsTheyAre = vv(right_dataset)
+
+    //val joinByList: Option[List[String]] = AttributesList(joinBy)
 
     val difference = leftDataAsTheyAre.DIFFERENCE(None,rightDataAsTheyAre)
+
     val out_p = left_dataset+right_dataset+"/difference"
-    vv = vv + (out_p -> difference )
-    return out_p
+    vv = vv + (out_p -> difference)
 
-    //GMQLServer setOutputPath data_output_path MATERIALIZE difference
-    //GMQLServer.run()
+    out_p
   }
 
-  def flat(min:Int , max:Int, groupBy:Any,aggregates:List[Array[String]], input_dataset: String): String ={
-    return "flat"//return selectedVariant(CoverFlag.FLAT,min,max,groupBy,aggregates,input_dataset)
-  }
+  /* GMQL COVER, FLAT, SUMMIT, HISTOGRAM */
 
-  def histogram(min:Int , max:Int, groupBy:Any,aggregates:List[Array[String]], input_dataset: String): String = {
-    return "histogram"//return selectedVariant(CoverFlag.HISTOGRAM,min,max,groupBy,aggregates,input_dataset)
-  }
-
-  def summit(min:Int , max:Int, groupBy:Any,aggregates:List[Array[String]], input_dataset: String): String ={
-    return "summit"//return selectedVariant(CoverFlag.SUMMIT,min,max,groupBy,aggregates,input_dataset)
-  }
-
-  def cover(min:Int , max:Int, groupBy:Any,aggregates:List[Array[String]], input_dataset: String): String =  {
-    return "cover"//return selectedVariant(CoverFlag.COVER,min,max,groupBy,aggregates,input_dataset)
-  }
-
-  def selectedVariant(flag:CoverFlag.CoverFlag, min:Int , max:Int, groupBy:Any,aggregates:List[Array[String]], input_dataset: String): String =
+  def flat(min:Int , max:Int, groupBy:Any,aggregates:Array[Array[String]],
+           input_dataset: String): String =
   {
-    val dataAsTheyAre = vv.get(input_dataset).get
+    val (error,flat) = doVariant(CoverFlag.FLAT,min,max,groupBy,aggregates,input_dataset)
+    if(flat==null)
+      return error
+
+    val out_p = input_dataset+"/flat"
+    vv = vv + (out_p -> flat)
+
+    out_p
+  }
+
+  def histogram(min:Int , max:Int, groupBy:Any,aggregates:Array[Array[String]],
+                input_dataset: String): String =
+  {
+    val (error,histogram) = doVariant(CoverFlag.FLAT,min,max,groupBy,aggregates,input_dataset)
+    if(histogram==null)
+      return error
+
+    val out_p = input_dataset+"/histogram"
+    vv = vv + (out_p -> histogram)
+
+    out_p
+  }
+
+  def summit(min:Int , max:Int, groupBy:Any,aggregates:Array[Array[String]],
+             input_dataset: String): String =
+  {
+    val (error,summit) = doVariant(CoverFlag.SUMMIT,min,max,groupBy,aggregates,input_dataset)
+    if(summit==null)
+      return error
+
+    val out_p = input_dataset+"/summit"
+    vv = vv + (out_p -> summit)
+
+    out_p
+  }
+
+  def cover(min:Int , max:Int, groupBy:Any,aggregates:Any,
+            input_dataset: String): String =
+  {
+    val (error,cover) = doVariant(CoverFlag.COVER,min,max,groupBy,aggregates,input_dataset)
+    if(cover==null)
+      return error
+
+    val out_p = input_dataset+"/cover"
+    vv = vv + (out_p -> cover)
+
+    out_p
+  }
+
+  def doVariant(flag:CoverFlag.CoverFlag, min:Int , max:Int, groupBy:Any,
+                      aggregates:Any, input_dataset: String): (String,IRVariable) =
+  {
+    val dataAsTheyAre = vv(input_dataset)
     var paramMin:CoverParam = null
     var paramMax:CoverParam = null
+    var aggrlist: List[RegionsToRegion] = null
 
     min match {
       case 0 => paramMin = ANY()
@@ -239,56 +267,56 @@ object Wrapper
       case x if x > 0 => paramMax = N(max.toInt)
     }
 
-    var aggrlist = RegionToRegionAggregates(aggregates,dataAsTheyAre)
-    var groupList: Option[List[String]] = GroupByList(groupBy)
-
-    var cover = dataAsTheyAre.COVER(flag,paramMin, paramMax, aggrlist , groupList)
-
-    flag match
-    {
-      case CoverFlag.COVER => vv = vv + (input_dataset+"/cover" -> cover ); return input_dataset+"/cover"
-      case CoverFlag.SUMMIT => vv = vv + (input_dataset+"/summit" -> cover ); return input_dataset+"/summit"
-      case CoverFlag.FLAT => vv = vv + (input_dataset+"/flat" -> cover ); return input_dataset+"/flat"
-      case CoverFlag.HISTOGRAM => vv = vv + (input_dataset+"/histogram" -> cover ); return input_dataset+"/histogram"
+    if(aggregates == null) {
+      aggrlist = List()
+    }
+    else {
+      aggregates match {
+        case aggregates: Array[Array[String]] =>
+          val (error, aggrlist) = RegionToRegionAggregates(aggregates, dataAsTheyAre)
+          if (aggrlist == null)
+            return (error,null);
+      }
     }
 
-    //GMQLServer setOutputPath data_output_path MATERIALIZE cover
-    //GMQLServer.run()
+    val groupList: Option[List[String]] = AttributesList(groupBy)
+
+    val variant = dataAsTheyAre.COVER(flag, paramMin, paramMax, aggrlist, groupList)
+
+    ("OK",variant)
   }
 
-  def map(aggregates:List[Array[String]],right_data_input_path: String, exp_name: String,
-          left_data_input_path: String, ref_name: String,count_name: String): Unit =
+
+  def map(aggregates:Array[Array[String]],right_dataset: String,exp_name: String,
+          left_dataset: String, ref_name: String,count_name: String): String =
   {
-    parser.setSchema(left_data_input_path)
-    val leftDataAsTheyAre = GMQLServer.READ(left_data_input_path).USING(parser)
+    //TODO
 
-    parser.setSchema(right_data_input_path)
-    val rightDataAsTheyAre = GMQLServer.READ(right_data_input_path).USING(parser)
+    val leftDataAsTheyAre = vv(left_dataset)
+    val rightDataAsTheyAre = vv(right_dataset)
 
-    var aggrlist = RegionToRegionAggregates(aggregates,leftDataAsTheyAre)
-    if (aggrlist == null)
-      return
+    val (error, aggrlist) = RegionToRegionAggregates(aggregates,leftDataAsTheyAre)
+    if(aggrlist==null)
+      return error
 
     val map = leftDataAsTheyAre.MAP(None,aggrlist,rightDataAsTheyAre,Option(ref_name),Option(exp_name),Option(count_name))
-    //GMQLServer setOutputPath data_output_path MATERIALIZE union
-    //GMQLServer.run()
+    val out_p = left_dataset+right_dataset+"/map"
+    vv = vv + (out_p -> map)
+
+    out_p
   }
 
-  def join():Unit =
+  def join(input_dataset: String):Unit =
   {
+    //TODO
 
   }
 
 
-/*  Aggregates is structured in R as: c("nuovoP","SUM","pvalue") that represent an array.
-the first elem is the output name, the second the aggregate function and the third
-is the value present in the schema
-*/
-  def RegionToMetaAggregates(aggregates:List[Array[String]],data:IRVariable): List[RegionsToMeta] =
+/*UTILS FUNCTION*/
+  def RegionToMetaAggregates(aggregates:Array[Array[String]],data:IRVariable): (String,List[RegionsToMeta]) =
   {
     var list:List[RegionsToMeta] = List()
-    if (aggregates == null)
-      return list
 
     val aggrList =  new ListBuffer[RegionsToMeta]()
 
@@ -298,22 +326,23 @@ is the value present in the schema
       else
       {
         val field = data.get_field_by_name(elem(2))
-        if(field.isEmpty)
-          return null
+        if(field.isEmpty) {
+          val error = "The value "+elem(2) + " is missing from schema"
+          return (error,null)
+        }
         aggrList += DefaultRegionsToMetaFactory.get(elem(1), field.get, Some(elem(0)))
       }
 
       list = aggrList.toList
     }
 
-    return list
+    ("OK",list)
+
   }
 
-  def RegionToRegionAggregates(aggregates:List[Array[String]],data:IRVariable): List[RegionsToRegion] =
+  def RegionToRegionAggregates(aggregates:Array[Array[String]],data:IRVariable): (String, List[RegionsToRegion]) =
   {
     var list:List[RegionsToRegion] = List()
-    if (aggregates == null)
-      return list
 
     val aggrList =  new ListBuffer[RegionsToRegion]()
 
@@ -323,33 +352,35 @@ is the value present in the schema
         else
         {
           val field = data.get_field_by_name(elem(2))
-          if(field.isEmpty)
-            return null
+          if(field.isEmpty){
+            val error = "The value "+elem(2) + " is missing from schema"
+            return (error,null)
+          }
           aggrList += DefaultRegionsToRegionFactory.get(elem(1), field.get, Some(elem(0)))
       }
 
       list = aggrList.toList
     }
 
-    return list
+    ("OK",list)
   }
 
 
-  def GroupByList(groupBy:Any): Option[List[String]] =
+  def AttributesList(groupBy:Any): Option[List[String]] =
   {
     var groupList: Option[List[String]] = None
 
     if (groupBy == null)
     {
-      println("groupBy is Null")
+      println("list is Null")
       return groupList
     }
 
     groupBy match
     {
       case groupBy: String =>
-      {
         groupBy match{
+
           case "" => {groupList = None; println("groupBy is single string but empty")}
           case _ => {
             var temp: Array[String] = Array(groupBy)
@@ -357,23 +388,35 @@ is the value present in the schema
             println(groupBy)
             println("groupBy is single string")}
         }
-      }
       case groupBy: Array[String] => {
         groupList = Some(groupBy.toList)
         println("groupBy is array string")
       }
-      //case groupBy: Array[Array[String]] => {print("Data structure not supported yet, null"); return null}
     }
 
-    return  groupList
+    groupList
   }
 
   def main(args : Array[String]): Unit = {
 
-    SetSparkContext()
-    runGMQLServer()
-    var r = readDataset("/Users/simone/Downloads/job_filename_guest_new14_20170316_162715_DATA_SET_VAR")
-    var c = cover(2,3,null,null,r)
-    materialize(c,"/Users/simone/Downloads/")
+    val temp: Array[Array[String]] = Array(Array("sas", "SUM", "cacca"), Array("asdasd", "COUNT", ""))
+    println(temp)
+    for (elem <- temp) {
+      println(elem(0))
+      println(elem(1))
+      println(elem(2))
+    }
+    runGMQL()
+    val parser = new CustomParser()
+    val dataPath = "/Users/simone/Downloads/job_filename_guest_new14_20170316_162715_DATA_SET_VAR/files"
+    parser.setSchema(dataPath)
+
+    val dataAsTheyAre = GMQLServer.READ(dataPath).USING(parser)
+
+
+    val (error, aggrlist) = RegionToRegionAggregates(temp, dataAsTheyAre)
+
+    println(error)
+    println(aggrlist)
   }
 }
