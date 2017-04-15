@@ -25,6 +25,7 @@ object Wrapper
   //thread safe counter for unique string pointer to dataset
   //'cause we could have two pointer at the same dataset and we
   //can not distinguish them
+
   //example:
   // R shell
   //r = readDataset("/Users/simone/Downloads/job_filename_guest_new14_20170316_162715_DATA_SET_VAR")
@@ -71,10 +72,9 @@ object Wrapper
     GMQLServer.run()
   }
 
-  def select(Predicate:String, input_dataset: String): String =
-  {
-    //TODO
 
+  def select(predicate:String,region:String,semijoin:Any, input_dataset: String): String =
+  {
     val dataAsTheyAre = vv(input_dataset)
 
     val meta_con =
@@ -96,6 +96,7 @@ object Wrapper
     val out_p = input_dataset+"/select"
     vv = vv + (out_p -> select)
     out_p
+
   }
 
   def project(input_dataset: String): Unit =
@@ -103,25 +104,23 @@ object Wrapper
     //TODO
   }
 
-  def extend(metadata:Array[Array[String]], input_dataset: String): String =
-  {
+  def extend(metadata:Array[Array[String]], input_dataset: String): String = {
     val dataAsTheyAre = vv(input_dataset)
 
-    val (error,metaList) = RegionToMetaAggregates(metadata,dataAsTheyAre)
-    if(metaList==null)
+    val (error, metaList) = RegionToMetaAggregates(metadata, dataAsTheyAre)
+    if (metaList == null)
       return error
 
     val extend = dataAsTheyAre.EXTEND(metaList)
 
-    val out_p = input_dataset+"/extend"
+    val out_p = input_dataset + "/extend"
     vv = vv + (out_p -> extend)
 
     out_p
   }
 
   def group(groupBy:Any,metaAggregates:List[Array[String]],regionGroup:Any,
-            regionAggregates:Any, input_dataset: String): String =
-  {
+            regionAggregates:Any, input_dataset: String): String = {
     //TODO
     /*  def GROUP(meta_keys : Option[MetaGroupByCondition] = None,
     meta_aggregates : Option[List[RegionsToMeta]] = None,
@@ -136,13 +135,12 @@ object Wrapper
     //val metaAggrList = RegionToMetaAggregates(metaAggregates,dataAsTheyAre)
     //val regionAggrList = RegionToRegionAggregates(metaAggregates,dataAsTheyAre)
 
-    val group = dataAsTheyAre.GROUP(None,None,"_group",None,None)
+    val group = dataAsTheyAre.GROUP(None, None, "_group", None, None)
 
-    val out_p = input_dataset+"/group"
+    val out_p = input_dataset + "/group"
     vv = vv + (out_p -> group)
 
     out_p
-
   }
 
   /*GMQL MERGE*/
@@ -193,7 +191,6 @@ object Wrapper
     vv = vv + (out_p -> difference)
 
     out_p
-
   }
 
   /* GMQL COVER, FLAT, SUMMIT, HISTOGRAM */
@@ -289,6 +286,7 @@ object Wrapper
     ("OK",variant)
   }
 
+
   def map(aggregates:Array[Array[String]],right_dataset: String,exp_name: String,
           left_dataset: String, ref_name: String,count_name: String): String =
   {
@@ -316,7 +314,6 @@ object Wrapper
 
 
 /*UTILS FUNCTION*/
-
   def RegionToMetaAggregates(aggregates:Array[Array[String]],data:IRVariable): (String,List[RegionsToMeta]) =
   {
     var list:List[RegionsToMeta] = List()
@@ -371,28 +368,33 @@ object Wrapper
 
   def AttributesList(groupBy:Any): Option[List[String]] =
   {
-    var list: Option[List[String]] = None
+    var groupList: Option[List[String]] = None
 
     if (groupBy == null)
     {
       println("list is Null")
-      return list
+      return groupList
     }
 
     groupBy match
     {
       case groupBy: String =>
         groupBy match{
-          case "" => list = None; println("list is single string but empty")
-          case _ =>
-            list = Some(Array(groupBy).toList);println("list is single string")
+
+          case "" => {groupList = None; println("groupBy is single string but empty")}
+          case _ => {
+            var temp: Array[String] = Array(groupBy)
+            groupList = Some(temp.toList)
+            println(groupBy)
+            println("groupBy is single string")}
         }
-
-      case groupBy: Array[String] => list = Some(groupBy.toList);println("list is array string")
-
+      case groupBy: Array[String] => {
+        groupList = Some(groupBy.toList)
+        println("groupBy is array string")
+      }
     }
 
-    list
+    groupList
   }
 
   def main(args : Array[String]): Unit = {
@@ -406,13 +408,13 @@ object Wrapper
     }
     runGMQL()
     val parser = new CustomParser()
-    val dataPath  = "/Users/simone/Downloads/job_filename_guest_new14_20170316_162715_DATA_SET_VAR/files"
+    val dataPath = "/Users/simone/Downloads/job_filename_guest_new14_20170316_162715_DATA_SET_VAR/files"
     parser.setSchema(dataPath)
 
     val dataAsTheyAre = GMQLServer.READ(dataPath).USING(parser)
 
 
-    val (error,aggrlist) = RegionToRegionAggregates(temp,dataAsTheyAre)
+    val (error, aggrlist) = RegionToRegionAggregates(temp, dataAsTheyAre)
 
     println(error)
     println(aggrlist)
