@@ -1,5 +1,7 @@
 package it.polimi.genomics.pythonapi
 
+import java.io.{File, PrintWriter}
+
 import org.apache.spark.{SparkConf, SparkContext}
 import org.slf4j.LoggerFactory
 import py4j.GatewayServer
@@ -31,6 +33,11 @@ object EntryPoint {
 
     val pythonManager = PythonManager
     pythonManager.setSparkContext(sc=sc)
+
+    /*Synchronization with the python process*/
+    val pw = new PrintWriter(new File("sync.txt"))
+    pw.write("Spark context started")
+    pw.close()
 
     val gatewayServer : GatewayServer = new GatewayServer()
     gatewayServer.start()
