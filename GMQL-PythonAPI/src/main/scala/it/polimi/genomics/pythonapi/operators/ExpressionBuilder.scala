@@ -1,5 +1,6 @@
 package it.polimi.genomics.pythonapi.operators
 import it.polimi.genomics.core.DataStructures._
+import it.polimi.genomics.pythonapi.PythonManager
 /**
   * Created by Luca Nanni on 11/04/17.
   * Email: luca.nanni@mail.polimi.it
@@ -9,7 +10,7 @@ import it.polimi.genomics.core.DataStructures._
   * This class enables the creation of complex region and meta conditions
   * based on the desires of the user
   * */
-class ExpressionBuilder {
+class ExpressionBuilder(index : Int) {
 
   def getMetaOperation(symbol : String) =
   {
@@ -32,12 +33,37 @@ class ExpressionBuilder {
       case "LTE" => RegionCondition.REG_OP.LTE
       case "EQ" => RegionCondition.REG_OP.EQ
       case "NOTEQ" => RegionCondition.REG_OP.NOTEQ
+      case _ => RegionCondition.REG_OP.EQ
+    }
+  }
+
+  def createRegionPredicate(name: String, operation: String, value : String): Unit =
+  {
+    val regOp = getRegionOperation(operation)
+    // get the Variable
+    val variable = PythonManager.getVariable(this.index)
+
+    name match {
+      case "chr" => RegionCondition.ChrCondition(value)
+      case "right" => RegionCondition.RightEndCondition(regOp,value.toLong)
+      case "left" => RegionCondition.LeftEndCondition(regOp, value.toLong)
+      case "strand" => RegionCondition.StrandCondition(value)
+      case "start" => RegionCondition.StartCondition(regOp, value.toLong)
+      case "stop" => RegionCondition.StopCondition(regOp, value.toLong)
+      case _ =>
+        val field = variable.get_field_by_name(name)
+        if(field.isDefined) {
+          RegionCondition.Predicate(field.get,regOp, value)
+        }
+        else {
+          RegionCondition.Predicate(_,_,_)
+        }
     }
   }
 
   def createMetaPredicate(name : String, operation: String, value : String) = {
     val metaOp = getMetaOperation(operation)
-    // TEST
+
     MetadataCondition.Predicate(name, metaOp, value)
   }
 
@@ -55,6 +81,23 @@ class ExpressionBuilder {
   {
     condition match {
       case "NOT" => MetadataCondition.NOT(pred)
+    }
+  }
+
+  def createRegionBinaryCondition(pred1 : RegionCondition.RegionCondition, condition : String,
+                                  pred2 : RegionCondition.RegionCondition) : RegionCondition.RegionCondition =
+  {
+    condition match {
+      case "AND" => RegionCondition.AND(pred1, pred2)
+      case "OR" => RegionCondition.OR(pred1, pred2)
+    }
+  }
+
+  def createRegionUnaryCondition(pred: RegionCondition.RegionCondition,
+                               condition: String): RegionCondition.RegionCondition =
+  {
+    condition match {
+      case "NOT" => RegionCondition.NOT(pred)
     }
   }
 

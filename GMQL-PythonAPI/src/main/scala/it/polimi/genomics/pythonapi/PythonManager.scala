@@ -75,8 +75,8 @@ object PythonManager {
     op
   }
 
-  def getNewExpressionBuilder : ExpressionBuilder = {
-    val expressionBuilder = new ExpressionBuilder()
+  def getNewExpressionBuilder(index: Int) : ExpressionBuilder = {
+    val expressionBuilder = new ExpressionBuilder(index)
     expressionBuilder
   }
 
