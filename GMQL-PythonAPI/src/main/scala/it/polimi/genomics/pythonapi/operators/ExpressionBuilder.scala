@@ -1,4 +1,5 @@
 package it.polimi.genomics.pythonapi.operators
+import it.polimi.genomics.core.DataStructures.RegionAggregate.RENode
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.pythonapi.PythonManager
 /**
@@ -99,6 +100,12 @@ class ExpressionBuilder(index : Int) {
     condition match {
       case "NOT" => RegionCondition.NOT(pred)
     }
+  }
+
+  def createRegionExtension(name : String, node: RENode): Unit =
+  {
+    val regionExtensionFactory = PythonManager.getServer.implementation.regionExtensionFactory
+    regionExtensionFactory.get(node,Left(name))
   }
 
 }

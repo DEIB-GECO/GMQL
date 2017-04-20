@@ -43,8 +43,18 @@ object OperatorManager {
     do_project(index, Option(projected_meta), None, None, None)
   }
 
+  def meta_project_extend(index : Int, projected_meta: java.util.List[String],
+                          extended_meta : MetaAggregateStruct): Int = {
+    do_project(index, Option(projected_meta), Option(extended_meta), None, None)
+  }
+
   def reg_project(index : Int, projected_regs : java.util.List[String]): Int = {
     do_project(index, None, None, Option(projected_regs), None)
+  }
+
+  def reg_project_extend(index : Int, projected_regs : java.util.List[String],
+                         extended_regs : java.util.List[RegionFunction]): Int = {
+    do_project(index, None, None, Option(projected_regs), Option(extended_regs))
   }
 
   def do_project(index : Int, projected_meta : Option[java.util.List[String]], extended_meta : Option[MetaAggregateStruct],
