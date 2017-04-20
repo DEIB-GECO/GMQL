@@ -44,7 +44,7 @@ object PythonManager {
   def startEngine(): Unit =
   {
     // set the server and the executor
-    this.server = new GmqlServer(new GMQLSparkExecutor(sc=this.sparkContext))
+    this.server = new GmqlServer(new GMQLSparkExecutor(sc=this.sparkContext, stopContext = false))
     this.logger.info("GMQL Server started")
   }
 
@@ -98,6 +98,10 @@ object PythonManager {
     this.server setOutputPath outputPath MATERIALIZE variableToMaterialize.get
     //starting the server execution
     this.server.run()
+    //clear the materialization list
+    this.server.clearMaterializationList()
+    //clear the cache of spark
+
   }
 
   def getParser(parserName: String) : BedParser =

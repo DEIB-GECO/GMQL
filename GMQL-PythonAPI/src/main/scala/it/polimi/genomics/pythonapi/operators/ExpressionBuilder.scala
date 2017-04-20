@@ -37,7 +37,7 @@ class ExpressionBuilder(index : Int) {
     }
   }
 
-  def createRegionPredicate(name: String, operation: String, value : String): Unit =
+  def createRegionPredicate(name: String, operation: String, value : String) =
   {
     val regOp = getRegionOperation(operation)
     // get the Variable
@@ -56,7 +56,7 @@ class ExpressionBuilder(index : Int) {
           RegionCondition.Predicate(field.get,regOp, value)
         }
         else {
-          RegionCondition.Predicate(_,_,_)
+          RegionCondition.ChrCondition("impossibleChar")
         }
     }
   }

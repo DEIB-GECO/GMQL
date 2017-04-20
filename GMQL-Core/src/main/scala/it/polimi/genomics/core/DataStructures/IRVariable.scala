@@ -172,7 +172,16 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
       this.regionDag,
       this.schema)
   }
-
+  def EXTENDmeta(region_aggregates : List[RegionsToMeta]): IRVariable = {
+    new IRVariable(IRUnionAggMD(this.metaDag, IRAggregateRD(region_aggregates, this.regionDag)),
+      this.regionDag,
+      this.schema)
+  }
+  def EXTENDRegion(region_aggregates : List[RegionsToMeta]): IRVariable = {
+    new IRVariable(IRUnionAggMD(this.metaDag, IRAggregateRD(region_aggregates, this.regionDag)),
+      this.regionDag,
+      this.schema)
+  }
 
   /** Group by with both meta grouping and region grouping
     */
