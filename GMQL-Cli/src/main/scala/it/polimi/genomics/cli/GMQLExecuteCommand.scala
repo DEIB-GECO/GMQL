@@ -4,11 +4,10 @@ import java.io._
 import java.text.SimpleDateFormat
 import java.util.Date
 
-import com.sun.jersey.core.util.Base64
+import com.sun.org.apache.xml.internal.security.utils.Base64
 import it.polimi.genomics.GMQLServer.{GmqlServer, Implementation}
 import it.polimi.genomics.compiler._
 import it.polimi.genomics.core.{GMQLSchemaFormat, ImplementationPlatform}
-import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
@@ -326,7 +325,7 @@ object GMQLExecuteCommand {
   }
 
   def getImplemenation(executionType:String,jobid:String , outputFormat: GMQLSchemaFormat.Value) ={
-    if (executionType.equals(it.polimi.genomics.core.ImplementationPlatform.SPARK.toString.toLowerCase())) {
+//    if (executionType.equals(it.polimi.genomics.core.ImplementationPlatform.SPARK.toString.toLowerCase())) {
       val conf = new SparkConf().setAppName("GMQL V2.1 Spark " + jobid)
         .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "128")
         .set("spark.driver.allowMultipleContexts","true")
@@ -350,9 +349,10 @@ object GMQLExecuteCommand {
 //
 //      });
       new GMQLSparkExecutor(testingIOFormats = false, sc = sc, outputFormat = outputFormat)
-    } else /*if(executionType.equals(FLINK)) */ {
-      new FlinkImplementation()
-    }
+//    }
+//    else /*if(executionType.equals(FLINK)) */ {
+//      new FlinkImplementation()
+//    }
   }
 
   private def extractInDSsSchema(inputSchemata:String):Map[String, String] ={

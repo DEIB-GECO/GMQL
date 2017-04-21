@@ -50,6 +50,14 @@
 
         <dependency>
             <groupId>it.polimi.genomics</groupId>
+            <artifactId>GMQL-Flink</artifactId>
+            <version>3.0</version>
+            <exclusions>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>it.polimi.genomics</groupId>
             <artifactId>Compiler</artifactId>
             <version>3.0</version>
         </dependency>

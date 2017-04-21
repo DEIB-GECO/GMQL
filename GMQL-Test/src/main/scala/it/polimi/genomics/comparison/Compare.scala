@@ -6,7 +6,7 @@ import it.polimi.genomics.DotImplementation.DotImplementation
 import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.compiler.{MaterializeOperator, Translator}
 import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
-import it.polimi.genomics.repository.FSRepository.{FS_Utilities => FSR_Utilities}
+//import it.polimi.genomics.repository.FSRepository.{FS_Utilities => FSR_Utilities}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.tooling.{Comparators, DataGenerator, DocumentManager, FS_tools}
 import org.apache.spark.{SparkConf, SparkContext}
@@ -30,7 +30,7 @@ object Compare {
 
   def main(args: Array[String]) {
 
-    var executionType = ALL
+    var executionType = "ss"
     var output = ""
     var inputFile = ""
     var generate = true
@@ -70,7 +70,7 @@ object Compare {
 
     val docManager = new DocumentManager()
 
-    val test_conf = XML.loadFile(if (inputFile != "") inputFile else "conf/test_join.xml")
+    val test_conf = XML.loadFile(if (inputFile != "") inputFile else "conf/test_full.xml")
     val binSizes = (test_conf \\ "config" \\ "binsizes" \\ "binsize").map(_.text.toInt)
 
     val datasets: Seq[(String, String)] = for (x <- (test_conf \\ "datasets" \\ "dataset")) yield {
@@ -172,6 +172,9 @@ object Compare {
         .setAppName("GMQL V2 Spark")
         //    .setSparkHome("/usr/local/Cellar/spark-1.5.2/")
         .setMaster("local[*]")
+          .set("spark.history.fs.logDirectory","hdfs://localhost:54310/sparkHistory/")
+          .set ("spark.eventLog.enabled","true")
+          .set("spark.eventLog.dir","hdfs://localhost:54310/sparkHistory/")
         //    .setMaster("yarn-client")
         //    .set("spark.executor.memory", "1g")
         .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "64")
@@ -241,7 +244,7 @@ object Compare {
       FS_tools.clean_outputs()
     }
     docManager.generate()
-    logger.warn("Find results at: " + FS_tools.gmql_test_folder_path)
+    logger.info("Find results at: " + FS_tools.gmql_test_folder_path)
   }
 
 }
