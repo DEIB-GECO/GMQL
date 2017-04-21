@@ -3,7 +3,6 @@ package it.polimi.genomics.compiler
 
 import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.core.GMQLSchemaFormat
-import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.{SparkConf, SparkContext}
 import org.slf4j.LoggerFactory
@@ -99,7 +98,7 @@ object gmqlc {
       //    .setMaster("yarn-client")
       //    .set("spark.executor.memory", "1g")
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-//      .set("spark.kryoserializer.buffer", "64")
+      .set("spark.kryoserializer.buffer", "256")
       .set("spark.driver.allowMultipleContexts","true")
 //      .set("spark.sql.tungsten.enabled", "true")
     val sc:SparkContext =new SparkContext(conf)
@@ -242,13 +241,18 @@ object gmqlc {
       "RES1 = COVER(2,ANY) DATA_SET_VAR;\n" +
       "MATERIALIZE RES1 INTO EX1;"
 
+    val dif =  "DATA_SET_VAR = SELECT()/Users/abdulrahman/Polimi/IDEA/GMQLV2/res_gtf/exp/;\n" +
+      "DATA_SET_VAR1 = SELECT()/Users/abdulrahman/Polimi/IDEA/GMQLV2/res_gtf1/exp/;\n" +
+      "RES1 = difference() DATA_SET_VAR DATA_SET_VAR1;\n" +
+      "MATERIALIZE RES1 INTO EX1;"
+
 //    val execQuery = args(2) match {
 //      case "histo" => Histogram
 //      case "map" => Map_server
 //    }
     val test_double_select = ""
       try {
-        if (translator.phase2(translator.phase1(gtfScource))) {
+        if (translator.phase2(translator.phase1(dif))) {
           server.run()
           //server.getDotGraph()
         }
@@ -256,7 +260,7 @@ object gmqlc {
         case e: CompilerException => println(e.getMessage)
       }
 
-      println("\n\nQuery" +"\n" + gtfScource + "\n\n")
+      println("\n\nQuery" +"\n" + dif + "\n\n")
       // "open /Users/pietro/Desktop/test_gmql/output/".!
       //  Console.readLine()
   }
