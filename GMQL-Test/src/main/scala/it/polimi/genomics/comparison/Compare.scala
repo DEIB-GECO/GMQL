@@ -202,10 +202,10 @@ object Compare {
           spark_server.run()
           val spark_stop: Long = System.currentTimeMillis
 
-          //delete the output path if it is on hdfs
-          if(outputs.head.startsWith("hdfs")&& binSizes.size>1){
-           outputs.map(x=> println("deleting Spark out( "+x+" ) "+FSR_Utilities.deleteDFSDir(x)))
-          }
+//          //delete the output path if it is on hdfs
+//          if(outputs.head.startsWith("hdfs")&& binSizes.size>1){
+//           outputs.map(x=> println("deleting Spark out( "+x+" ) "+FSR_Utilities.deleteDFSDir(x)))
+//          }
 
           (true, Some(spark_stop - spark_start))
         } catch {
