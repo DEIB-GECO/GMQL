@@ -1,8 +1,10 @@
 package it.polimi.genomics.pythonapi.operators
 
+import it.polimi.genomics.core.DataStructures.CoverParameters.{ALL, ANY, CoverFlag, CoverParam, N}
+import it.polimi.genomics.core.DataStructures.CoverParameters.CoverFlag.CoverFlag
 import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaAggregateStruct
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
-import it.polimi.genomics.core.DataStructures.RegionAggregate.RegionFunction
+import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionFunction, RegionsToRegion}
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
 import it.polimi.genomics.pythonapi.PythonManager
 
@@ -97,6 +99,44 @@ object OperatorManager {
       extended_meta, projected_regs_values,
       extended_regs_l)
 
+    // generate new index
+    val new_index = PythonManager.putNewVariable(nv)
+    new_index
+  }
+
+  def getCoverTypes(name : String): CoverFlag = {
+    name match {
+      case "normal" => CoverFlag.COVER
+      case "flat" => CoverFlag.FLAT
+      case "summit" => CoverFlag.SUMMIT
+      case "histogram" => CoverFlag.HISTOGRAM
+      case _ => CoverFlag.COVER
+    }
+  }
+
+  def getCoverParam(p : String): CoverParam = {
+    p match {
+      case "ALL" => ALL()
+      case "ANY" => ANY()
+      case _ => {
+        val number = p.toInt
+        N(number)
+      }
+    }
+  }
+
+  def cover(index: Int, coverFlag : CoverFlag, minAcc : CoverParam, maxAcc : CoverParam,
+            groupBy : java.util.List[String], aggregates: java.util.List[RegionsToRegion]): Int = {
+    val groupByPar : Option[List[String]] = {
+      if(groupBy.size() > 0)
+        Option(groupBy.asScala.toList)
+      else
+        None
+    }
+    val aggregatesPar = aggregates.asScala.toList
+
+    val v = PythonManager.getVariable(index)
+    val nv = v COVER(coverFlag,minAcc,maxAcc,aggregatesPar,groupByPar)
     // generate new index
     val new_index = PythonManager.putNewVariable(nv)
     new_index
