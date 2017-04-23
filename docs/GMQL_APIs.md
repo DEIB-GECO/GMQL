@@ -169,6 +169,7 @@ DS1.JOIN(None, List(new JoinQuadruple(Some(DistLess(200000)), Some(new MinDistan
   DS1.JOIN(None, List(new JoinQuadruple(Some(new MinDistance(10)), Some(DistLess(-1)))), RegionBuilder.CONTIG, REFDS)
 ``` 
 
+
 #### Cover Operation, set of examples
 
 ``` 
@@ -186,21 +187,25 @@ import it.polimi.genomics.core.DataStructures.CoverParameters.{ANY, CoverFlag, N
   DS1.COVER(CoverFlag.HISTOGRAM, ANY(), ANY(), List(), None )
 ``` 
 
+
+----------
+
+
 #### Genometric Map, set of examples
 
 
 ``` 
-optionalDS.MAP(None, List(), dataAsTheyAre)
+DS1.MAP(None, List(), REFDS)
 ``` 
 
 ``` 
-dataAsTheyAre.MAP(None, 
+DS1.MAP(None, 
 	List(DefaultRegionsToRegionFactory.get("MAX",0,Some("newScore")) ),
-		 optionalDS)
+		 REFDS)
 ``` 
 
 ``` 
-dataAsTheyAre.MAP(
+DS1.MAP(
            Some(new MetaJoinCondition(List(Default("Cell_Type")))),
            List(
              new RegionsToRegion {
@@ -214,6 +219,93 @@ dataAsTheyAre.MAP(
                }
               }}
            ),
-           optionalDS
+           REFDS
          )
 ``` 
+
+
+----------
+
+#### Genometric Difference, set of examples
+
+```
+	DS1.DIFFERENCE(None, List(), REFDS)
+```
+
+``` 
+	DS1.DIFFERENCE(None, 
+		List(DefaultRegionsToRegionFactory.get("MAX",0,Some("newScore")) ),
+		REFDS)
+```
+
+
+---------
+
+#### Union, set of examples
+
+```
+	val resDS = DS1.UNION(DS2)
+```
+
+----------
+
+#### Merge, set of examples
+
+```
+	val resDS = DS1.MERGE(groupBy = Some(List("Cell")))
+```
+
+----------
+
+#### Order, set of examples
+
+```
+	DS1.ORDER(
+		meta_ordering = Some(List(("bert_value2", Direction.DESC), 
+					("bert_value1", Direction.ASC))),
+		meta_new_attribute = "group_ordering", 
+		meta_top_par =  TopG(1), 
+		region_top_par = NoTop())
+```
+
+```
+	DS1.ORDER(
+		meta_ordering = None, 
+		meta_top_par =  NoTop(), 
+		region_ordering =  Some(List((0, Direction.ASC), (1, Direction.DESC))), 
+		region_top_par = TopG(3))
+```
+
+----------
+
+#### Project, set of examples
+
+```
+	DS1.PROJECT(
+		projected_meta = Some(List("antibody","cell")), 
+		projected_values = None, 
+		extended_values = None)
+```
+
+```
+	val fun = new MetaAggregateStruct {
+            override val newAttributeName: String = "computed_value1"
+            override val inputAttributeNames: List[String] = List("score")
+            override val fun: (Array[Traversable[String]]) => String =
+            //average of the double
+              (l : Array[Traversable[String]]) => {
+                val r =
+                  l(0)
+                    .map((a: String) => (a.toDouble * 2, 1))
+                    .reduce((a: (Double, Int), b: (Double, Int)) => 
+	                    (a._1 + b._1, a._2 + b._2))
+                (r._1 / r._2).toString
+              }
+          }
+
+          DS1.PROJECT(
+	          projected_meta = Some(List("antibody","cell")), 
+	          extended_meta = Some(fun),
+			  extended_values = None, 
+			  projected_values = None)
+```
