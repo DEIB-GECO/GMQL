@@ -1,4 +1,7 @@
+import java.util
+
 import MultipleMaterializations.properties
+import it.polimi.genomics.core.DataStructures.RegionAggregate.RegionFunction
 import it.polimi.genomics.pythonapi.{AppProperties, PythonManager}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.slf4j.LoggerFactory
@@ -43,7 +46,15 @@ object Project {
     regFields.add("signalValue")
     regFields.add("pValue")
 
-    val new_index = opManager.reg_project(index,regFields)
+    //build new fields
+    val expBuild = pythonManager.getNewExpressionBuilder(index)
+    val regExtendedFields = new util.ArrayList[RegionFunction]()
+    val reFun = expBuild.createRegionExtension(
+      "new_attribute", expBuild.getBinaryRegionExpression(expBuild.getRENode("pValue"), "ADD", expBuild.getRENode("signalValue"))
+    )
+    regExtendedFields.add(reFun)
+
+    val new_index = opManager.reg_project_extend(index,regFields,regExtendedFields)
   }
 
 }

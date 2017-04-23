@@ -1,5 +1,5 @@
 package it.polimi.genomics.pythonapi.operators
-import it.polimi.genomics.core.DataStructures.RegionAggregate.RENode
+import it.polimi.genomics.core.DataStructures.RegionAggregate._
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.pythonapi.PythonManager
 /**
@@ -102,10 +102,49 @@ class ExpressionBuilder(index : Int) {
     }
   }
 
-  def createRegionExtension(name : String, node: RENode): Unit =
+  def createRegionExtension(name : String, node: RENode): RegionFunction =
   {
     val regionExtensionFactory = PythonManager.getServer.implementation.regionExtensionFactory
     regionExtensionFactory.get(node,Left(name))
+  }
+
+  def getRENode(name : String) : RENode =
+  {
+    name match {
+      case "start" => RESTART()
+      case "stop" => RESTOP()
+      case "left" => RELEFT()
+      case "right" => RERIGHT()
+      case "chr" => RECHR()
+      case "strand" => RESTRAND()
+      case _ => {
+        val variable = PythonManager.getVariable(this.index)
+        val pos = variable.get_field_by_name(name)
+        if(pos.isDefined) {
+          REPos(pos.get)
+        }
+        else {
+          REPos(0)
+        }
+      }
+    }
+  }
+
+  def getREType(typename : String, value : String) : RENode = {
+    typename match {
+      case "string" => REStringConstant(value)
+      case _ => REFloat(value.toDouble)
+    }
+  }
+
+  def getBinaryRegionExpression(node1: RENode, operator: String, node2: RENode) : RENode =
+  {
+    operator match {
+      case "ADD" => READD(node1, node2)
+      case "DIV" => REDIV(node1, node2)
+      case "SUB" => RESUB(node1, node2)
+      case "MUL" => REMUL(node1, node2)
+    }
   }
 
 }
