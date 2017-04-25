@@ -108,6 +108,19 @@ class ExpressionBuilder(index : Int) {
     regionExtensionFactory.get(node,Left(name))
   }
 
+  def getRegionsToRegion(functionName: String, newAttrName: String, argument: String): RegionsToRegion = {
+    val regionsToRegionFactory = PythonManager.getServer.implementation.mapFunctionFactory
+    val variable = PythonManager.getVariable(this.index)
+    val field_number = variable.get_field_by_name(argument)
+    // by default it's a COUNT operation
+    var res : RegionsToRegion = regionsToRegionFactory.get("COUNT", Option(newAttrName))
+    if(field_number.isDefined) {
+      res = regionsToRegionFactory.get(functionName, field_number.get, Option(newAttrName))
+    }
+    res.output_name = Option(newAttrName)
+    res
+  }
+
   def getRENode(name : String) : RENode =
   {
     name match {
@@ -146,5 +159,7 @@ class ExpressionBuilder(index : Int) {
       case "MUL" => REMUL(node1, node2)
     }
   }
+
+
 
 }
