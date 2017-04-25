@@ -1,7 +1,8 @@
 package it.polimi.genomics.pythonapi.operators
 
-import it.polimi.genomics.core.DataStructures.CoverParameters.{ALL, ANY, CoverFlag, CoverParam, N}
+import it.polimi.genomics.core.DataStructures.CoverParameters._
 import it.polimi.genomics.core.DataStructures.CoverParameters.CoverFlag.CoverFlag
+import it.polimi.genomics.core.DataStructures.JoinParametersRD._
 import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaAggregateStruct
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
 import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionFunction, RegionsToRegion}
@@ -142,4 +143,14 @@ object OperatorManager {
     new_index
   }
 
+  def getGenometricCondition(conditionName : String, argument : String): AtomicCondition = {
+    conditionName match {
+      case "DLE" => DistLess(argument.toLong)
+      case "DGE" => DistGreater(argument.toLong)
+      case "MD" => MinDistance(argument.toInt)
+      case "UP" => Upstream()
+      case "DOWN" => DownStream()
+      case _ => DistLess(1000)
+    }
+  }
 }
