@@ -4,6 +4,8 @@ import it.polimi.genomics.core.DataStructures.CoverParameters._
 import it.polimi.genomics.core.DataStructures.CoverParameters.CoverFlag.CoverFlag
 import it.polimi.genomics.core.DataStructures.JoinParametersRD._
 import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaAggregateStruct
+import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
+import it.polimi.genomics.core.DataStructures.MetaJoinCondition.{AttributeEvaluationStrategy, Default, MetaJoinCondition}
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
 import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionFunction, RegionsToRegion}
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
@@ -18,6 +20,10 @@ import scala.collection.mutable.ListBuffer
   */
 object OperatorManager {
 
+
+  /*
+  * SELECT
+  * */
   def meta_select(index: Int, metaCondition : MetadataCondition) : Int =
   {
     // get the corresponding variable
@@ -42,6 +48,10 @@ object OperatorManager {
 
   def select(index: Int, metaCondition : MetadataCondition, regionCondition: RegionCondition) : Int = ???
 
+
+  /*
+  * PROJECT
+  * */
   def meta_project(index : Int, projected_meta: java.util.List[String]): Int = {
     do_project(index, Option(projected_meta), None, None, None)
   }
@@ -105,6 +115,10 @@ object OperatorManager {
     new_index
   }
 
+  /*
+  * COVER
+  * */
+
   def getCoverTypes(name : String): CoverFlag = {
     name match {
       case "normal" => CoverFlag.COVER
@@ -152,5 +166,58 @@ object OperatorManager {
       case "DOWN" => DownStream()
       case _ => DistLess(1000)
     }
+  }
+
+  /*
+  * JOIN
+  * */
+
+  def getRegionJoinCondition(atomicConditionsList : java.util.List[AtomicCondition]): List[JoinQuadruple] = {
+    atomicConditionsList.size() match {
+      case 0 => List(JoinQuadruple(Option(DistLess(Long.MaxValue))))
+      case 1 => List(JoinQuadruple(Option(atomicConditionsList.get(0))))
+      case 2 => List(JoinQuadruple(Option(atomicConditionsList.get(0)), Option(atomicConditionsList.get(1))))
+      case 3 => List(JoinQuadruple(Option(atomicConditionsList.get(0)), Option(atomicConditionsList.get(1)),
+        Option(atomicConditionsList.get(2))))
+      case 4 => List(JoinQuadruple(Option(atomicConditionsList.get(0)), Option(atomicConditionsList.get(1)),
+        Option(atomicConditionsList.get(2)), Option(atomicConditionsList.get(3))))
+      case _ => List(JoinQuadruple(Option(atomicConditionsList.get(0)), Option(atomicConditionsList.get(1)),
+        Option(atomicConditionsList.get(2)), Option(atomicConditionsList.get(3))))
+    }
+  }
+
+  def getMetaJoinCondition(metadataAttributeList : java.util.List[String]): Option[MetaJoinCondition] = {
+    // for now we consider only DEFAULT AttributeEvaluationStrategy
+    var listAttributes = new ListBuffer[AttributeEvaluationStrategy]()
+
+    for(m <- metadataAttributeList) {
+      val att = Default(m)
+      listAttributes += att
+    }
+    if(listAttributes.size < 1)
+      None
+    else
+      Option(MetaJoinCondition(listAttributes.toList))
+  }
+
+  def getRegionBuilderJoin(builder: String) = {
+    builder match {
+      case "LEFT" =>  RegionBuilder.LEFT
+      case "RIGHT" => RegionBuilder.RIGHT
+      case "INT" => RegionBuilder.INTERSECTION
+      case "CONTIG" => RegionBuilder.CONTIG
+      case _ => RegionBuilder.LEFT
+    }
+  }
+
+  def join(index: Int, other: Int, metaJoinCondition: Option[MetaJoinCondition],
+           regionJoinCondition: List[JoinQuadruple], regionBuilder : RegionBuilder): Int = {
+    val v = PythonManager.getVariable(index)
+    val other_v = PythonManager.getVariable(other)
+
+    val nv = v.JOIN(metaJoinCondition,regionJoinCondition,regionBuilder,other_v)
+    // generate new index
+    val new_index = PythonManager.putNewVariable(nv)
+    new_index
   }
 }
