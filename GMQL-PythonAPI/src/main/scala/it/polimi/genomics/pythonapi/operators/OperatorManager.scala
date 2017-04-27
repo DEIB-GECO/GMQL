@@ -10,6 +10,7 @@ import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataConditio
 import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionFunction, RegionsToRegion}
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
 import it.polimi.genomics.pythonapi.PythonManager
+import scala.collection.JavaConversions._
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
@@ -216,6 +217,20 @@ object OperatorManager {
     val other_v = PythonManager.getVariable(other)
 
     val nv = v.JOIN(metaJoinCondition,regionJoinCondition,regionBuilder,other_v)
+    // generate new index
+    val new_index = PythonManager.putNewVariable(nv)
+    new_index
+  }
+
+  /*
+  * MAP
+  * */
+  def map(index: Int, other: Int, metaJoinCondition: Option[MetaJoinCondition],
+          aggregates: java.util.List[RegionsToRegion]): Int = {
+    val v = PythonManager.getVariable(index)
+    val other_v = PythonManager.getVariable(other)
+
+    val nv = v.MAP(metaJoinCondition,aggregates.toList,other_v)
     // generate new index
     val new_index = PythonManager.putNewVariable(nv)
     new_index

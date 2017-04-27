@@ -4,11 +4,17 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.core.DataStructures.IRVariable
+import it.polimi.genomics.core.ParsingType
+import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
 import it.polimi.genomics.pythonapi.operators.{ExpressionBuilder, OperatorManager}
-import it.polimi.genomics.spark.implementation.loaders.{BedParser, NarrowPeakParser}
+import it.polimi.genomics.spark.implementation.loaders._
+
+import scala.collection.JavaConversions._
 import org.slf4j.LoggerFactory
+
+import scala.collection.mutable.ListBuffer
 
 /**
   * Created by Luca Nanni on 08/04/17.
@@ -108,10 +114,40 @@ object PythonManager {
   {
     parserName match {
       case "NarrowPeakParser" => NarrowPeakParser.asInstanceOf[BedParser]
+      case "BasicParser" => BasicParser.asInstanceOf[BedParser]
       case _ => NarrowPeakParser.asInstanceOf[BedParser]
     }
   }
 
+  def buildParser(delimiter: String, chrPos: Int, startPos: Int, stopPos: Int, strandPos: Int,
+                  otherPos: java.util.List[java.util.List[String]]) : BedParser =
+  {
+    var strandPos_real :Option[Int] = None
+    if(strandPos>=0) {
+      strandPos_real = Option(strandPos)
+    }
+    var otherPosOptionList : Option[Array[(Int, ParsingType.PARSING_TYPE)]] = None
+    val schemaList = new ListBuffer[(String, ParsingType.PARSING_TYPE)]()
+    if(otherPos.size() > 0) {
+      var otherPosList = Array[(Int, ParsingType.PARSING_TYPE)]()
+      for(e <- otherPos) {
+        val pos = e.get(0).toInt
+        val name = e.get(1)
+        val t = getParseTypeFromString(e.get(2))
+        otherPosList = otherPosList :+ (pos, t)
+        schemaList += Tuple2(name, t)
+      }
+      otherPosOptionList = Option(otherPosList)
+    }
+
+    val bedparser = new BedParser(delimiter,chrPos,startPos,stopPos,strandPos_real,otherPosOptionList)
+    bedparser.schema = schemaList.toList
+    bedparser
+  }
+
+  def getParseTypeFromString(typeString : String) = {
+    ParsingType.attType(typeString)
+  }
 
 
 }
