@@ -309,3 +309,37 @@ DS1.MAP(
 			  extended_values = None, 
 			  projected_values = None)
 ```
+
+#### Extend, set of examples
+
+```
+DS1.EXTEND(
+  region_aggregates = List(
+	DefaultRegionsToMetaFactory.get("MAX",0,Some("maxScore")),
+	DefaultRegionsToMetaFactory.get("MIN",0,Some("miniScore"))
+  )
+)
+
+```
+
+```
+dataAsTheyAre.EXTEND(
+      region_aggregates = List(
+        new RegionsToMeta {
+          override val newAttributeName = "MAXscore"
+          override val inputIndex: Int = 0
+          override val associative: Boolean = true
+          override val fun: (List[GValue]) => 
+	          GValue = {
+	            (line) => GDouble(
+		            line.map((gvalue) =>
+			            gvalue.asInstanceOf[GDouble].v
+			            )
+				        .reduce((x, y) => Math.max(x, y)))
+          }
+          override val funOut: (GValue, Int) => GValue = 
+	          { (v1, v2) => v1 }
+        }
+      )
+    )
+```
