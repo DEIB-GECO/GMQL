@@ -37,7 +37,7 @@ object GenometricJoin4TopMin2 {
           val e = for(ex <- exp)
             yield(ex,groupID)
           e :+ (x._1,groupID)
-        }
+        }.distinct()
 
     // assign group to ref
     val groupedDs : RDD[(Long,Long, String, Long, Long, Char, Array[GValue]/*, Long*/)] =
