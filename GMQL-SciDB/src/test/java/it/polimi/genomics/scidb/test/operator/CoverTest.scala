@@ -47,7 +47,7 @@ object CoverTest
 
     val MetaGroup = IRGroupBy(MetaGroupByCondition(List("bert_value1")), ReadAncMD)
     val CollapseMD = IRCollapseMD(Some(MetaGroup), ReadAncMD)
-    val CoverMD = IRRegionCover(CoverFlag.FLAT, N(2), ANY(), List(countVal1), Some(MetaGroup), ReadAncRD)
+    val CoverMD = IRRegionCover(CoverFlag.FLAT, new N{override val n=2;}, new ANY{}, List(countVal1), Some(MetaGroup), ReadAncRD)
 
     val StoreAncMD = IRStoreMD("", CollapseMD, RES)
     val StoreAncRD = IRStoreRD("", CoverMD, RES)

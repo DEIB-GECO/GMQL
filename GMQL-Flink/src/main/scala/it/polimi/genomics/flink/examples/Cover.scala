@@ -30,19 +30,19 @@ object   Cover {
     val cover =
       what match{
         case 0 => {
-          DS1.COVER(CoverFlag.COVER, N(2), N(3), List(), None )
+          DS1.COVER(CoverFlag.COVER, new N{override val n=4}, new N{override val n=9;}, List(), None )
         }
 
         case 1 => {
-          DS1.COVER(CoverFlag.FLAT, N(2), N(3), List(), None )
+          DS1.COVER(CoverFlag.FLAT, new N{override val n=2;}, new N{override val n=3;}, List(), None )
         }
 
         case 2 => {
-          DS1.COVER(CoverFlag.SUMMIT, N(2), N(5), List(), None )
+          DS1.COVER(CoverFlag.SUMMIT, new N{override val n=2;}, new N{override val n=5;}, List(), None )
         }
 
         case 3 => {
-          DS1.COVER(CoverFlag.HISTOGRAM, ANY(), ANY(), List(), None )
+          DS1.COVER(CoverFlag.HISTOGRAM, new ANY{}, new ANY{}, List(), None )
         }
       }
 

@@ -25,7 +25,7 @@ object Cover {
 
     val dataAsTheyAre = server READ ex_data_path USING test3Parser()
 
-    val cover = dataAsTheyAre.COVER(CoverFlag.COVER, N(2), N(3), List(), None )
+    val cover = dataAsTheyAre.COVER(CoverFlag.COVER, new N{override val n=2}, new N{override val n=3}, List(), None )
 
     server setOutputPath output_path MATERIALIZE cover
 
