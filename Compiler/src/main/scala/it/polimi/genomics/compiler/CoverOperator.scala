@@ -1,5 +1,6 @@
 package it.polimi.genomics.compiler
 
+import com.sun.org.apache.xalan.internal.xsltc.compiler.CompilerException
 import it.polimi.genomics.core.DataStructures.CoverParameters.{CoverFlag, N, CoverParam}
 import it.polimi.genomics.core.DataStructures.RegionAggregate.RegionsToRegion
 
@@ -33,6 +34,10 @@ abstract class RegionIntersectionOperator2(op_pos : Position,
       val cover_lims = parser_unnamed(cover_boundaries, None)
       minAcc = cover_lims.get._1
       maxAcc = cover_lims.get._2
+    } else {
+      val msg = operator_name + " operator at line " + op_pos.line + ": a value for minAcc and a value for maxAcc " +
+        "are required."
+      throw new CompilerException(msg)
     }
     for (p <- parameters.named) {
       p.param_name.trim.toLowerCase() match {

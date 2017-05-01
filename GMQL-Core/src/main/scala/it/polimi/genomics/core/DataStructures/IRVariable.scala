@@ -411,6 +411,14 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
       None
   }
 
+  def get_type_by_name(name : String) : Option[PARSING_TYPE] = {
+    val putative_position = this.schema.indexWhere(x => x._1.equals(name))
+    if (putative_position >= 0)
+      Some(this.schema(putative_position)._2)
+    else
+      None
+  }
+
   def get_field_by_name_with_wildcard(name : String) : List[Int] = {
     val scaffold = name.replace(".", "\\.").replace("?", ".*")
 

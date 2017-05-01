@@ -96,7 +96,7 @@ trait GmqlParsers extends JavaTokenParsers {
       ) ^^ { x=> x.mkString(".")}
 
 
-  val metadata_attribute:Parser[String] = rep1sep(rep1sep(ident,"|") ^^ {_.mkString("|")}, ".") ^^ {_.mkString(".")}
+  val metadata_attribute:Parser[String] = rep1sep(ident, ".") ^^ {_.mkString(".")}
   val metadata_attribute_list:Parser[List[String]] = rep1sep(metadata_attribute, ",")
 
   val rich_metadata_attribute:Parser[AttributeEvaluationStrategy] =
@@ -287,11 +287,11 @@ trait GmqlParsers extends JavaTokenParsers {
     } |
     (
       (
+        any_field_identifier |
         RIGHT ^^ {x => FieldPosition(COORD_POS.RIGHT_POS)} |
         LEFT ^^ {x => FieldPosition(COORD_POS.LEFT_POS)} |
         START ^^ {x => FieldPosition(COORD_POS.START_POS)} |
-        STOP ^^ {x => FieldPosition(COORD_POS.STOP_POS)}|
-        any_field_identifier
+        STOP ^^ {x => FieldPosition(COORD_POS.STOP_POS)}
         ) <~ AS
       ) ~ re_expr ^^ { x => RegionModifier(x._1,x._2)}
 
