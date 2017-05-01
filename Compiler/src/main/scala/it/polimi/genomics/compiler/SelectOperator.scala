@@ -5,7 +5,7 @@ import it.polimi.genomics.core.DataStructures.{MetaOperator}
 import it.polimi.genomics.core.DataStructures.MetadataCondition.{Predicate, META_OP, MetadataCondition, NOT}
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
 import it.polimi.genomics.core.DataTypes.{FlinkMetaType, FlinkRegionType}
-import it.polimi.genomics.core.GMQLLoader
+import it.polimi.genomics.core.{ParsingType, GMQLLoader}
 
 import scala.util.parsing.input.{Position}
 
@@ -91,6 +91,22 @@ case class SelectOperator(op_pos : Position,
         }
         case RegionPredicateTemp(name,o,v) => {
           val fp = left_var_get_field_name(name)
+          val ft = left_var_get_type_name(name)
+
+          if (
+            (v.isInstanceOf[java.lang.String] &&
+              (ft.get == ParsingType.DOUBLE ||
+                ft.get == ParsingType.INTEGER ||
+                ft.get == ParsingType.LONG)) ||
+              (!v.isInstanceOf[java.lang.String] &&
+                (ft.get == ParsingType.STRING)))
+          {
+            val msg = "In " + operator_name + " at line " + op_pos.line + ", " +
+              "incompatible types comparison.  Field '" + name + "'" +
+              " is of type " + ft.get
+            throw new CompilerException(msg)
+          }
+
           it.polimi.genomics.core.DataStructures.RegionCondition.Predicate(fp.get,o,v)
         }
         case it.polimi.genomics.core.DataStructures.RegionCondition.AND(a,b) => {
