@@ -98,6 +98,17 @@
             case "region_update" => {
               val partial = parser_named(region_modifier_list,p.param_name.trim, p.param_value.trim)
               region_modifier  = {
+                val allNames = partial
+                  .get
+                  .filter(_.isInstanceOf[RegionModifier])
+                  .map(_.asInstanceOf[RegionModifier].field)
+                  .filter(_.isInstanceOf[FieldName])
+                  .map(_.asInstanceOf[FieldName].name)
+                if (allNames.toSet.size != allNames.size){
+                  val msg = "In " + operator_name + " at line " + op_pos.line + ", " +
+                    "in 'region_update' option some field name has been repeated multiple times"
+                  throw new CompilerException(msg)
+                }
                 val l = partial.get
                   .filter(_.isInstanceOf[RegionModifier])
                   .map(x =>
