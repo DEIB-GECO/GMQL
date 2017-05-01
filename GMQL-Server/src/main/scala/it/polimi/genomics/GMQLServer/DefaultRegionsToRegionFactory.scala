@@ -108,7 +108,7 @@ object DefaultRegionsToRegionFactory extends MapFunctionFactory{
               case GInt(v) => List(v.toString)
               case GNull() => List("_")
             }
-          }).reduce((a, b) => a ++ b)).sorted.mkString(" ")) // TODO sorted is added only for comparation reason, we can get rid of it
+          }).distinct.reduce((a, b) => a ++ b)).sorted.mkString(" ")) // TODO sorted is added only for comparation reason, we can get rid of it
         else
           GString(" ")
 

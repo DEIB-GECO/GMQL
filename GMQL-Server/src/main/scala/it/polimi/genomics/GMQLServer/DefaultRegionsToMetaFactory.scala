@@ -223,7 +223,7 @@ object DefaultRegionsToMetaFactory extends ExtendFunctionFactory {
               case GInt(v) => List(v.toString)
               case GNull() => List("_")
             }
-          }).reduce((a, b) => a ++ b)).sorted.mkString(" ")) // TODO sorted is added only for comparation reason, we can get rid of it
+          }).distinct.reduce((a, b) => a ++ b)).sorted.mkString(" ")) // TODO sorted is added only for comparation reason, we can get rid of it
 
         //if(line.size>0)
         //  GString((line.map((gvalue) => gvalue.asInstanceOf[GString].v).reduce(_ + _)).sorted) // TODO sorted is added only for comparation reason, we can get rid of it

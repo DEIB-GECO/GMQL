@@ -31,7 +31,7 @@
 
         <dependency>
             <groupId>com.github.scopt</groupId>
-            <artifactId>scopt_2.10</artifactId>
+            <artifactId>scopt_2.11</artifactId>
             <version>3.3.0</version>
         </dependency>
 
@@ -48,11 +48,11 @@
         </dependency>
 
 
-        <dependency>
-            <groupId>it.polimi.genomics</groupId>
-            <artifactId>GMQL-Flink</artifactId>
-            <version>3.0</version>
-        </dependency>
+        <!--<dependency>-->
+            <!--<groupId>it.polimi.genomics</groupId>-->
+            <!--<artifactId>GMQL-Flink</artifactId>-->
+            <!--<version>3.0</version>-->
+        <!--</dependency>-->
 
 
         <dependency>

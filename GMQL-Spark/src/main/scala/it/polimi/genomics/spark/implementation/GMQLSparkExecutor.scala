@@ -43,7 +43,8 @@ import scala.xml.Elem
 
 class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : Int = 100000, REF_PARALLILISM: Int = 20,
                         testingIOFormats:Boolean = false, sc:SparkContext,
-                        outputFormat:GMQLSchemaFormat.Value = GMQLSchemaFormat.TAB)
+                        outputFormat:GMQLSchemaFormat.Value = GMQLSchemaFormat.TAB,
+                        stopContext:Boolean = true)
   extends Implementation with java.io.Serializable{
 
 
@@ -200,7 +201,11 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
         throw e
       }
     } finally {
-      sc.stop()
+      if (stopContext) {
+        sc.stop()
+      }
+      // We need to clear the set of materialized variables if we are in interactive mode
+      to_be_materialized.clear()
       logger.info("Total Spark Job Execution Time : "+(System.currentTimeMillis()-ms).toString)
     }
 

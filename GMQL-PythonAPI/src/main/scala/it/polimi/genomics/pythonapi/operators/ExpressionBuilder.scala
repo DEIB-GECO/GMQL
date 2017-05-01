@@ -1,4 +1,5 @@
 package it.polimi.genomics.pythonapi.operators
+import it.polimi.genomics.core.DataStructures.RegionAggregate._
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.pythonapi.PythonManager
 /**
@@ -37,7 +38,7 @@ class ExpressionBuilder(index : Int) {
     }
   }
 
-  def createRegionPredicate(name: String, operation: String, value : String): Unit =
+  def createRegionPredicate(name: String, operation: String, value : String) =
   {
     val regOp = getRegionOperation(operation)
     // get the Variable
@@ -56,7 +57,7 @@ class ExpressionBuilder(index : Int) {
           RegionCondition.Predicate(field.get,regOp, value)
         }
         else {
-          RegionCondition.Predicate(_,_,_)
+          RegionCondition.ChrCondition("impossibleChar")
         }
     }
   }
@@ -100,5 +101,65 @@ class ExpressionBuilder(index : Int) {
       case "NOT" => RegionCondition.NOT(pred)
     }
   }
+
+  def createRegionExtension(name : String, node: RENode): RegionFunction =
+  {
+    val regionExtensionFactory = PythonManager.getServer.implementation.regionExtensionFactory
+    regionExtensionFactory.get(node,Left(name))
+  }
+
+  def getRegionsToRegion(functionName: String, newAttrName: String, argument: String): RegionsToRegion = {
+    val regionsToRegionFactory = PythonManager.getServer.implementation.mapFunctionFactory
+    val variable = PythonManager.getVariable(this.index)
+    val field_number = variable.get_field_by_name(argument)
+    // by default it's a COUNT operation
+    var res : RegionsToRegion = regionsToRegionFactory.get("COUNT", Option(newAttrName))
+    if(field_number.isDefined) {
+      res = regionsToRegionFactory.get(functionName, field_number.get, Option(newAttrName))
+    }
+    res.output_name = Option(newAttrName)
+    res
+  }
+
+  def getRENode(name : String) : RENode =
+  {
+    name match {
+      case "start" => RESTART()
+      case "stop" => RESTOP()
+      case "left" => RELEFT()
+      case "right" => RERIGHT()
+      case "chr" => RECHR()
+      case "strand" => RESTRAND()
+      case _ => {
+        val variable = PythonManager.getVariable(this.index)
+        val pos = variable.get_field_by_name(name)
+        if(pos.isDefined) {
+          REPos(pos.get)
+        }
+        else {
+          REPos(0)
+        }
+      }
+    }
+  }
+
+  def getREType(typename : String, value : String) : RENode = {
+    typename match {
+      case "string" => REStringConstant(value)
+      case _ => REFloat(value.toDouble)
+    }
+  }
+
+  def getBinaryRegionExpression(node1: RENode, operator: String, node2: RENode) : RENode =
+  {
+    operator match {
+      case "ADD" => READD(node1, node2)
+      case "DIV" => REDIV(node1, node2)
+      case "SUB" => RESUB(node1, node2)
+      case "MUL" => REMUL(node1, node2)
+    }
+  }
+
+
 
 }

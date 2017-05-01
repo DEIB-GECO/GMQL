@@ -173,7 +173,6 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
       this.schema)
   }
 
-
   /** Group by with both meta grouping and region grouping
     */
   def GROUP(meta_keys : Option[MetaGroupByCondition] = None, meta_aggregates : Option[List[RegionsToMeta]] = None, meta_group_name : String = "_group",
