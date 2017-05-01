@@ -75,6 +75,8 @@ object Wrapper
 
   def select(predicate:String,region:String,semijoin:Any, input_dataset: String): String =
   {
+    //TODO
+
     val dataAsTheyAre = vv(input_dataset)
 
     val meta_con =
@@ -104,7 +106,8 @@ object Wrapper
     //TODO
   }
 
-  def extend(metadata:Array[Array[String]], input_dataset: String): String = {
+  def extend(metadata:Array[Array[String]], input_dataset: String): String =
+  {
     val dataAsTheyAre = vv(input_dataset)
 
     val (error, metaList) = RegionToMetaAggregates(metadata, dataAsTheyAre)
@@ -112,8 +115,9 @@ object Wrapper
       return error
 
     val extend = dataAsTheyAre.EXTEND(metaList)
+    val index = counter.getAndIncrement()
 
-    val out_p = input_dataset + "/extend"
+    val out_p = input_dataset + "/extend"+ index
     vv = vv + (out_p -> extend)
 
     out_p
@@ -314,6 +318,7 @@ object Wrapper
 
 
 /*UTILS FUNCTION*/
+
   def RegionToMetaAggregates(aggregates:Array[Array[String]],data:IRVariable): (String,List[RegionsToMeta]) =
   {
     var list:List[RegionsToMeta] = List()
