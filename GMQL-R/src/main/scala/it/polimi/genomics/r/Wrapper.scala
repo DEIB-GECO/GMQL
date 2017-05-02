@@ -260,15 +260,15 @@ object Wrapper
     var aggrlist: List[RegionsToRegion] = null
 
     min match {
-      case 0 => paramMin = ANY()
-      case -1 => paramMin = ALL()
-      case x if x > 0 => paramMin = N(min.toInt)
+      case 0 => paramMin = new ANY{}
+      case -1 => paramMin = new ALL{}
+      case x if x > 0 => paramMin = new N{override val n =min.toInt}
     }
 
     max match {
-      case 0 => paramMax = ANY()
-      case -1 => paramMax = ALL()
-      case x if x > 0 => paramMax = N(max.toInt)
+      case 0 => paramMax = new ANY{}
+      case -1 => paramMax = new ALL{}
+      case x if x > 0 => paramMax = new N{override val n = max.toInt}
     }
 
     if(aggregates == null) {
