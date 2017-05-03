@@ -271,6 +271,16 @@ case class IRCombineMD(grouping : OptionalMetaJoinOperator, left_dataset : MetaO
 }
 
 /**
+  * Take as parameters two metadata datasets and (optionally) the result of a [[IRJoinBy]], produce as output the union of the allowed metadata in the two datasets.
+  * @param grouping the first metadata set
+  * @param right_dataset the second metadata set
+  */
+case class IRDiffCombineMD(grouping : OptionalMetaJoinOperator, left_dataset : MetaOperator, right_dataset : MetaOperator,
+                       left_ds_name : String = "left", right_ds_name : String = "right") extends MetaOperator {
+
+}
+
+/**
  * Apply the result of a metadata grouping on a metadata set; i.e. it changes the id accordingly to the metadata
  * grouping result
  * @param grouping the result of a groupby condition

@@ -277,7 +277,7 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
 
     new_region_dag.binSize = binS.size
     val new_meta_dag = /*this.metaDag*/
-      IRCombineMD(meta_join_cond,
+      IRDiffCombineMD(meta_join_cond,
         this.metaDag,
         subtrahend.metaDag,
         "",
