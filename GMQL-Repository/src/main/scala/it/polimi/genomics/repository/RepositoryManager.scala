@@ -13,14 +13,6 @@ import scala.collection.JavaConverters._
   * Created by abdulrahman on 18/01/2017.
   */
 object RepositoryManager {
-  try{
-    //    DOMConfigurator.configure("GMQL-Core/logback.xml")
-    val root:ch.qos.logback.classic.Logger = org.slf4j.LoggerFactory.getLogger("org").asInstanceOf[ch.qos.logback.classic.Logger];
-    root.setLevel(ch.qos.logback.classic.Level.WARN);
-    org.slf4j.LoggerFactory.getLogger("it.polimi.genomics.repository").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.INFO)
-  }catch{
-    case _:Throwable => logger.warn("log4j.xml is not found in conf")
-  }
 
   private final val logger = LoggerFactory.getLogger(this.getClass)
 
