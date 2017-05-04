@@ -277,7 +277,7 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
 
     new_region_dag.binSize = binS.size
     val new_meta_dag = /*this.metaDag*/
-      IRCombineMD(meta_join_cond,
+      IRDiffCombineMD(meta_join_cond,
         this.metaDag,
         subtrahend.metaDag,
         "",
@@ -407,6 +407,14 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
     val putative_position = this.schema.indexWhere(x => x._1.equals(name))
     if (putative_position >= 0)
       Some(putative_position)
+    else
+      None
+  }
+
+  def get_type_by_name(name : String) : Option[PARSING_TYPE] = {
+    val putative_position = this.schema.indexWhere(x => x._1.equals(name))
+    if (putative_position >= 0)
+      Some(this.schema(putative_position)._2)
     else
       None
   }

@@ -89,6 +89,11 @@ object PythonManager {
   def read_dataset(dataset_path: String, parserName: String): Int =
   {
     val parser : BedParser = this.getParser(parserName = parserName)
+    read_dataset(dataset_path, parser)
+  }
+
+  def read_dataset(dataset_path: String, parser: BedParser): Int =
+  {
     val dataset : IRVariable = this.server READ dataset_path USING parser
     //putting the new variable in the map
     val index = this.counter.getAndIncrement()

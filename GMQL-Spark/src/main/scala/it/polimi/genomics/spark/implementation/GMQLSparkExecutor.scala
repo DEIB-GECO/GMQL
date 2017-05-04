@@ -106,6 +106,12 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
         logger.debug("meta out: "+MetaOutputPath)
         logger.debug("region out "+ RegionOutputPath)
 
+        val outputFolderName= try{
+          new Path(variableDir).getName
+        }
+        catch{
+          case _:Throwable => variableDir
+        }
 
         val conf = new Configuration();
         val path = new org.apache.hadoop.fs.Path(RegionOutputPath);
@@ -123,12 +129,6 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
           logger.debug(metaRDD.toDebugString)
           logger.debug(regionRDD.toDebugString)
 
-          val outputFolderName= try{
-            new Path(variableDir).getName
-          }
-          catch{
-            case _:Throwable => variableDir
-          }
 
           val outSample = "S"
 
@@ -187,7 +187,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
 
           writeMultiOutputFiles.fixOutputMetaLocation(MetaOutputPath)
         }
-        storeSchema(GMQLSchema.generateSchemaXML(variable.schema,outputFormat),variableDir)
+        storeSchema(GMQLSchema.generateSchemaXML(variable.schema,outputFolderName,outputFormat),variableDir)
       }
     } catch {
       case e : SelectFormatException => {
@@ -238,6 +238,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
           case IRUnionAggMD(leftDataset: MetaOperator, rightDataset: MetaOperator, leftName : String, rightName : String) => UnionAggMD(this, leftDataset, rightDataset, leftName, rightName, sc)
           case IRAggregateRD(aggregator: List[RegionsToMeta], inputDataset: RegionOperator) => AggregateRD(this, aggregator, inputDataset, sc)
           case IRCombineMD(grouping: OptionalMetaJoinOperator, leftDataset: MetaOperator, rightDataset: MetaOperator, leftName : String, rightName : String) => CombineMD(this, grouping, leftDataset, rightDataset, leftName, rightName, sc)
+          case IRDiffCombineMD(grouping: OptionalMetaJoinOperator, leftDataset: MetaOperator, rightDataset: MetaOperator, leftName : String, rightName : String) => DiffCombineMD(this, grouping, leftDataset, rightDataset, leftName, rightName, sc)
           case IRMergeMD(dataset: MetaOperator, groups: Option[MetaGroupOperator]) => MergeMD(this, dataset, groups, sc)
           case IROrderMD(ordering: List[(String, Direction)], newAttribute: String, topParameter: TopParameter, inputDataset: MetaOperator) => OrderMD(this, ordering, newAttribute, topParameter, inputDataset, sc)
           case IRGroupMD(keys: MetaGroupByCondition, aggregates: List[RegionsToMeta], groupName: String, inputDataset: MetaOperator, region_dataset: RegionOperator) => GroupMD(this, keys, aggregates, groupName, inputDataset, region_dataset, sc)
@@ -276,7 +277,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
           case IROrderRD(ordering: List[(Int, Direction)], topPar: TopParameter, inputDataset: RegionOperator) => OrderRD(this, ordering: List[(Int, Direction)], topPar, inputDataset, sc)
           case irJoin:IRGenometricJoin => GenometricJoin4TopMin2(this, irJoin.metajoin_condition, irJoin.join_condition, irJoin.region_builder, irJoin.left_dataset, irJoin.right_dataset,50000/*irJoin.binSize.getOrElse(defaultBinSize)*/,/*irJoin.binSize.getOrElse(defaultBinSize)**/maxBinDistance, sc)
           case irMap:IRGenometricMap => GenometricMap71(this, irMap.grouping, irMap.aggregates, irMap.reference, irMap.samples,50000/*irMap.binSize.getOrElse(defaultBinSize)*/,REF_PARALLILISM, sc)
-          case IRDifferenceRD(metaJoin: OptionalMetaJoinOperator, leftDataset: RegionOperator, rightDataset: RegionOperator,_) => GenometricDifference(this, metaJoin, leftDataset, rightDataset, sc)
+          case IRDifferenceRD(metaJoin: OptionalMetaJoinOperator, leftDataset: RegionOperator, rightDataset: RegionOperator,exact:Boolean) => GenometricDifference(this, metaJoin, leftDataset, rightDataset,exact, sc)
           case IRProjectRD(projectedValues: Option[List[Int]], tupleAggregator: Option[List[RegionExtension]], inputDataset: RegionOperator) => ProjectRD(this, projectedValues, tupleAggregator, inputDataset, sc)
 
         }

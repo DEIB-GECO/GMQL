@@ -11,6 +11,7 @@ import it.polimi.genomics.core.DataStructures.MetaJoinCondition.AttributeEvaluat
 import it.polimi.genomics.core.DataStructures.RegionAggregate.RENode
 import it.polimi.genomics.core.DataStructures.RegionCondition.REG_OP._
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
+import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import org.slf4j.LoggerFactory
 
 import scala.util.parsing.input.{CharSequenceReader, Positional, Position}
@@ -170,6 +171,20 @@ abstract class Operator (op_pos : Position,
 
   def left_var_get_field_name(name : String) : Option[Int] = {
     val fp = super_variable_left.get.get_field_by_name(name)
+    if (fp.isDefined) {
+      fp
+    }
+    else {
+      val schema_list = super_variable_left.get.schema.map(_._1).mkString(", ")
+      val msg = "In " + operator_name + " at line " + op_pos.line + " field " + name +
+        " is not defined. Avalilable fields are { " + schema_list + " } "
+      throw new CompilerException(msg)
+      None
+    }
+  }
+
+  def left_var_get_type_name(name : String) : Option[PARSING_TYPE] = {
+    val fp = super_variable_left.get.get_type_by_name(name)
     if (fp.isDefined) {
       fp
     }
