@@ -345,7 +345,12 @@ trait XMLDataSetRepository extends GMQLRepository{
     val schemaPath = new File(General_Utilities().getSchemaDir( userName ) + datasetName + ".schema")
     val xmlFile = XML.loadFile(schemaPath)
     val cc = (xmlFile \\ "field")
-    val schemaList = cc.map{ x =>new GMQLSchemaField(x.text.trim, ParsingType.attType(x.attribute("type").get.head.text))}.toList
+    val schemaList = cc.map{ x =>
+      val schemaFN = x.text.trim
+      val schemaType = if(schemaFN.toUpperCase().equals("STOP") || schemaFN.toUpperCase().equals("RIGHT") || schemaFN.toUpperCase().equals("END") || schemaFN.toUpperCase().equals("START") || schemaFN.toUpperCase().equals("LEFT")) ParsingType.LONG
+      else ParsingType.attType(x.attribute("type").get.head.text)
+      new GMQLSchemaField(schemaFN, schemaType)
+    }.toList
     val schemaType = GMQLSchemaFormat.getType((xmlFile \\ "gmqlSchema" \ "@type").text)
     val schemaname = (xmlFile \\ "gmqlSchemaCollection" \ "@name").text
     new GMQLSchema(schemaname,schemaType, schemaList)
