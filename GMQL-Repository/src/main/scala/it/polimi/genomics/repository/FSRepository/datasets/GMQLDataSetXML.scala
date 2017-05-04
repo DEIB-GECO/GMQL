@@ -280,7 +280,7 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
     */
   private def generateSchemaXML(schema: InternalSchema): String = {
     if(Repo.startsWith("GENERATED")){
-      GMQLSchema.generateSchemaXML(schema,schemaType)
+      GMQLSchema.generateSchemaXML(schema,DSname,schemaType)
     }else{
       "<?xml version='1.0' encoding='UTF-8'?>\n" +
         "<gmqlSchemaCollection name=\"" + DSname + "\" xmlns=\"http://genomic.elet.polimi.it/entities\">\n" +

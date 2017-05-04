@@ -106,6 +106,12 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
         logger.debug("meta out: "+MetaOutputPath)
         logger.debug("region out "+ RegionOutputPath)
 
+        val outputFolderName= try{
+          new Path(variableDir).getName
+        }
+        catch{
+          case _:Throwable => variableDir
+        }
 
         val conf = new Configuration();
         val path = new org.apache.hadoop.fs.Path(RegionOutputPath);
@@ -123,12 +129,6 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
           logger.debug(metaRDD.toDebugString)
           logger.debug(regionRDD.toDebugString)
 
-          val outputFolderName= try{
-            new Path(variableDir).getName
-          }
-          catch{
-            case _:Throwable => variableDir
-          }
 
           val outSample = "S"
 
@@ -187,7 +187,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
 
           writeMultiOutputFiles.fixOutputMetaLocation(MetaOutputPath)
         }
-        storeSchema(GMQLSchema.generateSchemaXML(variable.schema,outputFormat),variableDir)
+        storeSchema(GMQLSchema.generateSchemaXML(variable.schema,outputFolderName,outputFormat),variableDir)
       }
     } catch {
       case e : SelectFormatException => {
