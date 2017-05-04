@@ -27,6 +27,8 @@ object EntryPoint {
       .setAppName(properties.applicationName)
       .setMaster(properties.master)
       .set("spark.serializer", properties.serializer)
+      .set("spark.executor.memory", properties.executorMemory)
+      .set("spark.driver.memory", properties.driverMemory)
 
     val sc = new SparkContext(conf)
     this.logger.info("Spark context initiated")

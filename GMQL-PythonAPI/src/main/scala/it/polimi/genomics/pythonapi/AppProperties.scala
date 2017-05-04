@@ -8,6 +8,8 @@ object AppProperties {
   var applicationName = "gmql_api"
   var serializer = "org.apache.spark.serializer.KryoSerializer"
   var master = "local[*]"
+  var executorMemory = "6g"
+  var driverMemory = "2g"
 
   /*
  * Utility functions to set the parameters of Spark
