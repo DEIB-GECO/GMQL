@@ -20,7 +20,7 @@ import scala.collection.mutable.ListBuffer
 
 object Wrapper
 {
-  var GMQLServer: GmqlServer = _
+  var GMQL_server: GmqlServer = _
 
   //thread safe counter for unique string pointer to dataset
   //'cause we could have two pointer at the same dataset and we
@@ -32,17 +32,17 @@ object Wrapper
   //r1 = readDataset("/Users/simone/Downloads/job_filename_guest_new14_20170316_162715_DATA_SET_VAR")
   //are mapped in vv with the same key
   var counter: AtomicLong = new AtomicLong(0)
-  var materializeCount: AtomicLong = new AtomicLong(0)
+  var materialize_count: AtomicLong = new AtomicLong(0)
 
   var vv: Map[String,IRVariable] = Map[String,IRVariable]()
 
   def startGMQL(): Unit =
   {
-    val sparkConf = new SparkConf().setMaster("local[*]").setAppName("GMQL-R")
-    val sparkContext = new SparkContext(sparkConf)
-    val executor = new GMQLSparkExecutor(sc = sparkContext)
-    GMQLServer = new GmqlServer(executor)
-    if(GMQLServer==null)
+    val spark_conf = new SparkConf().setMaster("local[*]").setAppName("GMQL-R")//.set("spark.executor.memory", "1g")
+    val spark_context = new SparkContext(spark_conf)
+    val executor = new GMQLSparkExecutor(sc = spark_context)
+    GMQL_server = new GmqlServer(executor)
+    if(GMQL_server==null)
     {
       println("GMQLServer is null")
       return
@@ -50,13 +50,13 @@ object Wrapper
     println("GMQL server is up")
   }
 
-  def readDataset(data_input_path: Array[String]): String =
+  def readDataset(data_input_path: String): String =
   {
     val parser = new CustomParser()
-    val dataPath  = data_input_path(0)+ "/files"
-    parser.setSchema(dataPath)
+    val data_path  = data_input_path+ "/files"
+    parser.setSchema(data_path)
 
-    val dataAsTheyAre = GMQLServer.READ(dataPath).USING(parser)
+    val dataAsTheyAre = GMQL_server.READ(data_path).USING(parser)
 
     val index = counter.getAndIncrement()
     val out_p = "dataset"+index
@@ -65,22 +65,22 @@ object Wrapper
     out_p
   }
 
-  def materialize(data_to_materialize: Array[String], data_output_path: Array[String]): Unit =
+  def materialize(data_to_materialize: String, data_output_path: String): Unit =
   {
-    val materialize = vv(data_to_materialize(0))
-    GMQLServer setOutputPath data_output_path(0) MATERIALIZE materialize
-    materializeCount.getAndIncrement()
+    val materialize = vv(data_to_materialize)
+    GMQL_server setOutputPath data_output_path MATERIALIZE materialize
+    materialize_count.getAndIncrement()
   }
 
   def execute(): String =
   {
-    if(materializeCount.get() <=0) {
+    if(materialize_count.get() <=0) {
       return "you must materialize before"
     }
 
     else{
-      GMQLServer.run()
-      materializeCount.set(0)
+      GMQL_server.run()
+      materialize_count.set(0)
       return "OK"
     }
 
@@ -89,7 +89,7 @@ object Wrapper
 
   /*GMQL OPERATION*/
 
-  def select(predicate:String,region:String,semijoin:Any, input_dataset: String): String =
+  def select(predicate:String,region:String,semi_join:Any, input_dataset: String): String =
   {
     val dataAsTheyAre = vv(input_dataset)
 
@@ -131,11 +131,11 @@ object Wrapper
   {
     val dataAsTheyAre = vv(input_dataset)
 
-    val (error, metaList) = RegionToMetaAggregates(metadata, dataAsTheyAre)
-    if (metaList == null)
+    val (error, meta_list) = RegionToMetaAggregates(metadata, dataAsTheyAre)
+    if (meta_list == null)
       return error
 
-    val extend = dataAsTheyAre.EXTEND(metaList)
+    val extend = dataAsTheyAre.EXTEND(meta_list)
     val index = counter.getAndIncrement()
 
     val out_p = input_dataset + "/extend"+ index
@@ -144,8 +144,8 @@ object Wrapper
     out_p
   }
 
-  def group(groupBy:Any,metaAggregates:List[Array[String]],regionGroup:Any,
-            regionAggregates:Any, input_dataset: Array[String]): String = {
+  def group(group_by:Any,meta_aggregates:List[Array[String]],region_group:Any,
+            region_aggregates:Any, input_dataset: String): String = {
     //TODO
     /*  def GROUP(meta_keys : Option[MetaGroupByCondition] = None,
     meta_aggregates : Option[List[RegionsToMeta]] = None,
@@ -154,7 +154,7 @@ object Wrapper
     region_aggregates : Option[List[RegionsToRegion]])
     */
 
-    val dataAsTheyAre = vv(input_dataset(0))
+    val dataAsTheyAre = vv(input_dataset)
     //val groupList: Option[List[String]] = AttributesList(groupBy)
 
     //val metaAggrList = RegionToMetaAggregates(metaAggregates,dataAsTheyAre)
@@ -169,11 +169,11 @@ object Wrapper
   }
 
   /*GMQL MERGE*/
-  def merge(groupBy:Any, input_dataset: Array[String]): String =
+  def merge(group_by:Any, input_dataset: String): String =
   {
-    val dataAsTheyAre = vv(input_dataset(0))
-    val groupList: Option[List[String]] = AttributesList(groupBy)
-    val merge = dataAsTheyAre.MERGE(groupList)
+    val dataAsTheyAre = vv(input_dataset)
+    val group_list: Option[List[String]] = AttributesList(group_by)
+    val merge = dataAsTheyAre.MERGE(group_list)
 
     val index = counter.getAndIncrement()
     val out_p = input_dataset+"/merge"+index
@@ -189,10 +189,10 @@ object Wrapper
   }
 
   /*GMQL UNION*/
-  def union(right_dataset: Array[String], left_dataset: Array[String]): String =
+  def union(right_dataset: String, left_dataset: String): String =
   {
-    val leftDataAsTheyAre = vv(left_dataset(0))
-    val rightDataAsTheyAre = vv(right_dataset(0))
+    val leftDataAsTheyAre = vv(left_dataset)
+    val rightDataAsTheyAre = vv(right_dataset)
 
     //prefix both right and left leave default value
     val union = leftDataAsTheyAre.UNION(rightDataAsTheyAre)
@@ -221,8 +221,8 @@ object Wrapper
 
   /* GMQL COVER, FLAT, SUMMIT, HISTOGRAM */
 
-  def flat(min:Array[Int] , max:Array[Int], groupBy:Any,aggregates:Array[Array[String]],
-           input_dataset: Array[String]): String =
+  def flat(min:Int, max:Int, groupBy:Any,aggregates:Array[Array[String]],
+           input_dataset: String): String =
   {
     val (error,flat) = doVariant(CoverFlag.FLAT,min,max,groupBy,aggregates,input_dataset)
     if(flat==null)
@@ -234,8 +234,8 @@ object Wrapper
     out_p
   }
 
-  def histogram(min:Array[Int] , max:Array[Int], groupBy:Any,aggregates:Array[Array[String]],
-                input_dataset: Array[String]): String =
+  def histogram(min:Int , max:Int, groupBy:Any,aggregates:Array[Array[String]],
+                input_dataset: String): String =
   {
     val (error,histogram) = doVariant(CoverFlag.FLAT,min,max,groupBy,aggregates,input_dataset)
     if(histogram==null)
@@ -247,8 +247,8 @@ object Wrapper
     out_p
   }
 
-  def summit(min:Array[Int] , max:Array[Int], groupBy:Any,aggregates:Array[Array[String]],
-             input_dataset: Array[String]): String =
+  def summit(min:Int , max:Int, groupBy:Any,aggregates:Array[Array[String]],
+             input_dataset: String): String =
   {
     val (error,summit) = doVariant(CoverFlag.SUMMIT,min,max,groupBy,aggregates,input_dataset)
     if(summit==null)
@@ -260,8 +260,8 @@ object Wrapper
     out_p
   }
 
-  def cover(min:Array[Int] , max:Array[Int], groupBy:Any,aggregates:Any,
-            input_dataset: Array[String]): String =
+  def cover(min:Int , max:Int, groupBy:Any,aggregates:Any,
+            input_dataset: String): String =
   {
     val (error,cover) = doVariant(CoverFlag.COVER,min,max,groupBy,aggregates,input_dataset)
     if(cover==null)
@@ -273,24 +273,24 @@ object Wrapper
     out_p
   }
 
-  def doVariant(flag:CoverFlag.CoverFlag, min:Array[Int] , max:Array[Int], groupBy:Any,
-                      aggregates:Any, input_dataset: Array[String]): (String,IRVariable) =
+  def doVariant(flag:CoverFlag.CoverFlag, min:Int , max:Int, groupBy:Any,
+                      aggregates:Any, input_dataset:String): (String,IRVariable) =
   {
-    val dataAsTheyAre = vv(input_dataset(0))
+    val dataAsTheyAre = vv(input_dataset)
     var paramMin:CoverParam = null
     var paramMax:CoverParam = null
     var aggrlist: List[RegionsToRegion] = null
 
-    min(0) match {
+    min match {
       case 0 => paramMin = ANY()
       case -1 => paramMin = ALL()
-      case x if x > 0 => paramMin = N(min(0))
+      case x if x > 0 => paramMin = N(min)
     }
 
-    max(0) match {
+    max match {
       case 0 => paramMax = ANY()
       case -1 => paramMax = ALL()
-      case x if x > 0 => paramMax = N(max(0))
+      case x if x > 0 => paramMax = N(max)
     }
 
     if(aggregates == null) {
@@ -313,24 +313,28 @@ object Wrapper
   }
 
 
-  def map(aggregates:Array[Array[String]],right_dataset: Array[String],exp_name: Array[String],
-          left_dataset: Array[String], ref_name: Array[String],count_name: Array[String]): String =
+  /*MAP*/
+
+  def map(aggregates:Array[Array[String]],right_dataset: String, left_dataset: String): String =
   {
     //TODO
 
-    val leftDataAsTheyAre = vv(left_dataset(0))
-    val rightDataAsTheyAre = vv(right_dataset(0))
+    val leftDataAsTheyAre = vv(left_dataset)
+    val rightDataAsTheyAre = vv(right_dataset)
 
-    val (error, aggrlist) = RegionToRegionAggregates(aggregates,leftDataAsTheyAre)
-    if(aggrlist==null)
+    val (error, aggr_list) = RegionToRegionAggregates(aggregates,leftDataAsTheyAre)
+    if(aggr_list==null)
       return error
 
-    val map = leftDataAsTheyAre.MAP(None,aggrlist,rightDataAsTheyAre,Option(ref_name(0)),Option(exp_name(0)),Option(count_name(0)))
-    val out_p = left_dataset(0)+right_dataset(0)+"/map"
+    // we do not add left, right and count name: we set to None
+    val map = leftDataAsTheyAre.MAP(None,aggr_list,rightDataAsTheyAre,None,None,None)
+    val out_p = left_dataset+right_dataset+"/map"
     vv = vv + (out_p -> map)
 
     out_p
   }
+
+  /*JOIN*/
 
   def join(input_dataset: String):Unit =
   {
@@ -424,15 +428,6 @@ object Wrapper
   }
 
   def main(args : Array[String]): Unit = {
-    /*
-    startGMQL()
-    val dataPath = "/Users/simone/Downloads/job_filename_guest_new14_20170316_162715_DATA_SET_VAR"
-    val r = readDataset(dataPath)
 
-    val input = "NOT(asa<6 AND NOT(asa<6) AND sadas== 'dasd' " +
-      "AND asdas==6 AND (adasd=='adsd' AND (a<6 OR b>4) OR c=='c'))"
-
-    val s = select(input,"","",r)
-    print(s)*/
   }
 }
