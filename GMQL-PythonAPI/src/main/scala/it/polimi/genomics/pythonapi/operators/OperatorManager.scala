@@ -362,4 +362,51 @@ object OperatorManager {
     new_index
   }
 
+  /*
+  * UNION
+  * */
+  def union(index: Int, other: Int, left_name : String = "", right_name : String = ""): Int = {
+    // get the corresponding variable
+    val v = PythonManager.getVariable(index)
+    val other_v = PythonManager.getVariable(other)
+
+    val nv = v.UNION(other_v, left_name, right_name)
+    // generate new index
+    val new_index = PythonManager.putNewVariable(nv)
+    new_index
+  }
+
+  /*
+  * MERGE
+  * */
+  def merge(index: Int, groupBy : java.util.List[String]): Int = {
+    // get the corresponding variable
+    val v = PythonManager.getVariable(index)
+    val groupByPar : Option[List[String]] = {
+      if(groupBy.size() > 0)
+        Option(groupBy.asScala.toList)
+      else
+        None
+    }
+    val nv = v.MERGE(groupByPar)
+    // generate new index
+    val new_index = PythonManager.putNewVariable(nv)
+    new_index
+  }
+
+  /*
+  * DIFFERENCE
+  * */
+
+  def difference(index: Int, other: Int, metaJoinCondition: Option[MetaJoinCondition],
+                 is_exact: Boolean): Int = {
+    val v = PythonManager.getVariable(index)
+    val other_v = PythonManager.getVariable(other)
+
+    val nv = v.DIFFERENCE(metaJoinCondition,other_v,is_exact)
+    // generate new index
+    val new_index = PythonManager.putNewVariable(nv)
+    new_index
+  }
+
 }
