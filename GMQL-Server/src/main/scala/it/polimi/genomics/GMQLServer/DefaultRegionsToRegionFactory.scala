@@ -43,13 +43,14 @@ object DefaultRegionsToRegionFactory extends MapFunctionFactory{
     override val resType = ParsingType.DOUBLE
     override val index: Int = position
     override val associative: Boolean = true
-    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>v1}
+    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>/*v1*/ if (v2 > 0) v1 else GNull()}
     override val fun: (List[GValue]) => GValue = {
-      (line) =>{val ss = line.map((gvalue) => {val s = gvalue.asInstanceOf[GDouble].v;s})
+      (line) =>{/*val ss = line.map((gvalue) => {val s = gvalue.asInstanceOf[GDouble].v;s})*/
+        val ss = line.flatMap((gvalue) => {if (gvalue.isInstanceOf[GDouble]) Some(gvalue.asInstanceOf[GDouble].v) else None})
         if(!ss.isEmpty){
         val dd = ss.reduce(_ + _);
         GDouble(dd)
-        }else GDouble (0)
+        }else /*GDouble (0)*/ GNull()
       }
     }}
 
@@ -57,47 +58,50 @@ object DefaultRegionsToRegionFactory extends MapFunctionFactory{
     override val resType = ParsingType.DOUBLE
     override val index: Int = position
     override val associative: Boolean = true
-    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>v1}
+    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>/*v1*/ if (v2 > 0) v1 else GNull()}
     override val fun: (List[GValue]) => GValue = {
       (line) =>
-        val len = line.size.toDouble
-        if(len != 0)
-          GDouble(line.map((gvalue) => gvalue.asInstanceOf[GDouble].v).reduce( (x,y) =>Math.min(x,y)))
-        else GDouble(0)
+        /*val len = line.size.toDouble*/
+        val lines = line.flatMap((gvalue) => if (gvalue.isInstanceOf[GDouble]) Some(gvalue.asInstanceOf[GDouble].v) else None)
+        if(/*len != 0*/ !lines.isEmpty)
+          GDouble(/*line.map((gvalue) => gvalue.asInstanceOf[GDouble].v)*/ lines.reduce( (x,y) =>Math.min(x,y)))
+        else /*GDouble(0)*/ GNull()
     }}
 
   private def getMax(position:Int, output_name:Option[String]) = new RegionsToRegion {
     override val resType = ParsingType.DOUBLE
     override val index: Int = position
     override val associative: Boolean = true
-    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>v1}
+    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>/*v1*/ if (v2 > 0) v1 else GNull()}
     override val fun: (List[GValue]) => GValue = {
       (line) =>
-        val len = line.size.toDouble
-        if(len != 0)
-        GDouble(line.map((gvalue) => gvalue.asInstanceOf[GDouble].v).reduce( (x,y) =>Math.max(x,y)))
-        else GDouble(0)
+        /*val len = line.size.toDouble*/
+        val lines = line.flatMap((gvalue) => if (gvalue.isInstanceOf[GDouble]) Some(gvalue.asInstanceOf[GDouble].v) else None)
+        if(/*len != 0*/ !lines.isEmpty)
+        GDouble(/*line.map((gvalue) => gvalue.asInstanceOf[GDouble].v)*/ lines.reduce( (x,y) =>Math.max(x,y)))
+        else /*GDouble(0)*/ GNull()
     }}
 
   private def getAvg(position:Int, output_name:Option[String]) = new RegionsToRegion {
     override val resType = ParsingType.DOUBLE
     override val index: Int = position
     override val associative: Boolean = true
-    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>GDouble(v1.asInstanceOf[GDouble].v/v2)}
+    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>/*GDouble(v1.asInstanceOf[GDouble].v/v2)*/ if (v2 > 0) v1 else GNull()}
     override val fun: (List[GValue]) => GValue = {
       (line) =>
-        val len = line.size.toDouble
-        if(len != 0)
-          GDouble((line.map((gvalue) => gvalue.asInstanceOf[GDouble].v).reduce(_ + _))/*/len*/)
+        /*val len = line.size.toDouble*/
+        val lines = line.flatMap((gvalue) => if (gvalue.isInstanceOf[GDouble]) Some(gvalue.asInstanceOf[GDouble].v) else None)
+        if(/*len != 0*/ !lines.isEmpty)
+          GDouble(/*(line.map((gvalue) => gvalue.asInstanceOf[GDouble].v).reduce(_ + _))*//*/len*/ (lines.reduce(_ + _)) / lines.length)
         else
-          GDouble(0)
+          /*GDouble(0)*/ GNull()
     }}
 
   private def getBAG(position:Int, output_name:Option[String]) = new RegionsToRegion {
     override val resType = ParsingType.STRING
     override val index: Int = position
     override val associative: Boolean = true
-    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>v1}
+    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>/*v1*/ if (v2 > 0) v1 else GNull()}
     override val fun: (List[GValue]) => GValue = {
       (line) =>
         if(line.nonEmpty)
