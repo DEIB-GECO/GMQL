@@ -2,14 +2,14 @@ package it.polimi.genomics.pythonapi.operators
 
 import it.polimi.genomics.core.DataStructures.CoverParameters._
 import it.polimi.genomics.core.DataStructures.CoverParameters.CoverFlag.CoverFlag
-import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.{Direction, ASC, DESC}
+import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.{ASC, DESC, Direction}
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.{NoTop, Top, TopG, TopParameter}
 import it.polimi.genomics.core.DataStructures.JoinParametersRD._
 import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaAggregateStruct
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition.{AttributeEvaluationStrategy, Default, MetaJoinCondition}
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
-import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionFunction, RegionsToRegion}
+import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionFunction, RegionsToMeta, RegionsToRegion}
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
 import it.polimi.genomics.pythonapi.PythonManager
 import org.slf4j.LoggerFactory
@@ -349,4 +349,64 @@ object OperatorManager {
     val new_index = PythonManager.putNewVariable(nv)
     new_index
   }
+
+  /*
+  * EXTEND
+  * */
+  def extend(index: Int, region_aggregates: java.util.List[RegionsToMeta]): Int = {
+    // get the corresponding variable
+    val v = PythonManager.getVariable(index)
+    val nv = v.EXTEND(region_aggregates.asScala.toList)
+    // generate new index
+    val new_index = PythonManager.putNewVariable(nv)
+    new_index
+  }
+
+  /*
+  * UNION
+  * */
+  def union(index: Int, other: Int, left_name : String = "", right_name : String = ""): Int = {
+    // get the corresponding variable
+    val v = PythonManager.getVariable(index)
+    val other_v = PythonManager.getVariable(other)
+
+    val nv = v.UNION(other_v, left_name, right_name)
+    // generate new index
+    val new_index = PythonManager.putNewVariable(nv)
+    new_index
+  }
+
+  /*
+  * MERGE
+  * */
+  def merge(index: Int, groupBy : java.util.List[String]): Int = {
+    // get the corresponding variable
+    val v = PythonManager.getVariable(index)
+    val groupByPar : Option[List[String]] = {
+      if(groupBy.size() > 0)
+        Option(groupBy.asScala.toList)
+      else
+        None
+    }
+    val nv = v.MERGE(groupByPar)
+    // generate new index
+    val new_index = PythonManager.putNewVariable(nv)
+    new_index
+  }
+
+  /*
+  * DIFFERENCE
+  * */
+
+  def difference(index: Int, other: Int, metaJoinCondition: Option[MetaJoinCondition],
+                 is_exact: Boolean): Int = {
+    val v = PythonManager.getVariable(index)
+    val other_v = PythonManager.getVariable(other)
+
+    val nv = v.DIFFERENCE(metaJoinCondition,other_v,is_exact)
+    // generate new index
+    val new_index = PythonManager.putNewVariable(nv)
+    new_index
+  }
+
 }
