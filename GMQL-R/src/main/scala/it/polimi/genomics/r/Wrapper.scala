@@ -3,9 +3,11 @@ package it.polimi.genomics.r
 import java.util.concurrent.atomic.AtomicLong
 
 import it.polimi.genomics.GMQLServer.{DefaultRegionsToMetaFactory, DefaultRegionsToRegionFactory, GmqlServer}
-import it.polimi.genomics.core.DataStructures
 import it.polimi.genomics.core.DataStructures.CoverParameters.{ALL, ANY, CoverFlag, CoverParam, N}
+import it.polimi.genomics.core.DataStructures.GroupMDParameters.{NoTop, TopParameter}
+import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction._
 import it.polimi.genomics.core.DataStructures.IRVariable
+import it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinCondition
 import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionsToMeta, RegionsToRegion}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.loaders.CustomParser
@@ -38,13 +40,14 @@ object Wrapper
 
   def startGMQL(): Unit =
   {
-    val spark_conf = new SparkConf().setMaster("local[*]").setAppName("GMQL-R")//.set("spark.executor.memory", "1g")
+    val spark_conf = new SparkConf().setMaster("local[*]").
+      setAppName("GMQL-R")
     val spark_context = new SparkContext(spark_conf)
     val executor = new GMQLSparkExecutor(sc = spark_context)
     GMQL_server = new GmqlServer(executor)
     if(GMQL_server==null)
     {
-      println("GMQLServer is null")
+      println("GMQLServer is down")
       return
     }
     println("GMQL server is up")
@@ -74,16 +77,13 @@ object Wrapper
 
   def execute(): String =
   {
-    if(materialize_count.get() <=0) {
+    if(materialize_count.get() <=0)
       return "you must materialize before"
-    }
-
-    else{
+    else {
       GMQL_server.run()
       materialize_count.set(0)
       return "OK"
     }
-
   }
 
 
@@ -91,6 +91,7 @@ object Wrapper
 
   def select(predicate:String,region:String,semi_join:Any, input_dataset: String): String =
   {
+    //TODO
     val dataAsTheyAre = vv(input_dataset)
 
     val t = new PM()
@@ -99,12 +100,10 @@ object Wrapper
       return msg
     }
 
-    val   reg_con =
-    //        DataStructures.RegionCondition.OR(
-    //          DataStructures.RegionCondition.Predicate(3, DataStructures.RegionCondition.REG_OP.GT, 30),
-    //DataStructures.RegionCondition.Predicate(0, DataStructures.RegionCondition.REG_OP.EQ, "400")
-      DataStructures.RegionCondition.Predicate(2, DataStructures.RegionCondition.REG_OP.GT, DataStructures.RegionCondition.MetaAccessor("cell"))
-    //        )
+    val (msg2,reg_con) = t.parsaRegioni(region)
+    if (msg2!="OK") {
+      return msg2
+    }
 
     val select = dataAsTheyAre.SELECT(meta_con,reg_con)
     val out_p = input_dataset+"/select"
@@ -154,21 +153,21 @@ object Wrapper
     region_aggregates : Option[List[RegionsToRegion]])
     */
 
-    val dataAsTheyAre = vv(input_dataset)
+   // val dataAsTheyAre = vv(input_dataset)
     //val groupList: Option[List[String]] = AttributesList(groupBy)
 
     //val metaAggrList = RegionToMetaAggregates(metaAggregates,dataAsTheyAre)
     //val regionAggrList = RegionToRegionAggregates(metaAggregates,dataAsTheyAre)
 
-    val group = dataAsTheyAre.GROUP(None, None, "_group", None, None)
+    //val group = dataAsTheyAre.GROUP(None, None, "_group", None, None)
 
-    val out_p = input_dataset + "/group"
-    vv = vv + (out_p -> group)
+   // val out_p = input_dataset + "/group"
+   // vv = vv + (out_p -> group)
 
-    out_p
+    //out_p
+    return "group"
   }
 
-  /*GMQL MERGE*/
   def merge(group_by:Any, input_dataset: String): String =
   {
     val dataAsTheyAre = vv(input_dataset)
@@ -182,13 +181,36 @@ object Wrapper
     out_p
   }
 
-  def order(input_dataset: String): Unit =
+  /*
+   def ORDER(meta_ordering : Option[List[(String,Direction)]] = None, meta_new_attribute : String = "_group",
+   meta_top_par : TopParameter = NoTop(),
+   region_ordering : Option[List[(Int,Direction)]], region_top_par : TopParameter = NoTop())
+   */
+  def order(meta_order:Any, meta_topg:Int, meta_top:Int,
+            region_order:Any, region_topg:Int, region_top:Int, input_dataset: String): Unit =
   {
-    //val dataAsTheyAre = vv(input_dataset)
-    //TODO
+    val dataAsTheyAre = vv(input_dataset)
+
+    var m_top: TopParameter =  null
+    var r_top: TopParameter =  null
+
+    meta_top match {
+      case -1 => m_top = NoTop()
+    }
+
+    region_top match {
+      case -1 => m_top = NoTop()
+    }
+
+    val order = dataAsTheyAre.ORDER(None,"_order",m_top,None,r_top)
+
+    val index = counter.getAndIncrement()
+    val out_p = input_dataset+"/order"+index
+    vv = vv + (out_p -> order)
+
+    out_p
   }
 
-  /*GMQL UNION*/
   def union(right_dataset: String, left_dataset: String): String =
   {
     val leftDataAsTheyAre = vv(left_dataset)
@@ -203,15 +225,14 @@ object Wrapper
     out_p
   }
 
-  //TODO: metajoinCondition?
-  def difference(joinBy:Any,left_dataset: String,right_dataset: String): String =
+  def difference(join_by:Any,left_dataset: String,right_dataset: String): String =
   {
     val leftDataAsTheyAre = vv(left_dataset)
     val rightDataAsTheyAre = vv(right_dataset)
 
-    //val joinByList: Option[List[String]] = AttributesList(joinBy)
+    val join_by_list:Option[MetaJoinCondition] = conditionList(join_by)
 
-    val difference = leftDataAsTheyAre.DIFFERENCE(None,rightDataAsTheyAre)
+    val difference = leftDataAsTheyAre.DIFFERENCE(join_by_list,rightDataAsTheyAre)
 
     val out_p = left_dataset+right_dataset+"/difference"
     vv = vv + (out_p -> difference)
@@ -219,7 +240,7 @@ object Wrapper
     out_p
   }
 
-  /* GMQL COVER, FLAT, SUMMIT, HISTOGRAM */
+  /* COVER, FLAT, SUMMIT, HISTOGRAM */
 
   def flat(min:Int, max:Int, groupBy:Any,aggregates:Array[Array[String]],
            input_dataset: String): String =
@@ -397,29 +418,29 @@ object Wrapper
   }
 
 
-  def AttributesList(groupBy:Any): Option[List[String]] =
+  def AttributesList(group_by:Any): Option[List[String]] =
   {
     var groupList: Option[List[String]] = None
 
-    if (groupBy == null) {
+    if (group_by == null) {
       //println("list is Null")
       return groupList
     }
 
-    groupBy match
+    group_by match
     {
-      case groupBy: String =>
-        groupBy match{
+      case group_by: String =>
+        group_by match{
           case "" => groupList = None //println("groupBy is single string but empty")}
           case _ => {
-            var temp: Array[String] = Array(groupBy)
+            var temp: Array[String] = Array(group_by)
             groupList = Some(temp.toList)
            // println(groupBy)
            // println("groupBy is single string")
             }
         }
-      case groupBy: Array[String] => {
-        groupList = Some(groupBy.toList)
+      case group_by: Array[String] => {
+        groupList = Some(group_by.toList)
         //println("groupBy is array string")
       }
     }
@@ -427,7 +448,44 @@ object Wrapper
     groupList
   }
 
+  def conditionList(join_by:Any): Option[MetaJoinCondition] =
+  {
+    var join_by_list: Option[MetaJoinCondition] = None
+
+    if (join_by == null) {
+      //println("list is Null")
+      return join_by_list
+    }
+
+    join_by match
+    {
+        /*
+      case join_by: String =>
+        join_by match{
+          case "" => join_by_list = None //println("groupBy is single string but empty")}
+          case _ => {
+            var temp: Array[String] = Array(join_by)
+            join_by_list = Some(temp.toList)
+            // println(groupBy)
+            // println("groupBy is single string")
+          }
+        }*/
+      case join_by: Array[Array[String]] => {
+        //join_by_list = Some(join_by.toList)
+        //println("groupBy is array string")
+      }
+    }
+
+    join_by_list
+  }
+
   def main(args : Array[String]): Unit = {
 
+  }
+
+
+  def prova():Unit =
+  {
+    print("it's works!")
   }
 }
