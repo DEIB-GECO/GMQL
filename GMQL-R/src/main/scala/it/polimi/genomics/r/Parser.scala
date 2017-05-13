@@ -8,29 +8,29 @@ import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
 
 class PM extends GmqlParsers {
 
-  def parsaMetadati(input: String): (String,MetadataCondition) = {
+  def parsaMetadati(input: String): (String,Option[MetadataCondition]) = {
 
     println("input : " + input)
     val metadata = parse(meta_select_expr, input)
 
     metadata match {
-      case Success(result,next) => return ("OK",result)
-      case NoSuccess(result,next) => return (result,null)
-      case Error(result,next) => return (result,null)
-      case Failure(result,next) => return (result,null)
+      case Success(result,next) => return ("OK",Some(result))
+      case NoSuccess(result,next) => return (result,None)
+      case Error(result,next) => return (result,None)
+      case Failure(result,next) => return (result,None)
     }
   }
 
-  def parsaRegioni(input: String): (String,RegionCondition) = {
+  def parsaRegioni(input: String): (String, Option[RegionCondition]) = {
 
     println("input : " + input)
     val metadata = parse(region_select_expr, input)
 
     metadata match {
-      case Success(result,next) => return ("OK",result)
-      case NoSuccess(result,next) => return (result,null)
-      case Error(result,next) => return (result,null)
-      case Failure(result,next) => return (result,null)
+      case Success(result,next) => return ("OK",Some(result))
+      case NoSuccess(result,next) => return (result,None)
+      case Error(result,next) => return (result,None)
+      case Failure(result,next) => return (result,None)
     }
    }
 
