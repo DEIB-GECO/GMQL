@@ -160,6 +160,16 @@ class ExpressionBuilder(index : Int) {
     }
   }
 
-
+  def getRegionsToMeta(functionName: String, newAttrName: String, argument: String): RegionsToMeta = {
+    val regionsToMetaFactory = PythonManager.getServer.implementation.extendFunctionFactory
+    val variable = PythonManager.getVariable(this.index)
+    val field_number = variable.get_field_by_name(argument)
+    // by default it's a COUNT operation
+    var res : RegionsToMeta = regionsToMetaFactory.get("COUNT", Option(newAttrName))
+    if(field_number.isDefined) {
+      res = regionsToMetaFactory.get(functionName, field_number.get, Option(newAttrName))
+    }
+    res
+  }
 
 }

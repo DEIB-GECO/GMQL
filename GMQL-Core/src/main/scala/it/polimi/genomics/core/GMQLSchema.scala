@@ -54,7 +54,7 @@ object GMQLSchemaFormat extends Enumeration{
 }
 
 object GMQLSchema {
-  def generateSchemaXML(schema : List[(String, PARSING_TYPE)], outputFormat: GMQLSchemaFormat.Value): String ={
+  def generateSchemaXML(schema : List[(String, PARSING_TYPE)], dsname:String,outputFormat: GMQLSchemaFormat.Value): String ={
     val schemaPart = if(outputFormat == GMQLSchemaFormat.GTF) {
       "\t<gmqlSchema type=\"gtf\">\n"+
         "\t\t<field type=\"STRING\">seqname</field>\n" +
@@ -78,7 +78,7 @@ object GMQLSchema {
 
     val schemaHeader =
       "<?xml version='1.0' encoding='UTF-8'?>\n" +
-        "<gmqlSchemaCollection name=\"DatasetName_SCHEMAS\" xmlns=\"http://genomic.elet.polimi.it/entities\">\n" +
+        "<gmqlSchemaCollection name=\""+dsname+"\" xmlns=\"http://genomic.elet.polimi.it/entities\">\n" +
         schemaPart +"\n"+
         schema.flatMap{x =>
           if(outputFormat == GMQLSchemaFormat.GTF && (gtfFixFields.filter(s=>x._1.toLowerCase() == s).size > 0) ) None

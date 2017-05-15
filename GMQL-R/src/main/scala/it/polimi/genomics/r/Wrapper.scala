@@ -1,12 +1,18 @@
 package it.polimi.genomics.r
 
+import java.io.FileNotFoundException
 import java.util.concurrent.atomic.AtomicLong
 
 import it.polimi.genomics.GMQLServer.{DefaultRegionsToMetaFactory, DefaultRegionsToRegionFactory, GmqlServer}
-import it.polimi.genomics.core.DataStructures
 import it.polimi.genomics.core.DataStructures.CoverParameters.{ALL, ANY, CoverFlag, CoverParam, N}
-import it.polimi.genomics.core.DataStructures.IRVariable
+import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction._
+import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.{Direction,ASC,DESC}
+import it.polimi.genomics.core.DataStructures.GroupMDParameters.{Direction, NoTop, Top, TopG, TopParameter}
+import it.polimi.genomics.core.DataStructures.{IRVariable, MetaOperator}
+import it.polimi.genomics.core.DataStructures.MetaJoinCondition._
+import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
 import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionsToMeta, RegionsToRegion}
+import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.loaders.CustomParser
 import org.apache.spark.SparkConf
@@ -20,7 +26,7 @@ import scala.collection.mutable.ListBuffer
 
 object Wrapper
 {
-  var GMQLServer: GmqlServer = _
+  var GMQL_server: GmqlServer = _
 
   //thread safe counter for unique string pointer to dataset
   //'cause we could have two pointer at the same dataset and we
@@ -32,30 +38,38 @@ object Wrapper
   //r1 = readDataset("/Users/simone/Downloads/job_filename_guest_new14_20170316_162715_DATA_SET_VAR")
   //are mapped in vv with the same key
   var counter: AtomicLong = new AtomicLong(0)
+  var materialize_count: AtomicLong = new AtomicLong(0)
 
   var vv: Map[String,IRVariable] = Map[String,IRVariable]()
 
-  def runGMQL(): Unit =
+  def startGMQL(): Unit =
   {
-    val sparkConf = new SparkConf().setMaster("local[*]").setAppName("GMQL-R")
-    val sparkContext = new SparkContext(sparkConf)
-    val executor = new GMQLSparkExecutor(sc = sparkContext)
-    GMQLServer = new GmqlServer(executor)
-    if(GMQLServer==null)
-    {
-      println("GMQLServer is null")
+    val spark_conf = new SparkConf().setMaster("local[*]").
+      setAppName("GMQL-R").set("spark.serializer","org.apache.spark.serializer.KryoSerializer" )
+      .set("spark.executor.memory", "6g")
+      .set("spark.driver.memory", "2g")
+    val spark_context = new SparkContext(spark_conf)
+    val executor = new GMQLSparkExecutor(sc = spark_context)
+    GMQL_server = new GmqlServer(executor)
+    //debug: probably not needed but leave it
+    if(GMQL_server==null) {
+      println("GMQL Server is down")
       return
     }
-    println("GMQL server is up")
+    println("GMQL Server is up")
   }
 
   def readDataset(data_input_path: String): String =
   {
     val parser = new CustomParser()
-    val dataPath  = data_input_path+ "/files"
-    parser.setSchema(dataPath)
+    val data_path  = data_input_path+ "/files"
+    try {
+      parser.setSchema(data_path)
+    }catch {
+      case fe: FileNotFoundException => return fe.getMessage
+    }
 
-    val dataAsTheyAre = GMQLServer.READ(dataPath).USING(parser)
+    val dataAsTheyAre = GMQL_server.READ(data_path).USING(parser)
 
     val index = counter.getAndIncrement()
     val out_p = "dataset"+index
@@ -64,68 +78,129 @@ object Wrapper
     out_p
   }
 
-  def materialize(data_to_materialize: String, data_output_path: String): Unit =
+  def materialize(data_to_materialize: String, data_output_path: String): String =
   {
-    val materialize = vv(data_to_materialize)
+    if(vv.get(data_to_materialize).isEmpty)
+      return "No valid Data to materialize"
 
-    GMQLServer setOutputPath data_output_path MATERIALIZE materialize
-    GMQLServer.run()
+    val materialize = vv(data_to_materialize)
+    GMQL_server setOutputPath data_output_path MATERIALIZE materialize
+    materialize_count.getAndIncrement()
+
+    return "OK"
+  }
+
+  def execute(): String =
+  {
+    if(materialize_count.get() <=0)
+      return "You must materialize before"
+    else {
+      GMQL_server.run()
+      materialize_count.set(0)
+      return "OK"
+    }
   }
 
 
-  def select(predicate:String,region:String,semijoin:Any, input_dataset: String): String =
+  /*  def add_select_statement(external_meta : Option[MetaOperator], semi_join_condition : Option[MetaJoinCondition],
+                           meta_condition : Option[MetadataCondition], region_condition : Option[RegionCondition])*/
+  /*GMQL OPERATION*/
+
+  //TODO miss check on regions attribute, check error parser
+  def select(predicate:Any, region_predicate:Any, semi_join:Any, semi_join_dataset:Any, input_dataset: String): String =
   {
-    //TODO
+    if(vv.get(input_dataset).isEmpty)
+      return "No valid Data as input"
 
     val dataAsTheyAre = vv(input_dataset)
 
-    val meta_con =
-      DataStructures.MetadataCondition.AND(
-        DataStructures.MetadataCondition.Predicate("cell",DataStructures.MetadataCondition.META_OP.GTE, "11"),
-        DataStructures.MetadataCondition.NOT(
-          DataStructures.MetadataCondition.Predicate("provider", DataStructures.MetadataCondition.META_OP.NOTEQ, "UCSC")
-        )
-      )
+    var semiJoinDataAsTheyAre:IRVariable = null
+    var semi_join_metaDag:Option[MetaOperator] = None
+    var metadata:(String,Option[MetadataCondition]) = ("",None)
+    var regioni:(String, Option[RegionCondition]) = ("",None)
+    val parser = new PM()
 
-    val   reg_con =
-    //        DataStructures.RegionCondition.OR(
-    //          DataStructures.RegionCondition.Predicate(3, DataStructures.RegionCondition.REG_OP.GT, 30),
-    //DataStructures.RegionCondition.Predicate(0, DataStructures.RegionCondition.REG_OP.EQ, "400")
-      DataStructures.RegionCondition.Predicate(2, DataStructures.RegionCondition.REG_OP.GT, DataStructures.RegionCondition.MetaAccessor("cell"))
-    //        )
+    if(predicate!=null){
+      metadata = parser.parsaMetadati(predicate.toString)
+      if (metadata._2.isEmpty)
+        return metadata._1
+    }
 
-    val select = dataAsTheyAre.SELECT(meta_con,reg_con)
-    val out_p = input_dataset+"/select"
+    if(region_predicate!=null) {
+      regioni = parser.parsaRegioni(region_predicate.toString)
+      if (regioni._2.isEmpty)
+        return regioni._1
+    }
+
+    val semi_join_list = conditionList(semi_join)
+    if(semi_join_list.isDefined) {
+      if(vv.get(semi_join_dataset.toString).isEmpty)
+        return "No valid Data as input"
+
+      semiJoinDataAsTheyAre = vv(semi_join_dataset.toString)
+      semi_join_metaDag = Some(semiJoinDataAsTheyAre.metaDag)
+    }
+
+    val select = dataAsTheyAre.add_select_statement(semi_join_metaDag,semi_join_list,metadata._2,regioni._2)
+
+    val index = counter.getAndIncrement()
+    val out_p = input_dataset+"/select"+index
     vv = vv + (out_p -> select)
+
     out_p
 
   }
 
-  def project(input_dataset: String): Unit =
-  {
-    //TODO
-  }
+  /* PROJECT(projected_meta : Option[List[String]] = None, extended_meta : Option[MetaAggregateStruct] = None,
+              projected_values : Option[List[Int]] = None,
+              extended_values : Option[List[RegionFunction]] = None): */
 
-  def extend(metadata:Array[Array[String]], input_dataset: String): String =
+  //TODO miss Region Fucntion and MetaaggregateStruct
+  def project(projected_meta:Any, projected_region:Any, input_dataset: String): String =
   {
+    if(vv.get(input_dataset).isEmpty)
+      return "No valid Data as input"
+
     val dataAsTheyAre = vv(input_dataset)
 
-    val (error, metaList) = RegionToMetaAggregates(metadata, dataAsTheyAre)
-    if (metaList == null)
+    val meta_list: Option[List[String]] = AttributesList(projected_meta)
+    val (error,regions_index_list)= regionsList(projected_region,dataAsTheyAre)
+    if(regions_index_list.isEmpty)
       return error
 
-    val extend = dataAsTheyAre.EXTEND(metaList)
+
+    val project = dataAsTheyAre.PROJECT(meta_list,None,regions_index_list,None)
     val index = counter.getAndIncrement()
 
+    val out_p = input_dataset + "/project"+ index
+    vv = vv + (out_p -> project)
+
+    out_p
+  }
+
+  def extend(metadata:Any, input_dataset: String): String =
+  {
+    if(vv.get(input_dataset).isEmpty)
+      return "No valid Data as input"
+
+    val dataAsTheyAre = vv(input_dataset)
+
+    val (error, meta_list) = RegionToMetaAggregates(metadata, dataAsTheyAre)
+    if (meta_list.isEmpty)
+      return error
+
+    val extend = dataAsTheyAre.EXTEND(meta_list)
+
+    val index = counter.getAndIncrement()
     val out_p = input_dataset + "/extend"+ index
     vv = vv + (out_p -> extend)
 
     out_p
   }
 
-  def group(groupBy:Any,metaAggregates:List[Array[String]],regionGroup:Any,
-            regionAggregates:Any, input_dataset: String): String = {
-    //TODO
+  //TODO: not now
+  def group(group_by:Any,meta_aggregates:List[Array[String]],region_group:Any,
+            region_aggregates:Any, input_dataset: String): String = {
     /*  def GROUP(meta_keys : Option[MetaGroupByCondition] = None,
     meta_aggregates : Option[List[RegionsToMeta]] = None,
     meta_group_name : String = "_group",
@@ -133,295 +208,539 @@ object Wrapper
     region_aggregates : Option[List[RegionsToRegion]])
     */
 
-    val dataAsTheyAre = vv(input_dataset)
+   // val dataAsTheyAre = vv(input_dataset)
     //val groupList: Option[List[String]] = AttributesList(groupBy)
 
     //val metaAggrList = RegionToMetaAggregates(metaAggregates,dataAsTheyAre)
     //val regionAggrList = RegionToRegionAggregates(metaAggregates,dataAsTheyAre)
 
-    val group = dataAsTheyAre.GROUP(None, None, "_group", None, None)
+    //val group = dataAsTheyAre.GROUP(None, None, "_group", None, None)
 
-    val out_p = input_dataset + "/group"
-    vv = vv + (out_p -> group)
+   // val out_p = input_dataset + "/group"
+   // vv = vv + (out_p -> group)
+    val index = counter.getAndIncrement()
+    "group"+index
+    //out_p
 
-    out_p
   }
 
-  /*GMQL MERGE*/
-  def merge(groupBy:Any, input_dataset: String): String =
+  def merge(group_by:Any, input_dataset: String): String =
   {
-    val dataAsTheyAre = vv(input_dataset)
-    val groupList: Option[List[String]] = AttributesList(groupBy)
-    val merge = dataAsTheyAre.MERGE(groupList)
+    if(vv.get(input_dataset).isEmpty)
+      return "No valid dataset as input"
 
-    val out_p = input_dataset+"/merge"
+    val dataAsTheyAre = vv(input_dataset)
+
+    val group_list: Option[List[String]] = AttributesList(group_by)
+    val merge = dataAsTheyAre.MERGE(group_list)
+
+    val index = counter.getAndIncrement()
+    val out_p = input_dataset+"/merge"+index
     vv = vv + (out_p -> merge)
 
     out_p
   }
 
-  def order(input_dataset: String): Unit =
+  /*
+   def ORDER(meta_ordering : Option[List[(String,Direction)]] = None, meta_new_attribute : String = "_group",
+   meta_top_par : TopParameter = NoTop(),
+   region_ordering : Option[List[(Int,Direction)]], region_top_par : TopParameter = NoTop())
+   */
+  def order(meta_order:Any, meta_topg:Int, meta_top:Int,
+            region_order:Any, region_topg:Int, region_top:Int, input_dataset: String): String =
   {
-    //val dataAsTheyAre = vv(input_dataset)
-    //TODO
+    if(vv.get(input_dataset).isEmpty)
+      return "No valid dataset as input"
+
+    val dataAsTheyAre = vv(input_dataset)
+
+    var m_top: TopParameter =  NoTop()
+    var r_top: TopParameter =  NoTop()
+
+    if(meta_top>0)
+      m_top = Top(meta_top)
+
+    if(meta_topg>0)
+      m_top = TopG(meta_topg)
+
+    if(region_top >0)
+      r_top = Top(region_top)
+
+    if(region_topg >0)
+      r_top = TopG(region_topg)
+
+
+    val meta_list = meta_order_list(meta_order)
+    val (error,region_list) = region_order_list(region_order,dataAsTheyAre)
+    if(region_list.isEmpty)
+      return error
+
+    val order = dataAsTheyAre.ORDER(meta_list,"_group",m_top,region_list,r_top)
+
+    val index = counter.getAndIncrement()
+    val out_p = input_dataset+"/order"+index
+    vv = vv + (out_p -> order)
+
+    out_p
   }
 
-  /*GMQL UNION*/
-  def union(right_dataset: String, right_name: String,
-            left_dataset: String, left_name: String): String =
+  def union(right_dataset: String, left_dataset: String): String =
   {
+    if(vv.get(right_dataset).isEmpty)
+      return "No valid right dataset as input"
+
+    if(vv.get(left_dataset).isEmpty)
+      return "No valid left dataset as input"
+
     val leftDataAsTheyAre = vv(left_dataset)
     val rightDataAsTheyAre = vv(right_dataset)
 
-    val union = leftDataAsTheyAre.UNION(rightDataAsTheyAre,left_name,right_name)
+    //we use "right" and "left" as prefixes
 
-    val out_p = left_dataset+right_dataset+"/union"
+    val union = leftDataAsTheyAre.UNION(rightDataAsTheyAre,"left","right")
+
+    val index = counter.getAndIncrement()
+    val out_p = left_dataset+"/union"+index
+    //val out_p = left_dataset+right_dataset+"/union"+index
     vv = vv + (out_p -> union)
 
     out_p
   }
 
-  //TODO: metajoinCondition?
-  def difference(joinBy:Any,left_dataset: String,right_dataset: String): String =
+  //TODO: we manage other AttributeEvaluationStrategy, we use just Default now
+  def difference(join_by:Any,left_dataset: String,right_dataset: String): String =
   {
+    if(vv.get(right_dataset).isEmpty)
+      return "No valid right dataset as input"
+
+    if(vv.get(left_dataset).isEmpty)
+      return "No valid left dataset as input"
+
     val leftDataAsTheyAre = vv(left_dataset)
     val rightDataAsTheyAre = vv(right_dataset)
 
-    //val joinByList: Option[List[String]] = AttributesList(joinBy)
+    val join_by_list:Option[MetaJoinCondition] = conditionList(join_by)
 
-    val difference = leftDataAsTheyAre.DIFFERENCE(None,rightDataAsTheyAre)
+    val difference = leftDataAsTheyAre.DIFFERENCE(join_by_list,rightDataAsTheyAre)
 
-    val out_p = left_dataset+right_dataset+"/difference"
+    val index = counter.getAndIncrement()
+    //val out_p = left_dataset+right_dataset+"/difference"+index
+    val out_p = left_dataset+"/difference"+index
     vv = vv + (out_p -> difference)
 
     out_p
   }
 
-  /* GMQL COVER, FLAT, SUMMIT, HISTOGRAM */
+  /* COVER, FLAT, SUMMIT, HISTOGRAM */
 
-  def flat(min:Int , max:Int, groupBy:Any,aggregates:Array[Array[String]],
-           input_dataset: String): String =
+  def flat(min:Int, max:Int, groupBy:Any, aggregates:Any, input_dataset: String): String =
   {
     val (error,flat) = doVariant(CoverFlag.FLAT,min,max,groupBy,aggregates,input_dataset)
     if(flat==null)
       return error
 
-    val out_p = input_dataset+"/flat"
+    val index = counter.getAndIncrement()
+    val out_p = input_dataset+"/flat"+index
     vv = vv + (out_p -> flat)
 
     out_p
   }
 
-  def histogram(min:Int , max:Int, groupBy:Any,aggregates:Array[Array[String]],
-                input_dataset: String): String =
+  def histogram(min:Int , max:Int, groupBy:Any, aggregates:Any, input_dataset: String): String =
   {
     val (error,histogram) = doVariant(CoverFlag.FLAT,min,max,groupBy,aggregates,input_dataset)
     if(histogram==null)
       return error
 
-    val out_p = input_dataset+"/histogram"
+    val index = counter.getAndIncrement()
+    val out_p = input_dataset+"/histogram"+index
     vv = vv + (out_p -> histogram)
 
     out_p
   }
 
-  def summit(min:Int , max:Int, groupBy:Any,aggregates:Array[Array[String]],
-             input_dataset: String): String =
+  def summit(min:Int , max:Int, groupBy:Any, aggregates:Any, input_dataset: String): String =
   {
     val (error,summit) = doVariant(CoverFlag.SUMMIT,min,max,groupBy,aggregates,input_dataset)
     if(summit==null)
       return error
 
-    val out_p = input_dataset+"/summit"
+
+    val index = counter.getAndIncrement()
+    val out_p = input_dataset+"/summit"+index
     vv = vv + (out_p -> summit)
 
     out_p
   }
 
-  def cover(min:Int , max:Int, groupBy:Any,aggregates:Any,
-            input_dataset: String): String =
+  def cover(min:Int , max:Int, groupBy:Any, aggregates:Any, input_dataset: String): String =
   {
     val (error,cover) = doVariant(CoverFlag.COVER,min,max,groupBy,aggregates,input_dataset)
     if(cover==null)
       return error
 
-    val out_p = input_dataset+"/cover"
+    val index = counter.getAndIncrement()
+    val out_p = input_dataset+"/cover"+index
     vv = vv + (out_p -> cover)
 
     out_p
   }
 
   def doVariant(flag:CoverFlag.CoverFlag, min:Int , max:Int, groupBy:Any,
-                      aggregates:Any, input_dataset: String): (String,IRVariable) =
+                      aggregates:Any, input_dataset:String): (String,IRVariable) =
   {
+    if(vv.get(input_dataset).isEmpty)
+      return ("No valid dataset as input",null)
+
     val dataAsTheyAre = vv(input_dataset)
+
     var paramMin:CoverParam = null
     var paramMax:CoverParam = null
+
     var aggrlist: List[RegionsToRegion] = null
 
     min match {
       case 0 => paramMin = ANY()
       case -1 => paramMin = ALL()
-      case x if x > 0 => paramMin = N(min.toInt)
+      case x if x > 0 => paramMin = N(min)
     }
 
     max match {
       case 0 => paramMax = ANY()
       case -1 => paramMax = ALL()
-      case x if x > 0 => paramMax = N(max.toInt)
+      case x if x > 0 => paramMax = N(max)
     }
 
-    if(aggregates == null) {
-      aggrlist = List()
-    }
-    else {
-      aggregates match {
-        case aggregates: Array[Array[String]] =>
-          val (error, aggrlist) = RegionToRegionAggregates(aggregates, dataAsTheyAre)
-          if (aggrlist == null)
-            return (error,null);
-      }
-    }
+    val (error, aggr_list) = RegionToRegionAggregates(aggregates, dataAsTheyAre)
+    if (aggr_list.isEmpty)
+      return (error,null)
 
     val groupList: Option[List[String]] = AttributesList(groupBy)
 
-    val variant = dataAsTheyAre.COVER(flag, paramMin, paramMax, aggrlist, groupList)
+    val variant = dataAsTheyAre.COVER(flag, paramMin, paramMax, aggr_list, groupList)
 
     ("OK",variant)
   }
 
 
-  def map(aggregates:Array[Array[String]],right_dataset: String,exp_name: String,
-          left_dataset: String, ref_name: String,count_name: String): String =
+  /*MAP*/
+
+  /*f MAP(condition : Option[MetaJoinCondition.MetaJoinCondition],
+    aggregates : List[RegionsToRegion],
+    experiments : IRVariable,
+    reference_name : Option[String] = None,
+  experiment_name : Option[String] = None,
+  count_name : Option[String] = None) =*/
+
+  def map(aggregates:Array[Array[String]],right_dataset: String, left_dataset: String): String =
   {
     //TODO
+    if(vv.get(right_dataset).isEmpty)
+      return "No valid right dataset as input"
+
+    if(vv.get(left_dataset).isEmpty)
+      return "No valid left dataset as input"
 
     val leftDataAsTheyAre = vv(left_dataset)
     val rightDataAsTheyAre = vv(right_dataset)
 
-    val (error, aggrlist) = RegionToRegionAggregates(aggregates,leftDataAsTheyAre)
-    if(aggrlist==null)
+    val (error, aggr_list) = RegionToRegionAggregates(aggregates,leftDataAsTheyAre)
+    if(aggr_list==null)
       return error
 
-    val map = leftDataAsTheyAre.MAP(None,aggrlist,rightDataAsTheyAre,Option(ref_name),Option(exp_name),Option(count_name))
-    val out_p = left_dataset+right_dataset+"/map"
+    // we do not add left, right and count name: we set to None
+    val map = leftDataAsTheyAre.MAP(None,aggr_list,rightDataAsTheyAre,None,None,None)
+
+    val index = counter.getAndIncrement()
+    val out_p = left_dataset+right_dataset+"/map"+index
     vv = vv + (out_p -> map)
 
     out_p
   }
 
-  def join(input_dataset: String):Unit =
+  /*JOIN*/
+/* def JOIN(meta_join : Option[MetaJoinCondition],
+           region_join_condition : List[JoinQuadruple],
+           region_builder : RegionBuilder,
+           right_dataset : IRVariable,
+           reference_name : Option[String] = None,
+           experiment_name : Option[String] = None) : IRVariable = {*/
+//TODO
+  def join(right_dataset: String, left_dataset: String): String =
   {
-    //TODO
+    if(vv.get(right_dataset).isEmpty)
+      return "No valid right dataset as input"
 
+    if(vv.get(left_dataset).isEmpty)
+      return "No valid left dataset as input"
+
+    val leftDataAsTheyAre = vv(left_dataset)
+    val rightDataAsTheyAre = vv(right_dataset)
+
+    val join = leftDataAsTheyAre.JOIN(None,null,null,rightDataAsTheyAre,None,None)
+
+    val index = counter.getAndIncrement()
+   // val out_p = left_dataset+right_dataset+"/join"+index
+    val out_p = left_dataset+"/join"+index
+    vv = vv + (out_p -> join)
+
+    out_p
   }
 
 
 /*UTILS FUNCTION*/
 
-  def RegionToMetaAggregates(aggregates:Array[Array[String]],data:IRVariable): (String,List[RegionsToMeta]) =
+  def RegionToMetaAggregates(aggregates:Any,data:IRVariable): (String,List[RegionsToMeta]) =
   {
-    var list:List[RegionsToMeta] = List()
+    var region_meta_list:List[RegionsToMeta] = List()
 
-    val aggrList =  new ListBuffer[RegionsToMeta]()
-
-    for (elem <- aggregates) {
-      if (elem(1).equalsIgnoreCase("COUNT"))
-        aggrList += DefaultRegionsToMetaFactory.get(elem(1), Some(elem(0)))
-      else
-      {
-        val field = data.get_field_by_name(elem(2))
-        if(field.isEmpty) {
-          val error = "The value "+elem(2) + " is missing from schema"
-          return (error,null)
-        }
-        aggrList += DefaultRegionsToMetaFactory.get(elem(1), field.get, Some(elem(0)))
-      }
-
-      list = aggrList.toList
+    if(aggregates==null) {
+      return ("No",region_meta_list)
     }
 
-    ("OK",list)
+    val temp_list =  new ListBuffer[RegionsToMeta]()
 
-  }
+    aggregates match {
+      case aggregates: Array[Array[String]] => {
 
-  def RegionToRegionAggregates(aggregates:Array[Array[String]],data:IRVariable): (String, List[RegionsToRegion]) =
-  {
-    var list:List[RegionsToRegion] = List()
-
-    val aggrList =  new ListBuffer[RegionsToRegion]()
-
-    for (elem <- aggregates) {
-        if (elem(1).equalsIgnoreCase("COUNT"))
-          aggrList += DefaultRegionsToRegionFactory.get(elem(1), Some(elem(0)))
-        else
-        {
-          val field = data.get_field_by_name(elem(2))
-          if(field.isEmpty){
-            val error = "The value "+elem(2) + " is missing from schema"
-            return (error,null)
+        for (elem <- aggregates) {
+          if (elem(1).equalsIgnoreCase("COUNT"))
+            temp_list += DefaultRegionsToMetaFactory.get(elem(1), Some(elem(0)))
+          else {
+            val field = data.get_field_by_name(elem(2))
+            if (field.isEmpty) {
+              val error = "No value " + elem(2) + " from this schema"
+              return (error, region_meta_list) //empty list
+            }
+            temp_list += DefaultRegionsToMetaFactory.get(elem(1), field.get, Some(elem(0)))
           }
-          aggrList += DefaultRegionsToRegionFactory.get(elem(1), field.get, Some(elem(0)))
+        }
+        region_meta_list = temp_list.toList
       }
-
-      list = aggrList.toList
     }
+    ("OK",region_meta_list) // not empty list
 
-    ("OK",list)
+  }
+
+  def RegionToRegionAggregates(aggregates:Any,data:IRVariable): (String, List[RegionsToRegion]) =
+  {
+    var aggr_list:List[RegionsToRegion] = List()
+
+    if(aggregates==null) {
+      return ("No",aggr_list)
+    }
+    val temp_list =  new ListBuffer[RegionsToRegion]()
+
+    aggregates match {
+      case aggregates: Array[Array[String]] => {
+
+        for (elem <- aggregates) {
+          if (elem(1).equalsIgnoreCase("COUNT"))
+            temp_list += DefaultRegionsToRegionFactory.get(elem(1), Some(elem(0)))
+          else {
+            val field = data.get_field_by_name(elem(2))
+            if (field.isEmpty) {
+              val error = "No value " + elem(2) + " from this schema"
+              return (error, aggr_list) //empty list
+            }
+            temp_list += DefaultRegionsToRegionFactory.get(elem(1), field.get, Some(elem(0)))
+          }
+        }
+        aggr_list = temp_list.toList
+      }
+    }
+    ("OK",aggr_list) // not empty list
   }
 
 
-  def AttributesList(groupBy:Any): Option[List[String]] =
+  def AttributesList(group_by:Any): Option[List[String]] =
   {
     var groupList: Option[List[String]] = None
+    val tempList =  new ListBuffer[String]()
 
-    if (groupBy == null)
-    {
-      println("list is Null")
+    if (group_by == null)
       return groupList
-    }
 
-    groupBy match
+    group_by match
     {
-      case groupBy: String =>
-        groupBy match{
-
-          case "" => {groupList = None; println("groupBy is single string but empty")}
+      case group_by: String =>
+        group_by match{
+          case "" => groupList = None //println("groupBy is single string but empty")}
           case _ => {
-            var temp: Array[String] = Array(groupBy)
+            var temp: Array[String] = Array(group_by)
             groupList = Some(temp.toList)
-            println(groupBy)
-            println("groupBy is single string")}
+           // println(groupBy)
+           // println("groupBy is single string")
+            }
         }
-      case groupBy: Array[String] => {
-        groupList = Some(groupBy.toList)
-        println("groupBy is array string")
+      case group_by: Array[String] => {
+        for (elem <- group_by) {
+          if (elem != "")
+            tempList += elem
+        }
+        if(tempList.nonEmpty)
+          groupList = Some(tempList.toList)
       }
     }
-
     groupList
   }
 
+
+
+  def conditionList(join_by:Any): Option[MetaJoinCondition] =
+  {
+    var join_by_list: Option[MetaJoinCondition] = None
+    val joinList =  new ListBuffer[AttributeEvaluationStrategy]()
+
+    if (join_by == null) {
+      return join_by_list
+    }
+
+    join_by match {
+      case join_by: String =>
+        join_by match {
+          case "" => join_by_list
+          case _ => {
+            val default = Default(join_by)
+            join_by_list = Some(MetaJoinCondition(List(default)))
+          }
+        }
+      case join_by: Array[String] => {
+
+        for (elem <- join_by)
+          if(elem != "")
+            joinList+=Default(elem)
+
+        if(joinList.nonEmpty)
+          join_by_list = Some(MetaJoinCondition(joinList.toList))
+      }
+    }
+    join_by_list
+  }
+
+
+  def regionsList(projected_by:Any,data:IRVariable): (String, Option[List[Int]]) =
+  {
+    var projectedList: Option[List[Int]] = None
+    val temp_list =  new ListBuffer[Int]()
+
+    if (projected_by == null)
+      return ("No",projectedList)
+
+    projected_by match
+    {
+      case projected_by: String =>
+        projected_by match{
+          case "" => projectedList=None //println("groupBy is single string but empty")}
+          case _ => {
+            val field = data.get_field_by_name(projected_by)
+            projectedList = Some(field.toList)
+            // println(groupBy)
+            // println("groupBy is single string")
+          }
+        }
+      case projected_by: Array[String] => {
+        for (elem <- projected_by)
+        {
+          val field = data.get_field_by_name(elem)
+          if (field.isEmpty) {
+            val error = "No value " + elem + " from this schema"
+            return (error, projectedList) //empty list
+          }
+          temp_list += field.get
+        }
+      }
+    }
+    projectedList = Some(temp_list.toList)
+    ("OK",projectedList)
+  }
+
+
+  def meta_order_list(order_matrix:Any): Option[List[(String,Direction)]] = {
+
+    var order_list: Option[List[(String,Direction)]] = None
+    val temp_list =  new ListBuffer[(String,Direction)]()
+
+    if (order_matrix == null)
+      return order_list
+
+    order_matrix match
+    {
+      case order_matrix: Array[Array[String]] => {
+        for (elem <- order_matrix)
+        {
+          if(elem(1) == "ASC") {
+            val dir = Direction.ASC
+            temp_list += ((elem(0),dir))
+          }
+          else{
+            val dir = Direction.DESC
+            temp_list += ((elem(0),dir))
+          }
+        }
+      }
+    }
+    order_list = Some(temp_list.toList)
+
+    order_list
+  }
+
+
+  def region_order_list(order_matrix:Any,data:IRVariable): (String,Option[List[(Int,Direction)]]) = {
+
+    var order_list: Option[List[(Int,Direction)]] = None
+    val temp_list =  new ListBuffer[(Int,Direction)]()
+
+    if (order_matrix == null)
+      return ("No",order_list)
+
+    order_matrix match
+    {
+      case order_matrix: Array[Array[String]] => {
+        for (elem <- order_matrix)
+        {
+          val field = data.get_field_by_name(elem(0))
+          if (field.isEmpty) {
+            val error = "No value " + elem(2) + " from this schema"
+            return (error, order_list) //empty list
+          }
+          if(elem(1) == "ASC") {
+            val dir = Direction.ASC
+            temp_list += ((field.get,dir))
+          }
+          else{
+            val dir = Direction.DESC
+            temp_list += ((field.get,dir))
+          }
+        }
+      }
+    }
+    order_list = Some(temp_list.toList)
+
+    order_list
+  }
+
+
+
+
   def main(args : Array[String]): Unit = {
 
-    val temp: Array[Array[String]] = Array(Array("sas", "SUM", "cacca"), Array("asdasd", "COUNT", ""))
-    println(temp)
-    for (elem <- temp) {
-      println(elem(0))
-      println(elem(1))
-      println(elem(2))
-    }
-    runGMQL()
-    val parser = new CustomParser()
-    val dataPath = "/Users/simone/Downloads/job_filename_guest_new14_20170316_162715_DATA_SET_VAR/files"
-    parser.setSchema(dataPath)
-
-    val dataAsTheyAre = GMQLServer.READ(dataPath).USING(parser)
+    /*
+    val group_by = Array("","sdf","","sdf","")
+    val group_list: Option[List[String]] = AttributesList(group_by)
+    print(group_list)
+    */
 
 
-    val (error, aggrlist) = RegionToRegionAggregates(temp, dataAsTheyAre)
+    /*startGMQL()
+    val r = readDataset("/Users/simone/Downloads/DATA_SET_VAR_GDM")
+*/
 
-    println(error)
-    println(aggrlist)
+    val a :Array[Array[String]] = Array(Array("asd","ASC"),Array("fgh","DESC"))
+    val b = meta_order_list(a)
+
+
   }
+
+
 }

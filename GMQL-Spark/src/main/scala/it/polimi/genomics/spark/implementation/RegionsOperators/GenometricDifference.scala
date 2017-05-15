@@ -20,7 +20,7 @@ object GenometricDifference {
   private final val BINNING_PARAMETER = 50000
   private final val logger = LoggerFactory.getLogger(this.getClass);
 
-  def apply(executor: GMQLSparkExecutor, grouping: OptionalMetaJoinOperator, leftDataset: RegionOperator, rightDataset: RegionOperator, sc: SparkContext): RDD[GRECORD] = {
+  def apply(executor: GMQLSparkExecutor, grouping: OptionalMetaJoinOperator, leftDataset: RegionOperator, rightDataset: RegionOperator, exact:Boolean, sc: SparkContext): RDD[GRECORD] = {
     logger.info("----------------Differnce executing..")
 
     //creating the datasets
@@ -60,7 +60,8 @@ object GenometricDifference {
                 && /* first comparison */
                 ((region._2 / BINNING_PARAMETER).toInt.equals(key._3) || (experiment._1 / BINNING_PARAMETER).toInt.equals(key._3))
             ) {
-              count = count + 1;
+              if(!exact || (region._2 == experiment._1 && region._3 == experiment._2))
+                count = count + 1;
             }
 
           (aggregation, (newID, key._2, region._2, region._3, region._4, region._5, count))
