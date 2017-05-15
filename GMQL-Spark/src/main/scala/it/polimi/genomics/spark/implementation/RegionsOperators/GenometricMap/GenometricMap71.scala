@@ -4,14 +4,11 @@ import com.google.common.hash.Hashing
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.DataTypes._
 import it.polimi.genomics.core.exception.SelectFormatException
-import it.polimi.genomics.core.{GDouble, GRecordKey, GValue}
+import it.polimi.genomics.core.{GDouble, GNull, GRecordKey, GValue}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
-import org.apache.spark.{HashPartitioner, Partitioner, SparkContext}
-import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
+import org.apache.spark.{HashPartitioner, Partitioner, SparkContext}
 import org.slf4j.LoggerFactory
-
-import scala.collection.Map
 
 
 /**
@@ -65,7 +62,8 @@ object GenometricMap71 {
         }else if(r._3.size >0)
           r._3
         else l._3
-      (l._1,l._2,values,l._4+r._4)
+      val count = if(l._3.foldLeft(0)((b,a) => if (a.isInstanceOf[GNull]) b+0 else b+1) > 0) l._4 else 0
+      (l._1,l._2,values,/*l._4+r._4*/ count + r._3.foldLeft(0)((b,a) => if (a.isInstanceOf[GNull]) b+0 else b+1))
     }//cache()
 
 //    RefExpJoined.unpersist(true)

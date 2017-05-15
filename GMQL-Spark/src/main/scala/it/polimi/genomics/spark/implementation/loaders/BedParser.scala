@@ -58,7 +58,7 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
 
       val other = parsingType match {
         case GMQLSchemaFormat.GTF => {
-          val score = if (!s(5).trim.equals(".") && !s(5).trim.equals("null")) // When the values is not present it is considered . and we cast it into 0.0
+          val score = if (!s(5).trim.equals(".") && !s(5).trim.toLowerCase().equals("null")) // When the values is not present it is considered . and we cast it into 0.0
             GDouble(s(5).trim.toDouble)
           else
             /*GDouble(0.0)*/ GNull()
@@ -77,10 +77,10 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
               val attValue = attVal(1).trim.substring(1, attVal(1).trim.length - 1)
 
               val value:GValue =b._2 match {
-                case ParsingType.DOUBLE => if(attValue.equals("null")) {
+                case ParsingType.DOUBLE => if(attValue.toLowerCase().equals("null")) {
                   /*GDouble(0.0)*/ GNull()
                 } else GDouble(attValue.toDouble)
-                case ParsingType.INTEGER => if(attValue.equals("null")) {
+                case ParsingType.INTEGER => if(attValue.toLowerCase().equals("null")) {
                   /*GDouble(0)*/ GNull()
                 } else GDouble(attValue.toInt)
                 case ParsingType.STRING => GString(attValue.toString)
@@ -94,7 +94,7 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
         case _ => {
           if (otherPos.isDefined) otherPos.get.foldLeft(new Array[GValue](0))((a, b) => a :+ {
             b._2 match {
-              case ParsingType.DOUBLE => if(s(b._1).trim.equals("null") || s(b._1).trim.equals(".")) {
+              case ParsingType.DOUBLE => if(s(b._1).trim.toLowerCase().equals("null") || s(b._1).trim.equals(".")) {
                 /*GDouble(0.0)*/ GNull()
               } else GDouble(s(b._1).trim.toDouble)
               case ParsingType.STRING => GString(s(b._1).trim.toString)

@@ -7,7 +7,7 @@ import it.polimi.genomics.core.DataStructures.GroupMDParameters._
 import it.polimi.genomics.core.DataStructures.RegionOperator
 import it.polimi.genomics.core.DataTypes._
 import it.polimi.genomics.core.exception.SelectFormatException
-import it.polimi.genomics.core.{GDouble, GRecordKey, GValue}
+import it.polimi.genomics.core.{GDouble, GNull, GRecordKey, GValue}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.rdd.{RDD, ShuffledRDD}
 import org.apache.spark.{Partitioner, SparkContext}
@@ -73,8 +73,11 @@ object OrderRD {
         partitionedData.mapPartitions{part=>
           var position = 0
           val ddeded = part.toArray
-          buffer = ddeded(0)._2
-          val ddd= ddeded.sortBy{e=>GDouble(e._1.toDouble).asInstanceOf[GValue] +:  ordering.map(o=>e._2._2(o._1)).toArray}(valuesOrdering)
+
+          val ddNull = ddeded.flatMap{ x => val p = ordering.map(o => x._2._2(o._1)); if (p.head.isInstanceOf[GNull]) Some(x) else None}
+          val ddDouble = ddeded.flatMap{x => val p = ordering.map(o => x._2._2(o._1)); if (p.head.isInstanceOf[GDouble]) Some(x) else None}
+          buffer = /*ddeded*/ddDouble(0)._2
+          val ddd= /*ddeded*/ddDouble.sortBy{e=>GDouble(e._1.toDouble).asInstanceOf[GValue] +:  ordering.map(o=>e._2._2(o._1)).toArray}(valuesOrdering).union(ddNull)
           //x =>  ordering.map(o => x._2(o._1)).toArray
           ddd.flatMap { record =>
 

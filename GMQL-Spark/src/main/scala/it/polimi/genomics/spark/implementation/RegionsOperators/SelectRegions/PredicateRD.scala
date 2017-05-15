@@ -6,7 +6,7 @@ import it.polimi.genomics.core.DataStructures.RegionCondition._
 import it.polimi.genomics.core.DataStructures.{MetaOperator, RegionCondition}
 import it.polimi.genomics.core.DataTypes._
 import it.polimi.genomics.core.exception.SelectFormatException
-import it.polimi.genomics.core.{GDouble, GString, GValue}
+import it.polimi.genomics.core.{GDouble, GNull, GString, GValue}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
 
@@ -112,9 +112,9 @@ object PredicateRD {
         } catch {
           case e: IndexOutOfBoundsException => false
         }
-      case value: Int => input.asInstanceOf[GDouble].v.equals(value.toDouble)
-      case value: Long => input.asInstanceOf[GDouble].v.equals(value.toDouble)
-      case value: Double => input.asInstanceOf[GDouble].v.equals(value.toDouble)
+      case value: Int => if (input.isInstanceOf[GNull]) false else input.asInstanceOf[GDouble].v.equals(value.toDouble)
+      case value: Long => if (input.isInstanceOf[GNull]) false else input.asInstanceOf[GDouble].v.equals(value.toDouble)
+      case value: Double => if (input.isInstanceOf[GNull]) false else input.asInstanceOf[GDouble].v.equals(value.toDouble)
       case value: String => input.asInstanceOf[GString].v.equals(value)
 
     }
@@ -129,9 +129,9 @@ object PredicateRD {
         } catch {
           case e: IndexOutOfBoundsException => false
         }
-      case value: Int => !input.asInstanceOf[GDouble].v.equals(value.toDouble)
-      case value: Long => !(input.asInstanceOf[GDouble].v.equals(value.toDouble))
-      case value: Double => !input.asInstanceOf[GDouble].v.equals(value.toDouble)
+      case value: Int => if (input.isInstanceOf[GNull]) false else !input.asInstanceOf[GDouble].v.equals(value.toDouble)
+      case value: Long => if (input.isInstanceOf[GNull]) false else !(input.asInstanceOf[GDouble].v.equals(value.toDouble))
+      case value: Double => if (input.isInstanceOf[GNull]) false else !input.asInstanceOf[GDouble].v.equals(value.toDouble)
       case value: String => !input.asInstanceOf[GString].v.equals(value)
     }
   }
@@ -145,9 +145,9 @@ object PredicateRD {
         } catch {
           case e: IndexOutOfBoundsException => false
         }
-      case value: Int => input.asInstanceOf[GDouble].v < value.toDouble
-      case value: Long => input.asInstanceOf[GDouble].v < value.toDouble
-      case value: Double => input.asInstanceOf[GDouble].v < value.toDouble
+      case value: Int => if (input.isInstanceOf[GNull]) false else input.asInstanceOf[GDouble].v < value.toDouble
+      case value: Long => if (input.isInstanceOf[GNull]) false else input.asInstanceOf[GDouble].v < value.toDouble
+      case value: Double => if (input.isInstanceOf[GNull]) false else input.asInstanceOf[GDouble].v < value.toDouble
       case value: String =>
         throw SelectFormatException.create("Your SELECT statement cannot be executed: yuo are doing a < comparison between string. Query: " + value + " < " + input)
 
@@ -164,9 +164,9 @@ object PredicateRD {
           case e: IndexOutOfBoundsException => false
         }
 
-      case value: Int => input.asInstanceOf[GDouble].v <= value.toDouble
-      case value: Long => input.asInstanceOf[GDouble].v <= value.toDouble
-      case value: Double => input.asInstanceOf[GDouble].v <= value.toDouble
+      case value: Int => if (input.isInstanceOf[GNull]) false else input.asInstanceOf[GDouble].v <= value.toDouble
+      case value: Long => if (input.isInstanceOf[GNull]) false else input.asInstanceOf[GDouble].v <= value.toDouble
+      case value: Double => if (input.isInstanceOf[GNull]) false else input.asInstanceOf[GDouble].v <= value.toDouble
       case value: String =>
         throw SelectFormatException.create("Your SELECT statement cannot be executed: yuo are doing a <= comparison between string. Query: " + value + " <= " + input)
     }
@@ -181,9 +181,9 @@ object PredicateRD {
         } catch {
           case e: IndexOutOfBoundsException => false
         }
-      case value: Int => input.asInstanceOf[GDouble].v > value.toDouble
-      case value: Long => input.asInstanceOf[GDouble].v > value.toDouble
-      case value: Double => input.asInstanceOf[GDouble].v > value.toDouble
+      case value: Int => if (input.isInstanceOf[GNull]) false else input.asInstanceOf[GDouble].v > value.toDouble
+      case value: Long => if (input.isInstanceOf[GNull]) false else input.asInstanceOf[GDouble].v > value.toDouble
+      case value: Double => if (input.isInstanceOf[GNull]) false else input.asInstanceOf[GDouble].v > value.toDouble
       case value: String =>
         throw SelectFormatException.create("Your SELECT statement cannot be executed: yuo are doing a > comparison between string. Query: " + value + " > " + input)
     }
@@ -198,9 +198,9 @@ object PredicateRD {
         } catch {
           case e: IndexOutOfBoundsException => false
         }
-      case value: Int => input.asInstanceOf[GDouble].v >= value.toDouble
-      case value: Long => input.asInstanceOf[GDouble].v >= value.toDouble
-      case value: Double => input.asInstanceOf[GDouble].v >= value.toDouble
+      case value: Int => if (input.isInstanceOf[GNull]) false else input.asInstanceOf[GDouble].v >= value.toDouble
+      case value: Long => if (input.isInstanceOf[GNull]) false else input.asInstanceOf[GDouble].v >= value.toDouble
+      case value: Double => if (input.isInstanceOf[GNull]) false else input.asInstanceOf[GDouble].v >= value.toDouble
       case value: String =>
         throw SelectFormatException.create("Your SELECT statement cannot be executed: yuo are doing a >= comparison between string. Query: " + value + " >= " + input)
     }
