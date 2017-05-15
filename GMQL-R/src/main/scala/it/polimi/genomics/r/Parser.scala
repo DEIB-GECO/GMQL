@@ -14,10 +14,10 @@ class PM extends GmqlParsers {
     val metadata = parse(meta_select_expr, input)
 
     metadata match {
-      case Success(result,next) => return ("OK",Some(result))
-      case NoSuccess(result,next) => return (result,None)
-      case Error(result,next) => return (result,None)
-      case Failure(result,next) => return (result,None)
+      case Success(result,next) =>  ("OK",Some(result))
+      case NoSuccess(result,next) =>  (result,None)
+      case Error(result,next) =>  (result,None)
+      case Failure(result,next) =>  (result,None)
     }
   }
 
@@ -27,10 +27,10 @@ class PM extends GmqlParsers {
     val metadata = parse(region_select_expr, input)
 
     metadata match {
-      case Success(result,next) => return ("OK",Some(result))
-      case NoSuccess(result,next) => return (result,None)
-      case Error(result,next) => return (result,None)
-      case Failure(result,next) => return (result,None)
+      case Success(result,next) =>  ("OK",Some(result))
+      case NoSuccess(result,next) =>  (result,None)
+      case Error(result,next) =>  (result,None)
+      case Failure(result,next) =>  (result,None)
     }
    }
 

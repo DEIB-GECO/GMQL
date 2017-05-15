@@ -5,7 +5,9 @@ import java.util.concurrent.atomic.AtomicLong
 
 import it.polimi.genomics.GMQLServer.{DefaultRegionsToMetaFactory, DefaultRegionsToRegionFactory, GmqlServer}
 import it.polimi.genomics.core.DataStructures.CoverParameters.{ALL, ANY, CoverFlag, CoverParam, N}
-import it.polimi.genomics.core.DataStructures.GroupMDParameters.{NoTop, TopParameter}
+import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction._
+import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.{Direction,ASC,DESC}
+import it.polimi.genomics.core.DataStructures.GroupMDParameters.{Direction, NoTop, Top, TopG, TopParameter}
 import it.polimi.genomics.core.DataStructures.{IRVariable, MetaOperator}
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition._
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
@@ -104,7 +106,7 @@ object Wrapper
                            meta_condition : Option[MetadataCondition], region_condition : Option[RegionCondition])*/
   /*GMQL OPERATION*/
 
-  //TODO miss check on regions attribute
+  //TODO miss check on regions attribute, check error parser
   def select(predicate:Any, region_predicate:Any, semi_join:Any, semi_join_dataset:Any, input_dataset: String): String =
   {
     if(vv.get(input_dataset).isEmpty)
@@ -125,7 +127,7 @@ object Wrapper
     }
 
     if(region_predicate!=null) {
-      regioni = parser.parsaRegioni(predicate.toString)
+      regioni = parser.parsaRegioni(region_predicate.toString)
       if (regioni._2.isEmpty)
         return regioni._1
     }
@@ -149,15 +151,25 @@ object Wrapper
 
   }
 
-  //TODO
-  def project(input_dataset: String): String =
+  /* PROJECT(projected_meta : Option[List[String]] = None, extended_meta : Option[MetaAggregateStruct] = None,
+              projected_values : Option[List[Int]] = None,
+              extended_values : Option[List[RegionFunction]] = None): */
+
+  //TODO miss Region Fucntion and MetaaggregateStruct
+  def project(projected_meta:Any, projected_region:Any, input_dataset: String): String =
   {
     if(vv.get(input_dataset).isEmpty)
       return "No valid Data as input"
 
     val dataAsTheyAre = vv(input_dataset)
 
-    val project = dataAsTheyAre.PROJECT()
+    val meta_list: Option[List[String]] = AttributesList(projected_meta)
+    val (error,regions_index_list)= regionsList(projected_region,dataAsTheyAre)
+    if(regions_index_list.isEmpty)
+      return error
+
+
+    val project = dataAsTheyAre.PROJECT(meta_list,None,regions_index_list,None)
     val index = counter.getAndIncrement()
 
     val out_p = input_dataset + "/project"+ index
@@ -235,22 +247,35 @@ object Wrapper
    region_ordering : Option[List[(Int,Direction)]], region_top_par : TopParameter = NoTop())
    */
   def order(meta_order:Any, meta_topg:Int, meta_top:Int,
-            region_order:Any, region_topg:Int, region_top:Int, input_dataset: String): Unit =
+            region_order:Any, region_topg:Int, region_top:Int, input_dataset: String): String =
   {
+    if(vv.get(input_dataset).isEmpty)
+      return "No valid dataset as input"
+
     val dataAsTheyAre = vv(input_dataset)
 
-    var m_top: TopParameter =  null
-    var r_top: TopParameter =  null
+    var m_top: TopParameter =  NoTop()
+    var r_top: TopParameter =  NoTop()
 
-    meta_top match {
-      case -1 => m_top = NoTop()
-    }
+    if(meta_top>0)
+      m_top = Top(meta_top)
 
-    region_top match {
-      case -1 => m_top = NoTop()
-    }
+    if(meta_topg>0)
+      m_top = TopG(meta_topg)
 
-    val order = dataAsTheyAre.ORDER(None,"_order",m_top,None,r_top)
+    if(region_top >0)
+      r_top = Top(region_top)
+
+    if(region_topg >0)
+      r_top = TopG(region_topg)
+
+
+    val meta_list = meta_order_list(meta_order)
+    val (error,region_list) = region_order_list(region_order,dataAsTheyAre)
+    if(region_list.isEmpty)
+      return error
+
+    val order = dataAsTheyAre.ORDER(meta_list,"_group",m_top,region_list,r_top)
 
     val index = counter.getAndIncrement()
     val out_p = input_dataset+"/order"+index
@@ -340,6 +365,7 @@ object Wrapper
     if(summit==null)
       return error
 
+
     val index = counter.getAndIncrement()
     val out_p = input_dataset+"/summit"+index
     vv = vv + (out_p -> summit)
@@ -399,9 +425,21 @@ object Wrapper
 
   /*MAP*/
 
+  /*f MAP(condition : Option[MetaJoinCondition.MetaJoinCondition],
+    aggregates : List[RegionsToRegion],
+    experiments : IRVariable,
+    reference_name : Option[String] = None,
+  experiment_name : Option[String] = None,
+  count_name : Option[String] = None) =*/
+
   def map(aggregates:Array[Array[String]],right_dataset: String, left_dataset: String): String =
   {
     //TODO
+    if(vv.get(right_dataset).isEmpty)
+      return "No valid right dataset as input"
+
+    if(vv.get(left_dataset).isEmpty)
+      return "No valid left dataset as input"
 
     val leftDataAsTheyAre = vv(left_dataset)
     val rightDataAsTheyAre = vv(right_dataset)
@@ -412,18 +450,41 @@ object Wrapper
 
     // we do not add left, right and count name: we set to None
     val map = leftDataAsTheyAre.MAP(None,aggr_list,rightDataAsTheyAre,None,None,None)
-    val out_p = left_dataset+right_dataset+"/map"
+
+    val index = counter.getAndIncrement()
+    val out_p = left_dataset+right_dataset+"/map"+index
     vv = vv + (out_p -> map)
 
     out_p
   }
 
   /*JOIN*/
-
-  def join(input_dataset: String):Unit =
+/* def JOIN(meta_join : Option[MetaJoinCondition],
+           region_join_condition : List[JoinQuadruple],
+           region_builder : RegionBuilder,
+           right_dataset : IRVariable,
+           reference_name : Option[String] = None,
+           experiment_name : Option[String] = None) : IRVariable = {*/
+//TODO
+  def join(right_dataset: String, left_dataset: String): String =
   {
-    //TODO
+    if(vv.get(right_dataset).isEmpty)
+      return "No valid right dataset as input"
 
+    if(vv.get(left_dataset).isEmpty)
+      return "No valid left dataset as input"
+
+    val leftDataAsTheyAre = vv(left_dataset)
+    val rightDataAsTheyAre = vv(right_dataset)
+
+    val join = leftDataAsTheyAre.JOIN(None,null,null,rightDataAsTheyAre,None,None)
+
+    val index = counter.getAndIncrement()
+   // val out_p = left_dataset+right_dataset+"/join"+index
+    val out_p = left_dataset+"/join"+index
+    vv = vv + (out_p -> join)
+
+    out_p
   }
 
 
@@ -524,6 +585,8 @@ object Wrapper
     groupList
   }
 
+
+
   def conditionList(join_by:Any): Option[MetaJoinCondition] =
   {
     var join_by_list: Option[MetaJoinCondition] = None
@@ -555,15 +618,110 @@ object Wrapper
     join_by_list
   }
 
-  def prova(arg: Array[Array[String]]): Unit = {
 
-    if(arg == null)
-      print("NULL matrix")
+  def regionsList(projected_by:Any,data:IRVariable): (String, Option[List[Int]]) =
+  {
+    var projectedList: Option[List[Int]] = None
+    val temp_list =  new ListBuffer[Int]()
 
-    for (elem <- arg) {
-      print(elem)
+    if (projected_by == null)
+      return ("No",projectedList)
+
+    projected_by match
+    {
+      case projected_by: String =>
+        projected_by match{
+          case "" => projectedList=None //println("groupBy is single string but empty")}
+          case _ => {
+            val field = data.get_field_by_name(projected_by)
+            projectedList = Some(field.toList)
+            // println(groupBy)
+            // println("groupBy is single string")
+          }
+        }
+      case projected_by: Array[String] => {
+        for (elem <- projected_by)
+        {
+          val field = data.get_field_by_name(elem)
+          if (field.isEmpty) {
+            val error = "No value " + elem + " from this schema"
+            return (error, projectedList) //empty list
+          }
+          temp_list += field.get
+        }
+      }
     }
+    projectedList = Some(temp_list.toList)
+    ("OK",projectedList)
   }
+
+
+  def meta_order_list(order_matrix:Any): Option[List[(String,Direction)]] = {
+
+    var order_list: Option[List[(String,Direction)]] = None
+    val temp_list =  new ListBuffer[(String,Direction)]()
+
+    if (order_matrix == null)
+      return order_list
+
+    order_matrix match
+    {
+      case order_matrix: Array[Array[String]] => {
+        for (elem <- order_matrix)
+        {
+          if(elem(1) == "ASC") {
+            val dir = Direction.ASC
+            temp_list += ((elem(0),dir))
+          }
+          else{
+            val dir = Direction.DESC
+            temp_list += ((elem(0),dir))
+          }
+        }
+      }
+    }
+    order_list = Some(temp_list.toList)
+
+    order_list
+  }
+
+
+  def region_order_list(order_matrix:Any,data:IRVariable): (String,Option[List[(Int,Direction)]]) = {
+
+    var order_list: Option[List[(Int,Direction)]] = None
+    val temp_list =  new ListBuffer[(Int,Direction)]()
+
+    if (order_matrix == null)
+      return ("No",order_list)
+
+    order_matrix match
+    {
+      case order_matrix: Array[Array[String]] => {
+        for (elem <- order_matrix)
+        {
+          val field = data.get_field_by_name(elem(0))
+          if (field.isEmpty) {
+            val error = "No value " + elem(2) + " from this schema"
+            return (error, order_list) //empty list
+          }
+          if(elem(1) == "ASC") {
+            val dir = Direction.ASC
+            temp_list += ((field.get,dir))
+          }
+          else{
+            val dir = Direction.DESC
+            temp_list += ((field.get,dir))
+          }
+        }
+      }
+    }
+    order_list = Some(temp_list.toList)
+
+    order_list
+  }
+
+
+
 
   def main(args : Array[String]): Unit = {
 
@@ -573,16 +731,14 @@ object Wrapper
     print(group_list)
     */
 
-    /*
-    startGMQL()
-    val r = readDataset("/Users/simone/Downloads/DATA_SET_VAR_GDM/files")
 
-    val predicate = "(dataType == 'ChipSeq' AND view == 'Peaks' AND setType == 'exp' AND antibody_target == 'TEAD4')"
-    val s = select(predicate,null,null,null,r)*/
+    /*startGMQL()
+    val r = readDataset("/Users/simone/Downloads/DATA_SET_VAR_GDM")
+*/
 
-    val l = List()
-    val b = l.isEmpty
-    print(b)
+    val a :Array[Array[String]] = Array(Array("asd","ASC"),Array("fgh","DESC"))
+    val b = meta_order_list(a)
+
 
   }
 
