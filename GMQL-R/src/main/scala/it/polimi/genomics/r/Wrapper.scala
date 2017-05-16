@@ -6,8 +6,10 @@ import java.util.concurrent.atomic.AtomicLong
 import it.polimi.genomics.GMQLServer.{DefaultRegionsToMetaFactory, DefaultRegionsToRegionFactory, GmqlServer}
 import it.polimi.genomics.core.DataStructures.CoverParameters.{ALL, ANY, CoverFlag, CoverParam, N}
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction._
-import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.{Direction,ASC,DESC}
+import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.{ASC, DESC, Direction}
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.{Direction, NoTop, Top, TopG, TopParameter}
+import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder
+import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
 import it.polimi.genomics.core.DataStructures.{IRVariable, MetaOperator}
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition._
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
@@ -106,7 +108,7 @@ object Wrapper
                            meta_condition : Option[MetadataCondition], region_condition : Option[RegionCondition])*/
   /*GMQL OPERATION*/
 
-  //TODO miss check on regions attribute, check error parser
+  //TODO miss check on regions value (if exists)
   def select(predicate:Any, region_predicate:Any, semi_join:Any, semi_join_dataset:Any, input_dataset: String): String =
   {
     if(vv.get(input_dataset).isEmpty)
@@ -155,7 +157,7 @@ object Wrapper
               projected_values : Option[List[Int]] = None,
               extended_values : Option[List[RegionFunction]] = None): */
 
-  //TODO miss Region Fucntion and MetaaggregateStruct
+  //TODO miss Region Function and MetaaggregateStruct
   def project(projected_meta:Any, projected_region:Any, input_dataset: String): String =
   {
     if(vv.get(input_dataset).isEmpty)
@@ -241,11 +243,7 @@ object Wrapper
     out_p
   }
 
-  /*
-   def ORDER(meta_ordering : Option[List[(String,Direction)]] = None, meta_new_attribute : String = "_group",
-   meta_top_par : TopParameter = NoTop(),
-   region_ordering : Option[List[(Int,Direction)]], region_top_par : TopParameter = NoTop())
-   */
+
   def order(meta_order:Any, meta_topg:Int, meta_top:Int,
             region_order:Any, region_topg:Int, region_top:Int, input_dataset: String): String =
   {
@@ -284,6 +282,7 @@ object Wrapper
     out_p
   }
 
+  //we use "right" and "left" as prefixes
   def union(right_dataset: String, left_dataset: String): String =
   {
     if(vv.get(right_dataset).isEmpty)
@@ -295,7 +294,6 @@ object Wrapper
     val leftDataAsTheyAre = vv(left_dataset)
     val rightDataAsTheyAre = vv(right_dataset)
 
-    //we use "right" and "left" as prefixes
 
     val union = leftDataAsTheyAre.UNION(rightDataAsTheyAre,"left","right")
 
@@ -423,18 +421,10 @@ object Wrapper
   }
 
 
-  /*MAP*/
-
-  /*f MAP(condition : Option[MetaJoinCondition.MetaJoinCondition],
-    aggregates : List[RegionsToRegion],
-    experiments : IRVariable,
-    reference_name : Option[String] = None,
-  experiment_name : Option[String] = None,
-  count_name : Option[String] = None) =*/
-
-  def map(aggregates:Array[Array[String]],right_dataset: String, left_dataset: String): String =
+  //TODO we use only Default on condition same as Difference operation
+  // we do not add left, right and count name: we set to None
+  def map(condition:Any, aggregates:Any,right_dataset: String, left_dataset: String): String =
   {
-    //TODO
     if(vv.get(right_dataset).isEmpty)
       return "No valid right dataset as input"
 
@@ -448,8 +438,9 @@ object Wrapper
     if(aggr_list==null)
       return error
 
-    // we do not add left, right and count name: we set to None
-    val map = leftDataAsTheyAre.MAP(None,aggr_list,rightDataAsTheyAre,None,None,None)
+    val condition_list:Option[MetaJoinCondition] = conditionList(condition)
+
+    val map = leftDataAsTheyAre.MAP(condition_list,aggr_list,rightDataAsTheyAre,None,None,None)
 
     val index = counter.getAndIncrement()
     val out_p = left_dataset+right_dataset+"/map"+index
@@ -458,15 +449,10 @@ object Wrapper
     out_p
   }
 
-  /*JOIN*/
-/* def JOIN(meta_join : Option[MetaJoinCondition],
-           region_join_condition : List[JoinQuadruple],
-           region_builder : RegionBuilder,
-           right_dataset : IRVariable,
-           reference_name : Option[String] = None,
-           experiment_name : Option[String] = None) : IRVariable = {*/
-//TODO
-  def join(right_dataset: String, left_dataset: String): String =
+
+//TODO miss JoinQuadruple
+  // we do not add ref and exp name: we set to None
+  def join(meta_join:Any, output:String, right_dataset: String, left_dataset: String): String =
   {
     if(vv.get(right_dataset).isEmpty)
       return "No valid right dataset as input"
@@ -477,7 +463,11 @@ object Wrapper
     val leftDataAsTheyAre = vv(left_dataset)
     val rightDataAsTheyAre = vv(right_dataset)
 
-    val join = leftDataAsTheyAre.JOIN(None,null,null,rightDataAsTheyAre,None,None)
+    val meta_join_list:Option[MetaJoinCondition] = conditionList(meta_join)
+
+    val reg_out = regionBuild(output)
+
+    val join = leftDataAsTheyAre.JOIN(meta_join_list,null,reg_out,rightDataAsTheyAre,None,None)
 
     val index = counter.getAndIncrement()
    // val out_p = left_dataset+right_dataset+"/join"+index
@@ -489,6 +479,18 @@ object Wrapper
 
 
 /*UTILS FUNCTION*/
+
+  def regionBuild(output: String): RegionBuilder = {
+
+    output match{
+      case "LEFT" => RegionBuilder.LEFT
+      case "RIGHT"=> RegionBuilder.RIGHT
+      case "CONTIG" => RegionBuilder.CONTIG
+      case "INTERSECTION"=> RegionBuilder.INTERSECTION
+    }
+
+  }
+
 
   def RegionToMetaAggregates(aggregates:Any,data:IRVariable): (String,List[RegionsToMeta]) =
   {
@@ -717,29 +719,14 @@ object Wrapper
     }
     order_list = Some(temp_list.toList)
 
-    order_list
+    ("OK",order_list)
   }
 
 
 
 
   def main(args : Array[String]): Unit = {
-
-    /*
-    val group_by = Array("","sdf","","sdf","")
-    val group_list: Option[List[String]] = AttributesList(group_by)
-    print(group_list)
-    */
-
-
-    /*startGMQL()
-    val r = readDataset("/Users/simone/Downloads/DATA_SET_VAR_GDM")
-*/
-
-    val a :Array[Array[String]] = Array(Array("asd","ASC"),Array("fgh","DESC"))
-    val b = meta_order_list(a)
-
-
+    //for debug if needed 
   }
 
 
