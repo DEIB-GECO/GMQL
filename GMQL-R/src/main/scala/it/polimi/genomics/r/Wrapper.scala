@@ -5,7 +5,6 @@ import java.util.concurrent.atomic.AtomicLong
 
 import it.polimi.genomics.GMQLServer.{DefaultRegionsToMetaFactory, DefaultRegionsToRegionFactory, GmqlServer}
 import it.polimi.genomics.core.DataStructures.CoverParameters.{ALL, ANY, CoverFlag, CoverParam, N}
-import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction._
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.{ASC, DESC, Direction}
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.{Direction, NoTop, Top, TopG, TopParameter}
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder
@@ -165,7 +164,7 @@ object Wrapper
 
     val dataAsTheyAre = vv(input_dataset)
 
-    val meta_list: Option[List[String]] = AttributesList(projected_meta)
+    val meta_list: Option[List[String]] = MetadataAttributesList(projected_meta)
     val (error,regions_index_list)= regionsList(projected_region,dataAsTheyAre)
     if(regions_index_list.isEmpty)
       return error
@@ -233,7 +232,7 @@ object Wrapper
 
     val dataAsTheyAre = vv(input_dataset)
 
-    val group_list: Option[List[String]] = AttributesList(group_by)
+    val group_list: Option[List[String]] = MetadataAttributesList(group_by)
     val merge = dataAsTheyAre.MERGE(group_list)
 
     val index = counter.getAndIncrement()
@@ -413,7 +412,7 @@ object Wrapper
     if (aggr_list.isEmpty)
       return (error,null)
 
-    val groupList: Option[List[String]] = AttributesList(groupBy)
+    val groupList: Option[List[String]] = MetadataAttributesList(groupBy)
 
     val variant = dataAsTheyAre.COVER(flag, paramMin, paramMax, aggr_list, groupList)
 
@@ -521,7 +520,6 @@ object Wrapper
       }
     }
     ("OK",region_meta_list) // not empty list
-
   }
 
   def RegionToRegionAggregates(aggregates:Any,data:IRVariable): (String, List[RegionsToRegion]) =
@@ -555,38 +553,29 @@ object Wrapper
   }
 
 
-  def AttributesList(group_by:Any): Option[List[String]] =
+  def MetadataAttributesList(group_by:Any): Option[List[String]] =
   {
-    var groupList: Option[List[String]] = None
-    val tempList =  new ListBuffer[String]()
+    var group_list: Option[List[String]] = None
+    val temp_list =  new ListBuffer[String]()
 
     if (group_by == null)
-      return groupList
+      return group_list
 
-    group_by match
-    {
-      case group_by: String =>
-        group_by match{
-          case "" => groupList = None //println("groupBy is single string but empty")}
-          case _ => {
-            var temp: Array[String] = Array(group_by)
-            groupList = Some(temp.toList)
-           // println(groupBy)
-           // println("groupBy is single string")
-            }
-        }
+    group_by match {
+      case group_by: String => {
+        val temp: Array[String] = Array(group_by)
+        group_list = Some(temp.toList)
+      }
       case group_by: Array[String] => {
-        for (elem <- group_by) {
-          if (elem != "")
-            tempList += elem
-        }
-        if(tempList.nonEmpty)
-          groupList = Some(tempList.toList)
+        for (elem <- group_by)
+          temp_list += elem
+
+        if (temp_list.nonEmpty)
+          group_list = Some(temp_list.toList)
       }
     }
-    groupList
+    group_list
   }
-
 
 
   def conditionList(join_by:Any): Option[MetaJoinCondition] =
@@ -671,14 +660,11 @@ object Wrapper
       case order_matrix: Array[Array[String]] => {
         for (elem <- order_matrix)
         {
-          if(elem(1) == "ASC") {
-            val dir = Direction.ASC
-            temp_list += ((elem(0),dir))
-          }
-          else{
-            val dir = Direction.DESC
-            temp_list += ((elem(0),dir))
-          }
+          var dir = Direction.ASC
+          if(elem(1) == "DESC")
+            dir = Direction.DESC
+
+          temp_list += ((elem(0),dir))
         }
       }
     }
