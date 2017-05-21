@@ -107,7 +107,7 @@ object Wrapper
                            meta_condition : Option[MetadataCondition], region_condition : Option[RegionCondition])*/
   /*GMQL OPERATION*/
 
-  //TODO miss check on regions value (if exists)
+  //TODO miss check on regions value (if exists), mtajoin condition solo default
   def select(predicate:Any, region_predicate:Any, semi_join:Any, semi_join_dataset:Any, input_dataset: String): String =
   {
     if(vv.get(input_dataset).isEmpty)
@@ -133,7 +133,8 @@ object Wrapper
         return regioni._1
     }
 
-    val semi_join_list = conditionList(semi_join)
+    val semi_join_list = MetaJoinConditionList(semi_join)
+
     if(semi_join_list.isDefined) {
       if(vv.get(semi_join_dataset.toString).isEmpty)
         return "No valid Data as input"
@@ -186,7 +187,7 @@ object Wrapper
 
     val dataAsTheyAre = vv(input_dataset)
 
-    val (error, meta_list) = RegionToMetaAggregates(metadata, dataAsTheyAre)
+    val (error, meta_list) = RegionsToMetaFactory(metadata, dataAsTheyAre)
     if (meta_list.isEmpty)
       return error
 
@@ -304,7 +305,6 @@ object Wrapper
     out_p
   }
 
-  //TODO: we manage other AttributeEvaluationStrategy, we use just Default now
   def difference(join_by:Any,left_dataset: String,right_dataset: String): String =
   {
     if(vv.get(right_dataset).isEmpty)
@@ -316,7 +316,7 @@ object Wrapper
     val leftDataAsTheyAre = vv(left_dataset)
     val rightDataAsTheyAre = vv(right_dataset)
 
-    val join_by_list:Option[MetaJoinCondition] = conditionList(join_by)
+    val join_by_list:Option[MetaJoinCondition] = MetaJoinConditionList(join_by)
 
     val difference = leftDataAsTheyAre.DIFFERENCE(join_by_list,rightDataAsTheyAre)
 
@@ -437,7 +437,7 @@ object Wrapper
     if(aggr_list==null)
       return error
 
-    val condition_list:Option[MetaJoinCondition] = conditionList(condition)
+    val condition_list:Option[MetaJoinCondition] = MetaJoinConditionList(condition)
 
     val map = leftDataAsTheyAre.MAP(condition_list,aggr_list,rightDataAsTheyAre,None,None,None)
 
@@ -462,7 +462,7 @@ object Wrapper
     val leftDataAsTheyAre = vv(left_dataset)
     val rightDataAsTheyAre = vv(right_dataset)
 
-    val meta_join_list:Option[MetaJoinCondition] = conditionList(meta_join)
+    val meta_join_list:Option[MetaJoinCondition] = MetaJoinConditionList(meta_join)
 
     val reg_out = regionBuild(output)
 
@@ -491,7 +491,7 @@ object Wrapper
   }
 
 
-  def RegionToMetaAggregates(aggregates:Any,data:IRVariable): (String,List[RegionsToMeta]) =
+  def RegionsToMetaFactory(aggregates:Any,data:IRVariable): (String,List[RegionsToMeta]) =
   {
     var region_meta_list:List[RegionsToMeta] = List()
 
@@ -578,7 +578,7 @@ object Wrapper
   }
 
 
-  def conditionList(join_by:Any): Option[MetaJoinCondition] =
+  def MetaJoinConditionList(join_by:Any): Option[MetaJoinCondition] =
   {
     var join_by_list: Option[MetaJoinCondition] = None
     val joinList =  new ListBuffer[AttributeEvaluationStrategy]()
@@ -587,22 +587,21 @@ object Wrapper
       return join_by_list
     }
 
-    join_by match {
-      case join_by: String =>
-        join_by match {
-          case "" => join_by_list
-          case _ => {
-            val default = Default(join_by)
-            join_by_list = Some(MetaJoinCondition(List(default)))
+    join_by match
+    {
+      case join_by: Array[Array[String]] =>
+      {
+        for (elem <- join_by)
+        {
+          val attribute = elem(0)
+          attribute match
+          {
+            case "DEFAULT" => joinList+=Default(elem(1))
+            case "FULLNAME" => joinList+=FullName(elem(1))
+            case "EXACT" => joinList+=Exact(elem(1))
           }
         }
-      case join_by: Array[String] => {
-
-        for (elem <- join_by)
-          if(elem != "")
-            joinList+=Default(elem)
-
-        if(joinList.nonEmpty)
+        if (joinList.nonEmpty)
           join_by_list = Some(MetaJoinCondition(joinList.toList))
       }
     }
