@@ -10,9 +10,10 @@ import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaAggregateStruct
 import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinCondition
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
-import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionFunction, RegionsToRegion, RegionsToMeta, RegionExtension}
+import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionExtension, RegionFunction, RegionsToMeta, RegionsToRegion}
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
 import it.polimi.genomics.core.GMQLLoader
+import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 
 
 /**
@@ -29,6 +30,12 @@ case class IRReadMD[IR,OR,IM,OM](paths : List[String],
                                  dataset : IRDataSet) extends MetaOperator
 
 /**
+  * Dag node to represent the memory dataset reader for meta data.
+  */
+case class IRReadMEMMD(metaDS:Any) extends MetaOperator
+
+
+/**
  * Dag node to represent the repository/storage reader for region data files.
  * @param paths path from which to read the files
  * @param loader class that contains both the region and the metadata parser
@@ -41,6 +48,10 @@ case class IRReadRD[IR,OR,IM,OM](paths : List[String],
                                  loader : GMQLLoader[IR,OR,IM,OM],
                                  dataset : IRDataSet) extends RegionOperator
 
+/**
+  * Dag node to represent the memory dataset reader for region data.
+  */
+case class IRReadMEMRD(regionDS:Any) extends RegionOperator
 
 
 /** Dag node to represent the MATERIALIZE operation of a variable's metadata into the repository/storage.

@@ -28,7 +28,7 @@ import it.polimi.genomics.spark.implementation.MetaOperators.SelectMeta._
 import it.polimi.genomics.spark.implementation.MetaOperators._
 import it.polimi.genomics.spark.implementation.RegionsOperators.GenometricCover.GenometricCover
 import it.polimi.genomics.spark.implementation.RegionsOperators.GenometricMap._
-import it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions.TestingReadRD
+import it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions.{ReadMEMRD, TestingReadRD}
 import it.polimi.genomics.spark.implementation.RegionsOperators._
 import it.polimi.genomics.spark.implementation.loaders._
 
@@ -220,6 +220,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
         mo match {
           case IRStoreMD(path, value,_) => StoreMD(this, path, value, sc)
           case IRReadMD(path, loader,_) => if (testingIOFormats)  TestingReadMD(path,loader,sc) else ReadMD(path, loader, sc)
+          case IRReadMEMMD(metaRDD) => ReadMEMMD(metaRDD)
           case IRSelectMD(metaCondition, inputDataset) =>
             inputDataset match {
               case IRReadMD(path, loader,_) => SelectIMDWithNoIndex(this, metaCondition, path, loader, sc)
@@ -260,6 +261,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
         ro match {
           case IRStoreRD(path, value,_) => StoreRD(this, path, value, sc)
           case IRReadRD(path, loader,_) => if (testingIOFormats) TestingReadRD(path, loader, sc) else ReadRD(path, loader, sc)
+          case IRReadMEMRD(metaRDD) => ReadMEMRD(metaRDD)
           case IRSelectRD(regionCondition: Option[RegionCondition], filteredMeta: Option[MetaOperator], inputDataset: RegionOperator) =>
             inputDataset match {
               case IRReadRD(path, loader,_) =>

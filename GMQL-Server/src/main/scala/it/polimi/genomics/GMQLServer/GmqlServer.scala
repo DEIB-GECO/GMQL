@@ -3,7 +3,7 @@ package it.polimi.genomics.GMQLServer
 import it.polimi.genomics.core.GMQLLoader
 import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
 import it.polimi.genomics.core.DataStructures._
-import it.polimi.genomics.core.ParsingType._
+import it.polimi.genomics.core.ParsingType.{PARSING_TYPE, _}
 
 import scala.collection.mutable
 
@@ -108,6 +108,15 @@ class GmqlServer(var implementation : Implementation, binning_size : Option[Long
 
       new IRVariable(dagMD, dagRD, schema)
     }
+
+    def USING(metaDS: Any, regionDS: Any, sch: List[(String, PARSING_TYPE)]) = {
+
+      val dagMD = new IRReadMEMMD(metaDS)
+      val dagRD = new IRReadMEMRD(regionDS)
+
+      new IRVariable(dagMD, dagRD, sch)
+    }
+
   }
 
 

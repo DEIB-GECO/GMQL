@@ -2,9 +2,11 @@ package it.polimi.genomics.spark.test
 
 import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.core.DataStructures.CoverParameters.{CoverFlag, N}
+import it.polimi.genomics.core.ParsingType.PARSING_TYPE
+import it.polimi.genomics.core.{GDouble, GRecordKey, GValue, ParsingType}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.loaders.test3Parser
-import org.apache.spark.{SparkContext, SparkConf}
+import org.apache.spark.{SparkConf, SparkContext}
 
 /**
   * The entry point of the application
@@ -14,18 +16,24 @@ object Cover {
 
   def main(args : Array[String]) {
 
-    val conf = new SparkConf()
+    val conf = new SparkConf().setAppName("test New API for inputing datasets").setMaster("local[4]")
+      .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "64")
+      .set("spark.driver.allowMultipleContexts","true")
+      .set("spark.sql.tungsten.enabled", "true")
     val sc:SparkContext =new SparkContext(conf)
 
     val server = new GmqlServer(new GMQLSparkExecutor(sc=sc))
 
+    val metaDS = sc.parallelize((1 to 100).map(x=> (1,("test","Abdo"))))
+    val regionDS = sc.parallelize((1 to 1000).map{x=>(new GRecordKey(1,"Chr"+(x%2),x,x+200,'*'),Array[GValue](GDouble(1)) )})
+
     val ex_data_path = "/home/abdulrahman/Desktop/datasets/coverData/"
-    val output_path = "/home/abdulrahman/testCover/res/"
+    val output_path = "/Users/abdulrahman/Desktop/testCover/res111/"
 
 
-    val dataAsTheyAre = server READ ex_data_path USING test3Parser()
+    val dataAsTheyAre = server.READ(ex_data_path).USING(metaDS,regionDS,List[(String, PARSING_TYPE)](("score",ParsingType.DOUBLE)))
 
-    val cover = dataAsTheyAre.COVER(CoverFlag.COVER, N(2), N(3), List(), None )
+    val cover = dataAsTheyAre.COVER(CoverFlag.HISTOGRAM, N(1), it.polimi.genomics.core.DataStructures.CoverParameters.ANY(), List(), None )
 
     server setOutputPath output_path MATERIALIZE cover
 
