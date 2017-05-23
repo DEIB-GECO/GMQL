@@ -35,6 +35,7 @@ object GMQLSchemaFormat extends Enumeration{
   val TAB = Value("tab")
   val GTF = Value("gtf")
   val VCF = Value("vcf")
+  val COLLECT = Value("collect")
 
   /**
     *

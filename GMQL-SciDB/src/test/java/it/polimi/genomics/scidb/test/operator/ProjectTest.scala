@@ -39,7 +39,7 @@ object ProjectTest
     val ProjectRD = IRProjectRD(Some(List(1)), None, ReadSourceRD)
 
     val StoreAncMD = IRStoreMD("", ProjectMD, RES)
-    val StoreAncRD = IRStoreRD("", ProjectRD, RES)
+    val StoreAncRD = IRStoreRD("", ProjectRD,ProjectMD,List(), RES)
 
     implicit val binS = BinningParameter(None)
     var variable = IRVariable(StoreAncMD,StoreAncRD)

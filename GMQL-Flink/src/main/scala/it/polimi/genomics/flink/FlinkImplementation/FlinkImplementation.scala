@@ -37,7 +37,7 @@ class FlinkImplementation(var binSize : BinSize = BinSize(),
 
   final val logger = LoggerFactory.getLogger(this.getClass)
 
-
+  override def collect(iRVariable: IRVariable): Any = ???
 
   def getParser(name : String,dataset:String) : GMQLLoaderBase = {
     name.toLowerCase() match {
@@ -289,7 +289,7 @@ def stop(): Unit ={
       logger.info(ro + " not defined - executing it")
       val res =
         ro match {
-          case IRStoreRD(path: String, value: RegionOperator,_) => StoreRD(this, path, value, env)
+          case IRStoreRD(path: String, value: RegionOperator,meta:MetaOperator,schema,_) => StoreRD(this, path, value, env)
           case IRReadRD(paths: List[String], loader: GMQLLoader[Any, Any, Any, Any],_) => ReadRD(paths, loader, metaFirst, env, testingIOFormats = testingIOFormats)
           case IRSelectRD(regionCondition: Option[RegionCondition], filteredMeta: Option[MetaOperator], inputDataset: RegionOperator) => SelectRD(this, regionCondition, filteredMeta, inputDataset, metaFirst, env)
           case IRPurgeRD(metaDataset: MetaOperator, inputDataset: RegionOperator) => PurgeRD(this, metaDataset, inputDataset, env)

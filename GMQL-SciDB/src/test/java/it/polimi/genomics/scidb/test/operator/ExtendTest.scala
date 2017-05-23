@@ -51,7 +51,7 @@ object ExtendTest
     val ExtendMD = IRUnionAggMD(ReadSourceMD, AggregateMD)
 
     val StoreAncMD = IRStoreMD("", ExtendMD, RES)
-    val StoreAncRD = IRStoreRD("", ReadSourceRD, RES)
+    val StoreAncRD = IRStoreRD("", ReadSourceRD,ExtendMD,List(), RES)
 
     implicit val binS = BinningParameter(None)
     var variable = IRVariable(StoreAncMD,StoreAncRD)
