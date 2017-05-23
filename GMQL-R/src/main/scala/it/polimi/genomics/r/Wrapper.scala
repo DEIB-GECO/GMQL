@@ -4,10 +4,10 @@ import java.io.FileNotFoundException
 import java.util.concurrent.atomic.AtomicLong
 
 import it.polimi.genomics.GMQLServer.{DefaultRegionsToMetaFactory, DefaultRegionsToRegionFactory, GmqlServer}
-import it.polimi.genomics.core.DataStructures.CoverParameters.{ALL, ANY, CoverFlag, CoverParam, N}
+import it.polimi.genomics.core.DataStructures.CoverParameters._
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.{ASC, DESC, Direction}
-import it.polimi.genomics.core.DataStructures.GroupMDParameters.{Direction, NoTop, Top, TopG, TopParameter}
-import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder
+import it.polimi.genomics.core.DataStructures.GroupMDParameters._
+import it.polimi.genomics.core.DataStructures.JoinParametersRD.{JoinQuadruple, RegionBuilder}
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
 import it.polimi.genomics.core.DataStructures.{IRVariable, MetaOperator}
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition._
@@ -15,7 +15,7 @@ import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataConditio
 import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionsToMeta, RegionsToRegion}
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
-import it.polimi.genomics.spark.implementation.loaders.CustomParser
+import it.polimi.genomics.spark.implementation.loaders._
 import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
 
@@ -60,14 +60,30 @@ object Wrapper
     println("GMQL Server is up")
   }
 
-  def readDataset(data_input_path: String): String =
+  def readDataset(data_input_path: String, parser_name: String): String =
   {
-    val parser = new CustomParser()
+    var parser:BedParser = null
     val data_path  = data_input_path+ "/files"
-    try {
-      parser.setSchema(data_path)
-    }catch {
-      case fe: FileNotFoundException => return fe.getMessage
+
+    parser_name match
+    {
+      case "BedParser" => parser = BedParser
+      case "ANNParser" => parser = ANNParser
+      case "BroadProjParser" => parser = BroadProjParser
+      case "BasicParser" => parser = BasicParser
+      case "NarrowPeakParser" => parser = NarrowPeakParser
+      case "RnaSeqParser" => parser = RnaSeqParser
+      case "CustomParser" =>
+      {
+        parser = new CustomParser
+        try {
+          parser.asInstanceOf[CustomParser].setSchema(data_path)
+        }
+        catch {
+          case fe: FileNotFoundException => return fe.getMessage
+        }
+      }
+      case _ => return "No parser defined"
     }
 
     val dataAsTheyAre = GMQL_server.READ(data_path).USING(parser)
@@ -107,7 +123,7 @@ object Wrapper
                            meta_condition : Option[MetadataCondition], region_condition : Option[RegionCondition])*/
   /*GMQL OPERATION*/
 
-  //TODO miss check on regions value (if exists), mtajoin condition solo default
+  //TODO miss check on regions value (if exists)
   def select(predicate:Any, region_predicate:Any, semi_join:Any, semi_join_dataset:Any, input_dataset: String): String =
   {
     if(vv.get(input_dataset).isEmpty)
@@ -118,24 +134,27 @@ object Wrapper
     var semiJoinDataAsTheyAre:IRVariable = null
     var semi_join_metaDag:Option[MetaOperator] = None
     var metadata:(String,Option[MetadataCondition]) = ("",None)
-    var regioni:(String, Option[RegionCondition]) = ("",None)
-    val parser = new PM()
+    var regions:(String, Option[RegionCondition]) = ("",None)
+    val parser = new Parser()
 
-    if(predicate!=null){
-      metadata = parser.parsaMetadati(predicate.toString)
+    if(predicate!=null)
+    {
+      metadata = parser.parseSelectMetadata(predicate.toString)
       if (metadata._2.isEmpty)
         return metadata._1
     }
 
-    if(region_predicate!=null) {
-      regioni = parser.parsaRegioni(region_predicate.toString)
-      if (regioni._2.isEmpty)
-        return regioni._1
+    if(region_predicate!=null)
+    {
+      regions = parser.parseSelectRegions(region_predicate.toString)
+      if (regions._2.isEmpty)
+        return regions._1
     }
 
     val semi_join_list = MetaJoinConditionList(semi_join)
 
-    if(semi_join_list.isDefined) {
+    if(semi_join_list.isDefined)
+    {
       if(vv.get(semi_join_dataset.toString).isEmpty)
         return "No valid Data as input"
 
@@ -143,7 +162,7 @@ object Wrapper
       semi_join_metaDag = Some(semiJoinDataAsTheyAre.metaDag)
     }
 
-    val select = dataAsTheyAre.add_select_statement(semi_join_metaDag,semi_join_list,metadata._2,regioni._2)
+    val select = dataAsTheyAre.add_select_statement(semi_join_metaDag,semi_join_list,metadata._2,regions._2)
 
     val index = counter.getAndIncrement()
     val out_p = input_dataset+"/select"+index
@@ -157,7 +176,7 @@ object Wrapper
               projected_values : Option[List[Int]] = None,
               extended_values : Option[List[RegionFunction]] = None): */
 
-  //TODO miss Region Function and MetaaggregateStruct
+  //TODO miss Region Function and MetaAggregateStruct
   def project(projected_meta:Any, projected_region:Any, input_dataset: String): String =
   {
     if(vv.get(input_dataset).isEmpty)
@@ -202,7 +221,7 @@ object Wrapper
 
   //TODO: not now
   def group(group_by:Any,meta_aggregates:List[Array[String]],region_group:Any,
-            region_aggregates:Any, input_dataset: String): String = {
+            region_aggregates:Any, input_dataset: String): Unit = {
     /*  def GROUP(meta_keys : Option[MetaGroupByCondition] = None,
     meta_aggregates : Option[List[RegionsToMeta]] = None,
     meta_group_name : String = "_group",
@@ -220,8 +239,8 @@ object Wrapper
 
    // val out_p = input_dataset + "/group"
    // vv = vv + (out_p -> group)
-    val index = counter.getAndIncrement()
-    "group"+index
+    //val index = counter.getAndIncrement()
+   // "group"+index
     //out_p
 
   }
@@ -420,7 +439,6 @@ object Wrapper
   }
 
 
-  //TODO we use only Default on condition same as Difference operation
   // we do not add left, right and count name: we set to None
   def map(condition:Any, aggregates:Any,right_dataset: String, left_dataset: String): String =
   {
@@ -451,7 +469,7 @@ object Wrapper
 
 //TODO miss JoinQuadruple
   // we do not add ref and exp name: we set to None
-  def join(meta_join:Any, output:String, right_dataset: String, left_dataset: String): String =
+  def join(region_join:Any, meta_join:Any, output:String, right_dataset: String, left_dataset: String): String =
   {
     if(vv.get(right_dataset).isEmpty)
       return "No valid right dataset as input"
@@ -463,10 +481,11 @@ object Wrapper
     val rightDataAsTheyAre = vv(right_dataset)
 
     val meta_join_list:Option[MetaJoinCondition] = MetaJoinConditionList(meta_join)
+    val region_join_list:List[JoinQuadruple] = RegionQuadrupleList(region_join)
 
     val reg_out = regionBuild(output)
 
-    val join = leftDataAsTheyAre.JOIN(meta_join_list,null,reg_out,rightDataAsTheyAre,None,None)
+    val join = leftDataAsTheyAre.JOIN(meta_join_list,region_join_list,reg_out,rightDataAsTheyAre,None,None)
 
     val index = counter.getAndIncrement()
    // val out_p = left_dataset+right_dataset+"/join"+index
@@ -708,7 +727,13 @@ object Wrapper
   }
 
 
+  def RegionQuadrupleList(join_list: Any): List[JoinQuadruple] = {
 
+    if(join_list==null)
+      return null
+
+    return null
+  }
 
   def main(args : Array[String]): Unit = {
     //for debug if needed 
