@@ -1,7 +1,7 @@
 package it.polimi.genomics.scidb
 
 import it.polimi.genomics.GMQLServer.Implementation
-import it.polimi.genomics.core.DataStructures.IRDataSet
+import it.polimi.genomics.core.DataStructures.{IRDataSet, IRVariable}
 import it.polimi.genomics.core.{DataTypes, GMQLLoader, GMQLLoaderBase}
 import it.polimi.genomics.scidb.operators.GDS
 
@@ -17,6 +17,7 @@ class GmqlSciAdapter
 
   override def getDataset(identifier : String) : Option[IRDataSet] = implementation.getDataset(identifier)
 
+  override def collect(iRVariable: IRVariable): Any = ???
   /** Starts the execution */
   override def go(): Unit =
   {

@@ -31,6 +31,7 @@ class DotImplementation(dot_graph_path : String = "./file.dot",
                         img_type : String = "png",
                         shorten_paths : Boolean = false) extends Implementation {
 
+  override def collect(iRVariable: IRVariable): Any = ???
   final val logger = LoggerFactory.getLogger(this.getClass)
   def getParser(name : String,dataset:String) : GMQLLoaderBase = {
     name match {
@@ -75,7 +76,7 @@ try{
         case IRSelectRD(_, Some(c), p) => sb append edge(i, all_nodes.indexOf(p)) append edge(i, all_nodes.indexOf(c))
         case IRSelectMD(_, p) => sb append edge(i, all_nodes.indexOf(p))
         case IRStoreMD(_, p, _) => sb append edge(i, all_nodes.indexOf(p))
-        case IRStoreRD(_, p,mp, _) => sb append edge(i, all_nodes.indexOf(p)) append edge(i, all_nodes.indexOf(mp))
+        case IRStoreRD(_, p,mp,_, _) => sb append edge(i, all_nodes.indexOf(p)) append edge(i, all_nodes.indexOf(mp))
         case IRSemiJoin(l, _, r) => sb append edge(i, all_nodes.indexOf(l)) append edge(i, all_nodes.indexOf(r))
         case IRProjectMD(_, _, p) => sb append edge(i, all_nodes.indexOf(p))
         case IRUnionMD(l, r, _, _) => sb append edge(i, all_nodes.indexOf(l)) append edge(i, all_nodes.indexOf(r))
@@ -141,7 +142,7 @@ try{
 
       all_nodes(i) match {
         case IRStoreMD(_, _, _) => sb append ("struct" + i + " ")
-        case IRStoreRD(_, _, _,_) => sb append ("struct" + i + " ")
+        case IRStoreRD(_, _, _,_,_) => sb append ("struct" + i + " ")
         case _ =>
       }
 
@@ -167,7 +168,7 @@ try{
       case IRSelectRD(p, _, _) => "struct" + pos + " [shape=record,color=\"red\",label=\"{IRSelectRD | " + p + "}" + "\"];\n"
       case IRSelectMD(p, _) => "struct" + pos + " [shape=record,color=\"blue\",label=\"{IRSelectMD | " + p + "}" + "\"];\n"
       case IRStoreMD(_,_,_) => "struct" + pos + " [label=\"StoreMD\",color=\"blue\"];\n"
-      case IRStoreRD(_,_,_,_) => "struct" + pos + " [label=\"StoreRD\",color=\"red\"];\n"
+      case IRStoreRD(_,_,_,_,_) => "struct" + pos + " [label=\"StoreRD\",color=\"red\"];\n"
       case IRSemiJoin(_,c,_) =>"struct" +  pos +  " [shape=record,color=\"blue\",label=\"{IRSemiJoin | " + c +  "}" + "\"];\n"
       case IRProjectMD(p,e,_) => "struct" + pos + " [shape=record,color=\"blue\",label=\"{IRProjectMD | " + "projected attributes=" + {if(p.isDefined)  (p.get mkString ",") else p} + " | meta aggregate=" +  {if(e.isDefined) (e.get.getClass.getSimpleName) else e} +  "}\"];\n"
       case IRUnionMD(_,_,_,_) => "struct" + pos + " [shape=record,color=\"blue\",label=\"IRUnionMD" + "\"];\n"
@@ -204,7 +205,7 @@ try{
       case IRSelectRD(_,None,p) => add_all_nodes(p.asInstanceOf[IROperator]) + node
       case IRSelectRD(_,Some(c),p) => add_all_nodes(p.asInstanceOf[IROperator]) ++ add_all_nodes(c.asInstanceOf[IROperator]) + node
       case IRStoreMD(_,p,_) => add_all_nodes(p.asInstanceOf[IROperator]) + node
-      case IRStoreRD(_,p,mp,_) => add_all_nodes(p.asInstanceOf[IROperator]) ++ add_all_nodes(mp.asInstanceOf[IROperator]) + node
+      case IRStoreRD(_,p,mp,_,_) => add_all_nodes(p.asInstanceOf[IROperator]) ++ add_all_nodes(mp.asInstanceOf[IROperator]) + node
       case IRSemiJoin(l,_,r) => (add_all_nodes(l.asInstanceOf[IROperator]) ++ add_all_nodes(r.asInstanceOf[IROperator])) + node
       case IRProjectMD(_,_,p) => add_all_nodes(p.asInstanceOf[IROperator]) + node
       case IRUnionMD(l,r,_,_) => (add_all_nodes(l.asInstanceOf[IROperator]) ++ add_all_nodes(r.asInstanceOf[IROperator])) + node

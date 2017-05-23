@@ -2,9 +2,11 @@ package it.polimi.genomics.spark.test
 
 import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.core.DataStructures.CoverParameters.{CoverFlag, N}
+import it.polimi.genomics.core.DataStructures.IRSelectRD
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
-import it.polimi.genomics.core.{GDouble, GRecordKey, GValue, ParsingType}
+import it.polimi.genomics.core._
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
+import it.polimi.genomics.spark.implementation.GMQLSparkExecutor.GMQL_DATASET
 import it.polimi.genomics.spark.implementation.loaders.test3Parser
 import org.apache.spark.{SparkConf, SparkContext}
 
@@ -22,7 +24,7 @@ object Cover {
       .set("spark.sql.tungsten.enabled", "true")
     val sc:SparkContext =new SparkContext(conf)
 
-    val server = new GmqlServer(new GMQLSparkExecutor(sc=sc))
+    val server = new GmqlServer(new GMQLSparkExecutor(sc=sc,outputFormat = GMQLSchemaFormat.COLLECT))
 
     val metaDS = sc.parallelize((1 to 100).map(x=> (1,("test","Abdo"))))
     val regionDS = sc.parallelize((1 to 1000).map{x=>(new GRecordKey(1,"Chr"+(x%2),x,x+200,'*'),Array[GValue](GDouble(1)) )})
@@ -35,9 +37,10 @@ object Cover {
 
     val cover = dataAsTheyAre.COVER(CoverFlag.HISTOGRAM, N(1), it.polimi.genomics.core.DataStructures.CoverParameters.ANY(), List(), None )
 
-    server setOutputPath output_path MATERIALIZE cover
+    val output = server setOutputPath output_path COLLECT cover
 
-    server.run()
+    output.asInstanceOf[GMQL_DATASET]._1.foreach(println _)
+//    server.run()
 
   }
 

@@ -44,6 +44,12 @@ class GmqlServer(var implementation : Implementation, binning_size : Option[Long
     this.materializationList.clear()
   }
 
+  def COLLECT(iRVariable: IRVariable): Any =
+  {
+    optimise()
+    implementation.collect(iRVariable)
+  }
+
   def MATERIALIZE(variable : IRVariable) = {
 
     if (!meta_output_path.isDefined){
