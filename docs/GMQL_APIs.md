@@ -73,7 +73,7 @@ server.run()
 ```  
 
 
-#### Select operation APIs
+####Select operation APIs
 
 ```  
 import DataStructures.MetadataCondition._
@@ -342,4 +342,46 @@ dataAsTheyAre.EXTEND(
         }
       )
     )
+```
+
+#### Full Example of reading from memory and Collecting data to memory after execution.
+Data can be passed to GMQL as an RDD of meta and an RDD of regions. The following example shows how to pass the RDD as input for GMQL operation.
+
+You can collect the data from GMQL dataset in memory architecture (Arrays). This will trigger the lazy execution of GMQL. In case the data does not fit in memory, the system will give exception which is not handles (the user should handle this exception or make sure not to exceed the memory size). The output format set in GMQLSpzek Executor should be ***GMQLSchemaFormat.COLLECT***
+
+```
+    val conf = new SparkConf()
+	    .setAppName("test GMQL")
+	    .setMaster("local[4]")
+	    .set("spark.serializer",
+	"org.apache.spark.serializer.KryoSerializer")
+		.set("spark.kryoserializer.buffer", "64")
+
+    val sc:SparkContext =new SparkContext(conf)
+
+    val server = new GmqlServer(new GMQLSparkExecutor(sc=sc,outputFormat = GMQLSchemaFormat.COLLECT))
+
+// Generate meta data of type (ID:Long,(Att:String, Value:String))
+    val metaDS = sc.parallelize((1 to 10).map(x=> (1,("test","Abdo"))))
+
+//Generate in memory regions as (key: GrecordKey,values: Array[GValue]) 
+    val regionDS = sc.parallelize((1 to 1000).map{x=>(new GRecordKey(1,"Chr"+(x%2),x,x+200,'*'),Array[GValue](GDouble(1)) )})
+
+
+    val DS1 = server.READ("")
+	    .USING(metaDS,
+		    regionDS,
+			List[(String, PARSING_TYPE)](("score",ParsingType.DOUBLE)))
+
+import it.polimi.genomics.core.DataStructures.CoverParameters._
+    val cover = DS1.COVER(
+	    CoverFlag.HISTOGRAM, 
+	    N(1),
+	    ANY(), 
+		List(), 
+		None )
+
+    val output = server.setOutputPath("").COLLECT(cover)
+
+    output.asInstanceOf[GMQL_DATASET]._1.foreach(println _)
 ```
