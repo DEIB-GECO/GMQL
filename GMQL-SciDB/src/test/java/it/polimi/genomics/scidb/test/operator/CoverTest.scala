@@ -50,7 +50,7 @@ object CoverTest
     val CoverMD = IRRegionCover(CoverFlag.FLAT, N(2), ANY(), List(countVal1), Some(MetaGroup), ReadAncRD)
 
     val StoreAncMD = IRStoreMD("", CollapseMD, RES)
-    val StoreAncRD = IRStoreRD("", CoverMD, RES)
+    val StoreAncRD = IRStoreRD("", CoverMD,CollapseMD,List(), RES)
 
     implicit val binS = BinningParameter(None)
     var variable = IRVariable(StoreAncMD,StoreAncRD)

@@ -55,7 +55,7 @@ class GmqlServer(var implementation : Implementation, binning_size : Option[Long
     }
    import scala.collection.JavaConverters._
     val dag_md = new IRStoreMD(meta_output_path.get, variable.metaDag, IRDataSet(meta_output_path.get, List[(String,PARSING_TYPE)]().asJava))
-    val dag_rd = new IRStoreRD(region_output_path.get, variable.regionDag, IRDataSet(meta_output_path.get, List[(String,PARSING_TYPE)]().asJava))
+    val dag_rd = new IRStoreRD(region_output_path.get, variable.regionDag,variable.metaDag,variable.schema ,IRDataSet(meta_output_path.get, List[(String,PARSING_TYPE)]().asJava))
 
     val new_var = new IRVariable(dag_md, dag_rd, variable.schema)
     materializationList += new_var

@@ -28,7 +28,7 @@ import it.polimi.genomics.spark.implementation.MetaOperators.SelectMeta._
 import it.polimi.genomics.spark.implementation.MetaOperators._
 import it.polimi.genomics.spark.implementation.RegionsOperators.GenometricCover.GenometricCover
 import it.polimi.genomics.spark.implementation.RegionsOperators.GenometricMap._
-import it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions.{ReadMEMRD, TestingReadRD}
+import it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions.{ReadMEMRD, StoreGTFRD, StoreTABRD, TestingReadRD}
 import it.polimi.genomics.spark.implementation.RegionsOperators._
 import it.polimi.genomics.spark.implementation.loaders._
 
@@ -120,7 +120,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
         if(testingIOFormats){
           metaRDD.map(x=>x._1+","+x._2._1 + "," + x._2._2).saveAsTextFile(MetaOutputPath)
           regionRDD.map(x=>x._1+"\t"+x._2.mkString("\t")).saveAsTextFile(RegionOutputPath)
-        }else {
+        }/*else {
           val MetaOutputPath = variableDir + "/meta/"
           val RegionOutputPath = variableDir + "/exp/"
 
@@ -186,7 +186,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
           writeMultiOutputFiles.saveAsMultipleTextFiles(metaKeyValue, MetaOutputPath)
 
           writeMultiOutputFiles.fixOutputMetaLocation(MetaOutputPath)
-        }
+        }*/
         storeSchema(GMQLSchema.generateSchemaXML(variable.schema,outputFolderName,outputFormat),variableDir)
       }
     } catch {
@@ -259,7 +259,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
     } else {
       val res =
         ro match {
-          case IRStoreRD(path, value,_) => StoreRD(this, path, value, sc)
+          case IRStoreRD(path, value,meta,schema,_) => if(outputFormat == GMQLSchemaFormat.GTF) StoreGTFRD(this, path, value,meta,schema,sc) else StoreTABRD(this,path, value,meta,schema,sc)//StoreRD(this, path, value, sc)
           case IRReadRD(path, loader,_) => if (testingIOFormats) TestingReadRD(path, loader, sc) else ReadRD(path, loader, sc)
           case IRReadMEMRD(metaRDD) => ReadMEMRD(metaRDD)
           case IRSelectRD(regionCondition: Option[RegionCondition], filteredMeta: Option[MetaOperator], inputDataset: RegionOperator) =>

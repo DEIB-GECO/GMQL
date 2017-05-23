@@ -68,7 +68,7 @@ object GroupTest
     val GroupRD = IRGroupRD(Some(List(FIELD(1))), Some(List(maxVal1R, minVal1R, countVal1R)), ReadSourceRD)
 
     val StoreAncMD = IRStoreMD("", GroupMD, RES)
-    val StoreAncRD = IRStoreRD("", GroupRD, RES)
+    val StoreAncRD = IRStoreRD("", GroupRD,GroupMD,List(), RES)
 
     implicit val binS = BinningParameter(None)
     var variable = IRVariable(StoreAncMD,StoreAncRD)

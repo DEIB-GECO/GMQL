@@ -52,7 +52,7 @@ object DagTest
     )
 
     val RD = IRStoreRD(
-      "", IRReadRD(List(), new FakeParser, input),output
+      "", IRReadRD(List(), new FakeParser, input),IRReadMD(List(), new FakeParser, input),List(),output
     )
 
 

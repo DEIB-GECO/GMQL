@@ -57,7 +57,7 @@ object MapTest
     val GenometriMap = IRGenometricMap(SomeMetaJoinOperator(MetaJoinMJD), List(maxVal1, minVal1, countVal1), ReadAncRD, ReadExpRD)
 
     val StoreAncMD = IRStoreMD("", CombineMD, RES)
-    val StoreAncRD = IRStoreRD("", GenometriMap, RES)
+    val StoreAncRD = IRStoreRD("", GenometriMap,CombineMD,List(), RES)
 
     implicit val binS = BinningParameter(None)
     var variable = IRVariable(StoreAncMD,StoreAncRD)

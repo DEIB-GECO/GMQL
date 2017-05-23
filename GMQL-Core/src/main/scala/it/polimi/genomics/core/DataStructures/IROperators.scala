@@ -67,7 +67,7 @@ case class IRStoreMD(path : String, father : MetaOperator, dataSet: IRDataSet) e
   * @param path location where to store the regions
   * @param father metadata dag of the variable to be stored
   */
-case class IRStoreRD(path : String, father : RegionOperator, dataSet: IRDataSet) extends RegionOperator
+case class IRStoreRD(path : String, father : RegionOperator, associatedMeta: MetaOperator,  schema : List[(String, PARSING_TYPE)], dataSet: IRDataSet) extends RegionOperator
 
 /**
  * Dag node to represent the matadata filtering performed by the SELECT operator.
