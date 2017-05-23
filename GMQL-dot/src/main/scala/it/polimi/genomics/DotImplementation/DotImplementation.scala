@@ -31,7 +31,7 @@ class DotImplementation(dot_graph_path : String = "./file.dot",
                         img_type : String = "png",
                         shorten_paths : Boolean = false) extends Implementation {
 
-  override def collect(iRVariable: IRVariable): Any = ???
+  override def collect(iRVariable: IRVariable, n: Int): Any = ???
   final val logger = LoggerFactory.getLogger(this.getClass)
   def getParser(name : String,dataset:String) : GMQLLoaderBase = {
     name match {

@@ -44,7 +44,7 @@ abstract class Implementation {
   /** Starts the execution */
   def go()
 
-  def collect(iRVariable: IRVariable):Any
+  def collect(iRVariable: IRVariable, n: Int):Any
 
   /** stop GMQL implementation (kill a job)*/
   def stop()
