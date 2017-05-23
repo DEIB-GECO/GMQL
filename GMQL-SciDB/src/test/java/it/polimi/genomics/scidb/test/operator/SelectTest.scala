@@ -58,7 +58,7 @@ object SelectTest
     val SelectSourceRD = IRSelectRD(Some(regionCondition), Some(SelectSourceMD), ReadSourceRD)
 
     val StoreAncMD = IRStoreMD("", SelectSourceMD, RES)
-    val StoreAncRD = IRStoreRD("", SelectSourceRD, RES)
+    val StoreAncRD = IRStoreRD("", SelectSourceRD,SelectSourceMD,List(), RES)
 
     implicit val binS = BinningParameter(None)
     var variable = IRVariable(StoreAncMD,StoreAncRD)

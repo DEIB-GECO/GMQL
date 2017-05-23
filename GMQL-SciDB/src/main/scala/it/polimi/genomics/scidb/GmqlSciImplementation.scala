@@ -26,6 +26,7 @@ class GmqlSciImplementation
 
   val repository = new GmqlSciRepositoryManager
 
+  override def collect(iRVariable: IRVariable): Any = ???
   /**
     * This methods returns the dataset for the required position
     *
@@ -270,7 +271,7 @@ class GmqlSciImplementation
                                                                                   Some(prepare(metafilter).asInstanceOf[GmqlMetaOperator]),
                                                                                   conditions )
 
-        case IRStoreRD(_, source, ds) => new GmqlStoreRD(ds, prepare(source).asInstanceOf[GmqlRegionOperator])
+        case IRStoreRD(_, source, _,_,ds) => new GmqlStoreRD(ds, prepare(source).asInstanceOf[GmqlRegionOperator])
 
         case IRUnionRD(format, left, right) => new GmqlUnionRD( prepare(left).asInstanceOf[GmqlRegionOperator],
                                                                 prepare(right).asInstanceOf[GmqlRegionOperator],

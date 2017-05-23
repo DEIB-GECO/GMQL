@@ -21,6 +21,7 @@ import it.polimi.genomics.core._
 import it.polimi.genomics.core.DataTypes._
 import it.polimi.genomics.core.ParsingType._
 import it.polimi.genomics.core.exception.SelectFormatException
+import it.polimi.genomics.spark.implementation.GMQLSparkExecutor.GMQL_DATASET
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
 import it.polimi.genomics.spark.implementation.MetaOperators.GroupOperator.{MetaGroupMGD, MetaJoinMJD2}
@@ -28,7 +29,7 @@ import it.polimi.genomics.spark.implementation.MetaOperators.SelectMeta._
 import it.polimi.genomics.spark.implementation.MetaOperators._
 import it.polimi.genomics.spark.implementation.RegionsOperators.GenometricCover.GenometricCover
 import it.polimi.genomics.spark.implementation.RegionsOperators.GenometricMap._
-import it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions.TestingReadRD
+import it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions.{ReadMEMRD, StoreGTFRD, StoreTABRD, TestingReadRD}
 import it.polimi.genomics.spark.implementation.RegionsOperators._
 import it.polimi.genomics.spark.implementation.loaders._
 
@@ -41,6 +42,10 @@ import org.slf4j.LoggerFactory
 import scala.collection.Map
 import scala.xml.Elem
 
+object GMQLSparkExecutor{
+  type GMQL_DATASET = (Array[(GRecordKey, Array[GValue])], Array[(Long, (String, String))], List[(String, PARSING_TYPE)])
+
+}
 class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : Int = 100000, REF_PARALLILISM: Int = 20,
                         testingIOFormats:Boolean = false, sc:SparkContext,
                         outputFormat:GMQLSchemaFormat.Value = GMQLSchemaFormat.TAB,
@@ -57,6 +62,13 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
   def go(): Unit = {
     logger.info(to_be_materialized.toString())
     implementation()
+  }
+
+  override def collect(variable: IRVariable): (Array[(GRecordKey, Array[GValue])], Array[(Long, (String, String))], List[(String, PARSING_TYPE)]) = {
+      val metaRDD = implement_md(variable.metaDag, sc).collect()
+      val regionRDD = implement_rd(variable.regionDag, sc).collect()
+
+    (regionRDD,metaRDD,variable.schema)
   }
 
   override def stop(): Unit = {
@@ -100,7 +112,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
         val metaRDD = implement_md(variable.metaDag, sc)
         val regionRDD = implement_rd(variable.regionDag, sc)
 
-        val variableDir =variable.metaDag.asInstanceOf[IRStoreMD].path.toString
+        val variableDir = variable.metaDag.asInstanceOf[IRStoreMD].path.toString
         val MetaOutputPath =  variableDir + "/meta/"
         val RegionOutputPath = variableDir + "/exp/"
         logger.debug("meta out: "+MetaOutputPath)
@@ -120,7 +132,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
         if(testingIOFormats){
           metaRDD.map(x=>x._1+","+x._2._1 + "," + x._2._2).saveAsTextFile(MetaOutputPath)
           regionRDD.map(x=>x._1+"\t"+x._2.mkString("\t")).saveAsTextFile(RegionOutputPath)
-        }else {
+        }/*else {
           val MetaOutputPath = variableDir + "/meta/"
           val RegionOutputPath = variableDir + "/exp/"
 
@@ -186,7 +198,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
           writeMultiOutputFiles.saveAsMultipleTextFiles(metaKeyValue, MetaOutputPath)
 
           writeMultiOutputFiles.fixOutputMetaLocation(MetaOutputPath)
-        }
+        }*/
         storeSchema(GMQLSchema.generateSchemaXML(variable.schema,outputFolderName,outputFormat),variableDir)
       }
     } catch {
@@ -220,6 +232,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
         mo match {
           case IRStoreMD(path, value,_) => StoreMD(this, path, value, sc)
           case IRReadMD(path, loader,_) => if (testingIOFormats)  TestingReadMD(path,loader,sc) else ReadMD(path, loader, sc)
+          case IRReadMEMMD(metaRDD) => ReadMEMMD(metaRDD)
           case IRSelectMD(metaCondition, inputDataset) =>
             inputDataset match {
               case IRReadMD(path, loader,_) => SelectIMDWithNoIndex(this, metaCondition, path, loader, sc)
@@ -258,8 +271,9 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
     } else {
       val res =
         ro match {
-          case IRStoreRD(path, value,_) => StoreRD(this, path, value, sc)
+          case IRStoreRD(path, value,meta,schema,_) => if(outputFormat == GMQLSchemaFormat.GTF) StoreGTFRD(this, path, value,meta,schema,sc) else if(outputFormat == GMQLSchemaFormat.TAB) StoreTABRD(this,path, value,meta,schema,sc) else StoreRD(this, path, value, sc)
           case IRReadRD(path, loader,_) => if (testingIOFormats) TestingReadRD(path, loader, sc) else ReadRD(path, loader, sc)
+          case IRReadMEMRD(metaRDD) => ReadMEMRD(metaRDD)
           case IRSelectRD(regionCondition: Option[RegionCondition], filteredMeta: Option[MetaOperator], inputDataset: RegionOperator) =>
             inputDataset match {
               case IRReadRD(path, loader,_) =>

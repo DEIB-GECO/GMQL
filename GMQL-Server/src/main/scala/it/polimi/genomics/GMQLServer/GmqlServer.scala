@@ -3,7 +3,7 @@ package it.polimi.genomics.GMQLServer
 import it.polimi.genomics.core.GMQLLoader
 import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
 import it.polimi.genomics.core.DataStructures._
-import it.polimi.genomics.core.ParsingType._
+import it.polimi.genomics.core.ParsingType.{PARSING_TYPE, _}
 
 import scala.collection.mutable
 
@@ -44,6 +44,12 @@ class GmqlServer(var implementation : Implementation, binning_size : Option[Long
     this.materializationList.clear()
   }
 
+  def COLLECT(iRVariable: IRVariable): Any =
+  {
+    optimise()
+    implementation.collect(iRVariable)
+  }
+
   def MATERIALIZE(variable : IRVariable) = {
 
     if (!meta_output_path.isDefined){
@@ -55,7 +61,7 @@ class GmqlServer(var implementation : Implementation, binning_size : Option[Long
     }
    import scala.collection.JavaConverters._
     val dag_md = new IRStoreMD(meta_output_path.get, variable.metaDag, IRDataSet(meta_output_path.get, List[(String,PARSING_TYPE)]().asJava))
-    val dag_rd = new IRStoreRD(region_output_path.get, variable.regionDag, IRDataSet(meta_output_path.get, List[(String,PARSING_TYPE)]().asJava))
+    val dag_rd = new IRStoreRD(region_output_path.get, variable.regionDag,variable.metaDag,variable.schema ,IRDataSet(meta_output_path.get, List[(String,PARSING_TYPE)]().asJava))
 
     val new_var = new IRVariable(dag_md, dag_rd, variable.schema)
     materializationList += new_var
@@ -108,6 +114,15 @@ class GmqlServer(var implementation : Implementation, binning_size : Option[Long
 
       new IRVariable(dagMD, dagRD, schema)
     }
+
+    def USING(metaDS: Any, regionDS: Any, sch: List[(String, PARSING_TYPE)]) = {
+
+      val dagMD = new IRReadMEMMD(metaDS)
+      val dagRD = new IRReadMEMRD(regionDS)
+
+      new IRVariable(dagMD, dagRD, sch)
+    }
+
   }
 
 
