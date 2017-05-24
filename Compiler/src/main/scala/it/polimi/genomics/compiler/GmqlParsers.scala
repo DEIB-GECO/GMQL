@@ -354,6 +354,16 @@ trait GmqlParsers extends JavaTokenParsers {
   val cover_param:Parser[CoverParam] =
     wholeNumber ^^ {x => new it.polimi.genomics.core.DataStructures.CoverParameters.N{override val n=x.toInt;}} |
       ANY ^^ {x=> new it.polimi.genomics.core.DataStructures.CoverParameters.ANY{}} |
+      "("~>ALL ~> SUM ~> wholeNumber ~ (")" ~> DIV ~> wholeNumber) ^^ {
+        x => new it.polimi.genomics.core.DataStructures.CoverParameters.ALL{
+          override val fun = (a:Int) => (a + x._1.toInt) / x._2.toInt
+        }
+      } |
+      ALL ~> DIV ~> wholeNumber ^^ {
+        x => new it.polimi.genomics.core.DataStructures.CoverParameters.ALL{
+          override val fun = (a:Int) => a  / x.toInt
+        }
+      } |
       ALL ^^ {x=> new it.polimi.genomics.core.DataStructures.CoverParameters.ALL{}}
 
   val cover_boundaries:Parser[(CoverParam,CoverParam)] = (cover_param <~ ",") ~ cover_param ^^ {
