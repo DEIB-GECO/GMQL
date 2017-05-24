@@ -75,19 +75,16 @@ object GenometricCover2 {
         new HashMap[Long, Int] + ((0L,0))
       }
 
-    val minimum : HashMap[Long, Int] =
-      min match{
-        case ALL() => allValue
-        case ANY() => groupIds.map(v => ((v, 1))).foldRight(new HashMap[Long, Int])((a,z) => z + a) //new HashMap[Long,Int] + ((0L,1))
-        case N(value) => groupIds.map(v => ((v, value))).foldRight(new HashMap[Long, Int])((a,z) => z + a)  //new HashMap[Long,Int] + ((0L,value))
-      }
+    val minimum: HashMap[Long, Int] =
+      if (min.isInstanceOf[ALL]) allValue.map(x => (x._1, min.fun(x._2)))
+      else if (min.isInstanceOf[ANY]) groupIds.map(v => ((v, 1))).foldRight(new HashMap[Long, Int])((a, z) => z + a) //new HashMap[Long,Int] + ((0L,1))
+      else groupIds.map(v => ((v, min.asInstanceOf[N].n))).foldRight(new HashMap[Long, Int])((a, z) => z + a) //new HashMap[Long,Int] + ((0L,value))
 
-    val maximum : HashMap[Long, Int] =
-      max match{
-        case ALL() => allValue
-        case ANY() => groupIds.map(v => ((v, Int.MaxValue))).foldRight(new HashMap[Long, Int])((a,z) => z + a) //new HashMap[Long, Int] + ((0L,Int.MaxValue))
-        case N(value) => groupIds.map(v => ((v, value))).foldRight(new HashMap[Long, Int])((a,z) => z + a) //new HashMap[Long,Int] + ((0L,value))
-      }
+    val maximum: HashMap[Long, Int] =
+      if (max.isInstanceOf[ALL]) allValue.map(x => (x._1, max.fun(x._2)))
+      else if (max.isInstanceOf[ANY]) groupIds.map(v => ((v, Int.MaxValue))).foldRight(new HashMap[Long, Int])((a, z) => z + a) //new HashMap[Long, Int] + ((0L,Int.MaxValue))
+      else groupIds.map(v => ((v, max.asInstanceOf[N].n))).foldRight(new HashMap[Long, Int])((a, z) => z + a) //new HashMap[Long,Int] + ((0L,value))
+
 
     // EXECUTE COVER ON BINS
     val ss =

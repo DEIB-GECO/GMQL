@@ -352,9 +352,9 @@ trait GmqlParsers extends JavaTokenParsers {
   val region_order_list:Parser[List[(FieldPositionOrName,Direction)]] = rep1sep(region_order_single, ",")
 
   val cover_param:Parser[CoverParam] =
-    wholeNumber ^^ {x => it.polimi.genomics.core.DataStructures.CoverParameters.N(x.toInt)} |
-      ANY ^^ {x=> it.polimi.genomics.core.DataStructures.CoverParameters.ANY()} |
-      ALL ^^ {x=> it.polimi.genomics.core.DataStructures.CoverParameters.ALL()}
+    wholeNumber ^^ {x => new it.polimi.genomics.core.DataStructures.CoverParameters.N{override val n=x.toInt;}} |
+      ANY ^^ {x=> new it.polimi.genomics.core.DataStructures.CoverParameters.ANY{}} |
+      ALL ^^ {x=> new it.polimi.genomics.core.DataStructures.CoverParameters.ALL{}}
 
   val cover_boundaries:Parser[(CoverParam,CoverParam)] = (cover_param <~ ",") ~ cover_param ^^ {
     x => (x._1,x._2)
