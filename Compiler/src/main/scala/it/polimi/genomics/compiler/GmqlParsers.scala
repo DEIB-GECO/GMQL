@@ -272,14 +272,20 @@ trait GmqlParsers extends JavaTokenParsers {
     RIGHT ^^ {x=> RERIGHT()} | CHR ^^ {x => RECHR()} | STRAND ^^ {x => RESTRAND()} |
     decimalNumber ^^ {x => REFloat(x.toDouble)} |
     any_field_identifier ^^ {x => REFieldNameOrPosition(x)} | "(" ~> re_expr <~ ")"
-  val re_term:Parser[RENode] =
-    (re_factor <~ MULT) ~ re_term ^^ {x => REMUL(x._1,x._2)} |
-      (re_factor <~ DIV) ~ re_term ^^ {x => REDIV(x._1,x._2)} |
-      re_factor
-  val re_expr:Parser[RENode] =
-    (re_term <~ SUM) ~ re_expr ^^ {x => READD(x._1,x._2)} |
-      (re_term <~ SUB) ~ re_expr ^^ {x => RESUB(x._1,x._2)} |
-      re_term
+
+  val re_term: Parser[RENode] = re_factor ~ rep((MULT|DIV) ~ re_factor) ^^ {
+    case t ~ ts => ts.foldLeft(t) {
+      case (t1, "*" ~ t2) => REMUL(t1, t2)
+      case (t1, "/" ~ t2) => REDIV(t1, t2)
+    }
+  }
+
+  val re_expr: Parser[RENode] = re_term ~ rep((SUM|SUB) ~ re_term) ^^ {
+    case t ~ ts => ts.foldLeft(t) {
+      case (t1, "+" ~ t2) => READD(t1, t2)
+      case (t1, "-" ~ t2) => RESUB(t1, t2)
+    }
+  }
 
   val single_region_modifier:Parser[SingleProjectOnRegion] =
     ((region_field_name ^^ {FieldName(_)}) <~ AS) ~ stringLiteral ^^ {
