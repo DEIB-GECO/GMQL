@@ -37,7 +37,9 @@ class FlinkImplementation(var binSize : BinSize = BinSize(),
 
   final val logger = LoggerFactory.getLogger(this.getClass)
 
-  override def collect(iRVariable: IRVariable, n: Int): Any = ???
+  override def collect(iRVariable: IRVariable): Any = ???
+
+  override def take(iRVariable: IRVariable, n: Int): Any = ???
 
   def getParser(name : String,dataset:String) : GMQLLoaderBase = {
     name.toLowerCase() match {

@@ -18,6 +18,9 @@ class GmqlSciAdapter
   override def getDataset(identifier : String) : Option[IRDataSet] = implementation.getDataset(identifier)
 
   override def collect(iRVariable: IRVariable): Any = ???
+
+  override def take(iRVariable: IRVariable, n: Int): Any = ???
+
   /** Starts the execution */
   override def go(): Unit =
   {

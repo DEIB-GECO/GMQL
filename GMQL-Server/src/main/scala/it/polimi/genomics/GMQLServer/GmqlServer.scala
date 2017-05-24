@@ -44,10 +44,16 @@ class GmqlServer(var implementation : Implementation, binning_size : Option[Long
     this.materializationList.clear()
   }
 
-  def COLLECT(iRVariable: IRVariable, n: Int): Any =
+  def COLLECT(iRVariable: IRVariable): Any =
   {
     optimise()
-    implementation.collect(iRVariable, n)
+    implementation.collect(iRVariable)
+  }
+
+  def TAKE(iRVariable: IRVariable, n: Int): Any =
+  {
+    optimise()
+    implementation.take(iRVariable, n)
   }
 
   def MATERIALIZE(variable : IRVariable) = {

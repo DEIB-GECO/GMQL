@@ -24,10 +24,10 @@ object Test_performance {
     val server = new GmqlServer(new GMQLSparkExecutor(sc=sc,outputFormat = GMQLSchemaFormat.COLLECT))
 
     val metaDS = sc.parallelize((1 to 10).map(x=> (1l,("test","Abdo"))))
-    println("ref size: ",(1 until 50000000 by 1000).size)
+    println("ref size: ",(1 until 1000000000 by 1000).size)
     val exp = (1 until 1000000000 by 1000)
     println("exp:size ",exp.size)
-    val regionDS1 = sc.parallelize((1 until 50000000 by 1000).map{x=>(new GRecordKey(1,"Chr"+(x%2),x,x+200,'*'),Array[GValue](GDouble(1)) )})
+    val regionDS1 = sc.parallelize((1 until 1000000000 by 1000).map{x=>(new GRecordKey(1,"Chr"+(x%2),x,x+200,'*'),Array[GValue](GDouble(1)) )})
     val regionDS2 = sc.parallelize(exp.map{x=>(new GRecordKey(1,"Chr"+(x%2),x,x+200,'*'),Array[GValue](GDouble(1)) )})
 
 
@@ -38,10 +38,10 @@ object Test_performance {
 
     val cover = ds1.MAP(None,List(),ds2)
 
-    val output = server.setOutputPath("").COLLECT(cover,1000)
+    val output = server.setOutputPath("").TAKE(cover,100)
 
     println ("EXEC Time is: ",(System.currentTimeMillis() - timestamp )/1000)
-    output.asInstanceOf[GMQL_DATASET]._1.foreach(println _)
+//    output.asInstanceOf[GMQL_DATASET]._1.foreach(println _)
     //    server.run()
 
   }
