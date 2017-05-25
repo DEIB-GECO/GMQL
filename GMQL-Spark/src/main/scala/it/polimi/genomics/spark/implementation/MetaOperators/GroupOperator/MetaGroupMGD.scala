@@ -11,8 +11,6 @@ import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
-import scala.annotation.tailrec
-
 /**
  * Created by abdulrahman kaitoua on 24/05/15.
  */
@@ -26,7 +24,7 @@ object MetaGroupMGD {
     def MetaWithGroups(condition: List[String]): RDD[FlinkMetaGroupType2] = {
 
       rdd.flatMap { x => //val key = x._2._1.substring({val pos = x._2._1.lastIndexOf('.'); if (pos < 0) 0 else pos});
-        val matchedKey = condition.filter(k => x._2._1.endsWith(k))
+        val matchedKey = condition.filter(k => /*x._2._1.endsWith(k)*/ x._2._1.equals(k)||x._2._1.endsWith("."+k))
 //        if (!condition.foldLeft(false)( _ | key.endsWith(_))) None
         if (matchedKey.size == 0) None
 //        else Some((x._1, (key, x._2._2)))
