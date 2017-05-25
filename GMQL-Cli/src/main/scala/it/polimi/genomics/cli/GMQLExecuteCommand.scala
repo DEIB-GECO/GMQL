@@ -7,6 +7,7 @@ import java.util.Date
 import com.sun.org.apache.xml.internal.security.utils.Base64
 import it.polimi.genomics.GMQLServer.{GmqlServer, Implementation}
 import it.polimi.genomics.compiler._
+import it.polimi.genomics.core.DataStructures.IRVariable
 import it.polimi.genomics.core.{GMQLSchemaFormat, ImplementationPlatform}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.hadoop.conf.Configuration
@@ -22,6 +23,17 @@ import org.slf4j.LoggerFactory
   * Email: abdulrahman.kaitoua@polimi.it
   *
   */
+
+/**
+  * TODO: DAG SERIALIZATION
+  *
+  * 1) add the -dagPath option to the CLI
+  * 2) when -dagPath is active:
+  *   2.1) Instantiate a GMQLServer
+  *   2.2) Deserialize the dag file into a List[IRVariable]
+  *   2.3) Add every variable to the materializationList of the GMQLServer
+  *   2.4) Execute the server
+  * */
 object GMQLExecuteCommand {
   private final val logger = LoggerFactory.getLogger(/*Logger.ROOT_LOGGER_NAME)*/ GMQLExecuteCommand.getClass);
   try{
@@ -203,6 +215,8 @@ object GMQLExecuteCommand {
     val implementation: Implementation = getImplemenation(executionType,jobid,outputFormat)
 
     val server = new GmqlServer(implementation, Some(1000))
+    // get the dag --> [IRVariable]
+
 
     val translator = new Translator(server, "/tmp/")
 
@@ -283,6 +297,14 @@ object GMQLExecuteCommand {
     }
 
     DAG
+  }
+
+  // Deserialization of the DAG to a list of IRVarialbles to be materialized
+  def deSerializeDAGToIRList(dagEncoded: String): List[IRVariable] = {
+    val bytes = Base64.decode(dagEncoded.getBytes())
+    val objectInputStream1 = new ObjectInputStream(new ByteArrayInputStream(bytes))
+
+    objectInputStream1.readObject().asInstanceOf[List[IRVariable]]
   }
 
   def compile(id: String, translator: Translator, script: String, inputs: Map[String, String],outputs: Map[String, String]): List[Operator] = {
