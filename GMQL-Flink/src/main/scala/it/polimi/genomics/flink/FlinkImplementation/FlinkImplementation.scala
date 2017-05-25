@@ -39,6 +39,8 @@ class FlinkImplementation(var binSize : BinSize = BinSize(),
 
   override def collect(iRVariable: IRVariable): Any = ???
 
+  override def take(iRVariable: IRVariable, n: Int): Any = ???
+
   def getParser(name : String,dataset:String) : GMQLLoaderBase = {
     name.toLowerCase() match {
       case "bedscoreparser" => BedScoreParser

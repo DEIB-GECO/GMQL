@@ -101,7 +101,7 @@ package object scidb
             "\n\tintermediate: " + (if(dag.intermediateResult.isDefined) dag.intermediateResult.get.toString else "None") +
             " )"
 
-        case IRStoreRD(_,child,ds) =>
+        case IRStoreRD(_,child,d_,_,ds) =>
           "IRStoreRD ( " +
             "\n\tdataset: "+ ds +
             "\n\tintermediate: " + (if(dag.intermediateResult.isDefined) dag.intermediateResult.get.toString else "None") +

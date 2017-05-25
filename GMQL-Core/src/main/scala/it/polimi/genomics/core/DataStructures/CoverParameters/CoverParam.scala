@@ -3,8 +3,14 @@ package it.polimi.genomics.core.DataStructures.CoverParameters
 /**
  * Created by pietro on 08/05/15.
  */
-sealed trait CoverParam
+sealed trait CoverParam extends Serializable
+{
+  val fun : Int => Int = (x) => x
+}
 
-case class ALL() extends CoverParam
-case class ANY() extends CoverParam
-case class N(n : Int) extends CoverParam
+trait ALL extends CoverParam
+trait ANY extends CoverParam
+trait N extends CoverParam
+{
+  val n: Int
+}

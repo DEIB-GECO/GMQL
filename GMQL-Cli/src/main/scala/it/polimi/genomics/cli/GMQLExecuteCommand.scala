@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory
 object GMQLExecuteCommand {
   private final val logger = LoggerFactory.getLogger(/*Logger.ROOT_LOGGER_NAME)*/ GMQLExecuteCommand.getClass);
   try{
-     if(new File("../conf/logback.xml").exists())
+     if(new File("GMQL-Core/src/main/resources/logback.xml").exists())
         {
           DOMConfigurator.configure("../conf/logback.xml")
           val root:ch.qos.logback.classic.Logger = org.slf4j.LoggerFactory.getLogger("org").asInstanceOf[ch.qos.logback.classic.Logger];
@@ -278,7 +278,7 @@ object GMQLExecuteCommand {
 
     println("hi\n" + dag.toString)
     var DAG: List[Operator] = List[Operator]()
-    for (i <- 0 to dag.size() - 1) {
+    for (i <- 0 until dag.size() - 1) {
       DAG = DAG :+ dag.get(i)
     }
 
@@ -291,11 +291,11 @@ object GMQLExecuteCommand {
       //compile the GMQL Code
       val languageParserOperators = translator.phase1(script)
 
-      operators = languageParserOperators.map(x => x match {
+      operators = languageParserOperators.map(_ match {
         case d: MaterializeOperator =>
 
           //Case when the CLI is called from the Server Manager and the repository is set in this case.
-          if (outputs.size > 0) {
+          if (outputs.nonEmpty) {
             if (!d.store_path.isEmpty) {
               val path = id + "_" + d.store_path + "/"
               logger.info(d.store_path+", generated: " + path )
@@ -311,11 +311,11 @@ object GMQLExecuteCommand {
           }
           else d
         case select: SelectOperator => val dsinput = select.input1 match {
-          case p: VariablePath => new VariablePath(inputs.get(p.path).getOrElse(p.path), p.parser_name);
-          case p: VariableIdentifier => new VariableIdentifier(inputs.get(p.IDName).getOrElse(p.IDName));
+          case p: VariablePath => VariablePath(inputs.get(p.path).getOrElse(p.path), p.parser_name);
+          case p: VariableIdentifier => VariableIdentifier(inputs.get(p.IDName).getOrElse(p.IDName));
         };
 
-          new SelectOperator(select.op_pos, dsinput, select.input2,select.output,select.parameters)
+          SelectOperator(select.op_pos, dsinput, select.input2,select.output,select.parameters)
           //new SelectOperator(select.op_pos, dsinput, select.input2, select.output, select.sj_condition, select.meta_condition, select.region_condition)
         case s: Operator => s
       })
@@ -363,7 +363,7 @@ object GMQLExecuteCommand {
     val conf = new Configuration();
 
     val DSs = inputSchemata.split(",")
-    if (!DSs.isEmpty) DSs.map { x =>
+    if (DSs.nonEmpty) DSs.map { x =>
       val ds = x.split(":::");
       val dir = ds(0) + DEFAULT_SCHEMA_FILE
       val file = new org.apache.hadoop.fs.Path(dir);
@@ -380,7 +380,7 @@ object GMQLExecuteCommand {
 
   private def extractDSDir(inDS:String):Map[String, String] = {
     val DSs = inDS.split(",")
-    if (!DSs.isEmpty)
+    if (DSs.nonEmpty)
       DSs.map { x =>
         val ds = x.split(":::");
         val DSdir = ds(1)

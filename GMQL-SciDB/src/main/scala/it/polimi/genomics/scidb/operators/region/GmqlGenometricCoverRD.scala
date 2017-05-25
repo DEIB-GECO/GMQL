@@ -105,8 +105,8 @@ class GmqlGenometricCoverRD(source : GmqlRegionOperator,
 
     val filter = (min, max) match
     {
-      case (N(low), ANY()) => OP(count_A.e, ">=", V(low))
-      case (N(low), N(high)) => AND(OP(count_A.e, ">=", V(low)), OP(count_A.e, "<=", V(high)))
+      case (low:N, high:ANY) => OP(count_A.e, ">=", V(low.n))
+      case (low:N, high:N) => AND(OP(count_A.e, ">=", V(low.n)), OP(count_A.e, "<=", V(high.n)))
       case _ => throw new UnsupportedOperationGmqlSciException("Cover parameters not valid")
     }
 
