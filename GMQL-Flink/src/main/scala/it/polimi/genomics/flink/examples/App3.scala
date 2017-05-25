@@ -34,7 +34,7 @@ object App3 {
     //val map = ds1R.MAP(None, List(), ds2R, None)
     //val map = ds1S.MAP(MetaJoinCondition(List("organism")), List(), ds1S)
     //val res = ds2S.JOIN(None, List(new JoinQuadruple(Some(new MinDistance(1)))), RegionBuilder.CONTIG, ds1S)
-    val cover = ds2R.COVER(CoverFlag.COVER, N(1), N(2), List(), Some(List("antibody")))
+    val cover = ds2R.COVER(CoverFlag.COVER,new N{override val n=1}, new N{override val n=2}, List(), Some(List("antibody")))
 /*
     val cR = server READ ds1 USING BedScoreParser
     val cS = cR SELECT(Predicate("antibody", META_OP.EQ, "CTCF"))

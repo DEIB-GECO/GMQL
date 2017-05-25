@@ -184,11 +184,12 @@ object OperatorManager {
 
   def getCoverParam(p : String): CoverParam = {
     p match {
-      case "ALL" => ALL()
-      case "ANY" => ANY()
+      case "ALL" => new ALL{}
+      case "ANY" => new ANY{}
       case _ => {
         val number = p.toInt
-        N(number)
+        new N{
+          override val n: Int = number}
       }
     }
   }

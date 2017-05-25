@@ -385,3 +385,14 @@ import it.polimi.genomics.core.DataStructures.CoverParameters._
 
     output.asInstanceOf[GMQL_DATASET]._1.foreach(println _)
 ```
+
+#### TAKE operation
+Just like Collect opertion, take executes the DAG of the operations and can be mixed with collect and Materialize operations in the same code. Take takes as an argument the number of regions to extract from the result dataset. This allow the programmer to control the memory overflow, in case he is not interested in loading the full dataset in memory.
+
+Note: as for the collect operation, the output format should be selected as   ***GMQLSchemaFormat.COLLECT***
+```
+val output = server.setOutputPath("").TAKE(ds1,100)
+```
+
+
+
