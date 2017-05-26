@@ -4,7 +4,7 @@ import it.polimi.genomics.core.DataStructures.RegionAggregate.RegionsToMeta
 import it.polimi.genomics.core.DataStructures.RegionOperator
 import it.polimi.genomics.core.DataTypes.MetaType
 import it.polimi.genomics.core.exception.SelectFormatException
-import it.polimi.genomics.core.{GNull, GRecordKey, GValue}
+import it.polimi.genomics.core.{GRecordKey, GValue}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
@@ -46,8 +46,7 @@ object AggregateRD {
 
     val extracted = rdd.map(x => (x._1._1, (aggregator.map(a => x._2(a.inputIndex)).toArray, 1))).cache
     extracted.reduceByKey { (x, y) => var i = -1;
-      val count = if(x._1.foldLeft(0)((b,a) => if (a.isInstanceOf[GNull]) b+0 else b+1) > 0) x._2 else 0;
-      (aggregator.map { a => i += 1; a.fun(List(x._1(i), y._1(i))) }.toArray,/*x._2 + y._2*/ count + y._1.foldLeft(0)((b,a) => if (a.isInstanceOf[GNull]) b+0 else b+1)) }
+      (aggregator.map { a => i += 1; a.fun(List(x._1(i), y._1(i))) }.toArray,x._2 + y._2) }
       .flatMap { x => var i = -1; aggregator.map { a => i += 1; (x._1, (a.newAttributeName, a.funOut(x._2._1(i), x._2._2).toString)) } }
   }
 
