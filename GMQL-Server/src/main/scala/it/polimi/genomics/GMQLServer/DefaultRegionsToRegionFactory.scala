@@ -32,7 +32,7 @@ object DefaultRegionsToRegionFactory extends MapFunctionFactory{
     override val resType = ParsingType.DOUBLE
     override val index: Int = 0
     override val associative: Boolean = true
-    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>v1}
+    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>GDouble(v2)}
     override val fun: (List[GValue]) => GValue = {
       (line) =>
         val len = line.size.toDouble
