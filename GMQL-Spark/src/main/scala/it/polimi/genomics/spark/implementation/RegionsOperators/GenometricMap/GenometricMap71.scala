@@ -4,7 +4,7 @@ import com.google.common.hash.Hashing
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.DataTypes._
 import it.polimi.genomics.core.exception.SelectFormatException
-import it.polimi.genomics.core.{GDouble, GNull, GRecordKey, GValue}
+import it.polimi.genomics.core.{GDouble, GRecordKey, GValue}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{HashPartitioner, Partitioner, SparkContext}
@@ -44,7 +44,7 @@ object GenometricMap71 {
     val expBinned = exp.binDS(BINNING_PARAMETER,aggregator)
     val refBinnedRep = ref.binDS(BINNING_PARAMETER,refGroups,expDataPartitioner)
 
-    val RefExpJoined: RDD[(Long, (GRecordKey, Array[GValue], Array[GValue], Int, Int))] = refBinnedRep.cogroup(expBinned)
+    val RefExpJoined: RDD[(Long, (GRecordKey, Array[GValue], Array[GValue], Int))] = refBinnedRep.cogroup(expBinned)
       .flatMap { grouped => val key: (Long, String, Int) = grouped._1;
         val ref: Iterable[(Long, Long, Long, Char, Array[GValue])] = grouped._2._1.toList.sortBy(x=>(x._1,x._2,x._3));
         val exp: Iterable[(Long, Long, Char, Array[GValue])] = grouped._2._2.toList.sortBy(x=>(x._1,x._2))
@@ -62,8 +62,7 @@ object GenometricMap71 {
         }else if(r._3.size >0)
           r._3
         else l._3
-      val count = if(l._3.foldLeft(0)((b,a) => if (a.isInstanceOf[GNull]) b+0 else b+1) > 0) l._4 else 0
-      (l._1,l._2,values,l._4+r._4, count + r._3.foldLeft(0)((b,a) => if (a.isInstanceOf[GNull]) b+0 else b+1))
+      (l._1,l._2,values,l._4+r._4)
     }//cache()
 
 //    RefExpJoined.unpersist(true)
@@ -71,7 +70,7 @@ object GenometricMap71 {
 
     val output = reduced.map{res =>
       var i = -1;
-      val newVal:Array[GValue] = aggregator.map{f=>i = i+1;val valList = if(res._2._3.size >0)res._2._3(i) else {GDouble(0.0000000000000001)}; f.funOut(valList,res._2._5)}.toArray
+      val newVal:Array[GValue] = aggregator.map{f=>i = i+1;val valList = if(res._2._3.size >0)res._2._3(i) else {GDouble(0.0000000000000001)}; f.funOut(valList,res._2._4)}.toArray
       (res._2._1,(res._2._2 :+ GDouble(res._2._4)) ++ newVal )
     }
 
@@ -80,7 +79,7 @@ object GenometricMap71 {
     output
   }
   def sweep(key:(Long, String, Int),ref_regions:Iterator[(Long, Long, Long, Char, Array[GValue])],iExp:Iterator[(Long, Long, Char, Array[GValue])]
-                    ,bin:Long ):Iterator[(Long, (GRecordKey, Array[GValue], Array[GValue], Int, Int))] = {
+                    ,bin:Long ):Iterator[(Long, (GRecordKey, Array[GValue], Array[GValue], Int))] = {
 
     //init empty list for caching regions
     var RegionCache= List[(Long, Long, Char, Array[GValue])]();
@@ -148,10 +147,10 @@ object GenometricMap71 {
       val aggregation = Hashing.md5().newHasher().putString(newID + key._2 + ref_region._2 + ref_region._3 + ref_region._4 + ref_region._5.mkString("/"), java.nio.charset.Charset.defaultCharset()).hash().asLong()
 
       if(intersectings.size >0 )intersectings.map(inter=>
-        (aggregation, (new GRecordKey(newID, key._2, ref_region._2, ref_region._3, ref_region._4), ref_region._5, inter._4, 1, 1))
+        (aggregation, (new GRecordKey(newID, key._2, ref_region._2, ref_region._3, ref_region._4), ref_region._5, inter._4, 1))
       )
       else
-        List((aggregation, (new GRecordKey(newID, key._2, ref_region._2, ref_region._3, ref_region._4), ref_region._5, Array[GValue](), 0, 0)))
+        List((aggregation, (new GRecordKey(newID, key._2, ref_region._2, ref_region._3, ref_region._4), ref_region._5, Array[GValue](), 0)))
     }
   }
 
