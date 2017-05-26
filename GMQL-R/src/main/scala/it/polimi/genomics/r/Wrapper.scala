@@ -14,6 +14,7 @@ import it.polimi.genomics.core.DataStructures.MetaJoinCondition._
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
 import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionsToMeta, RegionsToRegion}
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
+import it.polimi.genomics.core.GMQLSchemaFormat
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.loaders._
 import org.apache.spark.SparkConf
@@ -50,7 +51,7 @@ object Wrapper
       .set("spark.executor.memory", "6g")
       .set("spark.driver.memory", "2g")
     val spark_context = new SparkContext(spark_conf)
-    val executor = new GMQLSparkExecutor(sc = spark_context)
+    val executor = new GMQLSparkExecutor(sc = spark_context,outputFormat = GMQLSchemaFormat.COLLECT)
     GMQL_server = new GmqlServer(executor)
     //debug: probably not needed but leave it
     if(GMQL_server==null) {
