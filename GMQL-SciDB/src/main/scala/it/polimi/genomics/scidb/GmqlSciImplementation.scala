@@ -27,6 +27,8 @@ class GmqlSciImplementation
   val repository = new GmqlSciRepositoryManager
 
   override def collect(iRVariable: IRVariable): Any = ???
+
+  override def take(iRVariable: IRVariable, n: Int): Any = ???
   /**
     * This methods returns the dataset for the required position
     *

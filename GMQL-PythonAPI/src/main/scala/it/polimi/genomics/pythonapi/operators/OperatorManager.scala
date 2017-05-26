@@ -4,6 +4,7 @@ import it.polimi.genomics.core.DataStructures.CoverParameters._
 import it.polimi.genomics.core.DataStructures.CoverParameters.CoverFlag.CoverFlag
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.{ASC, DESC, Direction}
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.{NoTop, Top, TopG, TopParameter}
+import it.polimi.genomics.core.DataStructures.IRVariable
 import it.polimi.genomics.core.DataStructures.JoinParametersRD._
 import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaAggregateStruct
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
@@ -22,36 +23,84 @@ import scala.collection.mutable.ListBuffer
   * Created by Luca Nanni on 11/04/17.
   * Email: luca.nanni@mail.polimi.it
   */
+
+
+/**
+  * This object manages the creation of the DAG. Every GMQL operation defined for an IRVariable is wrapped
+  * in one or more of the following functions. The protocol that is used is the following:
+  *
+  *   new_variable_index = OPERATION(variable_index, ...)
+  *
+  * where the indices are the key of the map {index --> IRVariable} of PythonManager.
+  * */
 object OperatorManager {
 
   private val logger = LoggerFactory.getLogger(this.getClass)
   /*
   * SELECT
   * */
-  def meta_select(index: Int, metaCondition : MetadataCondition) : Int =
+  def meta_select(index: Int, other: Int,  metaCondition : MetadataCondition,
+                  metaJoinCondition: Option[MetaJoinCondition]) : Int =
   {
+
+
     // get the corresponding variable
     val v = PythonManager.getVariable(index)
     // do the operation (build the DAG)
-    val nv = v SELECT metaCondition
+    var nv : IRVariable = null
+    if(other >= 0 && metaJoinCondition.isDefined) {
+      val other_v = PythonManager.getVariable(other)
+
+      nv = v SELECT(metaJoinCondition.get, other_v, metaCondition)
+    }
+    else if(other < 0 && metaJoinCondition.isEmpty) {
+      nv = v SELECT(metaCondition)
+    }
+    else
+      throw new IllegalArgumentException("other_index >= 0 <=> metaJoinCondition")
+
     // generate new index
     val new_index = PythonManager.putNewVariable(nv)
     new_index
   }
 
-  def reg_select(index: Int, regionCondition: RegionCondition) : Int =
+
+  def reg_select(index: Int, other: Int, regionCondition: RegionCondition,
+                 metaJoinCondition: Option[MetaJoinCondition]) : Int =
   {
     // get the corresponding variable
     val v = PythonManager.getVariable(index)
     // do the operation (build the DAG)
-    val nv = v SELECT regionCondition
+    var nv : IRVariable = null
+    if(other >= 0 && metaJoinCondition.isDefined) {
+      val other_v = PythonManager.getVariable(other)
+      nv = v SELECT(metaJoinCondition.get, other_v, regionCondition)
+    }
+    else if(other < 0 && metaJoinCondition.isEmpty) {
+      nv = v SELECT(regionCondition)
+    }
+    else
+      throw new IllegalArgumentException("other_index >= 0 <=> metaJoinCondition")
     // generate new index
     val new_index = PythonManager.putNewVariable(nv)
     new_index
   }
 
-  def select(index: Int, metaCondition : MetadataCondition, regionCondition: RegionCondition) : Int = ???
-
+  def only_semi_select(index: Int, other:Int, metaJoinCondition: Option[MetaJoinCondition]): Int = {
+    // get the corresponding variable
+    val v = PythonManager.getVariable(index)
+    var nv : IRVariable = null
+    if(other >= 0 && metaJoinCondition.isDefined) {
+      val other_v = PythonManager.getVariable(other)
+      nv = v SELECT(metaJoinCondition.get, other_v)
+    }
+    else {
+      throw new IllegalArgumentException("other_index >= 0 && metaJoinCondition")
+    }
+    // generate new index
+    val new_index = PythonManager.putNewVariable(nv)
+    new_index
+  }
 
   /*
   * PROJECT
@@ -135,11 +184,12 @@ object OperatorManager {
 
   def getCoverParam(p : String): CoverParam = {
     p match {
-      case "ALL" => ALL()
-      case "ANY" => ANY()
+      case "ALL" => new ALL{}
+      case "ANY" => new ANY{}
       case _ => {
         val number = p.toInt
-        N(number)
+        new N{
+          override val n: Int = number}
       }
     }
   }

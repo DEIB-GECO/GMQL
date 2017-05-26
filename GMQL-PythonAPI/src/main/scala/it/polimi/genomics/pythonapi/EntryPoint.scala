@@ -20,6 +20,26 @@ object EntryPoint {
   val properties = AppProperties
   def main(args: Array[String]): Unit = {
 
+
+    this.logger.info("Spark context initiated")
+
+    //val sc = startSparkContext()
+
+    //val pythonManager = PythonManager
+    //pythonManager.setSparkContext(sc=sc)
+
+    val gatewayServer : GatewayServer = new GatewayServer()
+    gatewayServer.start()
+    this.logger.info("GatewayServer started")
+
+    /*Synchronization with the python process*/
+    val pw = new PrintWriter(new File("sync.txt"))
+    pw.write("Spark context started")
+    pw.close()
+  }
+
+  def startSparkContext(): SparkContext =
+  {
     /*
     * Setting up the Spark context
     * */
@@ -31,18 +51,7 @@ object EntryPoint {
       .set("spark.driver.memory", properties.driverMemory)
 
     val sc = new SparkContext(conf)
-    this.logger.info("Spark context initiated")
-
-    val pythonManager = PythonManager
-    pythonManager.setSparkContext(sc=sc)
-
-    /*Synchronization with the python process*/
-    val pw = new PrintWriter(new File("sync.txt"))
-    pw.write("Spark context started")
-    pw.close()
-
-    val gatewayServer : GatewayServer = new GatewayServer()
-    gatewayServer.start()
-    this.logger.info("GatewayServer started")
+    logger.info("Spark Context initiated")
+    sc
   }
 }

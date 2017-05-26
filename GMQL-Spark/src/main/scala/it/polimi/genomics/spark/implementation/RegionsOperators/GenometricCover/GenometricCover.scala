@@ -8,7 +8,7 @@ import it.polimi.genomics.core.DataTypes._
 import it.polimi.genomics.core.{GDouble, GValue}
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
-import it.polimi.genomics.spark.implementation.RegionsOperators.GenometricMap.{ GMAP4}
+import it.polimi.genomics.spark.implementation.RegionsOperators.GenometricMap.GMAP4
 import org.apache.spark.SparkContext
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory
 
 import scala.collection.Map
 import scala.collection.immutable.HashMap
+import scala.xml.dtd.ANY
 
 /**
   * Created by Abdulrahman Kaitoua on 10/08/15.
@@ -68,19 +69,30 @@ object GenometricCover {
       Map(0L->0)
     }
 
-    val minimum : Map[Long, Int] =
-      min match{
-        case ALL() => allValue
-        case ANY() => groupIds.map(v => ((v, 1))).foldRight(new HashMap[Long, Int])((a,z) => z + a)
-        case N(value) => groupIds.map(v => (v, value)).foldRight(new HashMap[Long, Int])((a,z) => z + a)
-      }
+    val minimum: Map[Long, Int] =
+      if (min.isInstanceOf[ALL]) allValue.map(x => (x._1, min.fun(x._2)))
+      else if (min.isInstanceOf[ANY]) groupIds.map(v => ((v, 1))).foldRight(new HashMap[Long, Int])((a, z) => z + a)
+      else groupIds.map(v => (v, min.asInstanceOf[N].n)).foldRight(new HashMap[Long, Int])((a, z) => z + a)
 
-    val maximum : Map[Long, Int] =
-      max match{
-        case ALL() => allValue
-        case ANY() => groupIds.map(v => ((v, Int.MaxValue))).foldRight(new HashMap[Long, Int])((a,z) => z + a)
-        case N(value) => groupIds.map(v => ((v, value))).foldRight(new HashMap[Long, Int])((a,z) => z + a)
-      }
+    val maximum: Map[Long, Int] =
+      if (max.isInstanceOf[ALL]) allValue.map(x => (x._1, max.fun(x._2)))
+      else if (max.isInstanceOf[ANY]) groupIds.map(v => ((v, Int.MaxValue))).foldRight(new HashMap[Long, Int])((a, z) => z + a)
+      else groupIds.map(v => ((v, max.asInstanceOf[N].n))).foldRight(new HashMap[Long, Int])((a, z) => z + a)
+
+
+//    val minimum : Map[Long, Int] =
+//      min match{
+//        case ALL() => allValue
+//        case ANY() => groupIds.map(v => ((v, 1))).foldRight(new HashMap[Long, Int])((a,z) => z + a)
+//        case N(value) => groupIds.map(v => (v, value)).foldRight(new HashMap[Long, Int])((a,z) => z + a)
+//      }
+//
+//    val maximum : Map[Long, Int] =
+//      max match{
+//        case ALL() => allValue
+//        case ANY() => groupIds.map(v => ((v, Int.MaxValue))).foldRight(new HashMap[Long, Int])((a,z) => z + a)
+//        case N(value) => groupIds.map(v => ((v, value))).foldRight(new HashMap[Long, Int])((a,z) => z + a)
+//      }
 
     // EXECUTE COVER ON BINS
     val ss = extracted

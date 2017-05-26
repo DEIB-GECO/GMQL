@@ -12,6 +12,7 @@ import it.polimi.genomics.pythonapi.operators.{ExpressionBuilder, OperatorManage
 import it.polimi.genomics.spark.implementation.loaders._
 
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable.ListBuffer
@@ -40,26 +41,40 @@ object PythonManager {
   * */
   private val counter: AtomicInteger = new AtomicInteger(0)
   private var server : GmqlServer = _
-  private var sparkContext : SparkContext = _
+  private var sparkContext : Option[SparkContext] = None
 
+
+  /*
+  * GMQLServer related stuff
+  * */
   def setSparkContext(sc : SparkContext): Unit =
   {
-    this.sparkContext = sc
+    this.sparkContext = Some(sc)
   }
 
   def startEngine(): Unit =
   {
     // set the server and the executor
-    this.server = new GmqlServer(new GMQLSparkExecutor(sc=this.sparkContext, stopContext = false))
+    this.server = new GmqlServer(new StubExecutor())
     this.logger.info("GMQL Server started")
   }
 
   def stopEngine(): Unit =
   {
     // get the spark context and kill it
-    this.sparkContext.stop()
+    if(this.sparkContext.isDefined)
+      this.sparkContext.get.stop()
   }
 
+  def shutdown(): Unit = {
+    this.stopEngine()
+    System.exit(0)
+  }
+
+
+  /*
+  * VARIABLES
+  * */
   def getVariable(index : Int) : IRVariable = {
     this.variables.get(index).get
   }
@@ -69,6 +84,12 @@ object PythonManager {
     val index = this.counter.getAndIncrement()
     this.variables(index) = variable
     index
+  }
+
+  def getVariableSchemaNames(index: Int): java.util.List[String] = {
+    val variable = this.getVariable(index)
+    val result = variable.schema.map({case (a,b) => a})
+    result.asJava
   }
 
   def getServer : GmqlServer = {
@@ -84,6 +105,16 @@ object PythonManager {
   def getNewExpressionBuilder(index: Int) : ExpressionBuilder = {
     val expressionBuilder = new ExpressionBuilder(index)
     expressionBuilder
+  }
+
+  /*
+  * Parsing of datasets
+  * */
+
+  def read_dataset(dataset_path: String): Int = {
+    val parser : CustomParser = new CustomParser()
+    parser.setSchema(dataset_path)
+    read_dataset(dataset_path, parser)
   }
 
   def read_dataset(dataset_path: String, parserName: String): Int =
@@ -102,24 +133,11 @@ object PythonManager {
     index
   }
 
-  def materialize(index : Int, outputPath : String): Unit =
-  {
-    // get the variable from the map
-    val variableToMaterialize = this.variables.get(index)
-    this.server setOutputPath outputPath MATERIALIZE variableToMaterialize.get
-    //starting the server execution
-    this.server.run()
-    //clear the materialization list
-    this.server.clearMaterializationList()
-    //clear the cache of spark
-
-  }
-
   def getParser(parserName: String) : BedParser =
   {
-    parserName match {
-      case "NarrowPeakParser" => NarrowPeakParser.asInstanceOf[BedParser]
-      case "BasicParser" => BasicParser.asInstanceOf[BedParser]
+    parserName.toLowerCase match {
+      case "narrowpeakparser" => NarrowPeakParser.asInstanceOf[BedParser]
+      case "basicparser" => BasicParser.asInstanceOf[BedParser]
       case _ => NarrowPeakParser.asInstanceOf[BedParser]
     }
   }
@@ -154,5 +172,31 @@ object PythonManager {
     ParsingType.attType(typeString)
   }
 
+  /*
+  * Materialization
+  * */
+
+  def materialize(index : Int, outputPath : String): Unit =
+  {
+    /*Check if there is an instantiated spark context*/
+    if(this.sparkContext.isEmpty){
+      val sc = EntryPoint.startSparkContext()
+      this.server.implementation = new GMQLSparkExecutor(sc=sc, stopContext = false)
+      this.setSparkContext(sc)
+    }
+
+    /*If we are in REMOTE MODE:
+    *   1) Encode the IRVariable into a Base64 string
+    *   2) send to python the string
+    * */
+
+    // get the variable from the map
+    val variableToMaterialize = this.variables.get(index)
+    this.server setOutputPath outputPath MATERIALIZE variableToMaterialize.get
+    //starting the server execution
+    this.server.run()
+    //clear the materialization list
+    this.server.clearMaterializationList()
+  }
 
 }

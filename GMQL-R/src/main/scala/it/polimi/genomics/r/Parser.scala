@@ -41,7 +41,7 @@ class Parser extends GmqlParsers {
   def parseProjectRegion(input: String): (String, Option[List[RegionFunction]]) = {
 
     //println("input : " + input)
-    val metadata = parse(region_modifier, input)
+    val metadata = parse(region_select_expr, input)
 
     metadata match
     {
