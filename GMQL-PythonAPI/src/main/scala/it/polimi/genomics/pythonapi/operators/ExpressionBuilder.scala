@@ -1,6 +1,8 @@
 package it.polimi.genomics.pythonapi.operators
 import it.polimi.genomics.core.DataStructures.RegionAggregate._
 import it.polimi.genomics.core.DataStructures._
+import it.polimi.genomics.core.ParsingType
+import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.pythonapi.PythonManager
 /**
   * Created by Luca Nanni on 11/04/17.
@@ -22,6 +24,7 @@ class ExpressionBuilder(index : Int) {
       case "LTE" => MetadataCondition.META_OP.LTE
       case "EQ" => MetadataCondition.META_OP.EQ
       case "NOTEQ" => MetadataCondition.META_OP.NOTEQ
+      case _ => throw new IllegalArgumentException(symbol + " is not a MetadataCondition")
     }
   }
 
@@ -34,7 +37,7 @@ class ExpressionBuilder(index : Int) {
       case "LTE" => RegionCondition.REG_OP.LTE
       case "EQ" => RegionCondition.REG_OP.EQ
       case "NOTEQ" => RegionCondition.REG_OP.NOTEQ
-      case _ => RegionCondition.REG_OP.EQ
+      case _ => throw new IllegalArgumentException(symbol + " is not a RegionCondition")
     }
   }
 
@@ -53,12 +56,30 @@ class ExpressionBuilder(index : Int) {
       case "stop" => RegionCondition.StopCondition(regOp, value.toLong)
       case _ =>
         val field = variable.get_field_by_name(name)
-        if(field.isDefined) {
-          RegionCondition.Predicate(field.get,regOp, value)
+
+        //casting
+        val type_field = variable.get_type_by_name(name)
+
+
+        if(field.isDefined & type_field.isDefined) {
+          val parsed_value = parseValueByType(value, type_field.get)
+          RegionCondition.Predicate(field.get,regOp, parsed_value)
         }
         else {
-          RegionCondition.ChrCondition("impossibleChar")
+          throw new IllegalArgumentException("The region field " + name + " is not defined " +
+            "or its type is wrong")
         }
+    }
+  }
+
+  def parseValueByType(value: String, value_type: PARSING_TYPE): Any = {
+    value_type match {
+      case ParsingType.STRING => value
+      case ParsingType.CHAR => value
+      case ParsingType.LONG => value.toLong
+      case ParsingType.INTEGER => value.toInt
+      case ParsingType.DOUBLE => value.toDouble
+      case _ => value
     }
   }
 
@@ -74,6 +95,7 @@ class ExpressionBuilder(index : Int) {
     condition match {
       case "AND" => MetadataCondition.AND(pred1, pred2)
       case "OR" => MetadataCondition.OR(pred1, pred2)
+      case _ => throw new IllegalArgumentException(condition + " is not a valid MetaBinaryCondition")
     }
   }
 
@@ -82,6 +104,7 @@ class ExpressionBuilder(index : Int) {
   {
     condition match {
       case "NOT" => MetadataCondition.NOT(pred)
+      case _ => throw new IllegalArgumentException(condition + " is not a valid MetaUnaryCondition")
     }
   }
 
@@ -91,6 +114,7 @@ class ExpressionBuilder(index : Int) {
     condition match {
       case "AND" => RegionCondition.AND(pred1, pred2)
       case "OR" => RegionCondition.OR(pred1, pred2)
+      case _ => throw new IllegalArgumentException(condition + " is not a valid RegionBinaryCondition")
     }
   }
 
@@ -99,6 +123,7 @@ class ExpressionBuilder(index : Int) {
   {
     condition match {
       case "NOT" => RegionCondition.NOT(pred)
+      case _ => throw new IllegalArgumentException(condition + " is not a valid RegionUnaryCondition")
     }
   }
 

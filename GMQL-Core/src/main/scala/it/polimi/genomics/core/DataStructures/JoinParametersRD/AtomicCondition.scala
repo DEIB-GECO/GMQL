@@ -3,7 +3,7 @@ package it.polimi.genomics.core.DataStructures.JoinParametersRD
 /**
  * Created by pietro on 15/06/15.
  */
-sealed trait AtomicCondition {
+sealed trait  AtomicCondition {
 
 }
 

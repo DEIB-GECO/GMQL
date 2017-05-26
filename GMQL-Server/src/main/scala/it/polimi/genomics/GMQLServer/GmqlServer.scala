@@ -50,11 +50,19 @@ class GmqlServer(var implementation : Implementation, binning_size : Option[Long
     implementation.collect(iRVariable)
   }
 
+  def TAKE(iRVariable: IRVariable, n: Int): Any =
+  {
+    optimise()
+    implementation.take(iRVariable, n)
+  }
+
   def MATERIALIZE(variable : IRVariable) = {
 
     if (!meta_output_path.isDefined){
       println("Disgrace!! The metadata output path has not been specified yet!")
     }
+
+
 
     if (!region_output_path.isDefined) {
       println("Disgrace!! The region output path has not been specified yet!")

@@ -35,9 +35,9 @@ object Cover {
 
     val dataAsTheyAre = server.READ(ex_data_path).USING(metaDS,regionDS,List[(String, PARSING_TYPE)](("score",ParsingType.DOUBLE)))
 
-    val cover = dataAsTheyAre.COVER(CoverFlag.HISTOGRAM, N(1), it.polimi.genomics.core.DataStructures.CoverParameters.ANY(), List(), None )
+    val cover = dataAsTheyAre.COVER(CoverFlag.HISTOGRAM, new N{override val n=2}, new N{override val n=3}, List(), None )
 
-    val output = server setOutputPath output_path COLLECT cover
+    val output = server setOutputPath output_path COLLECT (cover)
 
     output.asInstanceOf[GMQL_DATASET]._1.foreach(println _)
 //    server.run()

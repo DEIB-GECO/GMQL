@@ -1,7 +1,7 @@
 package it.polimi.genomics.compiler
 
 import com.sun.org.apache.xalan.internal.xsltc.compiler.CompilerException
-import it.polimi.genomics.core.DataStructures.CoverParameters.{CoverFlag, N, CoverParam}
+import it.polimi.genomics.core.DataStructures.CoverParameters.{ALL, CoverFlag, CoverParam, N}
 import it.polimi.genomics.core.DataStructures.RegionAggregate.RegionsToRegion
 
 import scala.util.parsing.input.Position
@@ -20,8 +20,8 @@ abstract class RegionIntersectionOperator2(op_pos : Position,
 
   override def check_input_number = one_input
   override val accepted_named_parameters = List("groupby", "aggregate")
-  var minAcc : CoverParam = N(0)
-  var maxAcc : CoverParam = it.polimi.genomics.core.DataStructures.CoverParameters.ALL()
+  var minAcc : CoverParam = new N{override val n=0;}
+  var maxAcc : CoverParam = new ALL{}
 
   var meta_group : Option[List[String]] = None
   var refined_agg_function_list : List[RegionsToRegion] = List.empty
