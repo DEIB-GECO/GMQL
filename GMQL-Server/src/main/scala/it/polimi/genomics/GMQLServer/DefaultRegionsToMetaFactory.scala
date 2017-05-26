@@ -107,7 +107,7 @@ object DefaultRegionsToMetaFactory extends ExtendFunctionFactory {
             GDouble((values(left) + values(left)) / 2)
           }
           else
-            GDouble(values(line.length / 2))
+            GDouble(values(/*line*/values.length / 2))
         }
         else GNull()
       }
