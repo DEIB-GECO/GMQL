@@ -310,6 +310,23 @@ DS1.MAP(
 			  projected_values = None)
 ```
 
+```
+          //PROJECT AGGREGATE RD
+          val fun = new RegionExtension {
+            override val fun: (Array[GValue]) => GValue = 
+	         {x=>
+				if( x(1).isInstanceOf[GDouble]) 
+					GDouble(x(0).asInstanceOf[GDouble].v + 
+					x(1).asInstanceOf[GDouble].v)
+				else GNull()
+			 }
+            override val inputIndexes: List[Any] =
+	            List(0,MetaAccessor("score"))
+          }
+
+          dataAsTheyAre.PROJECT(None,extended_values = Some(List(fun)))
+```
+
 #### Extend, set of examples
 
 ```
