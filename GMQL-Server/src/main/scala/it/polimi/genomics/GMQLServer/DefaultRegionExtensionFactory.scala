@@ -2,7 +2,7 @@ package it.polimi.genomics.GMQLServer
 
 import it.polimi.genomics.core.DataStructures.Builtin.RegionExtensionFactory
 import it.polimi.genomics.core.DataStructures.RegionAggregate._
-import it.polimi.genomics.core.{ParsingType, GDouble, GString, GValue}
+import it.polimi.genomics.core._
 
 /**
   * Created by pietro on 04/05/16.
@@ -64,46 +64,68 @@ object DefaultRegionExtensionFactory extends RegionExtensionFactory{
         val strand = x(indexes.indexOf(COORD_POS.STRAND_POS)).asInstanceOf[GString].v
         if (strand.equals("-")) x(indexes.indexOf(COORD_POS.LEFT_POS)) else x(indexes.indexOf(COORD_POS.RIGHT_POS))
       }
-//      case READD(a,b) => (x:Array[GValue]) => GDouble(
-//        make_fun(a,indexes)(x).asInstanceOf[GDouble].v +
-//          make_fun(b,indexes)(x).asInstanceOf[GDouble].v)
-//      case RESUB(a,b) => (x:Array[GValue]) => GDouble(
-//        make_fun(a,indexes)(x).asInstanceOf[GDouble].v -
-//          make_fun(b,indexes)(x).asInstanceOf[GDouble].v)
       case READD(a,b) => (x:Array[GValue]) => {
-        if (indexes.indexOf(COORD_POS.STRAND_POS) > -1) {
-          val strand = x(indexes.indexOf(COORD_POS.STRAND_POS)).asInstanceOf[GString].v
-          if (strand.equals("-")) GDouble(
+        /*GDouble(
+          make_fun(a,indexes)(x).asInstanceOf[GDouble].v +
+            make_fun(b,indexes)(x).asInstanceOf[GDouble].v)*/
+        if (make_fun(a, indexes)(x).isInstanceOf[GNull] || make_fun(b, indexes)(x).isInstanceOf[GNull])
+          GNull()
+        else {
+          //strand is present in indexes only when changing start or stop
+          if (indexes.indexOf(COORD_POS.STRAND_POS) > -1) {
+            val strand = x(indexes.indexOf(COORD_POS.STRAND_POS)).asInstanceOf[GString].v
+            if (strand.equals("-")) GDouble(
               make_fun(a, indexes)(x).asInstanceOf[GDouble].v -
                 make_fun(b, indexes)(x).asInstanceOf[GDouble].v)
-          else GDouble(
+            else GDouble(
               make_fun(a, indexes)(x).asInstanceOf[GDouble].v +
                 make_fun(b, indexes)(x).asInstanceOf[GDouble].v)
+          }
+          else GDouble(
+            make_fun(a, indexes)(x).asInstanceOf[GDouble].v +
+              make_fun(b, indexes)(x).asInstanceOf[GDouble].v)
         }
-        else GDouble(
-            make_fun(a,indexes)(x).asInstanceOf[GDouble].v +
-              make_fun(b,indexes)(x).asInstanceOf[GDouble].v)
       }
       case RESUB(a,b) => (x:Array[GValue]) => {
-        if (indexes.indexOf(COORD_POS.STRAND_POS) > -1) {
-          val strand = x(indexes.indexOf(COORD_POS.STRAND_POS)).asInstanceOf[GString].v
-          if (strand.equals("-")) GDouble(
+        /*GDouble(
+          make_fun(a,indexes)(x).asInstanceOf[GDouble].v -
+            make_fun(b,indexes)(x).asInstanceOf[GDouble].v)*/
+        if (make_fun(a, indexes)(x).isInstanceOf[GNull] || make_fun(b, indexes)(x).isInstanceOf[GNull])
+          GNull()
+        else {
+          //strand is present in indexes only when changing start or stop
+          if (indexes.indexOf(COORD_POS.STRAND_POS) > -1) {
+            val strand = x(indexes.indexOf(COORD_POS.STRAND_POS)).asInstanceOf[GString].v
+            if (strand.equals("-")) GDouble(
               make_fun(a, indexes)(x).asInstanceOf[GDouble].v +
                 make_fun(b, indexes)(x).asInstanceOf[GDouble].v)
-          else GDouble(
+            else GDouble(
               make_fun(a, indexes)(x).asInstanceOf[GDouble].v -
                 make_fun(b, indexes)(x).asInstanceOf[GDouble].v)
+          }
+          else GDouble(
+            make_fun(a, indexes)(x).asInstanceOf[GDouble].v -
+              make_fun(b, indexes)(x).asInstanceOf[GDouble].v)
         }
-        else GDouble(
-            make_fun(a,indexes)(x).asInstanceOf[GDouble].v -
-              make_fun(b,indexes)(x).asInstanceOf[GDouble].v)
       }
-      case REMUL(a,b) => (x:Array[GValue]) => GDouble(
-        make_fun(a,indexes)(x).asInstanceOf[GDouble].v *
-          make_fun(b,indexes)(x).asInstanceOf[GDouble].v)
-      case REDIV(a,b) => (x:Array[GValue]) => GDouble(
-        make_fun(a,indexes)(x).asInstanceOf[GDouble].v /
-          make_fun(b,indexes)(x).asInstanceOf[GDouble].v)
+      case REMUL(a,b) => (x:Array[GValue]) => {
+       /* GDouble(
+          make_fun(a,indexes)(x).asInstanceOf[GDouble].v *
+            make_fun(b,indexes)(x).asInstanceOf[GDouble].v)*/
+        if (make_fun(a,indexes)(x).isInstanceOf[GNull] || make_fun(b,indexes)(x).isInstanceOf[GNull])
+          GNull()
+        else
+          GDouble(make_fun(a,indexes)(x).asInstanceOf[GDouble].v * make_fun(b,indexes)(x).asInstanceOf[GDouble].v)
+      }
+      case REDIV(a,b) => (x:Array[GValue]) => {
+        /*GDouble(
+          make_fun(a,indexes)(x).asInstanceOf[GDouble].v /
+            make_fun(b,indexes)(x).asInstanceOf[GDouble].v)*/
+        if (make_fun(a,indexes)(x).isInstanceOf[GNull] || make_fun(b,indexes)(x).isInstanceOf[GNull])
+          GNull()
+        else
+          GDouble(make_fun(a,indexes)(x).asInstanceOf[GDouble].v / make_fun(b,indexes)(x).asInstanceOf[GDouble].v)
+      }
       case REFloat(f) => (x:Array[GValue]) => GDouble(f)
       case REStringConstant(c) => { (x:Array[GValue]) => GString(c)}
     }

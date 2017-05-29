@@ -52,12 +52,18 @@ object DefaultRegionsToMetaFactory extends ExtendFunctionFactory {
     override val fun: (List[GValue]) => GValue = {
       (line) =>{
         //sqrt(avg(x^2) - avg(x)^2)
-        val doubleVals = line.map((gvalue) =>gvalue.asInstanceOf[GDouble].v).toArray
-//
-//        val ss = line.map((gvalue) => {val s = gvalue.asInstanceOf[GDouble].v;(math.pow(s,2),s)})
-//        val dd = ss.reduce((x,y)=>(x._1 + y._1, x._2 + y._1));
-//        GDouble(math.sqrt((dd._1/line.length) -math.pow((dd._2/line.length),2)))
-        GDouble(stdev(doubleVals))
+       /* val doubleVals = line.map((gvalue) =>gvalue.asInstanceOf[GDouble].v).toArray*/
+       val doubleVals = line.flatMap((gvalue) => {
+         if (gvalue.isInstanceOf[GDouble]) Some(gvalue.asInstanceOf[GDouble].v) else None
+       }).toArray
+        if (!doubleVals.isEmpty) {
+          //
+          //        val ss = line.map((gvalue) => {val s = gvalue.asInstanceOf[GDouble].v;(math.pow(s,2),s)})
+          //        val dd = ss.reduce((x,y)=>(x._1 + y._1, x._2 + y._1));
+          //        GDouble(math.sqrt((dd._1/line.length) -math.pow((dd._2/line.length),2)))
+          GDouble(stdev(doubleVals))
+        }
+        else GNull()
       }
     }
     override val funOut: (GValue,Int) => GValue = {(v1,v2)=>v1}
@@ -90,14 +96,20 @@ object DefaultRegionsToMetaFactory extends ExtendFunctionFactory {
     override val associative : Boolean = false
     override val fun: (List[GValue]) => GValue = {
       (line) => {
-        val values: List[Double] = line.map{ gvalue => val s = gvalue.asInstanceOf[GDouble].v;s}.sorted
-        if (line.length % 2 == 0) {
-          val right = line.length/2
-          val left = (line.length /2) -1
-          GDouble((values(left) + values(left) )/2)
+        /*val values: List[Double] = line.map{ gvalue => val s = gvalue.asInstanceOf[GDouble].v;s}.sorted*/
+        val values: List[Double] = line.flatMap((gvalue) => {
+          if (gvalue.isInstanceOf[GDouble]) Some(gvalue.asInstanceOf[GDouble].v) else None
+        }).sorted
+        if (!values.isEmpty) {
+          if (/*line*/values.length % 2 == 0) {
+            val right = /*line*/values.length / 2
+            val left = (/*line*/values.length / 2) - 1
+            GDouble((values(left) + values(left)) / 2)
+          }
+          else
+            GDouble(values(/*line*/values.length / 2))
         }
-        else
-        GDouble(values(line.length/2))
+        else GNull()
       }
     }
     override val funOut: (GValue,Int) => GValue = {(v1,v2)=>v1}
@@ -110,15 +122,21 @@ object DefaultRegionsToMetaFactory extends ExtendFunctionFactory {
     override val associative : Boolean = false
     override val fun: (List[GValue]) => GValue = {
       (line) => {
-        val values: List[Double] = line.map{ gvalue => val s = gvalue.asInstanceOf[GDouble].v;s}.sorted
-        val right = line.length/2
-        val left = (line.length /2) -1
-        val up = right+right/2
-        if (line.length % 2 == 0)
-          GDouble((values(up)+values(up-1))/2)
-        else{
-          GDouble(values(up))
+        /*val values: List[Double] = line.map{ gvalue => val s = gvalue.asInstanceOf[GDouble].v;s}.sorted*/
+        val values: List[Double] = line.flatMap((gvalue) => {
+          if (gvalue.isInstanceOf[GDouble]) Some(gvalue.asInstanceOf[GDouble].v) else None
+        }).sorted
+        if (!values.isEmpty) {
+          val right = /*line*/ values.length / 2
+          val left = (/*line*/ values.length / 2) - 1
+          val up = right + right / 2
+          if ( /*line*/ values.length % 2 == 0)
+            GDouble((values(up) + values(up - 1)) / 2)
+          else {
+            GDouble(values(up))
+          }
         }
+        else GNull()
       }
     }
     override val funOut: (GValue,Int) => GValue = {(v1,v2)=>v1}
@@ -131,15 +149,21 @@ object DefaultRegionsToMetaFactory extends ExtendFunctionFactory {
     override val associative : Boolean = false
     override val fun: (List[GValue]) => GValue = {
       (line) => {
-        val values: List[Double] = line.map{ gvalue => val s = gvalue.asInstanceOf[GDouble].v;s}.sorted
-        val right = line.length/2
-        val left = (line.length /2) -1
-        val down = right/2
-        if (line.length % 2 == 0)
-          GDouble((values(down)+values(down-1))/2)
-        else{
-          GDouble(values(down))
+        /*val values: List[Double] = line.map{ gvalue => val s = gvalue.asInstanceOf[GDouble].v;s}.sorted*/
+        val values: List[Double] = line.flatMap((gvalue) => {
+          if (gvalue.isInstanceOf[GDouble]) Some(gvalue.asInstanceOf[GDouble].v) else None
+        }).sorted
+        if (!values.isEmpty) {
+          val right = /*line*/values.length / 2
+          val left = (/*line*/values.length / 2) - 1
+          val down = right / 2
+          if (/*line*/values.length % 2 == 0)
+            GDouble((values(down) + values(down - 1)) / 2)
+          else {
+            GDouble(values(down))
+          }
         }
+        else GNull()
       }
     }
     override val funOut: (GValue,Int) => GValue = {(v1,v2)=>v1}
@@ -151,9 +175,13 @@ object DefaultRegionsToMetaFactory extends ExtendFunctionFactory {
     override val inputIndex: Int = position
     override val associative : Boolean = true
     override val fun: (List[GValue]) => GValue = {
-      (line) =>{val ss = line.map((gvalue) => {val s = gvalue.asInstanceOf[GDouble].v;s})
-        val dd = ss.reduce(_ + _);
-        GDouble(dd)
+      (line) =>{/*val ss = line.map((gvalue) => {val s = gvalue.asInstanceOf[GDouble].v;s})*/
+      val ss = line.flatMap((gvalue) => {if (gvalue.isInstanceOf[GDouble]) Some(gvalue.asInstanceOf[GDouble].v) else None})
+        if (!ss.isEmpty) {
+          val dd = ss.reduce(_ + _);
+          GDouble(dd)
+        }
+        else GNull()
       }
     }
     override val funOut: (GValue,Int) => GValue = {(v1,v2)=>v1}
@@ -176,7 +204,11 @@ object DefaultRegionsToMetaFactory extends ExtendFunctionFactory {
     override val inputIndex: Int = position
     override val associative : Boolean = true
     override val fun: (List[GValue]) => GValue = {
-      (line) => GDouble(line.map((gvalue) => gvalue.asInstanceOf[GDouble].v).reduce( (x,y) =>Math.min(x,y)))
+      (line) => /*GDouble(line.map((gvalue) => gvalue.asInstanceOf[GDouble].v).reduce( (x,y) =>Math.min(x,y)))*/
+        val lines = line.flatMap((gvalue) => if (gvalue.isInstanceOf[GDouble]) Some(gvalue.asInstanceOf[GDouble].v) else None)
+        if(!lines.isEmpty)
+          GDouble(lines.reduce( (x,y) =>Math.min(x,y)))
+        else GNull()
     }
     override val funOut: (GValue,Int) => GValue = {(v1,v2)=>v1}
   }
@@ -186,7 +218,11 @@ object DefaultRegionsToMetaFactory extends ExtendFunctionFactory {
     override val inputIndex: Int = position
     override val associative : Boolean = true
     override val fun: (List[GValue]) => GValue = {
-      (line) => GDouble(line.map((gvalue) => gvalue.asInstanceOf[GDouble].v).reduce( (x,y) =>Math.max(x,y)))
+      (line) => /*GDouble(line.map((gvalue) => gvalue.asInstanceOf[GDouble].v).reduce( (x,y) =>Math.max(x,y)))*/
+        val lines = line.flatMap((gvalue) => if (gvalue.isInstanceOf[GDouble]) Some(gvalue.asInstanceOf[GDouble].v) else None)
+        if(!lines.isEmpty)
+          GDouble(lines.reduce( (x,y) =>Math.max(x,y)))
+        else GNull()
     }
     override val funOut: (GValue,Int) => GValue = {(v1,v2)=>v1}
   }
@@ -200,11 +236,17 @@ object DefaultRegionsToMetaFactory extends ExtendFunctionFactory {
       (line) =>
 //        val len = line.size.toDouble
 //        if(len != 0)
-          GDouble((line.map((gvalue) => gvalue.asInstanceOf[GDouble].v).reduce(_ + _))/*/len*/)
+          /*GDouble((line.map((gvalue) => gvalue.asInstanceOf[GDouble].v).reduce(_ + _))/*/len*/)*/
 //        else
 //          GDouble(0)
+        val lines = line.flatMap((gvalue) => if (gvalue.isInstanceOf[GDouble]) Some(gvalue.asInstanceOf[GDouble].v) else None)
+        if(!lines.isEmpty)
+          GDouble((lines.reduce(_ + _)))
+        else
+          GNull()
     }
-    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>if(v1.asInstanceOf[GDouble].v>0) GDouble(v1.asInstanceOf[GDouble].v/v2)else GDouble(0)}
+    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>/*if(v1.asInstanceOf[GDouble].v>0) GDouble(v1.asInstanceOf[GDouble].v/v2)else GDouble(0)*/
+      if (v2 > 0 && !v1.isInstanceOf[GNull]) GDouble(v1.asInstanceOf[GDouble].v / v2) else GNull()}
   }
 
   private def getBAG(position:Int, new_name:Option[String]) = new RegionsToMeta {

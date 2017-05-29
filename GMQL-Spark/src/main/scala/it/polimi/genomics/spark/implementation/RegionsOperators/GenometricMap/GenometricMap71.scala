@@ -6,12 +6,9 @@ import it.polimi.genomics.core.DataTypes._
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.core.{GDouble, GRecordKey, GValue}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
-import org.apache.spark.{HashPartitioner, Partitioner, SparkContext}
-import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
+import org.apache.spark.{HashPartitioner, Partitioner, SparkContext}
 import org.slf4j.LoggerFactory
-
-import scala.collection.Map
 
 
 /**
