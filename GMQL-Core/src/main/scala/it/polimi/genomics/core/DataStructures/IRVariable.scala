@@ -132,7 +132,7 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
       val new_region_dag = IRProjectRD(
         all_proj_values,
         extended_values,
-        this.regionDag)
+        this.regionDag,this.metaDag)
 
       val new_schema_pt1 =
         if (projected_values.isDefined)

@@ -137,7 +137,7 @@ case class IRProjectMD(projected_attributes : Option[List[String]], extended_att
  * @param new_values if not [[None]], it stores all the function to create new value fields
  * @param input_dataset the input set of region data
  */
-case class IRProjectRD(projected_values : Option[List[Int]], new_values : Option[List[RegionFunction]], input_dataset : RegionOperator) extends RegionOperator {
+case class IRProjectRD(projected_values : Option[List[Int]], new_values : Option[List[RegionFunction]], input_dataset : RegionOperator, InputMeta:MetaOperator) extends RegionOperator {
 
 }
 

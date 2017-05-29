@@ -31,8 +31,9 @@ object COORD_POS {
   val STOP_POS = -100000
 }
 
+
 trait RegionFunction extends Serializable {
-  val inputIndexes : List[Int]
+  val inputIndexes : List[Any]
   def output_index : Option[Int] = None
   def output_name : Option[String] = None
 }
