@@ -2,10 +2,13 @@ package it.polimi.genomics.r
 
 import java.io.FileNotFoundException
 import java.util.concurrent.atomic.AtomicLong
+import scala.collection.mutable.ArrayBuffer
 
 import it.polimi.genomics.GMQLServer.{DefaultRegionsToMetaFactory, DefaultRegionsToRegionFactory, GmqlServer}
 import it.polimi.genomics.core.DataStructures.CoverParameters._
-import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.{ASC, DESC, Direction}
+import it.polimi.genomics.spark.implementation.GMQLSparkExecutor.GMQL_DATASET
+import it.polimi.genomics.core.DataStructures.CoverParameters.CoverFlag.CoverFlag
+import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.Direction
 import it.polimi.genomics.core.DataStructures.GroupMDParameters._
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.{JoinQuadruple, RegionBuilder}
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
@@ -14,7 +17,8 @@ import it.polimi.genomics.core.DataStructures.MetaJoinCondition._
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
 import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionsToMeta, RegionsToRegion}
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
-import it.polimi.genomics.core.GMQLSchemaFormat
+import it.polimi.genomics.core.{GMQLSchemaFormat, GRecordKey, GValue}
+import it.polimi.genomics.core.GMQLSchemaFormat.Value
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.loaders._
 import org.apache.spark.SparkConf
@@ -42,23 +46,41 @@ object Wrapper
   var counter: AtomicLong = new AtomicLong(0)
   var materialize_count: AtomicLong = new AtomicLong(0)
 
+  val take_meta: Array[Array[String]] = null;
+  val take_regions: Array[Array[String]] = null;
+  val take_schema: Array[String] = null;
+
   var vv: Map[String,IRVariable] = Map[String,IRVariable]()
 
-  def startGMQL(): Unit =
+  def initGMQL(output_format: String): Unit =
   {
     val spark_conf = new SparkConf().setMaster("local[*]").
       setAppName("GMQL-R").set("spark.serializer","org.apache.spark.serializer.KryoSerializer" )
       .set("spark.executor.memory", "6g")
       .set("spark.driver.memory", "2g")
     val spark_context = new SparkContext(spark_conf)
-    val executor = new GMQLSparkExecutor(sc = spark_context,outputFormat = GMQLSchemaFormat.COLLECT)
+
+    val out_format = outputFormat(output_format)
+
+    val executor = new GMQLSparkExecutor(sc = spark_context,outputFormat = out_format)
     GMQL_server = new GmqlServer(executor)
     //debug: probably not needed but leave it
-    if(GMQL_server==null) {
+    if(GMQL_server == null) {
       println("GMQL Server is down")
       return
     }
+
     println("GMQL Server is up")
+  }
+
+  def outputFormat(format: String): GMQLSchemaFormat.Value =
+  {
+    format match{
+      case "TAB" => GMQLSchemaFormat.TAB
+      case "GTF" => GMQLSchemaFormat.GTF
+      case "VCF" => GMQLSchemaFormat.VCF
+      case "COLLECT" => GMQLSchemaFormat.COLLECT
+    }
   }
 
   def readDataset(data_input_path: String, parser_name: String): String =
@@ -76,7 +98,7 @@ object Wrapper
       case "RnaSeqParser" => parser = RnaSeqParser
       case "CustomParser" =>
       {
-        parser = new CustomParser
+        parser = new CustomParser()
         try {
           parser.asInstanceOf[CustomParser].setSchema(data_path)
         }
@@ -117,6 +139,23 @@ object Wrapper
       materialize_count.set(0)
       return "OK"
     }
+  }
+
+  def take(data_to_take: String,how_many: Int): Unit =
+  {
+    if(vv.get(data_to_take).isEmpty)
+      return "No valid Data to materialize"
+
+    var output:Any = null;
+    val taken = vv(data_to_take)
+
+    if(how_many==0)
+      output = GMQL_server.setOutputPath("").COLLECT(taken)
+    else
+      output = GMQL_server.setOutputPath("").TAKE(taken,how_many)
+
+    //pass to R Array[Array[String]]
+
   }
 
 
@@ -417,15 +456,19 @@ object Wrapper
     var aggrlist: List[RegionsToRegion] = null
 
     min match {
-      case 0 => paramMin = ANY()
-      case -1 => paramMin = ALL()
-      case x if x > 0 => paramMin = N(min)
+      case 0 => paramMin = new ANY{}
+      case -1 => paramMin = new ALL{}
+      case x if x > 0 => paramMin = new N {
+        override val n: Int = min
+      }
     }
 
     max match {
-      case 0 => paramMax = ANY()
-      case -1 => paramMax = ALL()
-      case x if x > 0 => paramMax = N(max)
+      case 0 => paramMax = new ANY{}
+      case -1 => paramMax = new ALL{}
+      case x if x > 0 => paramMax = new N {
+        override val n: Int = max
+      }
     }
 
     val (error, aggr_list) = RegionToRegionAggregates(aggregates, dataAsTheyAre)
@@ -737,8 +780,36 @@ object Wrapper
   }
 
   def main(args : Array[String]): Unit = {
-    //for debug if needed 
+    //for debug if needed
+
+    /*
+    initGMQL("TAB")
+    val r = readDataset("/Users/simone/Downloads/DATA_SET_VAR_GTF","CustomParser")
+    if(vv.get(r).isEmpty)
+      return "No valid Data to materialize"
+
+    val materialize = vv(r)
+    val output = GMQL_server setOutputPath "/Users/simone/Downloads/out" COLLECT  materialize
+
+    val regions: Array[(GRecordKey, Array[GValue])] =  output.asInstanceOf[GMQL_DATASET]._1
+
+    var reg_line = new ArrayBuffer[String]()
+    var reg_matrix = new ArrayBuffer[ArrayBuffer[String]]()
+
+    for(elem <- regions)
+    {
+      reg_line += elem._1.toString()
+      reg_line += elem._2.toString
+
+      reg_matrix+=reg_line
+    }
+
+    output.asInstanceOf[GMQL_DATASET]._2.foreach(println _) //metadata
+    output.asInstanceOf[GMQL_DATASET]._3.foreach(println _) //schema
+*/
   }
+
+
 
 
 }
