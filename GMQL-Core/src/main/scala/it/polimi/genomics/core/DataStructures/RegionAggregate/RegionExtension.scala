@@ -14,6 +14,7 @@ case class RESTRAND() extends RENode{override def toString() = "strand"}
 case class REPos(position : Int) extends RENode {override def toString() = "position" + position}
 case class REFloat(const : Double) extends RENode{override def toString() = "float" + const}
 case class REInt(const : Int) extends RENode{override def toString() = "int" + const}
+case class RENegate(o1:RENode) extends RENode {override def toString() = "negate(" + o1 +")"}
 case class READD(o1:RENode, o2:RENode)extends RENode {override def toString() = "add(" + o1 + "," + o2 +")"}
 case class RESUB(o1:RENode, o2:RENode) extends RENode{override def toString() = "sub(" + o1 + "," + o2 +")"}
 case class REMUL(o1:RENode, o2:RENode) extends RENode{override def toString() = "mul(" + o1 + "," + o2 +")"}
