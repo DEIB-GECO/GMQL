@@ -39,10 +39,11 @@ class Parser extends GmqlParsers {
     }
    }
 
-  def parseProjectRegion(input: String): (String, Option[RegionCondition]) = {
+  /*
+  def parseProjectRegion(input: String): (String, Option[RegionFunction]) = {
 
     //println("input : " + input)
-    val metadata = parse(region_select_expr, input)
+    val metadata = parse(region_modifier_list, input)
 
     metadata match
     {
@@ -51,20 +52,6 @@ class Parser extends GmqlParsers {
       case Error(result,next) =>  (result,None)
       case Failure(result,next) =>  (result,None)
     }
-  }
-
-  def parseProjectMetadata(input: String): (String, Option[RegionCondition]) = {
-
-    //println("input : " + input)
-    val metadata = parse(region_select_expr, input)
-
-    metadata match
-    {
-      case Success(result,next) =>  ("OK",Some(result))
-      case NoSuccess(result,next) =>  (result,None)
-      case Error(result,next) =>  (result,None)
-      case Failure(result,next) =>  (result,None)
-    }
-  }
+  }*/
 
 }

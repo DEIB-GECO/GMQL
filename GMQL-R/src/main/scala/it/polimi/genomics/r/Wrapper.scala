@@ -218,7 +218,7 @@ object Wrapper
               projected_values : Option[List[Int]] = None,
               extended_values : Option[List[RegionFunction]] = None): */
 
-  //TODO miss Region Function and MetaAggregateStruct
+  //TODO miss parsing on region and metdata update
   def project(projected_meta:Any, projected_region:Any, input_dataset: String): String =
   {
     if(vv.get(input_dataset).isEmpty)
