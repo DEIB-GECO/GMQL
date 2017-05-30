@@ -103,8 +103,18 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
 
   }
 
-
   def PROJECT(projected_meta : Option[List[String]] = None, extended_meta : Option[MetaAggregateStruct] = None,
+              all_but : List[String],
+              extended_values : Option[List[RegionFunction]] = None): IRVariable = {
+
+      val selectedSchema = this.schema.zipWithIndex.filter(x=> !all_but.contains(x._1._1) ).map(_._2)
+
+    PROJECT(projected_meta , extended_meta ,
+                Some(selectedSchema),
+                extended_values )
+
+  }
+    def PROJECT(projected_meta : Option[List[String]] = None, extended_meta : Option[MetaAggregateStruct] = None,
               projected_values : Option[List[Int]] = None,
               extended_values : Option[List[RegionFunction]] = None): IRVariable = {
 
@@ -132,7 +142,7 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
       val new_region_dag = IRProjectRD(
         all_proj_values,
         extended_values,
-        this.regionDag)
+        this.regionDag,this.metaDag)
 
       val new_schema_pt1 =
         if (projected_values.isDefined)

@@ -271,7 +271,8 @@ trait GmqlParsers extends JavaTokenParsers {
     STOP ^^ {x => RESTOP()} | LEFT ^^ {x => RELEFT()} |
     RIGHT ^^ {x=> RERIGHT()} | CHR ^^ {x => RECHR()} | STRAND ^^ {x => RESTRAND()} |
     decimalNumber ^^ {x => REFloat(x.toDouble)} |
-    any_field_identifier ^^ {x => REFieldNameOrPosition(x)} | "(" ~> re_expr <~ ")"
+    any_field_identifier ^^ {x => REFieldNameOrPosition(x)} | "(" ~> re_expr <~ ")" |
+    SUB ~> re_expr ^^ {x => RENegate(x)}
 
   val re_term: Parser[RENode] = re_factor ~ rep((MULT|DIV) ~ re_factor) ^^ {
     case t ~ ts => ts.foldLeft(t) {
@@ -280,7 +281,8 @@ trait GmqlParsers extends JavaTokenParsers {
     }
   }
 
-  val re_expr: Parser[RENode] = re_term ~ rep((SUM|SUB) ~ re_term) ^^ {
+  val re_expr: Parser[RENode] =
+    re_term ~ rep((SUM|SUB) ~ re_term) ^^ {
     case t ~ ts => ts.foldLeft(t) {
       case (t1, "+" ~ t2) => READD(t1, t2)
       case (t1, "-" ~ t2) => RESUB(t1, t2)

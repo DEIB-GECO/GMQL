@@ -260,7 +260,7 @@ class GmqlSciImplementation
         case IROrderRD(ordering, top, source) => new GmqlOrderRD( prepare(source).asInstanceOf[GmqlRegionOperator],
                                                                   ordering, top)
 
-        case IRProjectRD(features, _, source) => new GmqlProjectRD( prepare(source).asInstanceOf[GmqlRegionOperator],
+        case IRProjectRD(features, _, source,meta) => new GmqlProjectRD( prepare(source).asInstanceOf[GmqlRegionOperator],
                                                                     features.getOrElse(List()))
 
         case IRPurgeRD(metadata, source) => new GmqlPurgeRD(prepare(source).asInstanceOf[GmqlRegionOperator],
