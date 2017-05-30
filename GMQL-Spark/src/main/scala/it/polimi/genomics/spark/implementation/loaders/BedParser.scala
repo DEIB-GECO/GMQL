@@ -104,9 +104,8 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
         }
       }
 
-      parsingType match {
-        case GMQLSchemaFormat.GTF | GMQLSchemaFormat.VCF => {
-          Some((new GRecordKey(t._1, s(chrPos).trim, s(startPos).trim.toLong - 1, s(stopPos).trim.toLong, //start: 1-based -> 0-based
+      val newStart = if (parsingType == GMQLSchemaFormat.GTF || parsingType == GMQLSchemaFormat.VCF) s(startPos).trim.toLong - 1 else s(startPos).trim.toLong
+          Some((new GRecordKey(t._1, s(chrPos).trim, newStart, s(stopPos).trim.toLong,
             if (strandPos.isDefined) {
               val c = s(strandPos.get).trim.charAt(0)
               //          if(c != '*') println(t._2+"\t"+c+"\n"+s.mkString("\t"))
@@ -120,24 +119,6 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
             }
 
           ), other))
-        }
-        case _ => {
-          Some((new GRecordKey(t._1, s(chrPos).trim, s(startPos).trim.toLong, s(stopPos).trim.toLong,
-            if (strandPos.isDefined) {
-              val c = s(strandPos.get).trim.charAt(0)
-              //          if(c != '*') println(t._2+"\t"+c+"\n"+s.mkString("\t"))
-              if (c.equals('+') || c.equals('-')) {
-                c
-              } else {
-                '*'
-              }
-            } else {
-              '*'
-            }
-
-          ), other))
-        }
-      }
     } catch {
       case e: Throwable =>
         logger.warn(e.getMessage)
