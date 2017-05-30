@@ -7,12 +7,15 @@ package it.polimi.genomics.spark.test
 
 import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaAggregateStruct
 import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionExtension, RegionsToMeta}
-import it.polimi.genomics.core.DataStructures.RegionCondition.{Predicate, REG_OP}
-import it.polimi.genomics.core.{GDouble, GString, GValue}
+import it.polimi.genomics.core.DataStructures.RegionCondition.{MetaAccessor, Predicate, REG_OP}
+import it.polimi.genomics.core._
 import it.polimi.genomics.GMQLServer.GmqlServer
+import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
+import it.polimi.genomics.spark.implementation.GMQLSparkExecutor.GMQL_DATASET
 import it.polimi.genomics.spark.implementation.loaders.BedScoreParser
-import org.apache.spark.{SparkContext, SparkConf}
+import org.apache.spark.rdd.RDD
+import org.apache.spark.{SparkConf, SparkContext}
 
 
 /**
@@ -28,18 +31,22 @@ object Project {
       .setAppName("hello")
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
 
-    val server = new GmqlServer(new GMQLSparkExecutor(testingIOFormats = true,sc = new SparkContext(conf)))
+    val sc = new SparkContext(conf)
+    val server = new GmqlServer(new GMQLSparkExecutor(outputFormat = GMQLSchemaFormat.COLLECT,sc =sc))
     val mainPath = "/Users/abdulrahman/Ddownloads/"
     val ex_data_path = List(mainPath + "ann/")
     val ex_data_path_optional = List(mainPath + "exp/")
     val output_path = mainPath + "res/"
 
-    val dataAsTheyAre = server READ ex_data_path USING BedScoreParser
+    val metaDS: RDD[(Long, (String, String))] = sc.parallelize((1 to 100).map(x=> ((x%2).toLong,("test","Abdo"))) :+ (1l,("score","20")) :+(0l,("score","500")))
+    val regionDS = sc.parallelize((1 to 1000).map{x=>(new GRecordKey((x%2).toLong,"Chr"+(x%2),x.toLong,(x+200).toLong,'*'),Array[GValue](GDouble(1)) )})
+
+    val dataAsTheyAre = server READ "" USING(metaDS,regionDS,List[(String, PARSING_TYPE)](("score",ParsingType.DOUBLE)))
     val optionalDS = server READ ex_data_path_optional USING BedScoreParser
 
 //    val what = 1 // project MD
     // val what = 1 // project MD and aggregate something
-     val what = 2 // project MD RD and extends tuple
+     val what = 3 // project MD RD and extends tuple
     // val what = 2 // project MD RD and aggregate something
 
 
@@ -47,7 +54,7 @@ object Project {
       what match{
         case 0 => {
           //PROJECT MD
-          dataAsTheyAre.PROJECT(Some(List("filename","A", "B")), None, None, None)
+          dataAsTheyAre.PROJECT(projected_meta = Some(List("filename")),extended_meta = None, all_but = List("score"), extended_values = None)
         }
 
         case 1 => {
@@ -88,28 +95,21 @@ object Project {
 
         case 3 => {
           //PROJECT AGGREGATE RD
-          val fun = new RegionsToMeta {
-            override val newAttributeName: String = "computed_bert_value1_region_aggregate"
-            override val inputIndex: Int = 1
-            override val associative : Boolean = true
-            override val funOut: (GValue,Int) => GValue = {(v1,v2)=>v1}
-            override val fun: List[GValue] => GValue =
-            //sum of values
-              (l : List[GValue]) => {
-                l.reduce((in1, in2) => {
-                  GDouble(in1.asInstanceOf[GDouble].v + in2.asInstanceOf[GDouble].v)
-                })
-              }
+          val fun = new RegionExtension {
+            override val fun: (Array[GValue]) => GValue = {x=>if( x(1).isInstanceOf[GDouble]) GDouble(x(0).asInstanceOf[GDouble].v + x(1).asInstanceOf[GDouble].v)else GNull()}
+            override val inputIndexes: List[Any] = List(0,MetaAccessor("score"))
           }
 
-          dataAsTheyAre.PROJECT(Some(List("filename","A", "B", "C")))
+          dataAsTheyAre.PROJECT(None,extended_values = Some(List(fun)))
         }
 
       }
 
-    server setOutputPath output_path MATERIALIZE project
+    val projectVal = server.setOutputPath ("").COLLECT (project )
 
-    server.run()
+    projectVal.asInstanceOf[GMQL_DATASET]._1.foreach(x=>println(x._1,x._2.mkString("\t")))
+    projectVal.asInstanceOf[GMQL_DATASET]._2.foreach(println)
+//    server.run()
   }
 
 }

@@ -36,7 +36,7 @@ object ProjectTest
     val ReadSourceRD = IRReadRD(List(), new FakeParser, SOURCE)
 
     val ProjectMD = IRProjectMD(Some(List("bert_value2","bert_value1")), None, ReadSourceMD)
-    val ProjectRD = IRProjectRD(Some(List(1)), None, ReadSourceRD)
+    val ProjectRD = IRProjectRD(Some(List(1)), None, ReadSourceRD,ReadSourceMD)
 
     val StoreAncMD = IRStoreMD("", ProjectMD, RES)
     val StoreAncRD = IRStoreRD("", ProjectRD,ProjectMD,List(), RES)

@@ -52,7 +52,7 @@ object GraphEnumerator {
             case IRReadRD(paths : List[String], loader,_) => List()
             case IRSelectRD(regionCondition : Option[RegionCondition], filteredMeta : Option[MetaOperator], inputDataset : RegionOperator) => List(inputDataset) ++ { if(filteredMeta.isDefined) List(filteredMeta.get) else List()}
             case IRPurgeRD(metaDataset : MetaOperator, inputDataset : RegionOperator) => List(metaDataset, inputDataset)
-            case IRProjectRD(projectedValues : Option[List[Int]], tupleAggregator : Option[RegionExtension], inputDataset : RegionOperator) => List(inputDataset)
+            case IRProjectRD(projectedValues : Option[List[Int]], tupleAggregator : Option[RegionExtension], inputDataset : RegionOperator, inputMeta:MetaOperator) => List(inputDataset)
             case IRGenometricMap(grouping : Option[MetaJoinOperator], aggregators : List[RegionAggregate.RegionsToRegion], reference : RegionOperator, experiments : RegionOperator) => List(reference, experiments) ++ { if(grouping.isDefined) List(grouping.get) else List()}
             case IRRegionCover(coverFlag : CoverFlag, min : CoverParam, max : CoverParam, aggregators : List[RegionsToRegion], grouping : Option[MetaGroupOperator], inputDataset : RegionOperator) => List(inputDataset) ++ { if(grouping.isDefined) List(grouping.get) else List()}
             case IRUnionRD(schemaReformatting : List[Int], leftDataset : RegionOperator, rightDataset : RegionOperator) => List(leftDataset, rightDataset)

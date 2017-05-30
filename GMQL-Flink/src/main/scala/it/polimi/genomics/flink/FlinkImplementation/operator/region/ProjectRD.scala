@@ -61,12 +61,12 @@ object ProjectRD {
 
   def computeFunction(r : FlinkRegionType, agg : RegionExtension) : GValue = {
     agg.fun( agg.inputIndexes.foldLeft(new Array[GValue](0))((z,b) => z :+ {
-      b match {
+      b.asInstanceOf[Int] match {
         case COORD_POS.CHR_POS => new GString(r._2)
         case COORD_POS.LEFT_POS => new GDouble(r._3)
         case COORD_POS.RIGHT_POS => new GDouble(r._4)
         case COORD_POS.STRAND_POS => new GString(r._5.toString)
-        case _ : Int => r._6(b)
+        case _ : Int => r._6(b.asInstanceOf[Int])
       }
     }) )
   }
