@@ -12,22 +12,8 @@ object MultipleMaterializations {
   val properties = AppProperties
 
   def main(args: Array[String]): Unit = {
-    /*
-    * Setting up the Spark context
-    * */
-    val conf = new SparkConf()
-      .setAppName(properties.applicationName)
-      .setMaster(properties.master)
-      .set("spark.serializer", properties.serializer)
 
-    val sc = new SparkContext(conf)
-    this.logger.info("Spark context initiated")
-
-    val pythonManager = PythonManager
-    pythonManager.setSparkContext(sc=sc)
-
-    // start engine
-    pythonManager.startEngine()
+    PythonManager.startEngine()
 
     // path from where to take the data
     val inputPath = "/home/luca/Documenti/resources/hg_narrowPeaks"
@@ -36,13 +22,14 @@ object MultipleMaterializations {
     // path where to save the result of the second materialization
     val outputPath_2 = "/home/luca/Documenti/resources/result2"
 
-    val opManager = pythonManager.getOperatorManager
+    val opManager = PythonManager.getOperatorManager
 
     // read the data
-    val index = pythonManager.read_dataset(dataset_path = inputPath, parserName = "NarrowPeakParser")
+    val index = PythonManager.read_dataset(dataset_path = inputPath,
+      parserName = "NarrowPeakParser")
 
     // FIRST OPERATION: select on metadata
-    var expBuilder = pythonManager.getNewExpressionBuilder(index)
+    var expBuilder = PythonManager.getNewExpressionBuilder(index)
     val metaCondition = expBuilder.createMetaBinaryCondition(
             expBuilder.createMetaPredicate("cell","EQ","K562"),
             "AND",
@@ -50,24 +37,24 @@ object MultipleMaterializations {
     )
     val index1 = opManager.meta_select(index, -1, metaCondition, None)
     // first materialization
-    pythonManager.materialize(index1,outputPath_1)
-
-    // SECOND OPERATION: select on region data
-    expBuilder = pythonManager.getNewExpressionBuilder(index)
-    val regionCondition = expBuilder.createRegionBinaryCondition(
-      expBuilder.createRegionBinaryCondition(
-        expBuilder.createRegionPredicate("chr","EQ","chr9"),
-        "AND",
-        expBuilder.createRegionPredicate("start", "GTE","138680")
-      )
-      , "AND",
-      expBuilder.createRegionPredicate("stop", "LTE", "145000")
-
-    )
-
-    val index2 = opManager.reg_select(index, -1, regionCondition, None)
-    // second materialization
-    pythonManager.materialize(index2, outputPath_2)
+    PythonManager.materialize(index1,outputPath_1)
+//
+//    // SECOND OPERATION: select on region data
+//    expBuilder = pythonManager.getNewExpressionBuilder(index)
+//    val regionCondition = expBuilder.createRegionBinaryCondition(
+//      expBuilder.createRegionBinaryCondition(
+//        expBuilder.createRegionPredicate("chr","EQ","chr9"),
+//        "AND",
+//        expBuilder.createRegionPredicate("start", "GTE","138680")
+//      )
+//      , "AND",
+//      expBuilder.createRegionPredicate("stop", "LTE", "145000")
+//
+//    )
+//
+//    val index2 = opManager.reg_select(index, -1, regionCondition, None)
+//    // second materialization
+//    pythonManager.materialize(index2, outputPath_2)
 
 
   }

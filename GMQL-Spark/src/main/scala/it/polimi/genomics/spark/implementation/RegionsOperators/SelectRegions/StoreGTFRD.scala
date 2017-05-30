@@ -2,15 +2,14 @@ package it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions
 
 import it.polimi.genomics.core.DataStructures.{MetaOperator, RegionOperator}
 import it.polimi.genomics.core.DataTypes.GRECORD
-import it.polimi.genomics.core.GMQLSchemaFormat
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.loaders.writeMultiOutputFiles
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
-import org.apache.spark.{HashPartitioner, SparkContext}
 import org.apache.spark.rdd.RDD
+import org.apache.spark.{HashPartitioner, SparkContext}
 import org.slf4j.LoggerFactory
 
 import scala.collection.Map
@@ -76,7 +75,7 @@ object StoreGTFRD {
           x._1._2 //chrom
             + "\t" + {if(sourceIndex >=0) x._2(sourceIndex).toString else "GMQL" }//variable name
             + "\t" + {if (featureIndex >=0) x._2(featureIndex) else  "Region"}
-            + "\t" + x._1._3 + "\t" + x._1._4 + "\t" //start , stop
+            + "\t" + (x._1._3 + 1) + "\t" + x._1._4 + "\t" //start (0-based -> 1-based), stop
             + {
             if (scoreIndex >= 0) x._2(scoreIndex) else "0.0"
           } //score

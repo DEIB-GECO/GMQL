@@ -10,6 +10,7 @@ object AppProperties {
   var master = "local[*]"
   var executorMemory = "6g"
   var driverMemory = "2g"
+  var kryobuffer = "100m"
 
   /*
  * Utility functions to set the parameters of Spark
