@@ -16,7 +16,7 @@ import py4j.GatewayServer
   * */
 object EntryPoint {
 
-  val logger  = LoggerFactory.getLogger(this.getClass)
+  val logger = LoggerFactory.getLogger(this.getClass)
   val properties = AppProperties
   def main(args: Array[String]): Unit = {
 
@@ -49,6 +49,7 @@ object EntryPoint {
       .set("spark.serializer", properties.serializer)
       .set("spark.executor.memory", properties.executorMemory)
       .set("spark.driver.memory", properties.driverMemory)
+      .set("spark.kryoserializer.buffer.max", properties.kryobuffer)
 
     val sc = new SparkContext(conf)
     logger.info("Spark Context initiated")
