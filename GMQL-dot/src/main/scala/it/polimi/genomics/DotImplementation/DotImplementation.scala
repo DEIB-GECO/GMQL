@@ -84,7 +84,7 @@ try{
         case IRProjectMD(_, _, p) => sb append edge(i, all_nodes.indexOf(p))
         case IRUnionMD(l, r, _, _) => sb append edge(i, all_nodes.indexOf(l)) append edge(i, all_nodes.indexOf(r))
         case IRAggregateRD(_, p) => sb append edge(i, all_nodes.indexOf(p))
-        case IRProjectRD(_, _, p) => sb append edge(i, all_nodes.indexOf(p))
+        case IRProjectRD(_, _, p,m) => sb append edge(i, all_nodes.indexOf(p))append edge(i, all_nodes.indexOf(p))
         case IRGroupMD(_, _, _, p, r) => sb append edge(i, all_nodes.indexOf(p)) append edge(i, all_nodes.indexOf(r))
         case IRGroupRD(_, _, p) => sb append edge(i, all_nodes.indexOf(p))
         case IROrderMD(_, _, _, p) => sb append edge(i, all_nodes.indexOf(p))
@@ -177,7 +177,7 @@ try{
       case IRUnionMD(_,_,_,_) => "struct" + pos + " [shape=record,color=\"blue\",label=\"IRUnionMD" + "\"];\n"
       case IRUnionAggMD(_,_,_,_) => "struct" + pos + " [shape=record,color=\"blue\",label=\"IRUnionMD" + "\"];\n"
       case IRAggregateRD(p, _) => "struct" + pos + " [shape=record,color=\"red\",label=\"{IRAggregateRD | new attr. name = " + "\"];\n"
-      case IRProjectRD(p,e,_) => "struct" + pos + " [shape=record,color=\"red\",label=\"{IRProjectRD | projected fields = " + {if(p.isDefined) (p.get mkString ",") else p} + " | tuple function = " + {if(e.isDefined) e.get.getClass.getSimpleName else e} +  "}\"];\n"
+      case IRProjectRD(p,e,_,_) => "struct" + pos + " [shape=record,color=\"red\",label=\"{IRProjectRD | projected fields = " + {if(p.isDefined) (p.get mkString ",") else p} + " | tuple function = " + {if(e.isDefined) e.get.getClass.getSimpleName else e} +  "}\"];\n"
       //TODO di nuovo modificata
       //case IRGroupMD(k,a,g,_) => "struct" + pos + " [shape=record,color=\"blue\",label=\"{IRGroupMD | keys=" + (k mkString ",") + "|" + a + " | new_attribute=" + g +  "\"];\n"
       case IRGroupMD(k,a,g,_,_) => "struct" + pos + " [shape=record,color=\"blue\",label=\"{IRGroupMD | keys=" + (k.attributes mkString ",") + "|" + a + " | new_attribute=" + g +  "\"];\n"
@@ -214,7 +214,7 @@ try{
       case IRUnionMD(l,r,_,_) => (add_all_nodes(l.asInstanceOf[IROperator]) ++ add_all_nodes(r.asInstanceOf[IROperator])) + node
       case IRUnionAggMD(l,r,_,_) => (add_all_nodes(l.asInstanceOf[IROperator]) ++ add_all_nodes(r.asInstanceOf[IROperator])) + node
       case IRAggregateRD(_,p) => add_all_nodes(p.asInstanceOf[IROperator]) + node
-      case IRProjectRD(_,_,p) => add_all_nodes(p.asInstanceOf[IROperator]) + node
+      case IRProjectRD(_,_,p,m) => add_all_nodes(p.asInstanceOf[IROperator]) ++ add_all_nodes(p.asInstanceOf[IROperator]) + node
       case IRGroupMD(_,_,_,p,r) => add_all_nodes(p.asInstanceOf[IROperator]) ++ add_all_nodes(r.asInstanceOf[IROperator]) + node
       case IRGroupRD(_,_,p) => add_all_nodes(p.asInstanceOf[IROperator]) + node
       case IROrderMD(_,_,_,p) => add_all_nodes(p.asInstanceOf[IROperator]) + node

@@ -2,10 +2,11 @@ package it.polimi.genomics.r
 
 
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
-import it.polimi.genomics.compiler.GmqlParsers
-import it.polimi.genomics.compiler.ProjectOperator
+import it.polimi.genomics.compiler.{CompilerException, GmqlParsers, Operator, ProjectOperator}
 import it.polimi.genomics.core.DataStructures.RegionAggregate.RegionFunction
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
+
+import scala.util.parsing.input.CharSequenceReader
 
 
 class Parser extends GmqlParsers {
@@ -65,4 +66,5 @@ class Parser extends GmqlParsers {
       case Failure(result,next) =>  (result,None)
     }
   }
+
 }

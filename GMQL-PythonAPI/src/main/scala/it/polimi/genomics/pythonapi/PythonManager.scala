@@ -168,8 +168,25 @@ object PythonManager {
     bedparser
   }
 
-  def getParseTypeFromString(typeString : String) = {
+
+  /*
+  * TYPES
+  * */
+
+  def getParseTypeFromString(typeString : String) : PARSING_TYPE = {
     ParsingType.attType(typeString)
+  }
+
+  def getStringFromParsingType(parsingType: PARSING_TYPE) : String = {
+    parsingType match {
+      case ParsingType.DOUBLE => "double"
+      case ParsingType.INTEGER => "int"
+      case ParsingType.LONG => "long"
+      case ParsingType.CHAR => "char"
+      case ParsingType.STRING => "string"
+      case ParsingType.NULL => "null"
+      case _ => "string"
+    }
   }
 
   /*
@@ -178,13 +195,7 @@ object PythonManager {
 
   def materialize(index : Int, outputPath : String): Unit =
   {
-    /*Check if there is an instantiated spark context*/
-    if(this.sparkContext.isEmpty){
-      val sc = EntryPoint.startSparkContext()
-      this.server.implementation = new GMQLSparkExecutor(sc=sc, stopContext = false)
-      this.setSparkContext(sc)
-    }
-
+    this.checkSparkContext()
     /*If we are in REMOTE MODE:
     *   1) Encode the IRVariable into a Base64 string
     *   2) send to python the string
@@ -199,4 +210,22 @@ object PythonManager {
     this.server.clearMaterializationList()
   }
 
+
+  def collect(index : Int) = {
+    this.checkSparkContext()
+
+    val variableToCollect = this.variables.get(index)
+    val result = this.server COLLECT variableToCollect.get
+
+    new CollectedResult(result)
+  }
+
+  def checkSparkContext(): Unit = {
+    /*Check if there is an instantiated spark context*/
+    if(this.sparkContext.isEmpty){
+      val sc = EntryPoint.startSparkContext()
+      this.server.implementation = new GMQLSparkExecutor(sc=sc, stopContext = false)
+      this.setSparkContext(sc)
+    }
+  }
 }

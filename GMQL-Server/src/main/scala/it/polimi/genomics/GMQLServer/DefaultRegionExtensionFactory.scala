@@ -45,6 +45,7 @@ object DefaultRegionExtensionFactory extends RegionExtensionFactory{
       case RELEFT() => Set(COORD_POS.LEFT_POS)
       case RERIGHT() => Set(COORD_POS.RIGHT_POS)
       case RESTRAND() => Set(COORD_POS.STRAND_POS)
+      case RENegate(x) => extract_indexes(x)
       case _ => Set.empty
     }
   }
@@ -128,6 +129,7 @@ object DefaultRegionExtensionFactory extends RegionExtensionFactory{
       }
       case REFloat(f) => (x:Array[GValue]) => GDouble(f)
       case REStringConstant(c) => { (x:Array[GValue]) => GString(c)}
+      case RENegate(f) => {x:Array[GValue] => GDouble(-make_fun(f,indexes)(x).asInstanceOf[GDouble].v)}
     }
   }
 }

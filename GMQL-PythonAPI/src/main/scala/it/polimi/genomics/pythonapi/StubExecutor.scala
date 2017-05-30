@@ -1,6 +1,7 @@
 package it.polimi.genomics.pythonapi
 
 import it.polimi.genomics.GMQLServer.Implementation
+import it.polimi.genomics.core.DataStructures.IRVariable
 import it.polimi.genomics.core.GMQLLoaderBase
 
 /**
@@ -10,6 +11,10 @@ import it.polimi.genomics.core.GMQLLoaderBase
 class StubExecutor extends Implementation{
   /** Starts the execution */
   override def go(): Unit = ???
+
+  def collect(iRVariable: IRVariable): Any = ???
+
+  def take(iRVariable: IRVariable, n: Int): Any = ???
 
   /** stop GMQL implementation (kill a job) */
   override def stop(): Unit = ???

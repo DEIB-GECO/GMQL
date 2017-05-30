@@ -2,15 +2,15 @@ package it.polimi.genomics.r
 
 import java.io.FileNotFoundException
 import java.util.concurrent.atomic.AtomicLong
-import scala.collection.mutable.ArrayBuffer
 
+import scala.collection.mutable.ArrayBuffer
 import it.polimi.genomics.GMQLServer.{DefaultRegionsToMetaFactory, DefaultRegionsToRegionFactory, GmqlServer}
 import it.polimi.genomics.core.DataStructures.CoverParameters._
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor.GMQL_DATASET
 import it.polimi.genomics.core.DataStructures.CoverParameters.CoverFlag.CoverFlag
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.Direction
 import it.polimi.genomics.core.DataStructures.GroupMDParameters._
-import it.polimi.genomics.core.DataStructures.JoinParametersRD.{JoinQuadruple, RegionBuilder}
+import it.polimi.genomics.core.DataStructures.JoinParametersRD._
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
 import it.polimi.genomics.core.DataStructures.{IRVariable, MetaOperator}
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition._
@@ -46,9 +46,9 @@ object Wrapper
   var counter: AtomicLong = new AtomicLong(0)
   var materialize_count: AtomicLong = new AtomicLong(0)
 
-  val take_meta: Array[Array[String]] = null;
-  val take_regions: Array[Array[String]] = null;
-  val take_schema: Array[String] = null;
+  val take_meta: Array[Array[String]] = null
+  val take_regions: Array[Array[String]] = null
+  val take_schema: Array[String] = null
 
   var vv: Map[String,IRVariable] = Map[String,IRVariable]()
 
@@ -64,7 +64,7 @@ object Wrapper
 
     val executor = new GMQLSparkExecutor(sc = spark_context,outputFormat = out_format)
     GMQL_server = new GmqlServer(executor)
-    //debug: probably not needed but leave it
+
     if(GMQL_server == null) {
       println("GMQL Server is down")
       return
@@ -127,24 +127,25 @@ object Wrapper
     GMQL_server setOutputPath data_output_path MATERIALIZE materialize
     materialize_count.getAndIncrement()
 
-    return "OK"
+    "OK"
   }
 
   def execute(): String =
   {
     if(materialize_count.get() <=0)
-      return "You must materialize before"
+      "You must materialize before"
     else {
       GMQL_server.run()
       materialize_count.set(0)
-      return "OK"
+      "OK"
     }
+
   }
 
   def take(data_to_take: String,how_many: Int): Unit =
   {
     if(vv.get(data_to_take).isEmpty)
-      return "No valid Data to materialize"
+      "No valid Data to materialize"
 
     var output:Any = null;
     val taken = vv(data_to_take)
@@ -154,16 +155,17 @@ object Wrapper
     else
       output = GMQL_server.setOutputPath("").TAKE(taken,how_many)
 
+    output.asInstanceOf[GMQL_DATASET]._1.foreach(println _) //regions
+    output.asInstanceOf[GMQL_DATASET]._2.foreach(println _) //metadata
+    output.asInstanceOf[GMQL_DATASET]._3.foreach(println _) //schema
     //pass to R Array[Array[String]]
 
   }
 
 
-  /*  def add_select_statement(external_meta : Option[MetaOperator], semi_join_condition : Option[MetaJoinCondition],
-                           meta_condition : Option[MetadataCondition], region_condition : Option[RegionCondition])*/
   /*GMQL OPERATION*/
 
-  //TODO miss check on regions value (if exists)
+  //TODO no check on regions
   def select(predicate:Any, region_predicate:Any, semi_join:Any, semi_join_dataset:Any, input_dataset: String): String =
   {
     if(vv.get(input_dataset).isEmpty)
@@ -196,7 +198,7 @@ object Wrapper
     if(semi_join_list.isDefined)
     {
       if(vv.get(semi_join_dataset.toString).isEmpty)
-        return "No valid Data as input"
+        return "No valid Data as semi join input"
 
       semiJoinDataAsTheyAre = vv(semi_join_dataset.toString)
       semi_join_metaDag = Some(semiJoinDataAsTheyAre.metaDag)
@@ -511,7 +513,6 @@ object Wrapper
   }
 
 
-//TODO miss JoinQuadruple
   // we do not add ref and exp name: we set to None
   def join(region_join:Any, meta_join:Any, output:String, right_dataset: String, left_dataset: String): String =
   {
@@ -771,18 +772,47 @@ object Wrapper
   }
 
 
-  def RegionQuadrupleList(join_list: Any): List[JoinQuadruple] = {
+  def RegionQuadrupleList(quad_join_list: Any): List[JoinQuadruple] = {
 
-    if(join_list==null)
-      return null
+    var quad_list: List[JoinQuadruple] = null
+    val temp_list =  new ListBuffer[JoinQuadruple]()
 
-    return null
+    if(quad_join_list==null)
+      return quad_list
+
+
+    quad_join_list match
+    {
+      case quad_matrix: Array[Array[String]] => {
+        for (elem <- quad_matrix)
+        {
+          temp_list += JoinQuadruple(first = atomic_cond(elem(0),elem(1)),
+            atomic_cond(elem(2),elem(3)),atomic_cond(elem(4),elem(5)),
+            atomic_cond(elem(6),elem(7)))
+        }
+        quad_list = temp_list.toList
+      }
+    }
+
+    return quad_list
+  }
+
+
+  def atomic_cond(cond: String,value: String): Option[AtomicCondition] =
+  {
+    cond match{
+      case "DGE" => Some(DistGreater(value.toInt))
+      case "DLE" => Some(DistLess(value.toInt))
+      case "UP" => Some(Upstream())
+      case "DOWN" => Some(DownStream())
+      case "MD" => Some(MinDistance(value.toInt))
+      case "NA" => None
+    }
   }
 
   def main(args : Array[String]): Unit = {
     //for debug if needed
-
-    /*
+/*
     initGMQL("TAB")
     val r = readDataset("/Users/simone/Downloads/DATA_SET_VAR_GTF","CustomParser")
     if(vv.get(r).isEmpty)
@@ -807,9 +837,16 @@ object Wrapper
     output.asInstanceOf[GMQL_DATASET]._2.foreach(println _) //metadata
     output.asInstanceOf[GMQL_DATASET]._3.foreach(println _) //schema
 */
-  }
 
-
-
+    /*
+    initGMQL("TAB")
+    val r = readDataset("/Users/simone/Downloads/DATA_SET_VAR_GTF","CustomParser")
+    val s  = select(null,null,semi_join = null,semi_join_dataset = null,r)
+    val a = Array(Array("UP"  , "" ,  "MD" , "1"  ,  "DGE" ,"3" , "NA"  , "NA"),
+      Array("DOWN" ,""  ,"DGE" ,"5000", "NA"  , "NA ",  "NA"  , "NA" ),
+    Array("UP"  , "" , "NA"  , "NA"   ,  "NA"  , "NA" , "NA"  , "NA" ))
+    val j = join(a,null,"CONTIG",r,r)
+*/
+}
 
 }
