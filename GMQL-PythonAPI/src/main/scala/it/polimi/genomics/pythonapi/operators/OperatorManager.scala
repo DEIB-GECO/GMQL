@@ -54,7 +54,7 @@ object OperatorManager {
       nv = v SELECT(metaJoinCondition.get, other_v, metaCondition)
     }
     else if(other < 0 && metaJoinCondition.isEmpty) {
-      nv = v SELECT(metaCondition)
+      nv = v SELECT metaCondition
     }
     else
       throw new IllegalArgumentException("other_index >= 0 <=> metaJoinCondition")
@@ -64,6 +64,9 @@ object OperatorManager {
     new_index
   }
 
+  def reg_select(index: Int, other: Int, regionCondition: RegionCondition): Int = {
+    reg_select(index, other, regionCondition, None)
+  }
 
   def reg_select(index: Int, other: Int, regionCondition: RegionCondition,
                  metaJoinCondition: Option[MetaJoinCondition]) : Int =
@@ -77,7 +80,7 @@ object OperatorManager {
       nv = v SELECT(metaJoinCondition.get, other_v, regionCondition)
     }
     else if(other < 0 && metaJoinCondition.isEmpty) {
-      nv = v SELECT(regionCondition)
+      nv = v SELECT regionCondition
     }
     else
       throw new IllegalArgumentException("other_index >= 0 <=> metaJoinCondition")
@@ -186,10 +189,11 @@ object OperatorManager {
     p match {
       case "ALL" => new ALL{}
       case "ANY" => new ANY{}
-      case _ => {
+      case _ =>
         val number = p.toInt
-        new N{
-          override val n: Int = number}
+        new N {
+          override val n: Int = number
+
       }
     }
   }
@@ -266,7 +270,7 @@ object OperatorManager {
       Option(MetaJoinCondition(listAttributes.toList))
   }
 
-  def getRegionBuilderJoin(builder: String) = {
+  def getRegionBuilderJoin(builder: String) : RegionBuilder = {
     builder match {
       case "LEFT" =>  RegionBuilder.LEFT
       case "RIGHT" => RegionBuilder.RIGHT
