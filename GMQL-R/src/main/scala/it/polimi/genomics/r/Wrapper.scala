@@ -83,39 +83,43 @@ object Wrapper
     }
   }
 
-  def readDataset(data_input_path: String, parser_name: String): String =
+  def readDataset(data_input_path: String, parser_name: String,local:Boolean): String =
   {
     var parser:BedParser = null
-    val data_path  = data_input_path+ "/files"
-
-    parser_name match
+    var out_p = ""
+    if(local)
     {
-      case "BedParser" => parser = BedParser
-      case "ANNParser" => parser = ANNParser
-      case "BroadProjParser" => parser = BroadProjParser
-      case "BasicParser" => parser = BasicParser
-      case "NarrowPeakParser" => parser = NarrowPeakParser
-      case "RnaSeqParser" => parser = RnaSeqParser
-      case "CustomParser" =>
-      {
-        parser = new CustomParser()
-        try {
-          parser.asInstanceOf[CustomParser].setSchema(data_path)
+      val data_path = data_input_path + "/files"
+
+      parser_name match {
+        case "BedParser" => parser = BedParser
+        case "ANNParser" => parser = ANNParser
+        case "BroadProjParser" => parser = BroadProjParser
+        case "BasicParser" => parser = BasicParser
+        case "NarrowPeakParser" => parser = NarrowPeakParser
+        case "RnaSeqParser" => parser = RnaSeqParser
+        case "CustomParser" => {
+          parser = new CustomParser()
+          try {
+            parser.asInstanceOf[CustomParser].setSchema(data_path)
+          }
+          catch {
+            case fe: FileNotFoundException => return fe.getMessage
+          }
         }
-        catch {
-          case fe: FileNotFoundException => return fe.getMessage
-        }
+        case _ => return "No parser defined"
       }
-      case _ => return "No parser defined"
+
+      val dataAsTheyAre = GMQL_server.READ(data_path).USING(parser)
+      val index = counter.getAndIncrement()
+      out_p = "dataset"+index
+      vv = vv + (out_p -> dataAsTheyAre)
+
+      out_p
     }
-
-    val dataAsTheyAre = GMQL_server.READ(data_path).USING(parser)
-
-    val index = counter.getAndIncrement()
-    val out_p = "dataset"+index
-    vv = vv + (out_p -> dataAsTheyAre)
-
-    out_p
+    else{
+      out_p
+    }
   }
 
   def materialize(data_to_materialize: String, data_output_path: String): String =
