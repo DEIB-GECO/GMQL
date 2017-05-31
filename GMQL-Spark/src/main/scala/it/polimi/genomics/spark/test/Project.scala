@@ -54,7 +54,7 @@ object Project {
       what match{
         case 0 => {
           //PROJECT MD
-          dataAsTheyAre.PROJECT(projected_meta = Some(List("filename")),extended_meta = None, all_but = List("score"), extended_values = None)
+          dataAsTheyAre.PROJECT(projected_meta = Some(List("filename")),extended_meta = None, all_but = Some(List("score")), extended_values = None)
         }
 
         case 1 => {
