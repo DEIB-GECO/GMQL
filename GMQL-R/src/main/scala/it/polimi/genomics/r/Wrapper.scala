@@ -198,6 +198,8 @@ object Wrapper
     }
 
     val semi_join_list = MetaJoinConditionList(semi_join)
+    if(semi_join_list==null)
+      return "No valid condition in semi join"
 
     if(semi_join_list.isDefined)
     {
@@ -664,9 +666,10 @@ object Wrapper
           val attribute = elem(0)
           attribute match
           {
-            case "DEFAULT" => joinList+=Default(elem(1))
-            case "FULLNAME" => joinList+=FullName(elem(1))
+            case "DEF" => joinList+=Default(elem(1))
+            case "FULL" => joinList+=FullName(elem(1))
             case "EXACT" => joinList+=Exact(elem(1))
+            case _ => return null
           }
         }
         if (joinList.nonEmpty)
