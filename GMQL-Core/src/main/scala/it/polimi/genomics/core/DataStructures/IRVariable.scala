@@ -57,8 +57,6 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
     add_select_statement(external_meta = Some(meta_join_variable.metaDag), semi_join_condition = Some(semi_con), meta_condition = Some(meta_con), region_condition = Some(reg_con))
   }
 
-
-
   /**
    * Return a new variable that is a the SELECTION of the class variable
    * @param external_meta  The meta dataset to be used for the semi-join
@@ -103,30 +101,23 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
 
   }
 
-  def PROJECT(projected_meta : Option[List[String]] = None, extended_meta : Option[MetaAggregateStruct] = None,
-              all_but : List[String],
-              extended_values : Option[List[RegionFunction]] = None): IRVariable = {
-
-      val selectedSchema = this.schema.zipWithIndex.filter(x=> !all_but.contains(x._1._1) ).map(_._2)
-
-    PROJECT(projected_meta , extended_meta ,
-                Some(selectedSchema),
-                extended_values )
-
-  }
     def PROJECT(projected_meta : Option[List[String]] = None, extended_meta : Option[MetaAggregateStruct] = None,
-              projected_values : Option[List[Int]] = None,
+              projected_values : Option[List[Int]] = None,all_but : Option[List[String]] = None,
               extended_values : Option[List[RegionFunction]] = None): IRVariable = {
+
+      val new_projected_values = if(all_but.isDefined)
+         Some(this.schema.zipWithIndex.filter(x=> !all_but.contains(x._1._1) ).map(_._2))
+      else projected_values
 
     var new_meta_dag = this.metaDag
     if (projected_meta.isDefined || extended_meta.isDefined){
       new_meta_dag = IRProjectMD(projected_meta, extended_meta, new_meta_dag)
     }
-    if (projected_values.isDefined || extended_values.isDefined){
+    if (new_projected_values.isDefined || extended_values.isDefined){
 
       val all_proj_values : Option[List[Int]] =
-        if (projected_values.isDefined) {
-          val list = projected_values.get
+        if (new_projected_values.isDefined) {
+          val list = new_projected_values.get
           val new_list =
             if (extended_values.isDefined){
               list ++ ((this.schema.size) to (this.schema.size + extended_values.get.size - 1)).toList
@@ -145,9 +136,9 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
         this.regionDag,this.metaDag)
 
       val new_schema_pt1 =
-        if (projected_values.isDefined)
+        if (new_projected_values.isDefined)
         {
-          for (x <- projected_values.get) yield this.schema(x)
+          for (x <- new_projected_values.get) yield this.schema(x)
         }
         else
         {

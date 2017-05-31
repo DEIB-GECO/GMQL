@@ -149,7 +149,7 @@
         meta_projection,
         None,
         region_project_fields,
-        region_modifier)
+        extended_values = region_modifier)
 
       CompilerDefinedVariable(
         output.name,

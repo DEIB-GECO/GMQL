@@ -1,9 +1,10 @@
 package it.polimi.genomics.GMQLServer
 
 import it.polimi.genomics.core.DataStructures.Builtin.MapFunctionFactory
-import it.polimi.genomics.core.DataStructures.RegionAggregate.RegionsToRegion
+import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionsToMeta, RegionsToRegion}
 import it.polimi.genomics.core._
 import it.polimi.genomics.core.ParsingType
+import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 
 /**
  * Created by pietro on 22/07/15.
@@ -23,8 +24,34 @@ object DefaultRegionsToRegionFactory extends MapFunctionFactory{
       case "MIN" => getMin(position,output_name)
       case "MAX" => getMax(position,output_name)
       case "AVG" => getAvg(position,output_name)
+      case "MEDIAN" => getMEDIAN(position,output_name)
       case "BAG" => getBAG(position,output_name)
       case _ => throw new Exception("No map function with the given name (" + name + ") found.")
+    }
+  }
+
+  private def getMEDIAN(position:Int,new_name:Option[String]) = new RegionsToRegion {
+    override val resType: PARSING_TYPE = ParsingType.DOUBLE
+    override val index: Int = position
+    override val associative: Boolean = false
+    override val funOut: (GValue, Int) => GValue = {(v1,v2)=>v1}
+    override val fun: (List[GValue]) => GValue = {
+      (line) => {
+        /*val values: List[Double] = line.map{ gvalue => val s = gvalue.asInstanceOf[GDouble].v;s}.sorted*/
+        val values: List[Double] = line.flatMap((gvalue) => {
+          if (gvalue.isInstanceOf[GDouble]) Some(gvalue.asInstanceOf[GDouble].v) else None
+        }).sorted
+        if (!values.isEmpty) {
+          if (/*line*/values.length % 2 == 0) {
+            val right = /*line*/values.length / 2
+            val left = (/*line*/values.length / 2) - 1
+            GDouble((values(left) + values(left)) / 2)
+          }
+          else
+            GDouble(values(/*line*/values.length / 2))
+        }
+        else GNull()
+      }
     }
   }
 
