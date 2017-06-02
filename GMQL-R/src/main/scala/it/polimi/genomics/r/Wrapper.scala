@@ -6,7 +6,6 @@ import java.util.concurrent.atomic.AtomicLong
 import it.polimi.genomics.GMQLServer.{DefaultRegionsToMetaFactory, DefaultRegionsToRegionFactory, GmqlServer}
 import it.polimi.genomics.core.DataStructures.CoverParameters._
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor.GMQL_DATASET
-import it.polimi.genomics.core.DataStructures.CoverParameters.CoverFlag.CoverFlag
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.Direction
 import it.polimi.genomics.core.DataStructures.GroupMDParameters._
 import it.polimi.genomics.core.DataStructures.JoinParametersRD._
@@ -16,8 +15,7 @@ import it.polimi.genomics.core.DataStructures.MetaJoinCondition._
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
 import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionsToMeta, RegionsToRegion}
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
-import it.polimi.genomics.core.{GMQLSchemaFormat, GRecordKey, GValue}
-import it.polimi.genomics.core.GMQLSchemaFormat.Value
+import it.polimi.genomics.core.GMQLSchemaFormat
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.loaders._
 import org.apache.spark.SparkConf
@@ -31,6 +29,9 @@ import scala.collection.mutable.ListBuffer
 
 object Wrapper {
   var GMQL_server: GmqlServer = _
+  var Spark_context: SparkContext = _
+
+  var remote_processing:Boolean = false
 
   //thread safe counter for unique string pointer to dataset
   //'cause we could have two pointer at the same dataset and we
@@ -50,16 +51,16 @@ object Wrapper {
 
   var vv: Map[String, IRVariable] = Map[String, IRVariable]()
 
-  def initGMQL(output_format: String): Unit = {
+  def initGMQL(output_format: String,remote_proc:Boolean): Unit = {
     val spark_conf = new SparkConf().setMaster("local[*]").
       setAppName("GMQL-R").set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
       .set("spark.executor.memory", "6g")
       .set("spark.driver.memory", "2g")
-    val spark_context = new SparkContext(spark_conf)
+    Spark_context = new SparkContext(spark_conf)
 
     val out_format = outputFormat(output_format)
 
-    val executor = new GMQLSparkExecutor(sc = spark_context, outputFormat = out_format)
+    val executor = new GMQLSparkExecutor(sc = Spark_context, outputFormat = out_format)
     GMQL_server = new GmqlServer(executor)
 
     if (GMQL_server == null) {
@@ -67,8 +68,15 @@ object Wrapper {
       return
     }
 
+    remote_processing = remote_proc
+
     println("GMQL Server is up")
   }
+
+  def remote_proc(remote:Boolean ): Unit = {
+    remote_processing = remote
+  }
+
 
   def outputFormat(format: String): GMQLSchemaFormat.Value = {
     format match {
@@ -79,42 +87,49 @@ object Wrapper {
     }
   }
 
-  def readDataset(data_input_path: String, parser_name: String, local: Boolean): String = {
+  def readDataset(data_input_path: String, parser_name: String): String = {
     var parser: BedParser = null
     var out_p = ""
-    if (local) {
-      val data_path = data_input_path + "/files"
+    val data_path = data_input_path + "/files"
 
-      parser_name match {
-        case "BedParser" => parser = BedParser
-        case "ANNParser" => parser = ANNParser
-        case "BroadProjParser" => parser = BroadProjParser
-        case "BasicParser" => parser = BasicParser
-        case "NarrowPeakParser" => parser = NarrowPeakParser
-        case "RnaSeqParser" => parser = RnaSeqParser
-        case "CustomParser" => {
-          parser = new CustomParser()
-          try {
-            parser.asInstanceOf[CustomParser].setSchema(data_path)
-          }
-          catch {
-            case fe: FileNotFoundException => return fe.getMessage
-          }
+    parser_name match {
+      case "BEDPARSER" => parser = BedParser
+      case "ANNPARSER" => parser = ANNParser
+      case "BROADPROJPARSER" => parser = BroadProjParser
+      case "BASICPARSER" => parser = BasicParser
+      case "NARROWPEAKPARSER" => parser = NarrowPeakParser
+      case "RNASEQPARSER" => parser = RnaSeqParser
+      case "CUSTOMPARSER" => {
+        parser = new CustomParser()
+        try {
+          parser.asInstanceOf[CustomParser].setSchema(data_path)
         }
-        case _ => return "No parser defined"
+        catch {
+          case fe: FileNotFoundException => return fe.getMessage
+        }
       }
-
-      val dataAsTheyAre = GMQL_server.READ(data_path).USING(parser)
-      val index = counter.getAndIncrement()
-      out_p = "dataset" + index
-      vv = vv + (out_p -> dataAsTheyAre)
-
-      out_p
+      case _ => return "No parser defined"
     }
-    else {
-      out_p
-    }
+
+    val dataAsTheyAre = GMQL_server.READ(data_path).USING(parser)
+    val index = counter.getAndIncrement()
+    out_p = "dataset" + index
+    vv = vv + (out_p -> dataAsTheyAre)
+
+    out_p
+
   }
+
+  def read(): Unit =
+  {
+    val metaDS = Spark_context.parallelize((1 to 10).map(x=> (1,("test","Abdo"))))
+    // regionDS = Spark_context.parallelize((1 to 1000).map{x=>(new GRecordKey(1,"Chr"+(x%2),x,x+200,'*'),Array[GValue](GDouble(1)) )})
+
+    val DS1 = GMQL_server.READ("").USING(metaDS,null,null)
+
+  }
+
+
 
   def materialize(data_to_materialize: String, data_output_path: String): String = {
     if (vv.get(data_to_materialize).isEmpty)
@@ -135,7 +150,6 @@ object Wrapper {
       materialize_count.set(0)
       "OK"
     }
-
   }
 
   def take(data_to_take: String, how_many: Int): String = {
@@ -154,29 +168,29 @@ object Wrapper {
       map(x => Array[String](x._1._1.toString, x._1._2, x._1._3.toString, x._1._4.toString, x._1._5.toString) ++ x._2.
         map(s => s.toString))
 
-    for(reg <- mem_regions)
+    /*for(reg <- mem_regions)
       {
         print(reg.mkString(" "))
         println()
-      }
+      }*/
 
     mem_meta = output.asInstanceOf[GMQL_DATASET]._2.
       map(x => Array[String](x._1.toString, x._2._1, x._2._2))
 
-    for(reg <- mem_meta)
+    /*for(reg <- mem_meta)
     {
       print(reg.mkString(" "))
       println()
-    }
+    }*/
 
     mem_schema = output.asInstanceOf[GMQL_DATASET]._3.
-      map(x => Array[String](x._1,x._2.toString)).toArray
+    map(x => Array[String](x._1)).toArray
 
-    for(reg <- mem_schema)
+   /* for(reg <- mem_schema)
     {
       print(reg.mkString(" "))
       println()
-    }
+    }*/
 
     "OK"
   }
@@ -369,7 +383,8 @@ object Wrapper {
     out_p
   }
 
-  def difference(join_by: Any, left_dataset: String, right_dataset: String): String = {
+  def difference(join_by: Any, is_exact:Boolean, left_dataset: String, right_dataset: String): String = {
+
     if (vv.get(right_dataset).isEmpty)
       return "No valid right dataset as input"
 
@@ -381,7 +396,7 @@ object Wrapper {
 
     val join_by_list: Option[MetaJoinCondition] = MetaJoinConditionList(join_by)
 
-    val difference = leftDataAsTheyAre.DIFFERENCE(join_by_list, rightDataAsTheyAre)
+    val difference = leftDataAsTheyAre.DIFFERENCE(join_by_list, rightDataAsTheyAre, is_exact)
 
     val index = counter.getAndIncrement()
     //val out_p = left_dataset+right_dataset+"/difference"+index
@@ -790,9 +805,10 @@ object Wrapper {
 
   def main(args: Array[String]): Unit = {
 
-    initGMQL("TAB")
-    val r = readDataset("/Users/simone/Downloads/DATA_SET_VAR_GTF", "CustomParser", true)
-    take(r,10)
+    initGMQL("TAB",false)
+    val r = readDataset("/Users/simone/Downloads/DATA_SET_VAR_GTF", "CUSTOMPARSER")
+    //take(r,10)
+    read()
   }
 
 }
