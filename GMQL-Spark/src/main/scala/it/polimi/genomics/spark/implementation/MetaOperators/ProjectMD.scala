@@ -25,14 +25,21 @@ object ProjectMD {
     val filteredInput =
       if (projectedAttributes.isDefined) {
         val list = projectedAttributes.get
-        input.filter(a => list.foldLeft(false)( _ | a._2._1.endsWith(_)))
+        input.filter(a =>
+          list.foldLeft(false)( (x,y) => x | a._2._1.endsWith("."+y) | a._2._1.equals(y)))
       } else input
 
     if (metaAggregator.isDefined) {
       val agg = metaAggregator.get
       filteredInput.union(
-        filteredInput.filter(in => agg.inputAttributeNames.foldLeft(false)( _ | in._2._1.endsWith(_))).groupBy(x=>x._1).map{x =>
-          (x._1, (agg.newAttributeName , agg.fun(x._2.groupBy(_._2._1).map(s=>if(agg.inputAttributeNames.foldLeft(false)( _ | s._1.endsWith(_)))s._2.map(_._2._2).toTraversable else Traversable()).toArray)))
+        filteredInput
+          .filter(in => agg.inputAttributeNames.foldLeft(false)( _ | in._2._1.endsWith(_)))
+          .groupBy(x=>x._1)
+          .map{x =>
+            (x._1,
+              (agg.newAttributeName ,
+                agg.fun(x._2.groupBy(_._2._1)
+                  .map(s=>if(agg.inputAttributeNames.foldLeft(false)( _ | s._1.endsWith(_)))s._2.map(_._2._2).toTraversable else Traversable()).toArray)))
         }
       )
     } else {
