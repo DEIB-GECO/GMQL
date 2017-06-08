@@ -21,10 +21,8 @@ import scala.util.parsing.combinator.JavaTokenParsers
 trait GmqlParsers extends JavaTokenParsers {
 
   override def stringLiteral:Parser[String] =
-    ("\""+"""([^"\p{Cntrl}\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*"""+"\"").r ^^
-      {x => "\"" + x.take(x.length - 1).drop(1).replace("\\", "") + "\""} |
-    ("\'"+"""([^'\p{Cntrl}\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*"""+"\'").r ^^
-      {x => "'" + x.take(x.length - 1).drop(1).replace("\\", "") + "'"}
+    ("\""+"""([^"\p{Cntrl}\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*"""+"\"").r  |
+    ("\'"+"""([^'\p{Cntrl}\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*"""+"\'").r
 
   val variableId:Parser[VariableIdentifier] = positioned(ident ^^ {x => VariableIdentifier(x)})
   val variablePath:Parser[VariablePath] = positioned(
@@ -112,7 +110,13 @@ trait GmqlParsers extends JavaTokenParsers {
 
   val meta_value:Parser[String] = floatingPointNumber |
     (stringLiteral ^^ {
-      x=> x.drop(1).dropRight(1)})
+      x=>
+        if (x.startsWith("'")){
+          x.drop(1).dropRight(1).replace("\\'","'")
+        } else {
+          x.drop(1).dropRight(1).replace("\\\"","\"")
+        }
+    })
 
   val meta_operator:Parser[META_OP] = ("==" | "!="  | ">=" | "<=" | ">" | "<") ^^ {
     case "==" => META_OP.EQ
