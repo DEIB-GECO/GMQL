@@ -20,8 +20,11 @@ import scala.util.parsing.combinator.JavaTokenParsers
   */
 trait GmqlParsers extends JavaTokenParsers {
 
-  override def stringLiteral:Parser[String] = ("\""+"""([^"\p{Cntrl}\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*"""+"\"").r |
-    ("\'"+"""([^'\p{Cntrl}\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*"""+"\'").r
+  override def stringLiteral:Parser[String] =
+    ("\""+"""([^"\p{Cntrl}\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*"""+"\"").r ^^
+      {x => "\"" + x.take(x.length - 1).drop(1).replace("\\", "") + "\""} |
+    ("\'"+"""([^'\p{Cntrl}\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*"""+"\'").r ^^
+      {x => "'" + x.take(x.length - 1).drop(1).replace("\\", "") + "'"}
 
   val variableId:Parser[VariableIdentifier] = positioned(ident ^^ {x => VariableIdentifier(x)})
   val variablePath:Parser[VariablePath] = positioned(
