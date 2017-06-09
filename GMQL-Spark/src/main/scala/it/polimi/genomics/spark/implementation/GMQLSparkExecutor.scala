@@ -6,24 +6,21 @@ package it.polimi.genomics.spark.implementation
  *
  */
 
-import java.io.{BufferedWriter, OutputStreamWriter, PrintWriter}
+import java.io.{BufferedWriter, OutputStreamWriter}
 
 import it.polimi.genomics.GMQLServer.Implementation
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.Direction
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.TopParameter
-import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaAggregateStruct
+import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaExtension
 import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinCondition
 import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionExtension, RegionsToMeta}
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
 import it.polimi.genomics.core.DataStructures._
-import it.polimi.genomics.core._
 import it.polimi.genomics.core.DataTypes._
 import it.polimi.genomics.core.ParsingType._
+import it.polimi.genomics.core._
 import it.polimi.genomics.core.exception.SelectFormatException
-import it.polimi.genomics.spark.implementation.GMQLSparkExecutor.GMQL_DATASET
-import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.FileSystem
 import it.polimi.genomics.spark.implementation.MetaOperators.GroupOperator.{MetaGroupMGD, MetaJoinMJD2}
 import it.polimi.genomics.spark.implementation.MetaOperators.SelectMeta._
 import it.polimi.genomics.spark.implementation.MetaOperators._
@@ -32,15 +29,11 @@ import it.polimi.genomics.spark.implementation.RegionsOperators.GenometricMap._
 import it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions.{ReadMEMRD, StoreGTFRD, StoreTABRD, TestingReadRD}
 import it.polimi.genomics.spark.implementation.RegionsOperators._
 import it.polimi.genomics.spark.implementation.loaders._
-
-import scala.collection.JavaConverters._
-import org.apache.hadoop.fs.Path
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
-import org.apache.spark.{HashPartitioner, SparkContext}
 import org.slf4j.LoggerFactory
-
-import scala.collection.Map
-import scala.xml.Elem
 
 object GMQLSparkExecutor{
   type GMQL_DATASET = (Array[(GRecordKey, Array[GValue])], Array[(Long, (String, String))], List[(String, PARSING_TYPE)])
@@ -253,7 +246,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
             case _ => PurgeMD(this, regionDataset, inputDataset, sc)
           }
           case IRSemiJoin(externalMeta: MetaOperator, joinCondition: MetaJoinCondition, inputDataset: MetaOperator) => SemiJoinMD(this, externalMeta, joinCondition, inputDataset, sc)
-          case IRProjectMD(projectedAttributes: Option[List[String]], metaAggregator: Option[MetaAggregateStruct], inputDataset: MetaOperator) => ProjectMD(this, projectedAttributes, metaAggregator, inputDataset, sc)
+          case IRProjectMD(projectedAttributes: Option[List[String]], metaAggregator: Option[MetaExtension], inputDataset: MetaOperator) => ProjectMD(this, projectedAttributes, metaAggregator, inputDataset, sc)
           case IRUnionMD(leftDataset: MetaOperator, rightDataset: MetaOperator, leftName : String, rightName : String) => UnionMD(this, leftDataset, rightDataset, leftName, rightName, sc)
           case IRUnionAggMD(leftDataset: MetaOperator, rightDataset: MetaOperator, leftName : String, rightName : String) => UnionAggMD(this, leftDataset, rightDataset, leftName, rightName, sc)
           case IRAggregateRD(aggregator: List[RegionsToMeta], inputDataset: RegionOperator) => AggregateRD(this, aggregator, inputDataset, sc)

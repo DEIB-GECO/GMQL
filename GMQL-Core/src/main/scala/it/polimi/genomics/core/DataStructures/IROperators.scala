@@ -6,11 +6,11 @@ import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.Direct
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.TopParameter
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.JoinQuadruple
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
-import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaAggregateStruct
+import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaExtension
 import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinCondition
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
-import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionExtension, RegionFunction, RegionsToMeta, RegionsToRegion}
+import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionFunction, RegionsToMeta, RegionsToRegion}
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
 import it.polimi.genomics.core.GMQLLoader
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
@@ -127,7 +127,7 @@ case class IRSemiJoin(external_meta : MetaOperator, join_condition : MetaJoinCon
  * @param input_dataset input set of metadata
  */
 //TODO cambia: togliere distinct e extended
-case class IRProjectMD(projected_attributes : Option[List[String]], extended_attributes : Option[MetaAggregateStruct], input_dataset : MetaOperator) extends MetaOperator {
+case class IRProjectMD(projected_attributes : Option[List[String]], extended_attributes : Option[MetaExtension], input_dataset : MetaOperator) extends MetaOperator {
 
 }
 

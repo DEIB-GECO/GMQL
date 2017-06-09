@@ -6,6 +6,6 @@ package it.polimi.genomics.core.DataStructures.MetaAggregate
 trait MetaAggregateStruct extends Serializable{
   val newAttributeName : String
   val inputAttributeNames : List[String]
-  val fun : Array[Traversable[String]] => String
+//  val fun : Array[Traversable[String]] => String
 }
 

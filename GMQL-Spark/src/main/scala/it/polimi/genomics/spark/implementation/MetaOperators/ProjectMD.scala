@@ -1,6 +1,6 @@
 package it.polimi.genomics.spark.implementation.MetaOperators
 
-import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaAggregateStruct
+import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaExtension
 import it.polimi.genomics.core.DataStructures.MetaOperator
 import it.polimi.genomics.core.DataTypes.MetaType
 import it.polimi.genomics.core.exception.SelectFormatException
@@ -17,7 +17,7 @@ object ProjectMD {
   private final val logger = LoggerFactory.getLogger(ProjectMD.getClass);
 
   @throws[SelectFormatException]
-  def apply(executor: GMQLSparkExecutor, projectedAttributes: Option[List[String]], metaAggregator: Option[MetaAggregateStruct], inputDataset: MetaOperator, sc: SparkContext): RDD[MetaType] = {
+  def apply(executor: GMQLSparkExecutor, projectedAttributes: Option[List[String]], metaAggregator: Option[MetaExtension], inputDataset: MetaOperator, sc: SparkContext): RDD[MetaType] = {
 
     logger.info("----------------ProjectMD executing..")
 
