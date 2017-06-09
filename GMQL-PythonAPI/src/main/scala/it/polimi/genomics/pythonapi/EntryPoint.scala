@@ -51,7 +51,7 @@ object EntryPoint {
       .set("spark.driver.memory", properties.driverMemory)
       .set("spark.kryoserializer.buffer.max", properties.kryobuffer)
 
-    val sc = new SparkContext(conf)
+    val sc = SparkContext.getOrCreate(conf)
     logger.info("Spark Context initiated")
     sc
   }
