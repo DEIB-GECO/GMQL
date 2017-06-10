@@ -2,10 +2,10 @@ package it.polimi.genomics.flink.FlinkImplementation
 
 import java.io.File
 
-import it.polimi.genomics.GMQLServer.{GraphEnumerator, Implementation}
+import it.polimi.genomics.GMQLServer.Implementation
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction._
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.TopParameter
-import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaAggregateStruct
+import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaExtension
 import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinCondition
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
@@ -18,7 +18,7 @@ import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.core.{BinSize, GMQLLoader, GMQLLoaderBase, GMQLSchemaFormat}
 import it.polimi.genomics.flink.FlinkImplementation.operator.meta._
 import it.polimi.genomics.flink.FlinkImplementation.operator.metaGroup.MetaGroupMGD
-import it.polimi.genomics.flink.FlinkImplementation.operator.metaJoin.{ MetaJoinMJD3}
+import it.polimi.genomics.flink.FlinkImplementation.operator.metaJoin.MetaJoinMJD3
 import it.polimi.genomics.flink.FlinkImplementation.operator.region._
 import it.polimi.genomics.flink.FlinkImplementation.reader.parser._
 import it.polimi.genomics.flink.FlinkImplementation.writer.{DefaultRegionWriter, MetaWriter, RegionWriter}
@@ -265,7 +265,7 @@ def stop(): Unit ={
           case IRSelectMD(metaCondition: MetadataCondition, inputDataset: MetaOperator) => SelectMD(this, metaCondition, inputDataset, false, env)
           case IRPurgeMD(regionDataset: RegionOperator, inputDataset: MetaOperator) => PurgeMD(this, regionDataset, inputDataset, env)
           case IRSemiJoin(externalMeta: MetaOperator, joinCondition: MetaJoinCondition, inputDataset: MetaOperator) => SemiJoinMD(this, externalMeta, joinCondition, inputDataset, env)
-          case IRProjectMD(projectedAttributes: Option[List[String]], metaAggregator: Option[MetaAggregateStruct], inputDataset: MetaOperator) => ProjectMD(this, projectedAttributes, metaAggregator, inputDataset, env)
+          case IRProjectMD(projectedAttributes: Option[List[String]], metaAggregator: Option[MetaExtension], inputDataset: MetaOperator) => ProjectMD(this, projectedAttributes, metaAggregator, inputDataset, env)
           case IRUnionMD(leftDataset: MetaOperator, rightDataset: MetaOperator, leftName : String, rightName : String) => UnionMD(this, leftDataset, rightDataset, leftName, rightName, env)
           case IRUnionAggMD(leftDataset: MetaOperator, rightDataset: MetaOperator, leftName : String, rightName : String) => UnionAggMD(this, leftDataset, rightDataset, leftName, rightName, env)
           case IRAggregateRD(aggregator: List[RegionsToMeta], inputDataset: RegionOperator) => AggregateRD(this, aggregator, inputDataset, env)

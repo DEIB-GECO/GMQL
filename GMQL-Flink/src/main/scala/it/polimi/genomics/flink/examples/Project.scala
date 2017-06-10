@@ -1,10 +1,10 @@
 package it.polimi.genomics.flink.examples
 
-import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaAggregateStruct
+import it.polimi.genomics.GMQLServer.GmqlServer
+import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaExtension
 import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionExtension, RegionsToMeta}
 import it.polimi.genomics.core.DataStructures.RegionCondition.{Predicate, REG_OP}
 import it.polimi.genomics.core.{GDouble, GString, GValue}
-import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
 import it.polimi.genomics.flink.FlinkImplementation.reader.parser.BedScoreParser
 
@@ -40,7 +40,7 @@ object Project {
 
         case 1 => {
           //PROJECT MD ATTRIBUTE AND AGGREGATE MD
-          val fun = new MetaAggregateStruct {
+          val fun = new MetaExtension {
             override val newAttributeName: String = "computed_bert_value1"
             override val inputAttributeNames: List[String] = List("bert_value1")
             override val fun: (Array[Traversable[String]]) => String =
