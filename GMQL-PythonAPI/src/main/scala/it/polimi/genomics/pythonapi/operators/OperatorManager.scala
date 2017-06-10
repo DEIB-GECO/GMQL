@@ -39,6 +39,11 @@ object OperatorManager {
   /*
   * SELECT
   * */
+
+  def meta_select(index: Int, other: Int, metaCondition: MetadataCondition): Int = {
+    meta_select(index, other, metaCondition, None)
+  }
+
   def meta_select(index: Int, other: Int,  metaCondition : MetadataCondition,
                   metaJoinCondition: Option[MetaJoinCondition]) : Int =
   {
@@ -139,15 +144,17 @@ object OperatorManager {
 
     var projected_regs_values : Option[List[Int]] = None
     if(projected_regs.isDefined) {
-      val l = projected_regs.get.asScala.toList
-      val proj = new ListBuffer[Int]()
-      for(p <- l) {
-        val n = v.get_field_by_name(p)
-        if(n.isDefined){
-          proj += n.get
+      if(projected_regs.get.size() > 0) {
+        val l = projected_regs.get.asScala.toList
+        val proj = new ListBuffer[Int]()
+        for(p <- l) {
+          val n = v.get_field_by_name(p)
+          if(n.isDefined){
+            proj += n.get
+          }
         }
+        projected_regs_values = Option(proj.toList)
       }
-      projected_regs_values = Option(proj.toList)
     }
 
     var extended_regs_l : Option[List[RegionFunction]] = None
@@ -162,9 +169,7 @@ object OperatorManager {
 
 
     // do the operation
-    val nv = v PROJECT(projected_meta_values,
-      extended_meta, projected_regs_values,
-      extended_regs_l)
+    val nv = v PROJECT(projected_meta_values, extended_meta, projected_regs_values, None, extended_regs_l)
 
     // generate new index
     val new_index = PythonManager.putNewVariable(nv)
