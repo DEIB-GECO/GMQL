@@ -1,5 +1,7 @@
 package it.polimi.genomics.spark.implementation.RegionsOperators
 
+import java.io
+
 import com.google.common.base.Charsets
 import com.google.common.hash.Hashing
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.Direction
@@ -12,6 +14,8 @@ import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.rdd.{RDD, ShuffledRDD}
 import org.apache.spark.{Partitioner, SparkContext}
 import org.slf4j.LoggerFactory
+
+import scala.collection.immutable.HashMap
 
 /**
  * Created by abdulrahman kaitoua on 13/07/15.
@@ -31,6 +35,7 @@ object OrderRD {
       topParameter match {
         case NoTop() => false
         case Top(_) => false
+        case TopP(_) => true
         case TopG(_) => true
       }
 
@@ -38,6 +43,7 @@ object OrderRD {
       topParameter match {
         case NoTop() => 0
         case Top(v) => v
+        case TopP(v) => v
         case TopG(v) => v
       }
 
@@ -58,7 +64,7 @@ object OrderRD {
           s.append(r._1._1)
           keys.init.foreach((i) => s.append(r._2(i)))
           Hashing.md5.newHasher.putString(s.toString(), Charsets.UTF_8).hash.asLong
-        },valuesOrdering,ordering,top)
+        },valuesOrdering,ordering,top,topParameter)
       } else {
         val ids = ds.map(_._1._1).distinct().collect
         val dss: RDD[(Long, (GRecordKey, Array[GValue]))] = ds.keyBy(x=>x._1._1)
@@ -96,14 +102,24 @@ object OrderRD {
     sortedGroupsOfRegions
   }
 
-  def sort(ds:RDD[(Long,Iterable[GRECORD])],valuesOrdering: Ordering[Array[GValue]],ordering: List[(Int, Direction)],top:Int): RDD[GRECORD] ={
-    ds.mapValues(it => it.toList.sortBy( x =>  GDouble(x._1._1.toDouble).asInstanceOf[GValue] +: ordering.map(o => x._2(o._1)).toArray)(/*ordering.head._2 match {
+  def sort(ds:RDD[(Long,Iterable[GRECORD])],valuesOrdering: Ordering[Array[GValue]],ordering: List[(Int, Direction)],top:Int, topParameter : TopParameter): RDD[GRECORD] ={
+    val data = ds.mapValues(it => it.toList.sortBy( x =>  GDouble(x._1._1.toDouble).asInstanceOf[GValue] +: ordering.map(o => x._2(o._1)).toArray)(/*ordering.head._2 match {
       case Direction.ASC => Ordering[Iterable[GValue]];
       case Direction.DESC =>Ordering[Iterable[GValue]].reverse}*/
         valuesOrdering
       )
     )
-      .flatMap{x=> val itr = if(top>0) x._2.take(top) else x._2; var position = 0
+    val percentages= if(topParameter.isInstanceOf[TopP]){
+       data.map(x=>(x._1,x._2.size * top/100)).collectAsMap()
+    }else HashMap[Long,Int]()
+
+
+    data
+      .flatMap{x=>
+        val itr = if(top>0) x._2.take(percentages.get(x._1).getOrElse(top))
+        else x._2;
+
+        var position = 0
       itr.map{c=>
         position = position +1;
         (c._1, c._2 :+ GDouble(position))

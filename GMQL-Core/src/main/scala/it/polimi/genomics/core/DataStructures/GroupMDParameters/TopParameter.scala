@@ -7,4 +7,5 @@ sealed trait TopParameter
 
 case class NoTop() extends TopParameter
 case class Top(k : Int) extends TopParameter
+case class TopP(percent : Int) extends TopParameter
 case class TopG(k : Int) extends TopParameter
