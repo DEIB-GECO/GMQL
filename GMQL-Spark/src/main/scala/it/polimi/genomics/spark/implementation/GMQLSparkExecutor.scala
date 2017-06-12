@@ -132,73 +132,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
         if(testingIOFormats){
           metaRDD.map(x=>x._1+","+x._2._1 + "," + x._2._2).saveAsTextFile(MetaOutputPath)
           regionRDD.map(x=>x._1+"\t"+x._2.mkString("\t")).saveAsTextFile(RegionOutputPath)
-        }/*else {
-          val MetaOutputPath = variableDir + "/meta/"
-          val RegionOutputPath = variableDir + "/exp/"
-
-          logger.debug(MetaOutputPath)
-          logger.debug(RegionOutputPath)
-          logger.debug(metaRDD.toDebugString)
-          logger.debug(regionRDD.toDebugString)
-
-
-          val outSample = "S"
-
-          val Ids = metaRDD.keys.distinct()
-          val newIDS: Map[Long, Long] = Ids.zipWithIndex().collectAsMap()
-          val newIDSbroad = sc.broadcast(newIDS)
-
-          val regionsPartitioner = new HashPartitioner(Ids.count.toInt)
-
-          val keyedRDD = if(!(outputFormat == GMQLSchemaFormat.GTF)){
-             regionRDD.map(x => (outSample+"_"+ "%05d".format(newIDSbroad.value.get(x._1._1).getOrElse(x._1._1))+".gdm",
-               x._1._2 + "\t" + x._1._3 + "\t" + x._1._4 + "\t" + x._1._5 + "\t" + x._2.mkString("\t")))
-               .partitionBy(regionsPartitioner).mapPartitions(x=>x.toList.sortBy{s=> val data = s._2.split("\t"); (data(0),data(1).toLong,data(2).toLong)}.iterator)
-          }else {
-            val jobname = outputFolderName
-            val score = variable.schema.zipWithIndex.filter(x => x._1._1.toLowerCase().equals("score"))
-            val source = variable.schema.zipWithIndex.filter(x => x._1._1.toLowerCase().equals("source"))
-            val feature = variable.schema.zipWithIndex.filter(x => x._1._1.toLowerCase().equals("feature"))
-            val frame = variable.schema.zipWithIndex.filter(x => x._1._1.toLowerCase().equals("frame"))
-            val scoreIndex = if (score.size > 0) score.head._2 else -1
-            val sourceIndex = if (source.size > 0) source.head._2 else -1
-            val featureIndex = if (feature.size > 0) feature.head._2 else -1
-            val frameIndex = if (frame.size > 0) frame.head._2 else -1
-
-            regionRDD.map { x =>
-
-              val values = variable.schema.zip(x._2).flatMap { s =>
-                if (s._1._1.equals("score")||s._1._1.equals("source")||s._1._1.equals("feature")||s._1._1.equals("frame")) None
-                else Some(s._1._1 + " \"" + s._2 + "\";")
-              }.mkString(" ")
-
-              (outSample + "_" + "%05d".format(newIDSbroad.value.get(x._1._1).getOrElse(x._1._1)) + ".gtf",
-                x._1._2 //chrom
-                  + "\t" + {if(sourceIndex >=0) x._2(sourceIndex).toString else "GMQL" }//variable name
-                  + "\t" + {if (featureIndex >=0) x._2(featureIndex) else  "Region"}
-                  + "\t" + x._1._3 + "\t" + x._1._4 + "\t" //start , stop
-                  + {
-                  if (scoreIndex >= 0) x._2(scoreIndex) else "0.0"
-                } //score
-                  + "\t" + (if (x._1._5.equals('*')) '.' else x._1._5) + "\t" //strand
-                  + {if (frameIndex >=0) x._2(frameIndex) else  "."} //frame
-                  + "\t" + values
-              )
-            }.partitionBy(regionsPartitioner)
-              .mapPartitions(x=>x.toList.sortBy{s=> val data = s._2.split("\t"); (data(0),data(3).toLong,data(4).toLong)}.iterator)
-          }
-
-          writeMultiOutputFiles.saveAsMultipleTextFiles(keyedRDD, RegionOutputPath)
-
-          val metaKeyValue = if(!(outputFormat == GMQLSchemaFormat.GTF)){
-            metaRDD.map(x => (outSample+"_"+ "%05d".format(newIDSbroad.value.get(x._1).get) + ".gdm.meta", x._2._1 + "\t" + x._2._2)).repartition(1).sortBy(x=>(x._1,x._2))
-          }else{
-            metaRDD.map(x => (outSample+"_"+ "%05d".format(newIDSbroad.value.get(x._1).get) + ".gtf.meta", x._2._1 + "\t" + x._2._2)).repartition(1).sortBy(x=>(x._1,x._2))
-          }
-          writeMultiOutputFiles.saveAsMultipleTextFiles(metaKeyValue, MetaOutputPath)
-
-          writeMultiOutputFiles.fixOutputMetaLocation(MetaOutputPath)
-        }*/
+        }
         storeSchema(GMQLSchema.generateSchemaXML(variable.schema,outputFolderName,outputFormat),variableDir)
       }
     } catch {
