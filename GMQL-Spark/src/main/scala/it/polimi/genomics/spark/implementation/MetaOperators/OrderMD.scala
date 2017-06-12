@@ -12,6 +12,8 @@ import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.slf4j.LoggerFactory
 
+import scala.collection.immutable.HashMap
+
 /**
  * Created by abdulrahman kaitoua on 09/06/15.
  */
@@ -33,12 +35,14 @@ object OrderMD {
         case NoTop() => false
         case Top(_) => false
         case TopG(_) => true
+        case TopP(_) => true
       }
 
     val top : Int =
       topParameter match {
         case NoTop() => 0
         case Top(v) => v
+        case TopP(v) => v
         case TopG(v) => v
       }
 
@@ -175,13 +179,17 @@ object OrderMD {
         val d :List[(Long, List[(Long, GValue)])]= sortedGroupsDouble.toList ++ sortedGroupsString.toList
         val sortedGroups: Map[Long, List[(Long, GValue)]] = d.groupBy{ case(g,v) => g}.map(p => (p._1,p._2.flatMap{ case(g,v) => v}.toList))
 
+        val percentages= if(topParameter.isInstanceOf[TopP]){
+          sortedGroups.map(x=>(x._1,x._2.size * top/100))
+        }else HashMap[Long,Int]()
+
         sortedGroups.map{g =>
           //TOPG
           val gFiltered =
             if(top == 0){
               g._2.map(_._1)
             } else{
-              g._2.map(_._1).take(top)
+              g._2.map(_._1).take(percentages.get(g._1).getOrElse(top))
             }
           //create metadata
           assignPosition(Some(g._1), gFiltered, 1, newAttribute, List())

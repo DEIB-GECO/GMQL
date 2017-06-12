@@ -2,6 +2,7 @@ package it.polimi.genomics.spark.test
 
 import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.core.DataStructures.CoverParameters.{CoverFlag, N}
+import it.polimi.genomics.core.DataStructures.GroupMDParameters.{Direction, NoTop, TopP}
 import it.polimi.genomics.core.DataStructures.IRSelectRD
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core._
@@ -27,7 +28,7 @@ object Cover {
     val server = new GmqlServer(new GMQLSparkExecutor(sc=sc,outputFormat = GMQLSchemaFormat.COLLECT))
 
     val metaDS = sc.parallelize((1 to 100).map(x=> (1,("test","Abdo"))))
-    val regionDS = sc.parallelize((1 to 1000).map{x=>(new GRecordKey(1,"Chr"+(x%2),x,x+200,'*'),Array[GValue](GDouble(1)) )})
+    val regionDS = sc.parallelize((1 to 1000).map{x=>(new GRecordKey(x%2,"Chr"+(x%2),x,x+200,'*'),Array[GValue](GDouble(1)) )})
 
     val ex_data_path = "/home/abdulrahman/Desktop/datasets/coverData/"
     val output_path = "/Users/abdulrahman/Desktop/testCover/res111/"
@@ -37,9 +38,11 @@ object Cover {
 
     val cover = dataAsTheyAre.COVER(CoverFlag.HISTOGRAM, new N{override val n=2}, new N{override val n=3}, List(), None )
 
-    val output = server setOutputPath output_path COLLECT (cover)
+    val res = dataAsTheyAre.ORDER(None, "group_name", NoTop(), Some(List((0, Direction.ASC))), TopP(1))
 
-    output.asInstanceOf[GMQL_DATASET]._1.foreach(println _)
+    val output = server setOutputPath output_path COLLECT (res)
+
+    output.asInstanceOf[GMQL_DATASET]._1.foreach(x=>println(x._1,x._2.mkString("\t")))
 //    server.run()
 
   }

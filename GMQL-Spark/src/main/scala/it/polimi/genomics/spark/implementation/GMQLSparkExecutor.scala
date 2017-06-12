@@ -6,24 +6,21 @@ package it.polimi.genomics.spark.implementation
  *
  */
 
-import java.io.{BufferedWriter, OutputStreamWriter, PrintWriter}
+import java.io.{BufferedWriter, OutputStreamWriter}
 
 import it.polimi.genomics.GMQLServer.Implementation
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.Direction
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.TopParameter
-import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaAggregateStruct
+import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaExtension
 import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinCondition
 import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionExtension, RegionsToMeta}
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
 import it.polimi.genomics.core.DataStructures._
-import it.polimi.genomics.core._
 import it.polimi.genomics.core.DataTypes._
 import it.polimi.genomics.core.ParsingType._
+import it.polimi.genomics.core._
 import it.polimi.genomics.core.exception.SelectFormatException
-import it.polimi.genomics.spark.implementation.GMQLSparkExecutor.GMQL_DATASET
-import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.FileSystem
 import it.polimi.genomics.spark.implementation.MetaOperators.GroupOperator.{MetaGroupMGD, MetaJoinMJD2}
 import it.polimi.genomics.spark.implementation.MetaOperators.SelectMeta._
 import it.polimi.genomics.spark.implementation.MetaOperators._
@@ -32,15 +29,11 @@ import it.polimi.genomics.spark.implementation.RegionsOperators.GenometricMap._
 import it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions.{ReadMEMRD, StoreGTFRD, StoreTABRD, TestingReadRD}
 import it.polimi.genomics.spark.implementation.RegionsOperators._
 import it.polimi.genomics.spark.implementation.loaders._
-
-import scala.collection.JavaConverters._
-import org.apache.hadoop.fs.Path
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
-import org.apache.spark.{HashPartitioner, SparkContext}
 import org.slf4j.LoggerFactory
-
-import scala.collection.Map
-import scala.xml.Elem
 
 object GMQLSparkExecutor{
   type GMQL_DATASET = (Array[(GRecordKey, Array[GValue])], Array[(Long, (String, String))], List[(String, PARSING_TYPE)])
@@ -73,7 +66,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
 
   override def take(iRVariable: IRVariable, n: Int): (Array[(GRecordKey, Array[GValue])], Array[(Long, (String, String))], List[(String, PARSING_TYPE)]) = {
     val metaRDD = implement_md(iRVariable.metaDag, sc).collect()
-    val regionRDD = implement_rd(iRVariable.regionDag, sc).take(n)
+    val regionRDD = implement_rd(iRVariable.regionDag, sc).groupBy(_._1._1).flatMap(_._2.take(n)).collect()
 
     (regionRDD,metaRDD,iRVariable.schema)
   }
@@ -139,73 +132,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
         if(testingIOFormats){
           metaRDD.map(x=>x._1+","+x._2._1 + "," + x._2._2).saveAsTextFile(MetaOutputPath)
           regionRDD.map(x=>x._1+"\t"+x._2.mkString("\t")).saveAsTextFile(RegionOutputPath)
-        }/*else {
-          val MetaOutputPath = variableDir + "/meta/"
-          val RegionOutputPath = variableDir + "/exp/"
-
-          logger.debug(MetaOutputPath)
-          logger.debug(RegionOutputPath)
-          logger.debug(metaRDD.toDebugString)
-          logger.debug(regionRDD.toDebugString)
-
-
-          val outSample = "S"
-
-          val Ids = metaRDD.keys.distinct()
-          val newIDS: Map[Long, Long] = Ids.zipWithIndex().collectAsMap()
-          val newIDSbroad = sc.broadcast(newIDS)
-
-          val regionsPartitioner = new HashPartitioner(Ids.count.toInt)
-
-          val keyedRDD = if(!(outputFormat == GMQLSchemaFormat.GTF)){
-             regionRDD.map(x => (outSample+"_"+ "%05d".format(newIDSbroad.value.get(x._1._1).getOrElse(x._1._1))+".gdm",
-               x._1._2 + "\t" + x._1._3 + "\t" + x._1._4 + "\t" + x._1._5 + "\t" + x._2.mkString("\t")))
-               .partitionBy(regionsPartitioner).mapPartitions(x=>x.toList.sortBy{s=> val data = s._2.split("\t"); (data(0),data(1).toLong,data(2).toLong)}.iterator)
-          }else {
-            val jobname = outputFolderName
-            val score = variable.schema.zipWithIndex.filter(x => x._1._1.toLowerCase().equals("score"))
-            val source = variable.schema.zipWithIndex.filter(x => x._1._1.toLowerCase().equals("source"))
-            val feature = variable.schema.zipWithIndex.filter(x => x._1._1.toLowerCase().equals("feature"))
-            val frame = variable.schema.zipWithIndex.filter(x => x._1._1.toLowerCase().equals("frame"))
-            val scoreIndex = if (score.size > 0) score.head._2 else -1
-            val sourceIndex = if (source.size > 0) source.head._2 else -1
-            val featureIndex = if (feature.size > 0) feature.head._2 else -1
-            val frameIndex = if (frame.size > 0) frame.head._2 else -1
-
-            regionRDD.map { x =>
-
-              val values = variable.schema.zip(x._2).flatMap { s =>
-                if (s._1._1.equals("score")||s._1._1.equals("source")||s._1._1.equals("feature")||s._1._1.equals("frame")) None
-                else Some(s._1._1 + " \"" + s._2 + "\";")
-              }.mkString(" ")
-
-              (outSample + "_" + "%05d".format(newIDSbroad.value.get(x._1._1).getOrElse(x._1._1)) + ".gtf",
-                x._1._2 //chrom
-                  + "\t" + {if(sourceIndex >=0) x._2(sourceIndex).toString else "GMQL" }//variable name
-                  + "\t" + {if (featureIndex >=0) x._2(featureIndex) else  "Region"}
-                  + "\t" + x._1._3 + "\t" + x._1._4 + "\t" //start , stop
-                  + {
-                  if (scoreIndex >= 0) x._2(scoreIndex) else "0.0"
-                } //score
-                  + "\t" + (if (x._1._5.equals('*')) '.' else x._1._5) + "\t" //strand
-                  + {if (frameIndex >=0) x._2(frameIndex) else  "."} //frame
-                  + "\t" + values
-              )
-            }.partitionBy(regionsPartitioner)
-              .mapPartitions(x=>x.toList.sortBy{s=> val data = s._2.split("\t"); (data(0),data(3).toLong,data(4).toLong)}.iterator)
-          }
-
-          writeMultiOutputFiles.saveAsMultipleTextFiles(keyedRDD, RegionOutputPath)
-
-          val metaKeyValue = if(!(outputFormat == GMQLSchemaFormat.GTF)){
-            metaRDD.map(x => (outSample+"_"+ "%05d".format(newIDSbroad.value.get(x._1).get) + ".gdm.meta", x._2._1 + "\t" + x._2._2)).repartition(1).sortBy(x=>(x._1,x._2))
-          }else{
-            metaRDD.map(x => (outSample+"_"+ "%05d".format(newIDSbroad.value.get(x._1).get) + ".gtf.meta", x._2._1 + "\t" + x._2._2)).repartition(1).sortBy(x=>(x._1,x._2))
-          }
-          writeMultiOutputFiles.saveAsMultipleTextFiles(metaKeyValue, MetaOutputPath)
-
-          writeMultiOutputFiles.fixOutputMetaLocation(MetaOutputPath)
-        }*/
+        }
         storeSchema(GMQLSchema.generateSchemaXML(variable.schema,outputFolderName,outputFormat),variableDir)
       }
     } catch {
@@ -253,7 +180,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
             case _ => PurgeMD(this, regionDataset, inputDataset, sc)
           }
           case IRSemiJoin(externalMeta: MetaOperator, joinCondition: MetaJoinCondition, inputDataset: MetaOperator) => SemiJoinMD(this, externalMeta, joinCondition, inputDataset, sc)
-          case IRProjectMD(projectedAttributes: Option[List[String]], metaAggregator: Option[MetaAggregateStruct], inputDataset: MetaOperator) => ProjectMD(this, projectedAttributes, metaAggregator, inputDataset, sc)
+          case IRProjectMD(projectedAttributes: Option[List[String]], metaAggregator: Option[MetaExtension], inputDataset: MetaOperator) => ProjectMD(this, projectedAttributes, metaAggregator, inputDataset, sc)
           case IRUnionMD(leftDataset: MetaOperator, rightDataset: MetaOperator, leftName : String, rightName : String) => UnionMD(this, leftDataset, rightDataset, leftName, rightName, sc)
           case IRUnionAggMD(leftDataset: MetaOperator, rightDataset: MetaOperator, leftName : String, rightName : String) => UnionAggMD(this, leftDataset, rightDataset, leftName, rightName, sc)
           case IRAggregateRD(aggregator: List[RegionsToMeta], inputDataset: RegionOperator) => AggregateRD(this, aggregator, inputDataset, sc)

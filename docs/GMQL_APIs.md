@@ -275,6 +275,14 @@ DS1.MAP(
 		region_ordering =  Some(List((0, Direction.ASC), (1, Direction.DESC))), 
 		region_top_par = TopG(3))
 ```
+Order then take top x percent from each sample. If a sample has 600 regions the result will be topP(50)  = 300 regions sorted 
+```
+	DS1.ORDER(meta_ordering = None, 
+	meta_new_attribute = "group_name", 
+	meta_top_par =  NoTop(), 
+	region_ordering = Some(List((0, Direction.ASC))), 
+	region_top_par =TopP(50))
+```
 
 ----------
 

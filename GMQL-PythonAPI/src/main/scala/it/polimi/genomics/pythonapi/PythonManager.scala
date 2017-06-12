@@ -1,5 +1,6 @@
 package it.polimi.genomics.pythonapi
 
+import java.io.{File, FileFilter}
 import java.util.concurrent.atomic.AtomicInteger
 
 import it.polimi.genomics.GMQLServer.GmqlServer
@@ -113,8 +114,24 @@ object PythonManager {
 
   def read_dataset(dataset_path: String): Int = {
     val parser : CustomParser = new CustomParser()
-    parser.setSchema(dataset_path)
+    parser.setSchema(findSchemaFile(dataset_path))
     read_dataset(dataset_path, parser)
+  }
+
+  def findSchemaFile(dataset_path: String) : String = {
+    val dir = new File(dataset_path)
+    if (dir.isDirectory) {
+      val files = dir.listFiles( new FileFilter {
+        override def accept(pathname: File): Boolean = {
+          pathname.getPath.endsWith(".schema")
+        }
+      })
+      if(files.size > 1)
+        throw new IllegalStateException("There is more than one schema file in the directory")
+      files(0).getAbsolutePath //take the first schema file
+    }
+    else
+      throw new IllegalArgumentException("The dataset path must be a directory!")
   }
 
   def read_dataset(dataset_path: String, parserName: String): Int =
@@ -208,15 +225,15 @@ object PythonManager {
     this.server.run()
     //clear the materialization list
     this.server.clearMaterializationList()
+    // this.stopSparkContext()
   }
 
-
-  def collect(index : Int) = {
+  def collect(index : Int) : CollectedResult = {
     this.checkSparkContext()
 
     val variableToCollect = this.variables.get(index)
     val result = this.server COLLECT variableToCollect.get
-
+    // this.stopSparkContext()
     new CollectedResult(result)
   }
 
@@ -227,5 +244,10 @@ object PythonManager {
       this.server.implementation = new GMQLSparkExecutor(sc=sc, stopContext = false)
       this.setSparkContext(sc)
     }
+  }
+
+  def stopSparkContext(): Unit = {
+    this.sparkContext.get.stop()
+    this.sparkContext = None
   }
 }

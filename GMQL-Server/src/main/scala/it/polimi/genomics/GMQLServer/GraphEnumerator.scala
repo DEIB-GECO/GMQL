@@ -6,12 +6,12 @@ import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction._
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.TopParameter
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.JoinQuadruple
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder._
-import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaAggregateStruct
+import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaExtension
+import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
+import it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinCondition
+import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionExtension, RegionsToMeta, RegionsToRegion}
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
 import it.polimi.genomics.core.DataStructures._
-import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
-import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionsToRegion, RegionExtension, RegionsToMeta}
-import it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinCondition
 
 import scala.collection.immutable.HashMap
 
@@ -41,7 +41,7 @@ object GraphEnumerator {
             case IRSelectMD(metaCondition, inputDataset : MetaOperator) => List(inputDataset)
             case IRPurgeMD(regionDataset : RegionOperator, inputDataset : MetaOperator) => List(inputDataset, regionDataset)
             case IRSemiJoin(externalMeta : MetaOperator, joinCondition : MetaJoinCondition, inputDataset : MetaOperator) => List(externalMeta, inputDataset)
-            case IRProjectMD(projectedAttributes : Option[List[String]], metaAggregator : Option[MetaAggregateStruct], inputDataset : MetaOperator) =>List(inputDataset)
+            case IRProjectMD(projectedAttributes : Option[List[String]], metaAggregator : Option[MetaExtension], inputDataset : MetaOperator) =>List(inputDataset)
             case IRUnionMD(leftDataset: MetaOperator, rightDataset: MetaOperator, leftName : String, rightName : String) => List(leftDataset, rightDataset)
             case IRAggregateRD(aggregator : List[RegionsToMeta], inputDataset : RegionOperator) => List(inputDataset)
             case IRCombineMD(grouping : Option[MetaJoinOperator], leftDataset : MetaOperator, rightDataset : MetaOperator, leftName : String, rightName : String) => List(leftDataset, rightDataset) ++ { if(grouping.isDefined) List(grouping.get) else List()}

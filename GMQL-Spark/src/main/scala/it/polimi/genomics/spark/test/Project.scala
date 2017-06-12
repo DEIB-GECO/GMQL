@@ -5,12 +5,12 @@ package it.polimi.genomics.spark.test
   */
 
 
-import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaAggregateStruct
-import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionExtension, RegionsToMeta}
-import it.polimi.genomics.core.DataStructures.RegionCondition.{MetaAccessor, Predicate, REG_OP}
-import it.polimi.genomics.core._
 import it.polimi.genomics.GMQLServer.GmqlServer
+import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaExtension
+import it.polimi.genomics.core.DataStructures.RegionAggregate.RegionExtension
+import it.polimi.genomics.core.DataStructures.RegionCondition.{MetaAccessor, Predicate, REG_OP}
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
+import it.polimi.genomics.core._
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor.GMQL_DATASET
 import it.polimi.genomics.spark.implementation.loaders.BedScoreParser
@@ -59,7 +59,7 @@ object Project {
 
         case 1 => {
           //PROJECT MD ATTRIBUTE AND AGGREGATE MD
-          val fun = new MetaAggregateStruct {
+          val fun = new MetaExtension {
             override val newAttributeName: String = "computed_result_C"
             override val inputAttributeNames: List[String] = List("A","B")
             override val fun: (Array[Traversable[String]]) => String =

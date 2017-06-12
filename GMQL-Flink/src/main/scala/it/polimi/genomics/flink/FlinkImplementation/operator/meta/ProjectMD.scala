@@ -1,6 +1,6 @@
 package it.polimi.genomics.flink.FlinkImplementation.operator.meta
 
-import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaAggregateStruct
+import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaExtension
 import it.polimi.genomics.core.DataStructures.MetaOperator
 import it.polimi.genomics.core.DataTypes.FlinkMetaType
 import it.polimi.genomics.core.exception.SelectFormatException
@@ -19,7 +19,7 @@ object ProjectMD {
   final val logger = LoggerFactory.getLogger(this.getClass)
 
   @throws[SelectFormatException]
-  def apply(executor: FlinkImplementation, projectedAttributes: Option[List[String]], metaAggregator: Option[MetaAggregateStruct], inputDataset: MetaOperator, env: ExecutionEnvironment): DataSet[FlinkMetaType] = {
+  def apply(executor: FlinkImplementation, projectedAttributes: Option[List[String]], metaAggregator: Option[MetaExtension], inputDataset: MetaOperator, env: ExecutionEnvironment): DataSet[FlinkMetaType] = {
 
     //logger.warn("Executing ProjectMD")
 

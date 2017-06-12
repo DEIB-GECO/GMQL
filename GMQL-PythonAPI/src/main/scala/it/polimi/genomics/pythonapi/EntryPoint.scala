@@ -1,10 +1,15 @@
 package it.polimi.genomics.pythonapi
 
 import java.io.{File, PrintWriter}
+import java.util
+import java.util.Collections
 
+import org.apache.log4j.varia.NullAppender
+import org.apache.log4j.{LogManager, Logger}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.slf4j.LoggerFactory
 import py4j.GatewayServer
+
 /**
   * Created by Luca Nanni on 08/04/17.
   * Email: luca.nanni@mail.polimi.it
@@ -20,8 +25,9 @@ object EntryPoint {
   val properties = AppProperties
   def main(args: Array[String]): Unit = {
 
-
-    this.logger.info("Spark context initiated")
+    // SILENCE EVERYTHING
+    Logger.getRootLogger.removeAllAppenders()
+    Logger.getRootLogger.addAppender( new NullAppender)
 
     //val sc = startSparkContext()
 
@@ -51,7 +57,7 @@ object EntryPoint {
       .set("spark.driver.memory", properties.driverMemory)
       .set("spark.kryoserializer.buffer.max", properties.kryobuffer)
 
-    val sc = new SparkContext(conf)
+    val sc = SparkContext.getOrCreate(conf)
     logger.info("Spark Context initiated")
     sc
   }
