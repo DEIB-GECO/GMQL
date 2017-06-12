@@ -66,7 +66,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
 
   override def take(iRVariable: IRVariable, n: Int): (Array[(GRecordKey, Array[GValue])], Array[(Long, (String, String))], List[(String, PARSING_TYPE)]) = {
     val metaRDD = implement_md(iRVariable.metaDag, sc).collect()
-    val regionRDD = implement_rd(iRVariable.regionDag, sc).take(n)
+    val regionRDD = implement_rd(iRVariable.regionDag, sc).groupBy(_._1._1).flatMap(_._2.take(n)).collect()
 
     (regionRDD,metaRDD,iRVariable.schema)
   }
