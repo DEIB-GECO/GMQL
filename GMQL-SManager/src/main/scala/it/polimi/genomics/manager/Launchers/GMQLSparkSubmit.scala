@@ -93,7 +93,9 @@ class GMQLSparkSubmit(job:GMQLJob) {
         "-jobid", job.jobId,
         "-outputFormat",job.gMQLContext.outputFormat.toString,
         "-outputDirs", outDir,
-        "-logDir",General_Utilities().getLogDir(job.username))
+        "-logDir",General_Utilities().getLogDir(job.username),
+        "-dag", job.script.dag,
+        "-dagpath", job.script.dagPath)  /*We pass also the DAG: if it is not present it is an empty string*/
       .setConf("spark.app.id", APPID)
 
       //These configurations are now taken from the defaults of Spark system (or spark/conf/Spark-defaults.conf file).
