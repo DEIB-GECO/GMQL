@@ -212,16 +212,13 @@ object Wrapper {
   def read(meta: Array[Array[String]],regions: Array[Array[String]], schema: Array[Array[String]]): String =
   {
     var out_p = ""
-
-    val meta_len = meta.length
-    val reg_len = regions.length
     val metaDS = Spark_context.parallelize(meta.map{x => (x(0).toInt,(x(1),x(2)))})
     val regionDS = Spark_context.parallelize(regions.map{
       x=>(new GRecordKey(x(0).toLong,x(1), x(2).toLong,x(3).toLong,x(4).toCharArray.head),getGvalueArray(x.drop(4)))
     })
     val schemaDS = create_list_schema(schema)
 
-    val dataAsTheyAre = GMQL_server.READ("").USING(metaDS,regionDS,schemaDS)
+    val dataAsTheyAre = GMQL_server.READ("").USING(null,regionDS,schemaDS)
     val index = counter.getAndIncrement()
     out_p = "dataset" + index
     vv = vv + (out_p -> dataAsTheyAre)
@@ -238,7 +235,7 @@ object Wrapper {
     GMQL_server setOutputPath data_output_path MATERIALIZE materialize
     materialize_count.getAndIncrement()
 
-    "OK"
+    "Materialized"
   }
 
   def execute(): String = {
@@ -247,7 +244,7 @@ object Wrapper {
     else {
       GMQL_server.run()
       materialize_count.set(0)
-      "OK"
+      "Executed"
     }
   }
 
@@ -442,8 +439,8 @@ object Wrapper {
     out_p
   }
 
-  def order(meta_order: Any, meta_topg: Int, meta_top: Int,
-            region_order: Any, region_topg: Int, region_top: Int, input_dataset: String): String = {
+  def order(meta_order: Any, meta_topg: Int, meta_top: Int,meta_top_perc:Int,
+            region_order: Any, region_topg: Int, region_top: Int,reg_top_perc:Int, input_dataset: String): String = {
     if (vv.get(input_dataset).isEmpty)
       return "No valid dataset as input"
 
@@ -458,11 +455,19 @@ object Wrapper {
     if (meta_topg > 0)
       m_top = TopG(meta_topg)
 
+    if (meta_top_perc > 0)
+      m_top = TopP(meta_top_perc)
+
+
     if (region_top > 0)
       r_top = Top(region_top)
 
     if (region_topg > 0)
       r_top = TopG(region_topg)
+
+    if (reg_top_perc > 0)
+      r_top = TopP(reg_top_perc)
+
 
 
     val meta_list = meta_order_list(meta_order)
@@ -943,9 +948,25 @@ object Wrapper {
   def main(args: Array[String]): Unit =
   {
 
-    val x = Array("a","NA",".","2233.234","-1","543.453","GMQL","Region","NA","NA","-1",".")
-    val b =x.drop(4)
-    val a = getGvalueArray(x)
+    initGMQL("TAB",false)
+    val region= Array(Array("1","chr1","534435","2233234","*",
+      "GMQL","Region","0","NA",".","17.324","312.32","-1","-1"))
+    //val a = getGvalueArray(x)
+    val meta = Array(Array("00001","assay","asd"),Array("00001","disease","fwefwe"))
+    val schema =Array(Array("FACTOR"  ,  "seqname"),
+    Array(   "INTEGER" ,  "start"),
+    Array(     "INTEGER" ,  "end"),
+    Array(   "FACTOR" ,   "strand"),
+    Array(  "FACTOR"  ,  "source"),
+    Array(    "FACTOR" ,   "feature"),
+    Array(   "NUMERIC"  , "score"),
+    Array(    "INTEGER"  , "frame"),
+    Array(    "CHARACTER" ,"name"),
+    Array(  "CHARACTER", "signal"),
+    Array(  "CHARACTER", "pvalue") ,Array("CHARACTER","qvalue"),Array("CHARACTER" ,"peak"))
+    val r =read(meta,region,schema)
+    materialize(r,"/Users/simone/Downloads/res3")
+    execute()
    // initGMQL("TAB",false)
    // val r = readDataset("/Users/simone/Downloads/DATA_SET_VAR_GTF","CUSTOMPARSER",true,null)
    // val k = take(r,10)
