@@ -15,22 +15,24 @@ import it.polimi.genomics.core.DataStructures.MetaJoinCondition._
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
 import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionFunction, RegionsToMeta, RegionsToRegion}
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
-import it.polimi.genomics.core.{GMQLSchemaFormat, ParsingType}
+import it.polimi.genomics.core.{GValue, _}
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.loaders._
 import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 /**
   * Created by simone on 21/03/17.
   */
 
+
 object Wrapper {
   var GMQL_server: GmqlServer = _
   var Spark_context: SparkContext = _
+
 
   var remote_processing:Boolean = false
   var data_to_send_to_repo:ListBuffer[String] = _
@@ -52,6 +54,29 @@ object Wrapper {
   var mem_schema: Array[Array[String]] = _
 
   var vv: Map[String, IRVariable] = Map[String, IRVariable]()
+
+
+  def getGvalueArray (value: Array[String]): Array[GValue] =
+  {
+    val temp: ArrayBuffer[GValue] = new ArrayBuffer[GValue]()
+    for(elem <- value)
+    {
+      if(elem.equalsIgnoreCase("."))
+        temp+= GString(".")
+
+      else if (elem matches "[\\+\\-0-9.e]+")
+        temp += GDouble(elem.toDouble)
+      else
+      {
+        if(elem.equalsIgnoreCase("NA"))
+          temp+= GString(".")
+        else
+          temp+= GString(elem)
+      }
+    }
+    temp.toArray
+  }
+
 
   def initGMQL(output_format: String,remote_proc:Boolean): Unit = {
     val spark_conf = new SparkConf().setMaster("local[*]").
@@ -168,33 +193,41 @@ object Wrapper {
 
   def getParsingTypeFromString(parsingType: String) : PARSING_TYPE = {
 
-    parsingType match {
+    val pType = parsingType.toUpperCase()
+    pType match {
       case "STRING" => ParsingType.STRING
       case "CHAR" => ParsingType.STRING
-      case "CHARACTAR" => ParsingType.STRING
+      case "CHARACTER" => ParsingType.STRING
       case "LONG" => ParsingType.DOUBLE
       case "INTEGER" => ParsingType.DOUBLE
       case "INT" => ParsingType.DOUBLE
       case "BOOLEAN" => ParsingType.STRING
       case "BOOL" => ParsingType.STRING
+      case "FACTOR" => ParsingType.STRING
+      case "NUMERIC" => ParsingType.DOUBLE
       case _ => ParsingType.DOUBLE
     }
   }
-
+  
   def read(meta: Array[Array[String]],regions: Array[Array[String]], schema: Array[Array[String]]): String =
   {
     var out_p = ""
-    val metaDS = Spark_context.parallelize((1 to 10).map(x => (1,("test","Abdo"))))
-    // regionDS = Spark_context.parallelize((1 to 1000).map{x=>(new GRecordKey(1,"Chr"+(x%2),x,x+200,'*'),Array[GValue](GDouble(1)) )})
 
-    val dataAsTheyAre = GMQL_server.READ("").USING(metaDS,null,null)
+    val meta_len = meta.length
+    val reg_len = regions.length
+    val metaDS = Spark_context.parallelize(meta.map{x => (x(0).toInt,(x(1),x(2)))})
+    val regionDS = Spark_context.parallelize(regions.map{
+      x=>(new GRecordKey(x(0).toLong,x(1), x(2).toLong,x(3).toLong,x(4).toCharArray.head),getGvalueArray(x.drop(4)))
+    })
+    val schemaDS = create_list_schema(schema)
+
+    val dataAsTheyAre = GMQL_server.READ("").USING(metaDS,regionDS,schemaDS)
     val index = counter.getAndIncrement()
     out_p = "dataset" + index
     vv = vv + (out_p -> dataAsTheyAre)
 
     out_p
   }
-
 
 
   def materialize(data_to_materialize: String, data_output_path: String): String = {
@@ -261,6 +294,16 @@ object Wrapper {
     mem_schema
   }
 
+  def create_list_schema(schema: Array[Array[String]]): List[(String, PARSING_TYPE)] ={
+
+    var temp = ListBuffer[(String, PARSING_TYPE)]()
+    for (elem <- schema)
+    {
+      temp+=((elem(1),getParsingTypeFromString(elem(0))))
+    }
+    temp.toList
+  }
+
 
   /*GMQL OPERATION*/
 
@@ -316,7 +359,7 @@ object Wrapper {
               extended_values : Option[List[RegionFunction]] = None): IRVariable = {
 */
 
-  //TODO extended meta is None cause is not implemented yet in API
+  //TODO extended meta is None cause is not implemented yet in Compiler
   def project(projected_meta: Any, projected_region: Any,extended_values:Any,all_but: Boolean, input_dataset: String): String = {
     if (vv.get(input_dataset).isEmpty)
       return "No valid Data as input"
@@ -486,7 +529,7 @@ object Wrapper {
 
   /* COVER, FLAT, SUMMIT, HISTOGRAM */
 
-  def flat(min: Int, max: Int, groupBy: Any, aggregates: Any, input_dataset: String): String = {
+  def flat(min: Any, max: Any, groupBy: Any, aggregates: Any, input_dataset: String): String = {
     val (error, flat) = doVariant(CoverFlag.FLAT, min, max, groupBy, aggregates, input_dataset)
     if (flat == null)
       return error
@@ -498,7 +541,7 @@ object Wrapper {
     out_p
   }
 
-  def histogram(min: Int, max: Int, groupBy: Any, aggregates: Any, input_dataset: String): String = {
+  def histogram(min: Any, max: Any, groupBy: Any, aggregates: Any, input_dataset: String): String = {
     val (error, histogram) = doVariant(CoverFlag.FLAT, min, max, groupBy, aggregates, input_dataset)
     if (histogram == null)
       return error
@@ -510,7 +553,7 @@ object Wrapper {
     out_p
   }
 
-  def summit(min: Int, max: Int, groupBy: Any, aggregates: Any, input_dataset: String): String = {
+  def summit(min: Any, max: Any, groupBy: Any, aggregates: Any, input_dataset: String): String = {
     val (error, summit) = doVariant(CoverFlag.SUMMIT, min, max, groupBy, aggregates, input_dataset)
     if (summit == null)
       return error
@@ -523,7 +566,7 @@ object Wrapper {
     out_p
   }
 
-  def cover(min: Int, max: Int, groupBy: Any, aggregates: Any, input_dataset: String): String = {
+  def cover(min: Any, max: Any, groupBy: Any, aggregates: Any, input_dataset: String): String = {
     val (error, cover) = doVariant(CoverFlag.COVER, min, max, groupBy, aggregates, input_dataset)
     if (cover == null)
       return error
@@ -535,43 +578,50 @@ object Wrapper {
     out_p
   }
 
-  def doVariant(flag: CoverFlag.CoverFlag, min: Int, max: Int, groupBy: Any,
+  def doVariant(flag: CoverFlag.CoverFlag, min: Any, max: Any, groupBy: Any,
                 aggregates: Any, input_dataset: String): (String, IRVariable) = {
     if (vv.get(input_dataset).isEmpty)
       return ("No valid dataset as input", null)
 
     val dataAsTheyAre = vv(input_dataset)
+    var aggr_list:(String, List[RegionsToRegion]) = ("",List())
+    var paramMin = get_param(min)
+    if(paramMin._2==null)
+      return (paramMin._1,null)
 
-    var paramMin: CoverParam = null
-    var paramMax: CoverParam = null
+    var paramMax = get_param(max)
+    if(paramMax._2==null)
+      return (paramMax._1,null)
 
-    min match {
-      case 0 => paramMin = new ANY {}
-      case -1 => paramMin = new ALL {}
-      case x if x > 0 => paramMin = new N {
-        override val n: Int = min
-      }
+    if (aggregates != null) {
+      aggr_list = RegionToRegionAggregates(aggregates, dataAsTheyAre)
+      if (aggr_list._2.isEmpty)
+        return (aggr_list._1, null)
     }
-
-    max match {
-      case 0 => paramMax = new ANY {}
-      case -1 => paramMax = new ALL {}
-      case x if x > 0 => paramMax = new N {
-        override val n: Int = max
-      }
-    }
-
-    val (error, aggr_list) = RegionToRegionAggregates(aggregates, dataAsTheyAre)
-    if (aggr_list.isEmpty)
-      return (error, null)
 
     val groupList: Option[List[String]] = MetadataAttributesList(groupBy)
 
-    val variant = dataAsTheyAre.COVER(flag, paramMin, paramMax, aggr_list, groupList)
+    val variant = dataAsTheyAre.COVER(flag, paramMin._2, paramMax._2, aggr_list._2, groupList)
 
     ("OK", variant)
   }
 
+  def get_param(param:Any): (String,CoverParam) = {
+    var covParam:CoverParam = null
+    param match {
+      case param:Int => covParam = new N {
+        override val n: Int = param
+      }
+      case param:String =>{
+        val parser = new Parser()
+        val (error, covParam) = parser.parseCoverParam(param)
+        if (covParam == null)
+          return ("No valid min or max input",covParam)
+      }
+    }
+
+    ("OK",covParam)
+  }
 
   // we do not add left, right and count name: we set to None
   def map(condition: Any, aggregates: Any, right_dataset: String, left_dataset: String): String = {
@@ -668,10 +718,6 @@ object Wrapper {
 
   def RegionToRegionAggregates(aggregates: Any, data: IRVariable): (String, List[RegionsToRegion]) = {
     var aggr_list: List[RegionsToRegion] = List()
-
-    if (aggregates == null) {
-      return ("No", aggr_list)
-    }
     val temp_list = new ListBuffer[RegionsToRegion]()
 
     aggregates match {
@@ -894,12 +940,16 @@ object Wrapper {
     }
   }
 
-  def main(args: Array[String]): Unit = {
+  def main(args: Array[String]): Unit =
+  {
 
-
-    initGMQL("TAB",false)
-    val r = readDataset("/Users/simone/Downloads/DATA_SET_VAR_GTF","CUSTOMPARSER",true,null)
-    val t = take(r,10)
+    val x = Array("a","NA",".","2233.234","-1","543.453","GMQL","Region","NA","NA","-1",".")
+    val b =x.drop(4)
+    val a = getGvalueArray(x)
+   // initGMQL("TAB",false)
+   // val r = readDataset("/Users/simone/Downloads/DATA_SET_VAR_GTF","CUSTOMPARSER",true,null)
+   // val k = take(r,10)
+    //val t = take(r,10)
     //val predicate_reg = "score > 0.5 AND NOT(variant_type == 'SNP')"
    // val s = select(null,predicate_reg,null,null,r)
     //print(s)

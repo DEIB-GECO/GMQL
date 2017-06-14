@@ -10,14 +10,22 @@ import it.polimi.genomics.core.DataStructures.RegionAggregate._
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
 import it.polimi.genomics.core.ParsingType
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
+import it.polimi.genomics.core.DataStructures.CoverParameters._
 
-import scala.util.parsing.input.CharSequenceReader
+
+
 
 
 class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
 
   val super_variable_left = input_var
   val gmql_server = server
+
+
+  def this()
+  {
+    this(null,null)
+  }
 
   def parseSelectMetadata(input: String): (String, Option[MetadataCondition]) = {
 
@@ -53,9 +61,15 @@ class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
     }
 
   }
+  def parseCoverParam(input: String): (String,CoverParam) = {
 
-  def parseCoverParam(input: String): Unit = {
-
+    val coverParam = parse(cover_param, input)
+    coverParam match {
+      case Success(result, next) => ("OK", result)
+      case NoSuccess(result, next) => (result, null)
+      case Error(result, next) => (result, null)
+      case Failure(result, next) => (result, null)
+    }
   }
 
   def refine_region_condition(rc: RegionCondition): RegionCondition = {
@@ -135,10 +149,10 @@ class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
     }
   }
 
-  def getListRegionsFunction(input:String): Unit =
-  {
+  def parseProjectMetdata(input: String): Unit = {
 
   }
+
 
 
   def parseProjectRegion(input: String): (String, Option[List[RegionFunction]]) = {
