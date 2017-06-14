@@ -5,10 +5,11 @@ import java.io.{File, PrintWriter}
 import java.util
 import java.util.concurrent.{ExecutorService, Executors, TimeUnit}
 
-import it.polimi.genomics.core.GMQLScript
+import it.polimi.genomics.core.{BinSize, GMQLSchemaFormat, GMQLScript, ImplementationPlatform}
 import it.polimi.genomics.manager.Exceptions.{InvalidGMQLJobException, NoJobsFoundException}
 import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLocalLauncher, GMQLRemoteLauncher, GMQLSparkLauncher}
 import it.polimi.genomics.repository.{Utilities => General_Utilities}
+import org.apache.spark.SparkContext
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
@@ -141,9 +142,48 @@ class GMQLExecute (){
         } else {
         throw new Exception("Unknown launcher mode.")
       }
-
     execute(job.jobId,launcher)
 
+  }
+
+  /**
+    * This function enables the DAG to be passed to a GMQLJob as a serialized String.
+    * It executes directly the DAG.
+    * */
+  def executeDAG(username: String, serializedDag : String, outputFormat : String): GMQLJob = {
+    val outputGMQLFormat = GMQLSchemaFormat.getType(outputFormat)
+    val gmqlScript = new GMQLScript("", "", serializedDag, "")
+    val binsize = new BinSize(5000, 5000, 1000)
+    val repository = General_Utilities().getRepository()
+    val gmqlContext = new GMQLContext(repository, outputGMQLFormat)
+    val job = new GMQLJob(gmqlContext, gmqlScript, username)
+    /*The job id is generated with the username, the current date and the suffix "DAG".*/
+    job.runGMQL(job.generateJobId(username, "DAG"), getLauncher(job))
+    job
+  }
+
+  /**
+    *  Gets the launcher given a GMQLJob
+  * */
+  def getLauncher(job:GMQLJob): GMQLLauncher = {
+    val launcher_mode = Utilities().LAUNCHER_MODE
+    val launcher: GMQLLauncher =
+
+      if ( launcher_mode equals Utilities().CLUSTER_LAUNCHER ) {
+        logger.info("Using Spark Launcher")
+        new GMQLSparkLauncher(job)
+      } else
+      if ( launcher_mode equals Utilities().REMOTE_CLUSTER_LAUNCHER ) {
+        logger.info("Using Remote Launcher")
+        new GMQLRemoteLauncher(job)
+      } else
+      if ( launcher_mode equals Utilities().LOCAL_LAUNCHER ) {
+        logger.info("Using Local Launcher")
+        new GMQLLocalLauncher(job)
+      } else {
+        throw new Exception("Unknown launcher mode.")
+      }
+    launcher
   }
 
 
