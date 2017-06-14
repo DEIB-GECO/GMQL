@@ -7,8 +7,8 @@ import java.util.Date
 import com.sun.org.apache.xml.internal.security.utils.Base64
 import it.polimi.genomics.GMQLServer.{GmqlServer, Implementation}
 import it.polimi.genomics.compiler._
-import it.polimi.genomics.core.DataStructures.IRVariable
-import it.polimi.genomics.core.{GMQLSchemaFormat, ImplementationPlatform}
+import it.polimi.genomics.core.DataStructures.{IRGenometricJoin, IRReadMD, IRVariable}
+import it.polimi.genomics.core.{GMQLSchemaFormat, ImplementationPlatform, Utilities}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
@@ -110,6 +110,7 @@ object GMQLExecuteCommand {
     var logDir:String = null
     var verbose = false
     var i = 0;
+    var dag : Option[List[IRVariable]] = None
 
     //Check the CLI options
     for (i <- 0 until args.length if (i % 2 == 0)) {
@@ -180,16 +181,21 @@ object GMQLExecuteCommand {
         //Input datasets Schemata can be sent from the Server Manager a string separated by :::
         schemata = extractInDSsSchema( args(i + 1))
         logger.info("Schema set to: " + args(i + 1))
+      } else if ("-dag".equals(args(i).toLowerCase())) {
+        val serializedDag = args(i+1)
+        if (!serializedDag.isEmpty) {
+          dag = Some(Utilities.deserializeDAG(serializedDag))
+        }
+      } else if ("-dagpath".equals(args(i).toLowerCase())) {
 
-      }else {
+      } else {
         logger.warn("( "+ args(i) + " ) NOT A VALID COMMAND ... ")
 
       }
     }
 
     //If the Script path is not set and the script is not loaded in the options, close execution.
-    if (scriptPath == null && script == null) {
-
+    if (scriptPath == null && script == null && dag.isEmpty ) {
       println(usage); sys.exit(9)
     }
 
@@ -198,7 +204,7 @@ object GMQLExecuteCommand {
     if (scriptPath == null) scriptPath = "test.GMQL"
 
     //read GMQL script
-    val dag: String =
+    val query: String =
       if (script != null) script /*deSerializeDAG(script)*/
       else readScriptFile(scriptPath) /*List[Operator]()*/
 
@@ -215,26 +221,31 @@ object GMQLExecuteCommand {
     val implementation: Implementation = getImplemenation(executionType,jobid,outputFormat)
 
     val server = new GmqlServer(implementation, Some(1000))
-    // get the dag --> [IRVariable]
-
-
-    val translator = new Translator(server, "/tmp/")
-
-    val translation = /*if(!dag.isEmpty) dag else translator.phase1(readScriptFile(scriptPath))*/
-      compile(jobid, translator, dag, inputs,outputs)
-
-    try {
-      if (translator.phase2(translation)) {
-        server.run()
-      }else{
-        logger.error("Compile failed..")
-        System.exit(0);
-      }
-    } catch {
-      case e: CompilerException => logger.error(e.getMessage) ; System.exit(0)
-      case ex:Exception => logger.error("exception: \t"+ex.getMessage);/*ex.printStackTrace();*/ System.exit(0)
-      case e : Throwable =>logger.error("Throwable: "+e.getMessage);/* e.printStackTrace(); */System.exit(0)
+    if (dag.isDefined) {
+      //TODO: CHANGING THE INPUT DATASET NAMES INTO HDFS PATHS
+      server.materializationList ++= dag.get
+      server.run()
     }
+    else {
+      val translator = new Translator(server, "/tmp/")
+
+      val translation = /*if(!dag.isEmpty) dag else translator.phase1(readScriptFile(scriptPath))*/
+        compile(jobid, translator, query, inputs,outputs)
+
+      try {
+        if (translator.phase2(translation)) {
+          server.run()
+        }else{
+          logger.error("Compile failed..")
+          System.exit(0);
+        }
+      } catch {
+        case e: CompilerException => logger.error(e.getMessage) ; System.exit(0)
+        case ex:Exception => logger.error("exception: \t"+ex.getMessage);/*ex.printStackTrace();*/ System.exit(0)
+        case e : Throwable =>logger.error("Throwable: "+e.getMessage);/* e.printStackTrace(); */System.exit(0)
+      }
+    }
+
   }
 
   def generateJobId(scriptPath: String, username: String) = "job_" + new java.io.File(scriptPath).getName.substring(0, new java.io.File(scriptPath).getName.indexOf(".")) + username + "_" + date
@@ -284,28 +295,30 @@ object GMQLExecuteCommand {
   //    objectInputStream1.readObject().asInstanceOf[List[Operator]];
   //  }
 
-  def deSerializeDAG(dagEncoded: String): List[Operator] = {
-    val bytes = Base64.decode(dagEncoded.getBytes());
-    val objectInputStream1 = new ObjectInputStream(new ByteArrayInputStream(bytes));
-
-    val dag = objectInputStream1.readObject().asInstanceOf[java.util.ArrayList[Operator]];
-
-    println("hi\n" + dag.toString)
-    var DAG: List[Operator] = List[Operator]()
-    for (i <- 0 until dag.size() - 1) {
-      DAG = DAG :+ dag.get(i)
-    }
-
-    DAG
-  }
-
-  // Deserialization of the DAG to a list of IRVarialbles to be materialized
-  def deSerializeDAGToIRList(dagEncoded: String): List[IRVariable] = {
-    val bytes = Base64.decode(dagEncoded.getBytes())
-    val objectInputStream1 = new ObjectInputStream(new ByteArrayInputStream(bytes))
-
-    objectInputStream1.readObject().asInstanceOf[List[IRVariable]]
-  }
+//  def deSerializeDAG(dagEncoded: String): List[Operator] = {
+//    val bytes = Base64.decode(dagEncoded.getBytes());
+//    val objectInputStream1 = new ObjectInputStream(new ByteArrayInputStream(bytes));
+//
+//    val dag = objectInputStream1.readObject().asInstanceOf[java.util.ArrayList[Operator]];
+//
+//    println("hi\n" + dag.toString)
+//    var DAG: List[Operator] = List[Operator]()
+//    for (i <- 0 until dag.size() - 1) {
+//      DAG = DAG :+ dag.get(i)
+//    }
+//
+//    DAG
+//  }
+//
+//  def changePaths(dag : List[IRVariable]) : List[IRVariable] = {
+//    dag.map(x => changePathsToVariable(x))
+//  }
+//
+//  def changePathsToVariable(variable: IRVariable) : IRVariable = {
+//    variable.regionDag match {
+//      case x: IRGenometricJoin => x.
+//    }
+//  }
 
   def compile(id: String, translator: Translator, script: String, inputs: Map[String, String],outputs: Map[String, String]): List[Operator] = {
     var operators: List[Operator] = List[Operator]()
