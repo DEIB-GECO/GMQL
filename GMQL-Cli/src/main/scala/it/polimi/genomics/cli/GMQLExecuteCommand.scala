@@ -1,6 +1,7 @@
 package it.polimi.genomics.cli
 
 import java.io._
+import java.nio.file.{Files, Paths}
 import java.text.SimpleDateFormat
 import java.util.Date
 
@@ -110,7 +111,9 @@ object GMQLExecuteCommand {
     var logDir:String = null
     var verbose = false
     var i = 0;
+
     var dag : Option[List[IRVariable]] = None
+    var dagPath : String = null
 
     //Check the CLI options
     for (i <- 0 until args.length if (i % 2 == 0)) {
@@ -187,13 +190,21 @@ object GMQLExecuteCommand {
           dag = Some(Utilities.deserializeDAG(serializedDag))
         }
       } else if ("-dagpath".equals(args(i).toLowerCase())) {
+        val dFile = new File (args(i + 1))
+        if(!dFile.exists()) {
+          logger.error(s"DAG file not found $dagPath")
+        }
+        dagPath = dFile.getPath
+        logger.info("DAG set to: " + dagPath)
 
       } else {
         logger.warn("( "+ args(i) + " ) NOT A VALID COMMAND ... ")
 
       }
     }
-
+    if(dagPath != null) {
+      dag = Some(Utilities.deserializeDAG(new String(Files.readAllBytes(Paths.get(dagPath)))))
+    }
     //If the Script path is not set and the script is not loaded in the options, close execution.
     if (scriptPath == null && script == null && dag.isEmpty ) {
       println(usage); sys.exit(9)
@@ -222,7 +233,6 @@ object GMQLExecuteCommand {
 
     val server = new GmqlServer(implementation, Some(1000))
     if (dag.isDefined) {
-      //TODO: CHANGING THE INPUT DATASET NAMES INTO HDFS PATHS
       server.materializationList ++= dag.get
       server.run()
     }
