@@ -6,9 +6,9 @@ import java.util.Date
 
 import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.compiler._
-import it.polimi.genomics.core.DataStructures.{IRDataSet, IRVariable}
-import it.polimi.genomics.core.{GMQLSchemaFormat, GMQLScript}
-import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLocalLauncher, GMQLRemoteLauncher}
+import it.polimi.genomics.core.DataStructures._
+import it.polimi.genomics.core.{GMQLSchemaFormat, GMQLScript, Utilities => core_ut}
+import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLocalLauncher}
 import it.polimi.genomics.manager.Status._
 import it.polimi.genomics.repository.FSRepository.{FS_Utilities => FSR_Utilities}
 import it.polimi.genomics.repository.GMQLExceptions.GMQLNotValidDatasetNameException
@@ -18,6 +18,7 @@ import org.slf4j.{Logger, LoggerFactory}
 import scala.collection.JavaConverters._
 import scala.collection.immutable.HashMap
 import scala.collection.mutable
+
 
 /**
   * Created by Abdulrahman Kaitoua on 10/09/15.
@@ -187,6 +188,34 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
   }
 
 
+
+  def renameDAGPaths(dagString:String) = {
+    val dagVars: List[IRVariable] = core_ut.deserializeDAG(dagString)
+    val outDss = dagVars.flatMap ( dagVar => rec(dagVar.metaDag) ++ rec(dagVar.regionDag))
+    (outDss, core_ut.serializeToBase64(dagVars))
+  }
+
+  def rec(inp: IROperator): List[String] = {
+    val result = inp match {
+      case x: IRReadRD[_,_,_,_] => x.paths = List("/Users/canakoglu/Downloads/job_filename_canakoglu_20170519_183917_RESULT_DS/files/")
+        None
+      case x: IRReadMD[_,_,_,_] => x.paths = List("/Users/canakoglu/Downloads/job_filename_canakoglu_20170519_183917_RESULT_DS/files/")
+        None
+      case x: IRStoreRD =>
+        val outDsName = jobId + "_" + x.path
+        x.path = s"/Users/canakoglu/Downloads/$outDsName/out"
+        Some(outDsName)
+      case x: IRStoreMD =>
+        val outDsName = jobId + "_" + x.path
+        x.path = s"/Users/canakoglu/Downloads/$outDsName/out"
+        Some(outDsName)
+      case _ =>
+        None
+    }
+    val tempRes = inp.getOperatorList.flatMap(operator => rec(operator))
+
+    tempRes ++ List(result).flatten
+  }
 
   def getInputDsPath(inputDs: String)  = {
     val user = if (repositoryHandle.DSExistsInPublic(inputDs)) "public" else this.username

@@ -5,6 +5,7 @@ import java.io.{File, PrintWriter}
 import java.util
 import java.util.concurrent.{ExecutorService, Executors, TimeUnit}
 
+import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.{BinSize, GMQLSchemaFormat, GMQLScript, ImplementationPlatform}
 import it.polimi.genomics.manager.Exceptions.{InvalidGMQLJobException, NoJobsFoundException}
 import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLocalLauncher, GMQLRemoteLauncher, GMQLSparkLauncher}
@@ -14,6 +15,8 @@ import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.HashMap
+
+
 /**
  * Created by Abdulrahman Kaitoua on 10/09/15.
  * Email: abdulrahman.kaitoua@polimi.it
@@ -79,7 +82,48 @@ class GMQLExecute (){
     job;
   }
 
-  /**
+  def registerDAG(script:GMQLScript, gMQLContext: GMQLContext, jobid:String = ""): GMQLJob = {
+    def saveScript(fileName:String) = {
+      val scriptHistory: File = new File(General_Utilities().getScriptsDir(gMQLContext.username)+ fileName + ".dag")
+      new PrintWriter(scriptHistory) { write(script.dag); close }
+    }
+
+    logger.info("Execution Platform is set to "+gMQLContext.implPlatform+"\n\tScriptPath = "+script.scriptPath+"\n\tUsername = "+gMQLContext.username)
+
+
+    val job: GMQLJob = new GMQLJob(gMQLContext,script,gMQLContext.username)
+
+    //query script of the job
+    saveScript(job.jobId)
+
+    val (outDSs, newSerializedDAG): (List[String], String) = job.renameDAGPaths(script.dag)
+    script.dag = newSerializedDAG
+
+
+    val jID = jobid
+
+    val uToj: Option[List[String]] = USER_TO_JOBID.get(gMQLContext.username);
+    val jToDSs: Option[List[String]] = JOBID_TO_OUT_DSs.get(jID)
+
+    //if the user is not found create empty lists of jobs and out Datasets.
+    var jobs: List[String]= if (!uToj.isDefined) List[String](); else uToj.get
+    var dataSets: List[String]= if (!jToDSs.isDefined) List[String](); else jToDSs.get
+
+    jobs ::= jID
+    dataSets :::= outDSs
+
+    USER_TO_JOBID = USER_TO_JOBID + (gMQLContext.username-> jobs)
+    JOBID_TO_OUT_DSs = JOBID_TO_OUT_DSs + (jID -> dataSets)
+
+    //register the job
+    JOBID_TO_JOB_INSTANCE = JOBID_TO_JOB_INSTANCE + (jID -> job);
+    job
+  }
+  
+
+  
+
+    /**
     * Get the job instance from the job name.
     * If the job is not found  [[ InvalidGMQLJobException]] exception will be thrown
     *

@@ -216,7 +216,8 @@ object GMQLExecuteCommand {
 
     //read GMQL script
     val query: String =
-      if (script != null) script /*deSerializeDAG(script)*/
+      if (dag.nonEmpty) ""
+      else if (script != null) script /*deSerializeDAG(script)*/
       else readScriptFile(scriptPath) /*List[Operator]()*/
 
 

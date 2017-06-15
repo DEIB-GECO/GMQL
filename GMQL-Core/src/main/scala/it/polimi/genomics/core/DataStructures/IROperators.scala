@@ -25,7 +25,7 @@ import it.polimi.genomics.core.ParsingType.PARSING_TYPE
  * @tparam IM Type of the input of the metadata parser
  * @tparam OM Type of the output of the metadata parser
  */
-case class IRReadMD[IR,OR,IM,OM](paths : List[String],
+case class IRReadMD[IR,OR,IM,OM](var paths : List[String],
                                  loader : GMQLLoader[IR,OR,IM,OM],
                                  dataset : IRDataSet) extends MetaOperator
 
@@ -44,7 +44,7 @@ case class IRReadMEMMD(metaDS:Any) extends MetaOperator
  * @tparam IM Type of the input of the metadata parser
  * @tparam OM Type of the output of the metadata parser
  */
-case class IRReadRD[IR,OR,IM,OM](paths : List[String],
+case class IRReadRD[IR,OR,IM,OM](var paths : List[String],
                                  loader : GMQLLoader[IR,OR,IM,OM],
                                  dataset : IRDataSet) extends RegionOperator
 
@@ -59,7 +59,7 @@ case class IRReadMEMRD(regionDS:Any) extends RegionOperator
   * @param path location where to store the metadata
   * @param father metadata dag of the variable to be stored
   */
-case class IRStoreMD(path : String, father : MetaOperator, dataSet: IRDataSet) extends MetaOperator
+case class IRStoreMD(var path : String, father : MetaOperator, dataSet: IRDataSet) extends MetaOperator
 
 
 /** Dag node to represent the MATERIALIZE operation of a variable's regions into the repository/storage.
@@ -67,7 +67,7 @@ case class IRStoreMD(path : String, father : MetaOperator, dataSet: IRDataSet) e
   * @param path location where to store the regions
   * @param father metadata dag of the variable to be stored
   */
-case class IRStoreRD(path : String, father : RegionOperator, associatedMeta: MetaOperator,  schema : List[(String, PARSING_TYPE)], dataSet: IRDataSet) extends RegionOperator
+case class IRStoreRD(var path : String, father : RegionOperator, associatedMeta: MetaOperator,  schema : List[(String, PARSING_TYPE)], dataSet: IRDataSet) extends RegionOperator
 
 /**
  * Dag node to represent the matadata filtering performed by the SELECT operator.
