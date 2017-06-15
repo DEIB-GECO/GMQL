@@ -1,5 +1,7 @@
 package it.polimi.genomics.core.DataStructures
 
+import scala.collection.mutable
+
 /**
  * It represent a generic Intermediate Representation Daga operator
  */
@@ -10,27 +12,14 @@ class IROperator {
 
   override def toString = operatorName
 
-  def getOperatorList : List[IROperator] = {
-    var list = List[IROperator]()
-
-    for( v <- this.getClass.getMethods) {
-      if(v.getName != "getOperatorList" && v.getParameterCount == 0) {
-        try{
-          val value = v.invoke(this)
-          value match {
-            case x:IROperator =>
-//              println(x)
-//              println(v.getName)
-              list = x :: list
-          }
-        }catch {
-          case _ =>
-        }
+  def getOperatorList: List[IROperator] = {
+    val result = mutable.Set[IROperator]()
+    for (method <- this.getClass.getMethods) {
+      if (method.getParameterCount == 0 && classOf[IROperator].isAssignableFrom(method.getReturnType)) {
+        result.add(method.invoke(this).asInstanceOf[IROperator])
       }
     }
-//    println(list.distinct)
-    list = list.distinct
-    list
+    result.toList
   }
 
 
