@@ -10,6 +10,30 @@ class IROperator {
 
   override def toString = operatorName
 
+  def getOperatorList : List[IROperator] = {
+    var list = List[IROperator]()
+
+    for( v <- this.getClass.getMethods) {
+      if(v.getName != "getOperatorList" && v.getParameterCount == 0) {
+        try{
+          val value = v.invoke(this)
+          value match {
+            case x:IROperator =>
+//              println(x)
+//              println(v.getName)
+              list = x :: list
+          }
+        }catch {
+          case _ =>
+        }
+      }
+    }
+//    println(list.distinct)
+    list = list.distinct
+    list
+  }
+
+
 }
 
 /** Indicates a IROperator which returns a metadata dataset */
