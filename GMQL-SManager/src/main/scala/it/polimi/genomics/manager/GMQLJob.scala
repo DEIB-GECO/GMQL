@@ -187,6 +187,17 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
   }
 
 
+
+  def getInputDsPath(inputDs: String)  = {
+    val user = if (repositoryHandle.DSExistsInPublic(inputDs)) "public" else this.username
+    //todo: find a better way to avoid accesing hdfs at compilation time
+    val newPath =
+      if(Utilities().LAUNCHER_MODE equals Utilities().REMOTE_CLUSTER_LAUNCHER)
+        General_Utilities().getSchemaDir(user) + inputDs + ".schema"
+      else  getRegionFolder(inputDs, user)
+  }
+
+
   /**
     * return the input dataset directory.
     *
