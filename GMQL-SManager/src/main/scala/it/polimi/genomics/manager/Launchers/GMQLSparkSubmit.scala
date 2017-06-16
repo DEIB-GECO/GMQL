@@ -5,6 +5,7 @@ package it.polimi.genomics.manager.Launchers
   */
 
 import java.io.{ByteArrayOutputStream, IOException, ObjectOutputStream}
+import java.util
 
 import com.sun.jersey.core.util.Base64
 import it.polimi.genomics.compiler.Operator
@@ -67,36 +68,47 @@ class GMQLSparkSubmit(job:GMQLJob) {
       "YARN_CONF_DIR" -> YARN_CONF_DIR
     )
 
-
-
-    val fsRegDir = FSR_Utilities.gethdfsConfiguration().get("fs.defaultFS")+
-      General_Utilities().getHDFSRegionDir(job.username)
-
     val outDir = job.outputVariablesList.map{x=>
-      val dir = if (General_Utilities().MODE == General_Utilities().HDFS)
-        fsRegDir + x + "/"
-      else General_Utilities().getRegionDir(job.username) + x +"/"
+      val dir = job.renameOutputDirs(x)
+//        if (General_Utilities().MODE == General_Utilities().HDFS)
+//        fsRegDir + x + "/"
+//      else General_Utilities().getRegionDir(job.username) + x +"/"
       x.substring(job.jobId.length+1)+":::"+dir }.mkString(",")
 
 //    println(outDir)
-
-   val d =  new SparkLauncher(env.asJava)
+    println("DAG LEN:\t" + job.script.dag.length)
+    var d =  new SparkLauncher(env.asJava)
       .setSparkHome(SPARK_HOME)
       .setAppResource(GMQLjar)
       .setMainClass(MASTER_CLASS)
       .addAppArgs("-username", job.username,
-        "-script", job.script.script/*serializeDAG(job.operators)*/,
-        "-scriptpath", job.script.scriptPath,
-        "-inputDirs",job.inputDataSets.map{x =>x._1+":::"+x._2+"/"}.mkString(","),
+        //"-script", job.script.script/*serializeDAG(job.operators)*/,
+        //"-scriptpath", job.script.scriptPath,
+        //"-inputDirs",job.inputDataSets.map{x =>x._1+":::"+x._2+"/"}.mkString(","),
         //TODO: Check how to get the schema path from the repository manager.
-//        "-schemata",job.inputDataSets.map(x => x._2+":::"+getSchema(job,x._1)).mkString(","),
+        //        "-schemata",job.inputDataSets.map(x => x._2+":::"+getSchema(job,x._1)).mkString(","),
         "-jobid", job.jobId,
         "-outputFormat",job.gMQLContext.outputFormat.toString,
-        "-outputDirs", outDir,
+        //"-outputDirs", outDir,
         "-logDir",General_Utilities().getLogDir(job.username),
         "-dag", job.script.dag,
         "-dagpath", job.script.dagPath)  /*We pass also the DAG: if it is not present it is an empty string*/
       .setConf("spark.app.id", APPID)
+    if(job.script.script != null && job.script.script != "") {
+      d = d.addAppArgs("-script", job.script.script)
+    }
+    if(job.script.scriptPath != null && job.script.scriptPath != "") {
+      d = d.addAppArgs("-scriptpath", job.script.scriptPath)
+    }
+    if(job.inputDataSets.nonEmpty) {
+      d = d.addAppArgs("-inputDirs",job.inputDataSets.map{x =>x._1+":::"+x._2+"/"}.mkString(","))
+      d = d.addAppArgs("-schemata",job.inputDataSets.map(x => x._2+":::"+getSchema(job,x._1)).mkString(","))
+    }
+    if(outDir.nonEmpty){
+      d = d.addAppArgs("-outputDirs", outDir)
+    }
+
+
 
       //These configurations are now taken from the defaults of Spark system (or spark/conf/Spark-defaults.conf file).
 /*      .setConf("spark.driver.memory", DRIVER_MEM)
@@ -113,9 +125,8 @@ class GMQLSparkSubmit(job:GMQLJob) {
         .setConf("spark.yarn.am.memory","4g") // instead of driver.mem when yarn client mode
         .setConf("spark.yarn.am.memoryOverhead","600") // instead of spark.yarn.driver.memoryOverhead when client mode
         .setConf("spark.yarn.executor.memoryOverhead","600")*/
-      .setVerbose(true)
-      .startApplication()
-    d
+      d.setVerbose(true).startApplication()
+
   }
 
   /**
