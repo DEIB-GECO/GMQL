@@ -94,13 +94,13 @@ class GMQLExecute (){
     val job: GMQLJob = new GMQLJob(gMQLContext,script,gMQLContext.username)
 
     //query script of the job
-    saveScript(job.jobId)
+    //saveScript(job.jobId)
 
     val (outDSs, newSerializedDAG): (List[String], String) = job.renameDAGPaths(script.dag)
     script.dag = newSerializedDAG
 
 
-    val jID = jobid
+    val jID = job.jobId
 
     val uToj: Option[List[String]] = USER_TO_JOBID.get(gMQLContext.username);
     val jToDSs: Option[List[String]] = JOBID_TO_OUT_DSs.get(jID)
