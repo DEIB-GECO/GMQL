@@ -191,23 +191,36 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
 
   def renameDAGPaths(dagString:String) = {
     val dagVars: List[IRVariable] = core_ut.deserializeDAG(dagString)
-    val outDss = dagVars.flatMap ( dagVar => rec(dagVar.metaDag) ++ rec(dagVar.regionDag))
+    val outDss = dagVars.flatMap ( dagVar => rec(dagVar.metaDag) ++ rec(dagVar.regionDag)).distinct
+    //Get the output Datasets names.
+    outputVariablesList = outDss
+
     (outDss, core_ut.serializeToBase64(dagVars))
   }
 
+  def renameOutputDirs(x: String): String = {
+    val fsRegDir = FSR_Utilities.gethdfsConfiguration().get("fs.defaultFS")+
+      General_Utilities().getHDFSRegionDir(this.username)
+    val dir = if (General_Utilities().MODE == General_Utilities().HDFS)
+      fsRegDir + x + "/"
+    else General_Utilities().getRegionDir(this.username) + x +"/"
+    dir
+  }
   def rec(inp: IROperator): List[String] = {
     val result = inp match {
-      case x: IRReadRD[_,_,_,_] => x.paths = List("/Users/canakoglu/Downloads/job_filename_canakoglu_20170519_183917_RESULT_DS/files/")
+      case x: IRReadRD[_,_,_,_] =>
+        x.paths = List(getInputDsPath(x.dataset.position))
         None
-      case x: IRReadMD[_,_,_,_] => x.paths = List("/Users/canakoglu/Downloads/job_filename_canakoglu_20170519_183917_RESULT_DS/files/")
+      case x: IRReadMD[_,_,_,_] =>
+        x.paths = List(getInputDsPath(x.dataset.position))
         None
       case x: IRStoreRD =>
-        val outDsName = jobId + "_" + x.path
-        x.path = s"/Users/canakoglu/Downloads/$outDsName/out"
+        val outDsName = jobId + "_" + x.dataSet.position
+        x.path = renameOutputDirs(outDsName)
         Some(outDsName)
       case x: IRStoreMD =>
-        val outDsName = jobId + "_" + x.path
-        x.path = s"/Users/canakoglu/Downloads/$outDsName/out"
+        val outDsName = jobId + "_" + x.dataSet.position
+        x.path = renameOutputDirs(outDsName)
         Some(outDsName)
       case _ =>
         None
@@ -219,11 +232,11 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
 
   def getInputDsPath(inputDs: String)  = {
     val user = if (repositoryHandle.DSExistsInPublic(inputDs)) "public" else this.username
-    //todo: find a better way to avoid accesing hdfs at compilation time
     val newPath =
       if(Utilities().LAUNCHER_MODE equals Utilities().REMOTE_CLUSTER_LAUNCHER)
         General_Utilities().getSchemaDir(user) + inputDs + ".schema"
       else  getRegionFolder(inputDs, user)
+    newPath
   }
 
 
