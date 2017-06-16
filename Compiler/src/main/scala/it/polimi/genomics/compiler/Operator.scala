@@ -6,6 +6,7 @@ import it.polimi.genomics.core.DataStructures.GroupMDParameters.TopParameter
 import it.polimi.genomics.core.DataStructures.IRVariable
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.AtomicCondition
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
+import it.polimi.genomics.core.DataStructures.MetaAggregate.MENode
 import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition.AttributeEvaluationStrategy
 import it.polimi.genomics.core.DataStructures.RegionAggregate.RENode
@@ -271,7 +272,7 @@ case class RegionPredicateTemp(field:String, operator : REG_OP,  value : Any)  e
 
 trait SingleProjectOnMeta
 case class MetaProject(attribute_name : String) extends  SingleProjectOnMeta
-case class MetaModifier() extends SingleProjectOnMeta
+case class MetaModifier(output: String, dag: MENode) extends SingleProjectOnMeta
 
 trait SingleProjectOnRegion
 case class RegionProject(field: FieldPositionOrName) extends SingleProjectOnRegion
