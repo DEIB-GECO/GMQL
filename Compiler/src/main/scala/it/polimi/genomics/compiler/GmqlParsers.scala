@@ -6,6 +6,7 @@ import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction._
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder._
 import it.polimi.genomics.core.DataStructures.JoinParametersRD._
+import it.polimi.genomics.core.DataStructures.MetaAggregate._
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition.{FullName, Exact, Default, AttributeEvaluationStrategy}
 import it.polimi.genomics.core.DataStructures.MetadataCondition.{MetadataCondition, META_OP}
 import it.polimi.genomics.core.DataStructures.MetadataCondition.META_OP._
@@ -311,6 +312,41 @@ trait GmqlParsers extends JavaTokenParsers {
       ) ~ re_expr ^^ { x => RegionModifier(x._1,x._2)}
 
   val region_modifier_list:Parser[List[SingleProjectOnRegion]] = rep1sep(single_region_modifier, ",")
+
+
+  lazy val me_factor:Parser[MENode] =
+    decimalNumber ^^ {x => MEFloat(x.toDouble)} |
+    metadata_attribute ^^ {x => MEName(x)} | "(" ~> me_expr <~ ")" |
+    SUB ~> me_expr ^^ {x => MENegate(x)}
+
+  val me_term: Parser[MENode] = me_factor ~ rep((MULT|DIV) ~ me_factor) ^^ {
+    case t ~ ts => ts.foldLeft(t) {
+      case (t1, "*" ~ t2) => MEMUL(t1, t2)
+      case (t1, "/" ~ t2) => MEDIV(t1, t2)
+    }
+  }
+
+  val me_expr: Parser[MENode] =
+    me_term ~ rep((SUM|SUB) ~ me_term) ^^ {
+      case t ~ ts => ts.foldLeft(t) {
+        case (t1, "+" ~ t2) => MEADD(t1, t2)
+        case (t1, "-" ~ t2) => MESUB(t1, t2)
+      }
+    }
+
+  val single_metadata_modifier:Parser[MetaModifier] =
+    (metadata_attribute <~ AS) ~ stringLiteral ^^ {
+      x => MetaModifier(x._1, MEStringConstant(x._2))
+    } |
+      (
+        (
+          metadata_attribute
+          ) <~ AS
+        ) ~ me_expr ^^ { x => MetaModifier(x._1,x._2)}
+
+
+
+
 
   val single_meta_project:Parser[SingleProjectOnMeta] = metadata_attribute ^^ {MetaProject(_)}
   val meta_project_list:Parser[List[SingleProjectOnMeta]] = rep1sep(single_meta_project, ",")
