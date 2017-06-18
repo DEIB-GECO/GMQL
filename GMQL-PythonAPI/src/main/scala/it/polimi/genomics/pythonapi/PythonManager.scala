@@ -206,6 +206,10 @@ object PythonManager {
     }
   }
 
+  def getNone = None
+
+  def getSome(thing: Any) = Some(thing)
+
   /*
   * Materialization
   * */
