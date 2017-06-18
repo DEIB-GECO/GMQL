@@ -212,7 +212,16 @@ class ExpressionBuilder(index : Int) {
   def createRegionExtension(name : String, node: RENode): RegionFunction =
   {
     val regionExtensionFactory = PythonManager.getServer.implementation.regionExtensionFactory
-    regionExtensionFactory.get(node,Left(name))
+    val field: Either[String, Int] = name match {
+      case "start" => Right(COORD_POS.START_POS)
+      case "stop" => Right(COORD_POS.STOP_POS)
+      case "left" => Right(COORD_POS.LEFT_POS)
+      case "right" => Right(COORD_POS.RIGHT_POS)
+      case "chr" => Right(COORD_POS.CHR_POS)
+      case "strand" => Right(COORD_POS.STRAND_POS)
+      case _ => Left(name)
+      }
+    regionExtensionFactory.get(node,field)
   }
 
   def getRENode(name : String) : RENode =
