@@ -10,6 +10,7 @@ import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.Direct
 import it.polimi.genomics.core.DataStructures.GroupMDParameters._
 import it.polimi.genomics.core.DataStructures.JoinParametersRD._
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
+import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaExtension
 import it.polimi.genomics.core.DataStructures.{IRVariable, MetaOperator}
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition._
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
@@ -371,14 +372,14 @@ object Wrapper {
               extended_values : Option[List[RegionFunction]] = None): IRVariable = {
 */
 
-  //TODO extended meta is None cause is not implemented yet in Compiler
-  def project(projected_meta: Any, projected_region: Any, extended_values: Any, all_but: Boolean, input_dataset: String): String = {
+  def project(projected_meta: Any, projected_region: Any, extended_values: Any, extended_meta: Any, all_but: Boolean, input_dataset: String): String = {
     if (vv.get(input_dataset).isEmpty)
       return "No valid Data as input"
 
     var regions_index: (String, Option[List[Int]]) = ("", None)
     var regions_in_but: (String, Option[List[String]]) = ("", None)
     var extended_reg: (String, Option[List[RegionFunction]]) = ("", None)
+    var extended_m: Option[MetaExtension] = None
     val dataAsTheyAre = vv(input_dataset)
 
     val meta_list: Option[List[String]] = MetadataAttributesList(projected_meta)
@@ -405,7 +406,12 @@ object Wrapper {
         return extended_reg._1
     }
 
-    val project = dataAsTheyAre.PROJECT(meta_list, None, regions_index._2, regions_in_but._2, extended_reg._2)
+    if(extended_meta != null) {
+      val parser = new Parser(dataAsTheyAre, GMQL_server)
+      extended_m = parser.parseProjectMetdata(extended_meta.toString)
+    }
+
+    val project = dataAsTheyAre.PROJECT(meta_list,extended_m, regions_index._2, regions_in_but._2, extended_reg._2)
     val index = counter.getAndIncrement()
 
     val out_p = input_dataset + "/project" + index
