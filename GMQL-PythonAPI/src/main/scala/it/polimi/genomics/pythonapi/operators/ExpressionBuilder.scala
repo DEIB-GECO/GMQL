@@ -1,4 +1,6 @@
 package it.polimi.genomics.pythonapi.operators
+import it.polimi.genomics.GMQLServer.DefaultMetaExtensionFactory
+import it.polimi.genomics.core.DataStructures.MetaAggregate._
 import it.polimi.genomics.core.DataStructures.RegionAggregate._
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.ParsingType
@@ -15,6 +17,27 @@ import it.polimi.genomics.pythonapi.PythonManager
   * */
 class ExpressionBuilder(index : Int) {
 
+  def parseValueByType(value: String, value_type: PARSING_TYPE): Any = {
+    value_type match {
+      case ParsingType.STRING => value
+      case ParsingType.CHAR => value
+      case ParsingType.LONG => value.toLong
+      case ParsingType.INTEGER => value.toInt
+      case ParsingType.DOUBLE => value.toDouble
+      case _ => value
+    }
+  }
+
+  /**
+    * METADATA CONDITIONS
+    * */
+
+  def createMetaPredicate(name : String, operation: String, value : String) = {
+    val metaOp = getMetaOperation(operation)
+
+    MetadataCondition.Predicate(name, metaOp, value)
+  }
+
   def getMetaOperation(symbol : String) =
   {
     symbol match {
@@ -28,18 +51,28 @@ class ExpressionBuilder(index : Int) {
     }
   }
 
-  def getRegionOperation(symbol : String) =
+  def createMetaBinaryCondition(pred1 : MetadataCondition.MetadataCondition, condition : String,
+                                pred2 : MetadataCondition.MetadataCondition): MetadataCondition.MetadataCondition =
   {
-    symbol match {
-      case "GT" => RegionCondition.REG_OP.GT
-      case "GTE" => RegionCondition.REG_OP.GTE
-      case "LT" => RegionCondition.REG_OP.LT
-      case "LTE" => RegionCondition.REG_OP.LTE
-      case "EQ" => RegionCondition.REG_OP.EQ
-      case "NOTEQ" => RegionCondition.REG_OP.NOTEQ
-      case _ => throw new IllegalArgumentException(symbol + " is not a RegionCondition")
+    condition match {
+      case "AND" => MetadataCondition.AND(pred1, pred2)
+      case "OR" => MetadataCondition.OR(pred1, pred2)
+      case _ => throw new IllegalArgumentException(condition + " is not a valid MetaBinaryCondition")
     }
   }
+
+  def createMetaUnaryCondition(pred: MetadataCondition.MetadataCondition,
+                               condition: String): MetadataCondition.MetadataCondition =
+  {
+    condition match {
+      case "NOT" => MetadataCondition.NOT(pred)
+      case _ => throw new IllegalArgumentException(condition + " is not a valid MetaUnaryCondition")
+    }
+  }
+
+  /**
+    * REGION CONDITIONS
+    * */
 
   def createRegionPredicate(name: String, operation: String, value : String) =
   {
@@ -72,39 +105,16 @@ class ExpressionBuilder(index : Int) {
     }
   }
 
-  def parseValueByType(value: String, value_type: PARSING_TYPE): Any = {
-    value_type match {
-      case ParsingType.STRING => value
-      case ParsingType.CHAR => value
-      case ParsingType.LONG => value.toLong
-      case ParsingType.INTEGER => value.toInt
-      case ParsingType.DOUBLE => value.toDouble
-      case _ => value
-    }
-  }
-
-  def createMetaPredicate(name : String, operation: String, value : String) = {
-    val metaOp = getMetaOperation(operation)
-
-    MetadataCondition.Predicate(name, metaOp, value)
-  }
-
-  def createMetaBinaryCondition(pred1 : MetadataCondition.MetadataCondition, condition : String,
-                                pred2 : MetadataCondition.MetadataCondition): MetadataCondition.MetadataCondition =
+  def getRegionOperation(symbol : String) =
   {
-    condition match {
-      case "AND" => MetadataCondition.AND(pred1, pred2)
-      case "OR" => MetadataCondition.OR(pred1, pred2)
-      case _ => throw new IllegalArgumentException(condition + " is not a valid MetaBinaryCondition")
-    }
-  }
-
-  def createMetaUnaryCondition(pred: MetadataCondition.MetadataCondition,
-                               condition: String): MetadataCondition.MetadataCondition =
-  {
-    condition match {
-      case "NOT" => MetadataCondition.NOT(pred)
-      case _ => throw new IllegalArgumentException(condition + " is not a valid MetaUnaryCondition")
+    symbol match {
+      case "GT" => RegionCondition.REG_OP.GT
+      case "GTE" => RegionCondition.REG_OP.GTE
+      case "LT" => RegionCondition.REG_OP.LT
+      case "LTE" => RegionCondition.REG_OP.LTE
+      case "EQ" => RegionCondition.REG_OP.EQ
+      case "NOTEQ" => RegionCondition.REG_OP.NOTEQ
+      case _ => throw new IllegalArgumentException(symbol + " is not a RegionCondition")
     }
   }
 
@@ -127,12 +137,10 @@ class ExpressionBuilder(index : Int) {
     }
   }
 
-  def createRegionExtension(name : String, node: RENode): RegionFunction =
-  {
-    val regionExtensionFactory = PythonManager.getServer.implementation.regionExtensionFactory
-    regionExtensionFactory.get(node,Left(name))
-  }
 
+  /**
+    * REGION AGGREGATES
+    * */
   def getRegionsToRegion(functionName: String, newAttrName: String, argument: String): RegionsToRegion = {
     val regionsToRegionFactory = PythonManager.getServer.implementation.mapFunctionFactory
     val variable = PythonManager.getVariable(this.index)
@@ -144,6 +152,74 @@ class ExpressionBuilder(index : Int) {
     }
     res.output_name = Option(newAttrName)
     res
+  }
+
+  def getRegionsToMeta(functionName: String, newAttrName: String, argument: String): RegionsToMeta = {
+    val regionsToMetaFactory = PythonManager.getServer.implementation.extendFunctionFactory
+    val variable = PythonManager.getVariable(this.index)
+    val field_number = variable.get_field_by_name(argument)
+    // by default it's a COUNT operation
+    var res : RegionsToMeta = regionsToMetaFactory.get("COUNT", Option(newAttrName))
+    if(field_number.isDefined) {
+      res = regionsToMetaFactory.get(functionName, field_number.get, Option(newAttrName))
+    }
+    res
+  }
+
+  /**
+    * METADATA EXPRESSIONS
+    * */
+
+  def createMetaExtension(name: String, node: MENode): MetaExtension = {
+    val metaExtensionFactory = PythonManager.getServer.implementation.metaExtensionFactory
+    metaExtensionFactory.get(node, name)
+  }
+
+  def getMENode(name: String) : MENode = {
+    MEName(name)
+  }
+
+  def getMEType(typename: String, value: String) : MENode = {
+    typename.toLowerCase match {
+      case "string" => MEStringConstant(value)
+      case _ => MEFloat(value.toDouble)
+    }
+  }
+
+  def getBinaryMetaExpression(node1: MENode, operator: String, node2: MENode): MENode = {
+    operator match {
+      case "ADD" => MEADD(node1, node2)
+      case "DIV" => MEDIV(node1, node2)
+      case "SUB" => MESUB(node1, node2)
+      case "MUL" => MEMUL(node1, node2)
+      case _ => throw new IllegalArgumentException("There is no metadata operator called " + operator)
+    }
+  }
+
+  def getUnaryMetaExpression(node: MENode, operator: String) : MENode = {
+    operator match {
+      case "NEG" => MENegate(node)
+      case _ => throw new IllegalArgumentException("There is no metadata operator called "+ operator)
+    }
+  }
+
+  /**
+    * REGION EXPRESSIONS
+    * */
+
+  def createRegionExtension(name : String, node: RENode): RegionFunction =
+  {
+    val regionExtensionFactory = PythonManager.getServer.implementation.regionExtensionFactory
+    val field: Either[String, Int] = name match {
+      case "start" => Right(COORD_POS.START_POS)
+      case "stop" => Right(COORD_POS.STOP_POS)
+      case "left" => Right(COORD_POS.LEFT_POS)
+      case "right" => Right(COORD_POS.RIGHT_POS)
+      case "chr" => Right(COORD_POS.CHR_POS)
+      case "strand" => Right(COORD_POS.STRAND_POS)
+      case _ => Left(name)
+      }
+    regionExtensionFactory.get(node,field)
   }
 
   def getRENode(name : String) : RENode =
@@ -169,7 +245,7 @@ class ExpressionBuilder(index : Int) {
   }
 
   def getREType(typename : String, value : String) : RENode = {
-    typename match {
+    typename.toLowerCase match {
       case "string" => REStringConstant(value)
       case _ => REFloat(value.toDouble)
     }
@@ -185,16 +261,13 @@ class ExpressionBuilder(index : Int) {
     }
   }
 
-  def getRegionsToMeta(functionName: String, newAttrName: String, argument: String): RegionsToMeta = {
-    val regionsToMetaFactory = PythonManager.getServer.implementation.extendFunctionFactory
-    val variable = PythonManager.getVariable(this.index)
-    val field_number = variable.get_field_by_name(argument)
-    // by default it's a COUNT operation
-    var res : RegionsToMeta = regionsToMetaFactory.get("COUNT", Option(newAttrName))
-    if(field_number.isDefined) {
-      res = regionsToMetaFactory.get(functionName, field_number.get, Option(newAttrName))
+  def getUnaryRegionExpression(node: RENode, operator: String) : RENode = {
+    operator match {
+      case "NEG" => RENegate(node)
+      case _ => throw new IllegalArgumentException("There is no metadata operator called "+ operator)
     }
-    res
   }
+
+
 
 }

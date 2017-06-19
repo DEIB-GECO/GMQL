@@ -60,7 +60,7 @@ object OrderMD {
     //SampleID, List[metavalues to be used in grouping/ordering ordered as requested in input]
     val valueList : Map[Long, List[String]] =
       metaFilteredDs
-        .groupBy((v) => v._1)
+        .groupBy(_._1)
         .map{ g =>
           keys.foldLeft( (g._1, List() : List[String]) )  { (z, k) =>
 
@@ -122,7 +122,7 @@ object OrderMD {
           valueListString
             .groupBy{(s : (Long, List[GString])) =>
               //drop the last and group by n-1 element
-              Hashing.md5.newHasher.putString(s._2.init.mkString("§"), Charsets.UTF_8).hash.asLong
+              Hashing.md5.newHasher.putString(s._2.mkString("§"), Charsets.UTF_8).hash.asLong
             }
             //take only - groupId, (sampleId, lastElement that will be used for ordering)
             .map{g =>
@@ -134,7 +134,7 @@ object OrderMD {
           valueListDouble
             .groupBy{(s : (Long, List[GDouble])) =>
               //drop the last and group by n-1 element
-              Hashing.md5.newHasher.putString(s._2.init.mkString("§"), Charsets.UTF_8).hash.asLong
+              Hashing.md5.newHasher.putString(s._2.mkString("§"), Charsets.UTF_8).hash.asLong
             }
             //take only - groupId, (sampleId, lastElement that will be used for ordering)
             .map{g =>
