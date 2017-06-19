@@ -33,10 +33,10 @@ object Wrapper {
   var GMQL_server: GmqlServer = _
   var Spark_context: SparkContext = _
 
-
-  var remote_processing:Boolean = false
-  var data_to_send_to_repo:ListBuffer[String] = _
-
+  var remote_processing: Boolean = false
+  //var data_to_send_to_repo: ListBuffer[String] = _
+  var outputformat: GMQLSchemaFormat.Value = _
+  var executed_query: Boolean = true
   //thread safe counter for unique string pointer to dataset
   //'cause we could have two pointer at the same dataset and we
   //can not distinguish them
@@ -47,6 +47,7 @@ object Wrapper {
   //r1 = readDataset("/Users/simone/Downloads/job_filename_guest_new14_20170316_162715_DATA_SET_VAR")
   //are mapped in vv with the same key
   var counter: AtomicLong = new AtomicLong(0)
+
   var materialize_count: AtomicLong = new AtomicLong(0)
 
   var mem_meta: Array[Array[String]] = _
@@ -56,38 +57,35 @@ object Wrapper {
   var vv: Map[String, IRVariable] = Map[String, IRVariable]()
 
 
-  def getGvalueArray (value: Array[String]): Array[GValue] =
-  {
+  def getGvalueArray(value: Array[String]): Array[GValue] = {
     val temp: ArrayBuffer[GValue] = new ArrayBuffer[GValue]()
-    for(elem <- value)
-    {
-      if(elem.equalsIgnoreCase("."))
-        temp+= GString(".")
+    for (elem <- value) {
+      if (elem.equalsIgnoreCase("."))
+        temp += GString(".")
 
       else if (elem matches "[\\+\\-0-9.e]+")
         temp += GDouble(elem.toDouble)
-      else
-      {
-        if(elem.equalsIgnoreCase("NA"))
-          temp+= GString(".")
+      else {
+        if (elem.equalsIgnoreCase("NA"))
+          temp += GString(".")
         else
-          temp+= GString(elem)
+          temp += GString(elem)
       }
     }
     temp.toArray
   }
 
 
-  def initGMQL(output_format: String,remote_proc:Boolean): Unit = {
+  def initGMQL(output_format: String, remote_proc: Boolean): Unit = {
     val spark_conf = new SparkConf().setMaster("local[*]").
       setAppName("GMQL-R").set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
       .set("spark.executor.memory", "6g")
       .set("spark.driver.memory", "2g")
     Spark_context = new SparkContext(spark_conf)
 
-    val out_format = outputFormat(output_format)
+    outputformat = outputFormat(output_format)
 
-    val executor = new GMQLSparkExecutor(sc = Spark_context, outputFormat = out_format)
+    val executor = new GMQLSparkExecutor(sc = Spark_context, outputFormat = outputformat)
     GMQL_server = new GmqlServer(executor)
 
     if (GMQL_server == null) {
@@ -100,8 +98,17 @@ object Wrapper {
     println("GMQL Server is up")
   }
 
-  def remote_processing(remote:Boolean ): Unit = {
-    remote_processing = remote
+  def remote_processing(remote: Boolean): String = {
+    if(executed_query) {
+      remote_processing = remote
+
+      if(!remote_processing)
+        "Remote processing off"
+      else
+        "Remote processing On"
+    }
+    else
+      "You cannot modify processing mode"
   }
 
   def is_remote_processing(): Boolean = {
@@ -117,11 +124,11 @@ object Wrapper {
     }
   }
 
-  def readDataset(data_input_path: String, parser_name: String,is_local:Boolean,schema: Any): String = {
+  def readDataset(data_input_path: String, parser_name: String, is_local: Boolean, schema: Any): String = {
     var parser: BedParser = null
     var out_p = ""
     var data_path = data_input_path
-    if(is_local)
+    if (is_local)
       data_path = data_path + "/files"
 
     parser_name match {
@@ -132,7 +139,7 @@ object Wrapper {
       case "NARROWPEAKPARSER" => parser = NarrowPeakParser
       case "RNASEQPARSER" => parser = RnaSeqParser
       case "CUSTOMPARSER" => {
-        if(is_local) {
+        if (is_local) {
           parser = new CustomParser()
           try {
             parser.asInstanceOf[CustomParser].setSchema(data_path)
@@ -141,9 +148,9 @@ object Wrapper {
             case fe: FileNotFoundException => return fe.getMessage
           }
         }
-        else{
-          if(schema!=null) {
-            parser  = createParser(schema.asInstanceOf[Array[Array[String]]])
+        else {
+          if (schema != null) {
+            parser = createParser(schema.asInstanceOf[Array[Array[String]]])
           }
           else
             return "No schema defined"
@@ -152,9 +159,11 @@ object Wrapper {
       case _ => return "No parser defined"
     }
 
-    if(remote_processing && is_local)
+    /*
+    if (remote_processing && is_local)
       data_to_send_to_repo += data_input_path
-
+*/
+    executed_query = false
     val dataAsTheyAre = GMQL_server.READ(data_path).USING(parser)
     val index = counter.getAndIncrement()
     out_p = "dataset" + index
@@ -172,26 +181,25 @@ object Wrapper {
     var strand_index = 0
     val schemaList = new ListBuffer[(Int, ParsingType.PARSING_TYPE)]()
 
-    for (i <- 0 until schema.length)
-    {
+    for (i <- 0 until schema.length) {
       var name = schema(i)(0)
       var parse_type = schema(i)(1)
-      name match{
+      name match {
         case "seqnames" | "chr" => chr_index = i
         case "start" | "lefg" => start_index = i
         case "end" | "right" => end_index = i
         case "strand" => strand_index = i
         case _ => {
           var pt = getParsingTypeFromString(parse_type)
-          schemaList += ((i,pt))
+          schemaList += ((i, pt))
         }
       }
     }
-    var parser = new BedParser("\t",chr_index,start_index,end_index,Some(strand_index),Some(schemaList.toArray))
+    var parser = new BedParser("\t", chr_index, start_index, end_index, Some(strand_index), Some(schemaList.toArray))
     parser
   }
 
-  def getParsingTypeFromString(parsingType: String) : PARSING_TYPE = {
+  def getParsingTypeFromString(parsingType: String): PARSING_TYPE = {
 
     val pType = parsingType.toUpperCase()
     pType match {
@@ -208,17 +216,19 @@ object Wrapper {
       case _ => ParsingType.DOUBLE
     }
   }
-  
-  def read(meta: Array[Array[String]],regions: Array[Array[String]], schema: Array[Array[String]]): String =
-  {
+
+  def read(meta: Array[Array[String]], regions: Array[Array[String]], schema: Array[Array[String]]): String = {
     var out_p = ""
-    val metaDS = Spark_context.parallelize(meta.map{x => (x(0).toInt,(x(1),x(2)))})
-    val regionDS = Spark_context.parallelize(regions.map{
-      x=>(new GRecordKey(x(0).toLong,x(1), x(2).toLong,x(3).toLong,x(4).toCharArray.head),getGvalueArray(x.drop(4)))
+
+    val metaDS = Spark_context.parallelize(meta.map { x => (x(0).toLong, (x(1), x(2))) })
+    val regionDS = Spark_context.parallelize(regions.map {
+      x => (new GRecordKey(x(0).toLong, x(1), x(2).toLong, x(3).toLong, x(4).toCharArray.head), getGvalueArray(x.drop(4)))
     })
+
     val schemaDS = create_list_schema(schema)
 
-    val dataAsTheyAre = GMQL_server.READ("").USING(null,regionDS,schemaDS)
+    val dataAsTheyAre = GMQL_server.READ("").USING(metaDS, regionDS, schemaDS)
+
     val index = counter.getAndIncrement()
     out_p = "dataset" + index
     vv = vv + (out_p -> dataAsTheyAre)
@@ -228,6 +238,10 @@ object Wrapper {
 
 
   def materialize(data_to_materialize: String, data_output_path: String): String = {
+
+    if(outputformat == GMQLSchemaFormat.COLLECT)
+      return "No materialization available, you choose memory as output"
+
     if (vv.get(data_to_materialize).isEmpty)
       return "No valid Data to materialize"
 
@@ -244,6 +258,8 @@ object Wrapper {
     else {
       GMQL_server.run()
       materialize_count.set(0)
+      executed_query = true
+      vv = vv.empty
       "Executed"
     }
   }
@@ -268,35 +284,34 @@ object Wrapper {
       map(x => Array[String](x._1.toString, x._2._1, x._2._2))
 
     mem_schema = output.asInstanceOf[GMQL_DATASET]._3.
-    map(x => Array[String](x._1)).toArray
+      map(x => Array[String](x._1)).toArray
 
-    "OK"
+    "Taken"
   }
 
   def get_reg(): Array[Array[String]] = {
-    if(mem_regions==null)
+    if (mem_regions == null)
       return Array(Array("NO regions in memory"))
     mem_regions
   }
 
   def get_meta(): Array[Array[String]] = {
-    if(mem_meta==null)
+    if (mem_meta == null)
       return Array(Array("NO metadata in memory"))
     mem_meta
   }
 
   def get_schema(): Array[Array[String]] = {
-    if(mem_schema==null)
+    if (mem_schema == null)
       return Array(Array("NO schema in memory"))
     mem_schema
   }
 
-  def create_list_schema(schema: Array[Array[String]]): List[(String, PARSING_TYPE)] ={
+  def create_list_schema(schema: Array[Array[String]]): List[(String, PARSING_TYPE)] = {
 
     var temp = ListBuffer[(String, PARSING_TYPE)]()
-    for (elem <- schema)
-    {
-      temp+=((elem(1),getParsingTypeFromString(elem(0))))
+    for (elem <- schema) {
+      temp += ((elem(1), getParsingTypeFromString(elem(0))))
     }
     temp.toList
   }
@@ -314,7 +329,7 @@ object Wrapper {
     var semi_join_metaDag: Option[MetaOperator] = None
     var selected_meta: (String, Option[MetadataCondition]) = ("", None)
     var selected_regions: (String, Option[RegionCondition]) = ("", None)
-    val parser = new Parser(dataAsTheyAre,GMQL_server)
+    val parser = new Parser(dataAsTheyAre, GMQL_server)
 
     if (predicate != null) {
       selected_meta = parser.parseSelectMetadata(predicate.toString)
@@ -357,21 +372,21 @@ object Wrapper {
 */
 
   //TODO extended meta is None cause is not implemented yet in Compiler
-  def project(projected_meta: Any, projected_region: Any,extended_values:Any,all_but: Boolean, input_dataset: String): String = {
+  def project(projected_meta: Any, projected_region: Any, extended_values: Any, all_but: Boolean, input_dataset: String): String = {
     if (vv.get(input_dataset).isEmpty)
       return "No valid Data as input"
 
-    var regions_index:(String, Option[List[Int]]) = ("",None)
-    var regions_in_but:(String, Option[List[String]]) = ("",None)
-    var extended_reg:(String, Option[List[RegionFunction]]) = ("",None)
+    var regions_index: (String, Option[List[Int]]) = ("", None)
+    var regions_in_but: (String, Option[List[String]]) = ("", None)
+    var extended_reg: (String, Option[List[RegionFunction]]) = ("", None)
     val dataAsTheyAre = vv(input_dataset)
 
     val meta_list: Option[List[String]] = MetadataAttributesList(projected_meta)
 
     if (projected_region == null)
-      regions_index = ("OK",None)
+      regions_index = ("OK", None)
     else {
-      if(!all_but) {
+      if (!all_but) {
         regions_index = regionsList(projected_region, dataAsTheyAre)
         if (regions_index._2.isEmpty)
           return regions_index._1
@@ -383,15 +398,14 @@ object Wrapper {
       }
     }
 
-    if(extended_values!=null)
-    {
-      val parser = new Parser(dataAsTheyAre,GMQL_server)
+    if (extended_values != null) {
+      val parser = new Parser(dataAsTheyAre, GMQL_server)
       extended_reg = parser.parseProjectRegion(extended_values.toString)
-      if(extended_reg._2.isEmpty)
+      if (extended_reg._2.isEmpty)
         return extended_reg._1
     }
 
-    val project = dataAsTheyAre.PROJECT(meta_list, None, regions_index._2,regions_in_but._2, extended_reg._2)
+    val project = dataAsTheyAre.PROJECT(meta_list, None, regions_index._2, regions_in_but._2, extended_reg._2)
     val index = counter.getAndIncrement()
 
     val out_p = input_dataset + "/project" + index
@@ -405,10 +419,9 @@ object Wrapper {
       return "No valid Data as input"
 
     val dataAsTheyAre = vv(input_dataset)
-    var meta_list:(String, List[RegionsToMeta]) = ("",List())
+    var meta_list: (String, List[RegionsToMeta]) = ("", List())
 
-    if(metadata!=null)
-    {
+    if (metadata != null) {
       meta_list = RegionsToMetaFactory(metadata, dataAsTheyAre)
       if (meta_list._2.isEmpty)
         return meta_list._1
@@ -439,8 +452,8 @@ object Wrapper {
     out_p
   }
 
-  def order(meta_order: Any, meta_topg: Int, meta_top: Int,meta_top_perc:Int,
-            region_order: Any, region_topg: Int, region_top: Int,reg_top_perc:Int, input_dataset: String): String = {
+  def order(meta_order: Any, meta_topg: Int, meta_top: Int, meta_top_perc: Int,
+            region_order: Any, region_topg: Int, region_top: Int, reg_top_perc: Int, input_dataset: String): String = {
     if (vv.get(input_dataset).isEmpty)
       return "No valid dataset as input"
 
@@ -458,7 +471,6 @@ object Wrapper {
     if (meta_top_perc > 0)
       m_top = TopP(meta_top_perc)
 
-
     if (region_top > 0)
       r_top = Top(region_top)
 
@@ -469,11 +481,9 @@ object Wrapper {
       r_top = TopP(reg_top_perc)
 
 
-
     val meta_list = meta_order_list(meta_order)
-    var reg_ordering: (String, Option[List[(Int, Direction)]]) = ("",None)
-    if(region_order!=null)
-    {
+    var reg_ordering: (String, Option[List[(Int, Direction)]]) = ("", None)
+    if (region_order != null) {
       reg_ordering = region_order_list(region_order, dataAsTheyAre)
       if (reg_ordering._2.isEmpty)
         return reg_ordering._1
@@ -509,7 +519,7 @@ object Wrapper {
     out_p
   }
 
-  def difference(join_by: Any, left_dataset: String, right_dataset: String, is_exact:Boolean): String = {
+  def difference(join_by: Any, left_dataset: String, right_dataset: String, is_exact: Boolean): String = {
 
     if (vv.get(right_dataset).isEmpty)
       return "No valid right dataset as input"
@@ -589,14 +599,14 @@ object Wrapper {
       return ("No valid dataset as input", null)
 
     val dataAsTheyAre = vv(input_dataset)
-    var aggr_list:(String, List[RegionsToRegion]) = ("",List())
+    var aggr_list: (String, List[RegionsToRegion]) = ("", List())
     var paramMin = get_param(min)
-    if(paramMin._2==null)
-      return (paramMin._1,null)
+    if (paramMin._2 == null)
+      return (paramMin._1, null)
 
     var paramMax = get_param(max)
-    if(paramMax._2==null)
-      return (paramMax._1,null)
+    if (paramMax._2 == null)
+      return (paramMax._1, null)
 
     if (aggregates != null) {
       aggr_list = RegionToRegionAggregates(aggregates, dataAsTheyAre)
@@ -611,22 +621,6 @@ object Wrapper {
     ("OK", variant)
   }
 
-  def get_param(param:Any): (String,CoverParam) = {
-    var covParam:CoverParam = null
-    param match {
-      case param:Int => covParam = new N {
-        override val n: Int = param
-      }
-      case param:String =>{
-        val parser = new Parser()
-        val (error, covParam) = parser.parseCoverParam(param)
-        if (covParam == null)
-          return ("No valid min or max input",covParam)
-      }
-    }
-
-    ("OK",covParam)
-  }
 
   // we do not add left, right and count name: we set to None
   def map(condition: Any, aggregates: Any, right_dataset: String, left_dataset: String): String = {
@@ -683,6 +677,23 @@ object Wrapper {
 
 
   /*UTILS FUNCTION*/
+
+  def get_param(param: Any): (String, CoverParam) = {
+    var covParam: CoverParam = null
+    param match {
+      case param: Int => covParam = new N {
+        override val n: Int = param
+      }
+      case param: String => {
+        val parser = new Parser()
+        val (error, covParam) = parser.parseCoverParam(param)
+        if (covParam == null)
+          return ("No valid min or max input", covParam)
+      }
+    }
+
+    ("OK", covParam)
+  }
 
   def regionBuild(output: String): RegionBuilder = {
 
@@ -802,14 +813,14 @@ object Wrapper {
     val temp_list = new ListBuffer[String]()
 
     projected_by match {
-      case projected_by: String =>{
-            val field = data.get_field_by_name(projected_by)
-            if (field.isEmpty) {
-              val error = "No value " + projected_by + " from this schema"
-              return (error, projectedList) //empty list
-            }
-            projectedList = Some(List(projected_by))
-          }
+      case projected_by: String => {
+        val field = data.get_field_by_name(projected_by)
+        if (field.isEmpty) {
+          val error = "No value " + projected_by + " from this schema"
+          return (error, projectedList) //empty list
+        }
+        projectedList = Some(List(projected_by))
+      }
       case projected_by: Array[String] => {
         for (elem <- projected_by) {
           val field = data.get_field_by_name(elem)
@@ -945,36 +956,29 @@ object Wrapper {
     }
   }
 
-  def main(args: Array[String]): Unit =
-  {
+  def main(args: Array[String]): Unit = {
 
-    initGMQL("TAB",false)
-    val region= Array(Array("1","chr1","534435","2233234","*",
-      "GMQL","Region","0","NA",".","17.324","312.32","-1","-1"))
+    /*initGMQL("TAB", false)
+    val region = Array(Array("1", "chr1", "534435", "2233234", "*",
+      "GMQL", "Region", "0", "NA", ".", "17.324", "312.32", "-1", "-1"))
     //val a = getGvalueArray(x)
-    val meta = Array(Array("00001","assay","asd"),Array("00001","disease","fwefwe"))
-    val schema =Array(Array("FACTOR"  ,  "seqname"),
-    Array(   "INTEGER" ,  "start"),
-    Array(     "INTEGER" ,  "end"),
-    Array(   "FACTOR" ,   "strand"),
-    Array(  "FACTOR"  ,  "source"),
-    Array(    "FACTOR" ,   "feature"),
-    Array(   "NUMERIC"  , "score"),
-    Array(    "INTEGER"  , "frame"),
-    Array(    "CHARACTER" ,"name"),
-    Array(  "CHARACTER", "signal"),
-    Array(  "CHARACTER", "pvalue") ,Array("CHARACTER","qvalue"),Array("CHARACTER" ,"peak"))
-    val r =read(meta,region,schema)
-    materialize(r,"/Users/simone/Downloads/res3")
-    execute()
-   // initGMQL("TAB",false)
-   // val r = readDataset("/Users/simone/Downloads/DATA_SET_VAR_GTF","CUSTOMPARSER",true,null)
-   // val k = take(r,10)
-    //val t = take(r,10)
-    //val predicate_reg = "score > 0.5 AND NOT(variant_type == 'SNP')"
-   // val s = select(null,predicate_reg,null,null,r)
-    //print(s)
-  }
+    val meta = Array(Array("00001", "assay", "asd"), Array("00001", "disease", "fwefwe"))
+    val schema = Array(
+      Array("FACTOR", "source"),
+      Array("FACTOR", "feature"),
+      Array("NUMERIC", "score"),
+      Array("INTEGER", "frame"),
+      Array("CHARACTER", "name"),
+      Array("CHARACTER", "signal"),
+      Array("CHARACTER", "pvalue"),
+      Array("CHARACTER", "qvalue"),
+      Array("CHARACTER", "peak"))
+    val r = read(meta, region, schema)
+     materialize(r,"/Users/simone/Downloads/res3")
+     execute()
+    */
 
+
+  }
 
 }
