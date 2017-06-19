@@ -171,9 +171,7 @@ class ExpressionBuilder(index : Int) {
     * */
 
   def createMetaExtension(name: String, node: MENode): MetaExtension = {
-    val metaExtensionFactory = DefaultMetaExtensionFactory
-    //TODO: use the implementation.metaExtensionFactory
-    //val metaExtensionFactory = PythonManager.getServer.implementation.metaExtensionFactory
+    val metaExtensionFactory = PythonManager.getServer.implementation.metaExtensionFactory
     metaExtensionFactory.get(node, name)
   }
 
