@@ -189,6 +189,13 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
 
 
 
+  /**
+    * It renames the paths specified in the serialized DAG to HDFS paths and
+    * builds a new serialized DAG with the modifications
+    *
+    * @param dagString: string of the serialized DAG
+    * @return A list of the output directories and the serialized DAG with the paths renamed
+    * */
   def renameDAGPaths(dagString:String) = {
     val dagVars: List[IRVariable] = core_ut.deserializeDAG(dagString)
     val outDss = dagVars.flatMap ( dagVar => rec(dagVar.metaDag) ++ rec(dagVar.regionDag)).distinct
@@ -206,6 +213,10 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     else General_Utilities().getRegionDir(this.username) + x +"/"
     dir
   }
+
+  /**
+    * Recursive search of READ and STORE operations in the DAG.
+    * */
   def rec(inp: IROperator): List[String] = {
     val result = inp match {
       case x: IRReadRD[_,_,_,_] =>
