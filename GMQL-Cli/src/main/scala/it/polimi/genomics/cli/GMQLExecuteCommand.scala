@@ -5,10 +5,9 @@ import java.nio.file.{Files, Paths}
 import java.text.SimpleDateFormat
 import java.util.Date
 
-import com.sun.org.apache.xml.internal.security.utils.Base64
 import it.polimi.genomics.GMQLServer.{GmqlServer, Implementation}
 import it.polimi.genomics.compiler._
-import it.polimi.genomics.core.DataStructures.{IRGenometricJoin, IRReadMD, IRVariable}
+import it.polimi.genomics.core.DataStructures.IRVariable
 import it.polimi.genomics.core.{GMQLSchemaFormat, ImplementationPlatform, Utilities}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.hadoop.conf.Configuration
@@ -25,16 +24,6 @@ import org.slf4j.LoggerFactory
   *
   */
 
-/**
-  * TODO: DAG SERIALIZATION
-  *
-  * 1) add the -dagPath option to the CLI
-  * 2) when -dagPath is active:
-  *   2.1) Instantiate a GMQLServer
-  *   2.2) Deserialize the dag file into a List[IRVariable]
-  *   2.3) Add every variable to the materializationList of the GMQLServer
-  *   2.4) Execute the server
-  * */
 object GMQLExecuteCommand {
   private final val logger = LoggerFactory.getLogger(/*Logger.ROOT_LOGGER_NAME)*/ GMQLExecuteCommand.getClass);
   try{
