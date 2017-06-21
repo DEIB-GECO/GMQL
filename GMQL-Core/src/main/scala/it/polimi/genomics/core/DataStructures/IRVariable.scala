@@ -120,7 +120,9 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
           val list = new_projected_values.get
           val new_list =
             if (extended_values.isDefined){
-              list ++ ((this.schema.size) to (this.schema.size + extended_values.get.size - 1)).toList
+              list ++ ((this.schema.size) to (this.schema.size + extended_values.get.filter(x =>
+                !x.output_index.isDefined || x.output_index.get >= 0
+              ).size - 1)).toList
             }
             else {
               list
