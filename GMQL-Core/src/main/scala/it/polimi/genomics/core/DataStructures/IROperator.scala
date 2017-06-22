@@ -12,6 +12,9 @@ class IROperator {
 
   override def toString = operatorName
 
+  /**
+    * Get the list of input operators for the current operator.
+    * */
   def getOperatorList: List[IROperator] = {
     val result = mutable.Set[IROperator]()
     for (method <- this.getClass.getMethods) {
