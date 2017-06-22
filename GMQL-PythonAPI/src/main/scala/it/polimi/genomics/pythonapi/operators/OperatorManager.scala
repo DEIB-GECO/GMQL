@@ -118,22 +118,26 @@ object OperatorManager {
               all_but : Option[java.util.List[String]],
               extended_regs : Option[java.util.List[RegionFunction]]
              ): Int = {
+
     val v = PythonManager.getVariable(index)
 
     // PROJECTED META
     var projected_meta_scala: Option[List[String]] = None
     if(projected_meta.isDefined){
+      //println("Projected Meta is defined")
       projected_meta_scala = Some(projected_meta.get.asScala.toList)
     }
     // ALL BUT
     var all_but_scala: Option[List[String]] = None
     if(all_but.isDefined){
+      //println("All but is defined")
       all_but_scala = Some(all_but.get.asScala.toList)
     }
 
     // PROJECTED REGIONS
     var projected_regs_scala: Option[List[Int]] = None
     if(projected_regs.isDefined){
+      //println("Projected regs is defined")
       projected_regs_scala = Some(projected_regs.get.asScala.toList.map( x => {
         val pos = v.get_field_by_name(x)
         if(pos.isDefined){
@@ -142,12 +146,15 @@ object OperatorManager {
         else
           throw new IllegalArgumentException("The attribute " + x + " is not present")
       }))
+      //println(projected_regs_scala.get.toString())
     }
 
     // EXTENDED REGIONS
     var extended_regs_scala: Option[List[RegionFunction]] = None
     if(extended_regs.isDefined){
+      //println("Extended regs is defined")
       extended_regs_scala = Some(extended_regs.get.asScala.toList)
+      //extended_regs_scala.get.map(x => println(x.inputIndexes + "\t" + x.output_index + "\t" + x.output_name))
     }
 
     val nv = v.PROJECT(projected_meta_scala, extended_meta,
