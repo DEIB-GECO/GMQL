@@ -108,7 +108,7 @@ object Test {
       List(new RegionsToRegion {
         override val index: Int = 2
         override val associative: Boolean = true
-        override val funOut: (GValue,Int) => GValue = {(v1,v2)=>v1}
+        override val funOut: (GValue,(Int, Int)) => GValue = {(v1,v2)=>v1}
         override val fun: (List[GValue]) => GValue = {
           l => println ("The values are: "+l.mkString("\t"));if(l.size>0)GDouble(l.map(g => g.asInstanceOf[GDouble].v).reduce(_ + _)) else GDouble(0)
         }

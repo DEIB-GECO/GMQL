@@ -58,7 +58,7 @@ object Map {
               override val resType = ParsingType.DOUBLE
               override val index: Int = 0
               override val associative: Boolean = true
-              override val funOut: (GValue,Int) => GValue = {(v1,v2)=>v1}
+              override val funOut: (GValue,(Int, Int)) => GValue = {(v1,v2)=>v1}
               override val fun: (List[GValue]) => GValue = {
                (line) =>{val ss = line.map(_.asInstanceOf[GDouble].v)
                 if(!ss.isEmpty) GDouble(ss.reduce(_ + _))else GDouble (0)
@@ -68,7 +68,7 @@ object Map {
              override val resType: PARSING_TYPE = ParsingType.STRING
              override val index: Int = 1
              override val associative: Boolean = false
-             override val funOut: (GValue, Int) => GValue = { (v1, v2) => v1 }
+             override val funOut: (GValue, (Int, Int)) => GValue = { (v1, v2) => v1 }
              override val fun: (List[GValue]) => GValue = {
               (list) => GString(list.map((gvalue) => gvalue.asInstanceOf[GString].v).reduce((word1: String, word2: String) => word1 + " " + word2))
              }
