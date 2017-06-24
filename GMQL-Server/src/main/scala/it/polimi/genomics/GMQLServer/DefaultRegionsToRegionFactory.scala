@@ -1,10 +1,9 @@
 package it.polimi.genomics.GMQLServer
 
 import it.polimi.genomics.core.DataStructures.Builtin.MapFunctionFactory
-import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionsToMeta, RegionsToRegion}
-import it.polimi.genomics.core._
-import it.polimi.genomics.core.ParsingType
+import it.polimi.genomics.core.DataStructures.RegionAggregate.RegionsToRegion
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
+import it.polimi.genomics.core.{ParsingType, _}
 
 /**
  * Created by pietro on 22/07/15.
@@ -34,7 +33,7 @@ object DefaultRegionsToRegionFactory extends MapFunctionFactory{
     override val resType: PARSING_TYPE = ParsingType.DOUBLE
     override val index: Int = position
     override val associative: Boolean = false
-    override val funOut: (GValue, Int) => GValue = {(v1,v2)=>v1}
+    override val funOut: (GValue, (Int, Int)) => GValue = {(v1,v2)=>v1}
     override val fun: (List[GValue]) => GValue = {
       (line) => {
         /*val values: List[Double] = line.map{ gvalue => val s = gvalue.asInstanceOf[GDouble].v;s}.sorted*/
@@ -59,7 +58,7 @@ object DefaultRegionsToRegionFactory extends MapFunctionFactory{
     override val resType = ParsingType.DOUBLE
     override val index: Int = 0
     override val associative: Boolean = true
-    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>GDouble(v2)}
+    override val funOut: (GValue,(Int, Int)) => GValue = {(v1,v2)=>GDouble(v2._1)}
     override val fun: (List[GValue]) => GValue = {
       (line) =>
         val len = line.size.toDouble
@@ -70,7 +69,7 @@ object DefaultRegionsToRegionFactory extends MapFunctionFactory{
     override val resType = ParsingType.DOUBLE
     override val index: Int = position
     override val associative: Boolean = true
-    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>/*v1*/ if (v2 > 0) v1 else GNull()}
+    override val funOut: (GValue,(Int, Int)) => GValue = {(v1,v2)=>/*v1*/ if (v2._1 > 0) v1 else GNull()}
     override val fun: (List[GValue]) => GValue = {
       (line) =>{/*val ss = line.map((gvalue) => {val s = gvalue.asInstanceOf[GDouble].v;s})*/
         val ss = line.flatMap((gvalue) => {if (gvalue.isInstanceOf[GDouble]) Some(gvalue.asInstanceOf[GDouble].v) else None})
@@ -85,7 +84,7 @@ object DefaultRegionsToRegionFactory extends MapFunctionFactory{
     override val resType = ParsingType.DOUBLE
     override val index: Int = position
     override val associative: Boolean = true
-    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>/*v1*/ if (v2 > 0) v1 else GNull()}
+    override val funOut: (GValue,(Int, Int)) => GValue = {(v1,v2)=>/*v1*/ if (v2._1 > 0) v1 else GNull()}
     override val fun: (List[GValue]) => GValue = {
       (line) =>
         /*val len = line.size.toDouble*/
@@ -99,7 +98,7 @@ object DefaultRegionsToRegionFactory extends MapFunctionFactory{
     override val resType = ParsingType.DOUBLE
     override val index: Int = position
     override val associative: Boolean = true
-    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>/*v1*/ if (v2 > 0) v1 else GNull()}
+    override val funOut: (GValue,(Int, Int)) => GValue = {(v1,v2)=>/*v1*/ if (v2._1 > 0) v1 else GNull()}
     override val fun: (List[GValue]) => GValue = {
       (line) =>
         /*val len = line.size.toDouble*/
@@ -113,8 +112,8 @@ object DefaultRegionsToRegionFactory extends MapFunctionFactory{
     override val resType = ParsingType.DOUBLE
     override val index: Int = position
     override val associative: Boolean = true
-    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>/*GDouble(v1.asInstanceOf[GDouble].v/v2)*/
-      if (v2 > 0 && !v1.isInstanceOf[GNull]) GDouble(v1.asInstanceOf[GDouble].v / v2) else GNull()}
+    override val funOut: (GValue,(Int, Int)) => GValue = {(v1,v2)=>/*GDouble(v1.asInstanceOf[GDouble].v/v2)*/
+      if (v2._2 > 0 && !v1.isInstanceOf[GNull]) GDouble(v1.asInstanceOf[GDouble].v / v2._2) else GNull()}
     override val fun: (List[GValue]) => GValue = {
       (line) =>
         /*val len = line.size.toDouble*/
@@ -129,7 +128,7 @@ object DefaultRegionsToRegionFactory extends MapFunctionFactory{
     override val resType = ParsingType.STRING
     override val index: Int = position
     override val associative: Boolean = true
-    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>/*v1*/ if (v2 > 0) v1 else GNull()}
+    override val funOut: (GValue,(Int, Int)) => GValue = {(v1,v2)=>/*v1*/ if (v2._1 > 0) v1 else GNull()}
     override val fun: (List[GValue]) => GValue = {
       (line) =>
         if(line.nonEmpty)

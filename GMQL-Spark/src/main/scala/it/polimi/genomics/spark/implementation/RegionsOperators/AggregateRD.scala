@@ -4,7 +4,7 @@ import it.polimi.genomics.core.DataStructures.RegionAggregate.RegionsToMeta
 import it.polimi.genomics.core.DataStructures.RegionOperator
 import it.polimi.genomics.core.DataTypes.MetaType
 import it.polimi.genomics.core.exception.SelectFormatException
-import it.polimi.genomics.core.{GRecordKey, GValue}
+import it.polimi.genomics.core.{GNull, GRecordKey, GValue}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
@@ -44,10 +44,11 @@ object AggregateRD {
 
   def Aggregatable(rdd: RDD[(GRecordKey, Array[GValue])], aggregator: List[RegionsToMeta]): RDD[MetaType] = {
 
-    val extracted = rdd.map(x => (x._1._1, (aggregator.map(a => x._2(a.inputIndex)).toArray, 1))).cache
+    val extracted = rdd.map(x => (x._1._1, (aggregator.map(a => x._2(a.inputIndex)).toArray, (1, x._2.map(s=>if(s.isInstanceOf[GNull]) 0 else 1).iterator.toArray)))).cache
+    var j = -1
     extracted.reduceByKey { (x, y) => var i = -1;
-      (aggregator.map { a => i += 1; a.fun(List(x._1(i), y._1(i))) }.toArray,x._2 + y._2) }
-      .flatMap { x => var i = -1; aggregator.map { a => i += 1; (x._1, (a.newAttributeName, a.funOut(x._2._1(i), x._2._2).toString)) } }
+      (aggregator.map { a => i += 1; a.fun(List(x._1(i), y._1(i))) }.toArray,(x._2._1 + y._2._1, x._2._2.zip(y._2._2).map(s=>s._1+s._2).iterator.toArray)) }
+      .flatMap { x => j += 1; var i = -1; aggregator.map { a => i += 1; (x._1, (a.newAttributeName, a.funOut(x._2._1(i), (x._2._2._1, if(x._2._2._2.size > 0) x._2._2._2(j) else 0)).toString)) } }
   }
 
 }

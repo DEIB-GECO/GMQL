@@ -1,7 +1,7 @@
 package it.polimi.genomics.r
 
 
-import it.polimi.genomics.GMQLServer.GmqlServer
+import it.polimi.genomics.GMQLServer.{DefaultMetaExtensionFactory, GmqlServer}
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
 import it.polimi.genomics.compiler._
 import it.polimi.genomics.core.DataStructures.CoverParameters.CoverParam
@@ -11,6 +11,7 @@ import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
 import it.polimi.genomics.core.ParsingType
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core.DataStructures.CoverParameters._
+import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaExtension
 
 
 
@@ -149,8 +150,15 @@ class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
     }
   }
 
-  def parseProjectMetdata(input: String): Unit = {
+  def parseProjectMetdata(input: String): Option[MetaExtension] = {
 
+    val extend_meta = parse(single_metadata_modifier, input)
+    var meta_modifier: Option[MetaExtension] = Some(
+      DefaultMetaExtensionFactory.get(
+        extend_meta.get.dag,
+        extend_meta.get.output))
+
+    meta_modifier
   }
 
 

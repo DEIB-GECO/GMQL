@@ -1,6 +1,8 @@
   package it.polimi.genomics.compiler
 
 
+  import it.polimi.genomics.GMQLServer.DefaultMetaExtensionFactory
+  import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaExtension
   import it.polimi.genomics.core.DataStructures.RegionAggregate._
 
   import scala.util.parsing.input.Position
@@ -20,6 +22,7 @@
     var region_project_fields : Option[List[Int]] = None
     var meta_projection : Option[List[String]] = None
     var region_modifier : Option[List[RegionFunction]] = None
+    var meta_modifier : Option[MetaExtension] = None
 
       override def preprocess_operator(status: CompilerStatus) : Boolean = {
         super_variable_left = Some(
@@ -132,7 +135,13 @@
               }
             }
             case "metadata_update" => {
-              throw new CompilerException("'meta_update' option for the PROJECT is not available yet")
+              val parsed_modifier = parser_named(single_metadata_modifier,p.param_name.trim, p.param_value.trim)
+              meta_modifier = Some(
+                DefaultMetaExtensionFactory.get(
+                  parsed_modifier.get.dag,
+                  parsed_modifier.get.output))
+
+
             }
             case "metadata" => {
               meta_projection = parser_named(metadata_attribute_list,p.param_name.trim, p.param_value.trim)
@@ -147,7 +156,7 @@
 
       val projected = super_variable_left.get.PROJECT(
         meta_projection,
-        None,
+        meta_modifier,
         region_project_fields,
         extended_values = region_modifier)
 

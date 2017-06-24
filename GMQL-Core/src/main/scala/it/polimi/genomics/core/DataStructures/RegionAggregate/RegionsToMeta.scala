@@ -16,5 +16,5 @@ trait RegionsToMeta extends R2MAggregator {
   val inputIndex : Int
   val associative : Boolean
   val fun : List[GValue] => GValue
-  val funOut : (GValue,Int) => GValue
+  val funOut : (GValue,(Int, Int)) => GValue
 }

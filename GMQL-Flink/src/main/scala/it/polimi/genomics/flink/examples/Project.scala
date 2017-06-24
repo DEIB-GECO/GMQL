@@ -81,7 +81,7 @@ object Project {
             override val newAttributeName: String = "computed_bert_value1_region_aggregate"
             override val inputIndex: Int = 1
             override val associative : Boolean = true
-            override val funOut: (GValue,Int) => GValue = {(v1,v2)=>v1}
+            override val funOut: (GValue,(Int, Int)) => GValue = {(v1,v2)=>v1}
             override val fun: List[GValue] => GValue =
             //sum of values
               (l : List[GValue]) => {

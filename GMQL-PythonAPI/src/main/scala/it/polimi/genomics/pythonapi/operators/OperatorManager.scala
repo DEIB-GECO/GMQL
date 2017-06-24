@@ -6,7 +6,7 @@ import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.{ASC, 
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.{NoTop, Top, TopG, TopParameter}
 import it.polimi.genomics.core.DataStructures.IRVariable
 import it.polimi.genomics.core.DataStructures.JoinParametersRD._
-import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaAggregateStruct
+import it.polimi.genomics.core.DataStructures.MetaAggregate.{MetaAggregateStruct, MetaExtension}
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition.{AttributeEvaluationStrategy, Default, MetaJoinCondition}
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
@@ -45,8 +45,7 @@ object OperatorManager {
   }
 
   def meta_select(index: Int, other: Int,  metaCondition : MetadataCondition,
-                  metaJoinCondition: Option[MetaJoinCondition]) : Int =
-  {
+                  metaJoinCondition: Option[MetaJoinCondition]) : Int = {
 
 
     // get the corresponding variable
@@ -74,8 +73,7 @@ object OperatorManager {
   }
 
   def reg_select(index: Int, other: Int, regionCondition: RegionCondition,
-                 metaJoinCondition: Option[MetaJoinCondition]) : Int =
-  {
+                 metaJoinCondition: Option[MetaJoinCondition]) : Int = {
     // get the corresponding variable
     val v = PythonManager.getVariable(index)
     // do the operation (build the DAG)
@@ -113,65 +111,55 @@ object OperatorManager {
   /*
   * PROJECT
   * */
-  def meta_project(index : Int, projected_meta: java.util.List[String]): Int = {
-    do_project(index, Option(projected_meta), None, None, None)
-  }
 
-  def meta_project_extend(index : Int, projected_meta: java.util.List[String],
-                          extended_meta : MetaAggregateStruct): Int = {
-    do_project(index, Option(projected_meta), Option(extended_meta), None, None)
-  }
+  def project(index: Int, projected_meta : Option[java.util.List[String]],
+              extended_meta : Option[MetaExtension],
+              projected_regs : Option[java.util.List[String]],
+              all_but : Option[java.util.List[String]],
+              extended_regs : Option[java.util.List[RegionFunction]]
+             ): Int = {
 
-  def reg_project(index : Int, projected_regs : java.util.List[String]): Int = {
-    do_project(index, None, None, Option(projected_regs), None)
-  }
-
-  def reg_project_extend(index : Int, projected_regs : java.util.List[String],
-                         extended_regs : java.util.List[RegionFunction]): Int = {
-    do_project(index, None, None, Option(projected_regs), Option(extended_regs))
-  }
-
-  def do_project(index : Int, projected_meta : Option[java.util.List[String]], extended_meta : Option[MetaAggregateStruct],
-                 projected_regs : Option[java.util.List[String]], extended_regs : Option[java.util.List[RegionFunction]]): Int =
-  {
-    // get the corresponding variable
     val v = PythonManager.getVariable(index)
 
-    var projected_meta_values : Option[List[String]] = None
-    if(projected_meta.isDefined) {
-      projected_meta_values = Option(projected_meta.get.asScala.toList)
+    // PROJECTED META
+    var projected_meta_scala: Option[List[String]] = None
+    if(projected_meta.isDefined){
+      //println("Projected Meta is defined")
+      projected_meta_scala = Some(projected_meta.get.asScala.toList)
+    }
+    // ALL BUT
+    var all_but_scala: Option[List[String]] = None
+    if(all_but.isDefined){
+      //println("All but is defined")
+      all_but_scala = Some(all_but.get.asScala.toList)
     }
 
-    var projected_regs_values : Option[List[Int]] = None
-    if(projected_regs.isDefined) {
-      if(projected_regs.get.size() > 0) {
-        val l = projected_regs.get.asScala.toList
-        val proj = new ListBuffer[Int]()
-        for(p <- l) {
-          val n = v.get_field_by_name(p)
-          if(n.isDefined){
-            proj += n.get
-          }
+    // PROJECTED REGIONS
+    var projected_regs_scala: Option[List[Int]] = None
+    if(projected_regs.isDefined){
+      //println("Projected regs is defined")
+      projected_regs_scala = Some(projected_regs.get.asScala.toList.map( x => {
+        val pos = v.get_field_by_name(x)
+        if(pos.isDefined){
+          pos.get
         }
-        projected_regs_values = Option(proj.toList)
-      }
+        else
+          throw new IllegalArgumentException("The attribute " + x + " is not present")
+      }))
+      //println(projected_regs_scala.get.toString())
     }
 
-    var extended_regs_l : Option[List[RegionFunction]] = None
-    if(extended_regs.isDefined) {
-      val extnd = new ListBuffer[RegionFunction]()
-      val l = extended_regs.get.asScala.toList
-      for(r <- l) {
-        extnd += r
-      }
-      extended_regs_l = Option(extnd.toList)
+    // EXTENDED REGIONS
+    var extended_regs_scala: Option[List[RegionFunction]] = None
+    if(extended_regs.isDefined){
+      //println("Extended regs is defined")
+      extended_regs_scala = Some(extended_regs.get.asScala.toList)
+      //extended_regs_scala.get.map(x => println(x.inputIndexes + "\t" + x.output_index + "\t" + x.output_name))
     }
 
+    val nv = v.PROJECT(projected_meta_scala, extended_meta,
+      projected_regs_scala,all_but_scala, extended_regs_scala)
 
-    // do the operation
-    val nv = v PROJECT(projected_meta_values, extended_meta, projected_regs_values, None, extended_regs_l)
-
-    // generate new index
     val new_index = PythonManager.putNewVariable(nv)
     new_index
   }

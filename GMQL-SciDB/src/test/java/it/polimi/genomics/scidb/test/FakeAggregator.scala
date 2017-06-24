@@ -12,7 +12,7 @@ import it.polimi.genomics.core.ParsingType._
   */
 class FakeR2R extends RegionsToRegion {
   override val resType: PARSING_TYPE = INTEGER
-  override val funOut: (GValue, Int) => GValue = null
+  override val funOut: (GValue, (Int, Int)) => GValue = null
   override val index: Int = -1
   override val fun: (List[GValue]) => GValue = null
   override val associative: Boolean = true
@@ -21,7 +21,7 @@ class FakeR2R extends RegionsToRegion {
 class FakeR2M extends RegionsToMeta {
   override val newAttributeName: String = ""
   override val inputIndex: Int = 0
-  override val funOut: (GValue, Int) => GValue = null
+  override val funOut: (GValue, (Int, Int)) => GValue = null
   override val fun: (List[GValue]) => GValue = null
   override val associative: Boolean = true
 }

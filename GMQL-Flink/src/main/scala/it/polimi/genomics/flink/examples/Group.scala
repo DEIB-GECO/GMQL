@@ -46,7 +46,7 @@ object Group {
              override val inputIndex = 2
              override val associative : Boolean = true
              override val fun = sum
-             override val funOut: (GValue,Int) => GValue = {(v1,v2)=>v1}
+             override val funOut: (GValue,(Int, Int)) => GValue = {(v1,v2)=>v1}
            }
            dataAsTheyAre.GROUP(Some(MetaGroupByCondition(List("bert_value1"))), Some(List(regionsToMeta)), "bert_value_1_group", None, None)
          }
@@ -61,7 +61,7 @@ object Group {
              override val index = 1
              override val fun = sum
              override val associative: Boolean = true
-             override val funOut: (GValue,Int) => GValue = {(v1,v2)=>v1}
+             override val funOut: (GValue,(Int, Int)) => GValue = {(v1,v2)=>v1}
              override val resType: PARSING_TYPE = ParsingType.DOUBLE
            }
            //dataAsTheyAre.GROUP(None, None, "pvalue", None, None)

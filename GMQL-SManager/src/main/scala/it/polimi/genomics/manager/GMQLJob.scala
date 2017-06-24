@@ -50,8 +50,16 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
 
   //  var script = fixFileFormat(scriptPath)
   //  val regionsURL = if (General_Utilities().MODE == FS_Utilities.HDFS) FS_Utilities.getInstance().HDFSRepoDir else FS_Utilities.getInstance().RepoDir
-  case class ElapsedTime (var compileTime:String,var executionTime:String,var createDsTime:String =" Included in The execution time. (details in the log File)")
-  val elapsedTime: ElapsedTime =ElapsedTime("","","")
+  /**
+    * Elapsed time in milliseconds
+    *
+    * @param compileTime   compile time of the query in milliseconds
+    * @param executionTime execution time of query in milliseconds
+    * @param createDsTime  dataset creation time at the end of execution in milliseconds
+    */
+  case class ElapsedTime(var compileTime: Long = -1L, var executionTime: Long = -1L, var createDsTime: Long = -1L)
+
+  val elapsedTime: ElapsedTime = ElapsedTime()
 
   var status: Status.Value = PENDING
   var outputVariablesList: List[String] = List[String]()
@@ -76,7 +84,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     status = Status.COMPILING
     General_Utilities().USERNAME = username
 
-    val Compiletimestamp = System.currentTimeMillis();
+    val compileTimestamp = System.currentTimeMillis();
     try {
       //compile the GMQL Code phase 1
       val languageParserOperators = translator.phase1(script.script)
@@ -182,7 +190,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
       case ex: Exception => status = Status.COMPILE_FAILED; logError(ex.getMessage); ex.printStackTrace()
     }
 
-    elapsedTime.compileTime = ((System.currentTimeMillis() - Compiletimestamp)/1000).toString;
+    elapsedTime.compileTime = System.currentTimeMillis() - compileTimestamp
 
     (id, outputVariablesList)
   }
@@ -320,7 +328,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
           status = getExecJobStatus
           println(jobId+"\t"+status)
         }
-        elapsedTime.executionTime = ((System.currentTimeMillis() - timestamp) / 1000).toString
+        elapsedTime.executionTime = System.currentTimeMillis() - timestamp
 
         logger.info(jobId+"\t"+getJobStatus)
         if(status == Status.EXEC_SUCCESS) {
@@ -332,7 +340,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
       }
     }).start()
 
-    logger.info("Execution Time: "+elapsedTime.executionTime)
+    logger.info("Execution Time: "+(elapsedTime.executionTime/1000))
 
     status
   }
@@ -341,7 +349,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     * Create a data set in the repository with the result of the GMQL job
     */
   def createds(): Unit = {
-    val dstimestamp = System.currentTimeMillis();
+    val dsCreationTimestamp = System.currentTimeMillis();
     this.status = Status.DS_CREATION_RUNNING
     if (!outputVariablesList.isEmpty) {
       try {
@@ -359,8 +367,8 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
             if(gMQLContext.outputFormat.equals(GMQLSchemaFormat.GTF))GMQLSchemaFormat.GTF else GMQLSchemaFormat.TAB)
 
         }
-        elapsedTime.createDsTime = (System.currentTimeMillis() - dstimestamp).toString
-        logger.info("DataSet creation Time: " + elapsedTime.createDsTime)
+        elapsedTime.createDsTime = System.currentTimeMillis() - dsCreationTimestamp
+        logger.info("DataSet creation Time: " + (elapsedTime.createDsTime/1000))
 
         this.status = Status.SUCCESS
       } catch {
@@ -394,19 +402,19 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
   }
 
   /**
-    * @return the execution time in a form of String ($Number Seconds)
+    * @return the execution time in milliseconds
     */
-  def getExecutionTime(): java.lang.String = if (elapsedTime.executionTime == "") "Execution Under Progress" else elapsedTime.executionTime + " Seconds"
+  def getExecutionTime(): Long = elapsedTime.executionTime
 
   /**
-    * @return the Compilation time in a form of String ($Number Seconds)
+    * @return the Compilation time in milliseconds
     */
-  def getCompileTime(): java.lang.String = if (elapsedTime.compileTime == "") "Compiling" else elapsedTime.compileTime + " Seconds"
+  def getCompileTime(): Long = elapsedTime.compileTime
 
   /**
-    * @return the DataSet creation time in a form of String ($Number Seconds)
+    * @return the DataSet creation time in milliseconds
     */
-  def getDSCreationTime(): java.lang.String = if (elapsedTime.createDsTime == "") "Creating Data set in the repository." else elapsedTime.createDsTime + " Seconds"
+  def getDSCreationTime(): Long =  elapsedTime.createDsTime
 
   /**
     * @return the user message about the exceution (copy of the log).
