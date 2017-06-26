@@ -88,17 +88,15 @@ class GMQLExecute (){
       new PrintWriter(scriptHistory) { write(script.dag); close }
     }
 
-    logger.info("Execution Platform is set to "+gMQLContext.implPlatform+"\n\tScriptPath = "+script.scriptPath+"\n\tUsername = "+gMQLContext.username)
-
+    logger.info("Execution Platform is set to "+gMQLContext.implPlatform+"\n\t" +
+      "DagPath = "+script.dagPath+"\n\tUsername = "+gMQLContext.username)
 
     val job: GMQLJob = new GMQLJob(gMQLContext,script,gMQLContext.username)
 
-    //query script of the job
-    //saveScript(job.jobId)
 
+    /* PATH RENAMING */
     val (outDSs, newSerializedDAG): (List[String], String) = job.renameDAGPaths(script.dag)
     script.dag = newSerializedDAG
-
 
     val jID = job.jobId
 
