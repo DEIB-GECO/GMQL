@@ -76,11 +76,13 @@ class GMQLSparkSubmit(job:GMQLJob) {
       x.substring(job.jobId.length+1)+":::"+dir }.mkString(",")
 
 //    println(outDir)
-    println("DAG LEN:\t" + job.script.dag.length)
+    //println("DAG LEN:\t" + job.script.dag.length)
     var d =  new SparkLauncher(env.asJava)
       .setSparkHome(SPARK_HOME)
       .setAppResource(GMQLjar)
       .setMainClass(MASTER_CLASS)
+      .setConf("spark.driver.extraClassPath", Utilities().lib_dir_local + "/*")
+      //.setConf("spark.executor.extraClassPath", Utilities().lib_dir_local + "/*")
       .addAppArgs("-username", job.username,
         //"-script", job.script.script/*serializeDAG(job.operators)*/,
         //"-scriptpath", job.script.scriptPath,
