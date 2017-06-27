@@ -3,8 +3,8 @@ package it.polimi.genomics.spark.implementation.RegionsOperators.GenometricMap
 import com.google.common.hash.Hashing
 import it.polimi.genomics.core.DataStructures.RegionAggregate
 import it.polimi.genomics.core.DataTypes._
-import it.polimi.genomics.core.{GDouble, GRecordKey, GValue}
-import it.polimi.genomics.core.exception.{SelectFormatException}
+import it.polimi.genomics.core.{GDouble, GNull, GRecordKey, GValue}
+import it.polimi.genomics.core.exception.SelectFormatException
 import org.apache.spark.rdd.RDD
 import org.slf4j.LoggerFactory
 
@@ -44,7 +44,7 @@ object GMAP4 {
             && /* first comparison */
             ((ref._1/BINNING_PARAMETER).toInt.equals(key._3) ||  (e._1/BINNING_PARAMETER).toInt.equals(key._3))
         )
-         Some (aggregation,((key._1,key._2,ref._1,ref._2,ref._3),ref._4,exp.get._4,exp.get._1,exp.get._2,exp.get._1,exp.get._2,1))
+         Some (aggregation,((key._1,key._2,ref._1,ref._2,ref._3),ref._4,exp.get._4,exp.get._1,exp.get._2,exp.get._1,exp.get._2,(1, exp.get._4.map(s=>if(s.isInstanceOf[GNull]) 0 else 1).iterator.toArray)))
         else None
 //          (aggregation,((key._1, key._2,ref._1,ref._2,ref._3),ref._4,Array[List[GValue]](),0l,0l,0l,0l))
       }
@@ -71,7 +71,7 @@ object GMAP4 {
       val endMin = Math.min(l._7, r._7)
 //      println("min/max ",startMax,endMax)
 //      if(!summit)
-      (l._1,l._2,values,startMin, endMax, if(startMax < endMin) startMax else 0L, if(endMin > startMax) endMin else 0L, l._8+r._8)
+      (l._1,l._2,values,startMin, endMax, if(startMax < endMin) startMax else 0L, if(endMin > startMax) endMin else 0L, (l._8._1+r._8._1, l._8._2.zip(r._8._2).map(s=>s._1+s._2).iterator.toArray))
 //      else
 //        (l._1,l._2,values,startMin, endMax, if(startMax < endMin) startMax else 0L, if(endMin > startMax) endMin else 0L, l._8+r._8)
     }
@@ -84,7 +84,7 @@ object GMAP4 {
       val end : Double = if (flat) res._2._5 else res._2._1._4
 
 //      val newVal:Array[GValue] = aggregator.map{f=> val out = f.fun(res._2._3(i));i = i+1; out}.toArray
-      val newVal:Array[GValue] = aggregator.map{f=>i = i+1;val valList = if(res._2._3.size >0)res._2._3(i) else {GDouble(0.0000000000000001)}; f.funOut(valList,res._2._8)}.toArray
+      val newVal:Array[GValue] = aggregator.map{f=>i = i+1;val valList = if(res._2._3.size >0)res._2._3(i) else {GDouble(0.0000000000000001)}; f.funOut(valList,(res._2._8._1, if(res._2._3.size >0) res._2._8._2(i) else 0))}.toArray
       (new GRecordKey(res._2._1._1,res._2._1._2,start.toLong,end.toLong,res._2._1._5),
         (res._2._2
           // Jaccard 1

@@ -90,6 +90,19 @@ val   reg_condition =
 val dag = s.SELECT(meta_condition, reg_condition)
 ``` 
 
+####Select operation With SemiJoin
+
+```
+  val outputDS = DS1.SELECT(
+      semi_con = MetaJoinCondition(
+					      attributes = List(Default("att")),
+					      negation = true),
+      meta_join_variable = DS2
+    )
+```
+
+
+
 #### Genometric JOIN, set of examples
 
 
@@ -426,6 +439,3 @@ Note: as for the collect operation, the output format should be selected as   **
 ```
 val output = server.setOutputPath("").TAKE(ds1,100)
 ```
-
-
-

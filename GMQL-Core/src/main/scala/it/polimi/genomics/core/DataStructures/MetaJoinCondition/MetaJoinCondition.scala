@@ -42,6 +42,6 @@ case class FullName(attribute : String) extends AttributeEvaluationStrategy{
  * and it is stored as: List(attr1, attr2, ...)
  * @param attributes the list of the attributes name involved in the condition
  */
-case class MetaJoinCondition(attributes : List[AttributeEvaluationStrategy]) {
+case class MetaJoinCondition(attributes : List[AttributeEvaluationStrategy], negation:Boolean = false) {
 
 }

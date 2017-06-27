@@ -1,5 +1,4 @@
 package it.polimi.genomics.pythonapi.operators
-import it.polimi.genomics.GMQLServer.DefaultMetaExtensionFactory
 import it.polimi.genomics.core.DataStructures.MetaAggregate._
 import it.polimi.genomics.core.DataStructures.RegionAggregate._
 import it.polimi.genomics.core.DataStructures._
