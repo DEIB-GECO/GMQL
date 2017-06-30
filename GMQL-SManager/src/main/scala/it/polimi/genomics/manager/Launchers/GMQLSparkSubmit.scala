@@ -92,9 +92,7 @@ class GMQLSparkSubmit(job:GMQLJob) {
         "-jobid", job.jobId,
         "-outputFormat",job.gMQLContext.outputFormat.toString,
         //"-outputDirs", outDir,
-        "-logDir",General_Utilities().getLogDir(job.username),
-        "-dag", job.script.dag,
-        "-dagpath", job.script.dagPath)  /*We pass also the DAG: if it is not present it is an empty string*/
+        "-logDir",General_Utilities().getLogDir(job.username))
       .setConf("spark.app.id", APPID)
     if(job.script.script != null && job.script.script != "") {
       d = d.addAppArgs("-script", job.script.script)
@@ -110,9 +108,21 @@ class GMQLSparkSubmit(job:GMQLJob) {
       d = d.addAppArgs("-outputDirs", outDir)
     }
 
+    if(job.script.dag != null && job.script.dag != "") {
+      d = d.addAppArgs("-dag", job.script.dag)
+    }
+    if(job.script.dagPath != null && job.script.dagPath != "") {
+      d = d.addAppArgs("-dagpath", job.script.dagPath)
+    }
+
+    //d=d.setConf("spark.executor.extraJavaOptions", "-Dlog4j.configuration=file:/Users/canakoglu/GMQL-sources/temp/GMQL/GMQL-Core/src/main/resources/logback.xml")
 
 
-      //These configurations are now taken from the defaults of Spark system (or spark/conf/Spark-defaults.conf file).
+
+
+
+
+    //These configurations are now taken from the defaults of Spark system (or spark/conf/Spark-defaults.conf file).
 /*      .setConf("spark.driver.memory", DRIVER_MEM)
       .setConf("spark.akka.frameSize", "200")
       .setConf("spark.executor.memory", EXECUTOR_MEM)
