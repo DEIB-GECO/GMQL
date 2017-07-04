@@ -340,6 +340,12 @@ DS1.PROJECT(projected_meta = Some(List("filename")),
 ```
 
 ```
+DS1.PROJECT(projected_meta = Some(List("test")),
+			extended_meta = None, 
+			all_but_meta = true)
+```
+
+```
           //PROJECT AGGREGATE RD
           val fun = new RegionExtension {
             override val fun: (Array[GValue]) => GValue = 
@@ -439,3 +445,6 @@ Note: as for the collect operation, the output format should be selected as   **
 ```
 val output = server.setOutputPath("").TAKE(ds1,100)
 ```
+
+
+
