@@ -35,7 +35,7 @@ object ProjectTest
     val ReadSourceMD = IRReadMD(List(), new FakeParser, SOURCE)
     val ReadSourceRD = IRReadRD(List(), new FakeParser, SOURCE)
 
-    val ProjectMD = IRProjectMD(Some(List("bert_value2","bert_value1")), None, ReadSourceMD)
+    val ProjectMD = IRProjectMD(Some(List("bert_value2","bert_value1")), None, false, ReadSourceMD)
     val ProjectRD = IRProjectRD(Some(List(1)), None, ReadSourceRD,ReadSourceMD)
 
     val StoreAncMD = IRStoreMD("", ProjectMD, RES)

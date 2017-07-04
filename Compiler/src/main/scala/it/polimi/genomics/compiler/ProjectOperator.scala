@@ -157,7 +157,7 @@
       val projected = super_variable_left.get.PROJECT(
         meta_projection,
         meta_modifier,
-        region_project_fields,
+        projected_values = region_project_fields,
         extended_values = region_modifier)
 
       CompilerDefinedVariable(
