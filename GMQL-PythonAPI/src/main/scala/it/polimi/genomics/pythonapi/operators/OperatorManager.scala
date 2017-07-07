@@ -169,7 +169,7 @@ object OperatorManager {
   * */
 
   def getCoverTypes(name : String): CoverFlag = {
-    name match {
+    name.toLowerCase match {
       case "normal" => CoverFlag.COVER
       case "flat" => CoverFlag.FLAT
       case "summit" => CoverFlag.SUMMIT
@@ -179,7 +179,7 @@ object OperatorManager {
   }
 
   def getCoverParam(p : String): CoverParam = {
-    p match {
+    p.toUpperCase match {
       case "ALL" => new ALL{}
       case "ANY" => new ANY{}
       case _ =>
