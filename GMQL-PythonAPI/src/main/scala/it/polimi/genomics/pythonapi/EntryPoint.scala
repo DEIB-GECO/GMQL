@@ -52,12 +52,13 @@ object EntryPoint {
     * Setting up the Spark context
     * */
     val conf = new SparkConf()
-      .setAppName(properties.applicationName)
-      .setMaster(properties.master)
-      .set("spark.serializer", properties.serializer)
-      .set("spark.executor.memory", properties.executorMemory)
-      .set("spark.driver.memory", properties.driverMemory)
-      .set("spark.kryoserializer.buffer.max", properties.kryobuffer)
+        .setAppName(properties.applicationName)
+        .setMaster(properties.master)
+        .set("spark.serializer", properties.serializer)
+        .set("spark.executor.memory", properties.executorMemory)
+        .set("spark.driver.memory", properties.driverMemory)
+        .set("spark.kryoserializer.buffer.max", properties.kryobuffer)
+        .set("spark.driver.maxResultSize", properties.maxResultSize)
 
     val sc = SparkContext.getOrCreate(conf)
     logger.info("Spark Context initiated")
