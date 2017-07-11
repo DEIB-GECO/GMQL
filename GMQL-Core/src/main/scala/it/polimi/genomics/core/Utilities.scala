@@ -1,9 +1,10 @@
 package it.polimi.genomics.core
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream, ObjectInputStream, ObjectOutputStream}
+import java.io._
 import java.util.Base64
 
 import it.polimi.genomics.core.DataStructures.IRVariable
+import it.polimi.genomics.core.exception.GMQLDagException
 
 /**
   * Created by Luca Nanni on 06/06/17.
@@ -11,7 +12,7 @@ import it.polimi.genomics.core.DataStructures.IRVariable
   */
 object Utilities {
 
-  def serializeToBase64(variableList : List[IRVariable]): String = {
+  def serializeToBase64(variableList: List[IRVariable]): String = {
     val baos = new ByteArrayOutputStream()
     val oos = new ObjectOutputStream(baos)
     oos.writeObject(variableList)
@@ -21,10 +22,16 @@ object Utilities {
 
   def deserializeDAG(serialized: String): List[IRVariable] = {
     val data = Base64.getDecoder.decode(serialized)
-    val ois = new ObjectInputStream(new ByteArrayInputStream(data))
-    val deserialized = ois.readObject().asInstanceOf[List[IRVariable]]
-    ois.close()
-    deserialized
+
+    try {
+      val ois = new ObjectInputStream(new ByteArrayInputStream(data))
+      val deserialized = ois.readObject().asInstanceOf[List[IRVariable]]
+      ois.close()
+      deserialized
+    } catch {
+      case _: EOFException => throw new GMQLDagException("Deserialization problem")
+    }
   }
 
 }
+
