@@ -258,13 +258,21 @@ object gmqlc {
     val semijoin = "S0 = SELECT() /Users/abka02/Downloads/job_meta_agg_abdo_20170619_134513_data/files/;\n" +
       "S2 = SELECT( semijoin: provider IN S0) /Users/abka02/Downloads/job_meta_agg_abdo_20170619_134513_data/files1/;\n" +
       "MATERIALIZE S2 INTO DD;\n"
+
+    val orderTop = "DATA = SELECT(cell == \"Urothelia\") /Users/abka02/Downloads/job_order_abdo_20170619_110728_SS/files/;\n" +
+      "THETOP = ORDER(composite, treatment_type; meta_topg: 1) DATA;\n" +
+      "MATERIALIZE THETOP into res;"
+
+    val testOrderMD = "DATASET = SELECT() /Users/abka02/Downloads/group_test;\n" +
+      "RESULT = ORDER(biosample_term_name, region_count DESC; meta_topg: 1) DATASET;\n" +
+      "MATERIALIZE RESULT INTO RESULT;"
 //    val execQuery = args(2) match {
 //      case "histo" => Histogram
 //      case "map" => Map_server
 //    }
     val test_double_select = ""
       try {
-        if (translator.phase2(translator.phase1(semijoin))) {
+        if (translator.phase2(translator.phase1(testOrderMD))) {
           server.run()
           //server.getDotGraph()
         }
@@ -272,7 +280,7 @@ object gmqlc {
         case e: CompilerException => println(e.getMessage)
       }
 
-      println("\n\nQuery" +"\n" + semijoin + "\n\n")
+      println("\n\nQuery" +"\n" + testOrderMD + "\n\n")
       // "open /Users/pietro/Desktop/test_gmql/output/".!
       //  Console.readLine()
   }

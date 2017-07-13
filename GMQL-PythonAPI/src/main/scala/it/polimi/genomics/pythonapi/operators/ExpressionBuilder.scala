@@ -145,12 +145,13 @@ class ExpressionBuilder(index : Int) {
     val variable = PythonManager.getVariable(this.index)
     val field_number = variable.get_field_by_name(argument)
     // by default it's a COUNT operation
-    var res : RegionsToRegion = regionsToRegionFactory.get("COUNT", Option(newAttrName))
     if(field_number.isDefined) {
-      res = regionsToRegionFactory.get(functionName, field_number.get, Option(newAttrName))
+      val res = regionsToRegionFactory.get(functionName, field_number.get, Option(newAttrName))
+      res.output_name = Option(newAttrName)
+      res
     }
-    res.output_name = Option(newAttrName)
-    res
+    else
+      throw new IllegalArgumentException("The filed " + argument + " does not exists!")
   }
 
   def getRegionsToMeta(functionName: String, newAttrName: String, argument: String): RegionsToMeta = {
