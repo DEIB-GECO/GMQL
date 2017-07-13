@@ -56,6 +56,34 @@ object OrderMD {
           keys.contains(m._2._1)
         }.collect
 
+    val distinctFilteredValues = metaFilteredDs.distinct
+
+    val orderingWithIndex: Map[String, Int] = ordering.zipWithIndex.map(x=>(x._1._1,x._2)).toMap
+
+    val SortingAttVallist1 = distinctFilteredValues.groupBy(_._1)
+    val SortingAttVallist = SortingAttVallist1.map{x=>
+        val missingAtt = keys.filter{s=> val dd = x._2.filter(_._2._1.equals(s)).size;println(dd);dd <= 0};
+        val misingPair = missingAtt.map(m=>(orderingWithIndex.get(m).get,m,GDouble(Double.MinValue))).toArray
+        (x._1,(x._2.map{f =>
+          (orderingWithIndex.get(f._2._1).get, f._2._1,GDouble(try{
+                    f._2._2.toDouble
+                  } catch {
+                  case e : Throwable =>/* println(f._2._2.hashCode);*/f._2._2.hashCode.toDouble
+                  }
+          ))
+        }.toArray ++ misingPair).toList
+          .sortBy(b=>b._1)
+          .map(f=>(f._2,f._3)))
+      }.toArray
+
+
+    var index = -1
+    val valuesOrdering: Ordering[Array[GValue]] =  ordering.map(x=>  x._2 match {
+      case Direction.ASC => /*println(x);*/index = index+1;orderByColumn(index)
+      case Direction.DESC => /*println(x);*/index = index+1;orderByColumn(index).reverse
+    } ).reduceLeft((res,x)=>res orElse x)
+
+
     //for each sample for each key take the first value that will be used for grouping/sorting
     //SampleID, List[metavalues to be used in grouping/ordering ordered as requested in input]
     val valueList : Map[Long, List[String]] =
@@ -108,88 +136,22 @@ object OrderMD {
     val sortedTop : List[(Long, (String, String))] =
       if(grouping){
 
-        //(groupId, List[SampleId, attribute used for grouping/ordering])
-       /* val groupedSamples : Map[Long, List[(Long, String)]] =
-          valueList
-            .groupBy{(s : (Long, List[String])) =>
-              //drop the last and group by n-1 element
-            Hashing.md5.newHasher.putString(s._2.init.mkString("§"), Charsets.UTF_8).hash.asLong
-            }
-            //take only - groupId, (sampleId, lastElement that will be used for ordering)
-            .map{g => (g._1, g._2.toList.map{s => (s._1, s._2.last)})}*/
+        //Grouping group by the first n-1 ordering attributes and then selectes the top k
+       val sortedGroups1 = SortingAttVallist.groupBy{record =>
+         Hashing.md5.newHasher.putString(record._2.map(_._2).toList.init.mkString("§"), Charsets.UTF_8).hash.asLong
+      }.map(s=>(s._1,s._2.sortBy(sort=>sort._2.map(r=>r._2.asInstanceOf[GValue]).toArray[GValue])(valuesOrdering)))
 
-        val groupedSamplesString : Map[Long, List[(Long, GString)]] =
-          valueListString
-            .groupBy{(s : (Long, List[GString])) =>
-              //drop the last and group by n-1 element
-              Hashing.md5.newHasher.putString(s._2.mkString("§"), Charsets.UTF_8).hash.asLong
-            }
-            //take only - groupId, (sampleId, lastElement that will be used for ordering)
-            .map{g =>
-            (g._1, g._2.toList
-              .map{s =>
-                (s._1, s._2.last)})}
-
-        val groupedSamplesDouble : Map[Long, List[(Long, GDouble)]] =
-          valueListDouble
-            .groupBy{(s : (Long, List[GDouble])) =>
-              //drop the last and group by n-1 element
-              Hashing.md5.newHasher.putString(s._2.mkString("§"), Charsets.UTF_8).hash.asLong
-            }
-            //take only - groupId, (sampleId, lastElement that will be used for ordering)
-            .map{g =>
-            (g._1, g._2.toList
-              .map{s =>
-                (s._1, s._2.last)})}
-
-
-        //(GroupId, OrderedList[SampleId, attribute to be ordered])
-       /* val sortedGroups : Map[Long, List[(Long, String)]] =
-          //sort each group by the last value
-          ordering.last._2 match{
-            case Direction.ASC => groupedSamples.map((g) => {
-                (g._1, g._2.sortWith((a,b) => a._2.compareTo(b._2) < 0))
-              })
-            case Direction.DESC => groupedSamples.map((g) => {
-                (g._1, g._2.sortWith((a,b) => a._2.compareTo(b._2) > 0))
-              })
-          }*/
-        val sortedGroupsString : Map[Long, List[(Long, GString)]] =
-        //sort each group by the last value
-          ordering.last._2 match {
-            case Direction.ASC => groupedSamplesString.map((g) => {
-              (g._1, g._2.sortWith((a, b) => a._2.compareTo(b._2) < 0))
-            })
-            case Direction.DESC => groupedSamplesString.map((g) => {
-              (g._1, g._2.sortWith((a, b) => a._2.compareTo(b._2) > 0))
-            })
-          }
-        val sortedGroupsDouble : Map[Long, List[(Long, GDouble)]] =
-        //sort each group by the last value
-          ordering.last._2 match{
-            case Direction.ASC => groupedSamplesDouble.map((g) => {
-              (g._1, g._2.sortWith((a,b) => a._2.compareTo(b._2) < 0))
-            })
-            case Direction.DESC => groupedSamplesDouble.map((g) => {
-              (g._1, g._2.sortWith((a,b) => a._2.compareTo(b._2) > 0))
-            })
-          }
-
-
-        val d :List[(Long, List[(Long, GValue)])]= sortedGroupsDouble.toList ++ sortedGroupsString.toList
-        val sortedGroups: Map[Long, List[(Long, GValue)]] = d.groupBy{ case(g,v) => g}.map(p => (p._1,p._2.flatMap{ case(g,v) => v}.toList))
-
-        val percentages= if(topParameter.isInstanceOf[TopP]){
-          sortedGroups.map(x=>(x._1,x._2.size * top/100))
+        val percentages1= if(topParameter.isInstanceOf[TopP]){
+          sortedGroups1.map(x=>(x._1,x._2.size * top/100))
         }else HashMap[Long,Int]()
 
-        sortedGroups.map{g =>
+        sortedGroups1.map{g =>
           //TOPG
-          val gFiltered =
+          val gFiltered: List[Long] =
             if(top == 0){
-              g._2.map(_._1)
+              g._2.map(_._1).toList
             } else{
-              g._2.map(_._1).take(percentages.get(g._1).getOrElse(top))
+              g._2.map(_._1).take(percentages1.get(g._1).getOrElse(top)).toList
             }
           //create metadata
           assignPosition(Some(g._1), gFiltered, 1, newAttribute, List())
@@ -302,6 +264,24 @@ object OrderMD {
         }
       }
     }
+  }
+
+  // Functions and objects needed for sorting by multi values.
+  def orderByColumn(col: Int) = Ordering.by { ar: Array[GValue] => ar(col) }
+
+  final class CompositeOrdering[T]( val ord1: Ordering[T], val ord2: Ordering[T] ) extends Ordering[T] {
+    def compare( x: T, y: T ) = {
+      val comp = ord1.compare( x, y )
+      if ( comp != 0 ) comp else ord2.compare( x, y )
+    }
+  }
+
+  object CompositeOrdering {
+    def apply[T]( orderings: Ordering[T] * ) = orderings reduceLeft (_ orElse _)
+  }
+
+  implicit class OrderingOps[T]( val ord: Ordering[T] ) extends AnyVal {
+    def orElse( ord2: Ordering[T] ) = new CompositeOrdering[T]( ord, ord2 )
   }
 
 }

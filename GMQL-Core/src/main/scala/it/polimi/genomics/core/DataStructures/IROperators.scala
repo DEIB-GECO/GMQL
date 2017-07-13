@@ -124,10 +124,11 @@ case class IRSemiJoin(external_meta : MetaOperator, join_condition : MetaJoinCon
  * all the new tuple produced by the functions in [[extended_attributes]]
  * @param projected_attributes list of the attributes to be kept
  * @param extended_attributes list of the new attributes to be produced
+  * @param all_but_flag set to true in case of negating the projected attributes. false is the default.
  * @param input_dataset input set of metadata
  */
 //TODO cambia: togliere distinct e extended
-case class IRProjectMD(projected_attributes : Option[List[String]], extended_attributes : Option[MetaExtension], input_dataset : MetaOperator) extends MetaOperator {
+case class IRProjectMD(projected_attributes : Option[List[String]], extended_attributes : Option[MetaExtension], all_but_flag : Boolean ,input_dataset : MetaOperator) extends MetaOperator {
 
 }
 

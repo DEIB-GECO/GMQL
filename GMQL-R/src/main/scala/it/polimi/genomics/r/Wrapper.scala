@@ -253,7 +253,12 @@ object Wrapper {
     "Materialized"
   }
 
-  def execute(): String = {
+  def execute(): String =
+  {
+    if(outputformat == GMQLSchemaFormat.COLLECT)
+      return "No execute() available, you choose memory as output," +
+        " use take() function instead"
+
     if (materialize_count.get() <= 0)
       "You must materialize before"
     else {
@@ -962,29 +967,14 @@ object Wrapper {
     }
   }
 
-  def main(args: Array[String]): Unit = {
-
-    /*initGMQL("TAB", false)
-    val region = Array(Array("1", "chr1", "534435", "2233234", "*",
-      "GMQL", "Region", "0", "NA", ".", "17.324", "312.32", "-1", "-1"))
-    //val a = getGvalueArray(x)
-    val meta = Array(Array("00001", "assay", "asd"), Array("00001", "disease", "fwefwe"))
-    val schema = Array(
-      Array("FACTOR", "source"),
-      Array("FACTOR", "feature"),
-      Array("NUMERIC", "score"),
-      Array("INTEGER", "frame"),
-      Array("CHARACTER", "name"),
-      Array("CHARACTER", "signal"),
-      Array("CHARACTER", "pvalue"),
-      Array("CHARACTER", "qvalue"),
-      Array("CHARACTER", "peak"))
-    val r = read(meta, region, schema)
-     materialize(r,"/Users/simone/Downloads/res3")
-     execute()
-    */
-
-
+  def main(args: Array[String]): Unit =
+  {
+    initGMQL("TAB", false)
   }
+
+  def prova(): Unit = {
+    println("it works!")
+  }
+
 
 }

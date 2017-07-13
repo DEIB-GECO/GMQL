@@ -35,7 +35,7 @@ object Project {
       what match{
         case 0 => {
           //PROJECT MD
-          dataAsTheyAre.PROJECT(Some(List("tableName","bert_value1", "bert_value2", "bert_value3")), None, None, None)
+          dataAsTheyAre.PROJECT(Some(List("tableName","bert_value1", "bert_value2", "bert_value3")), None, false, None, None)
         }
 
         case 1 => {
@@ -56,7 +56,7 @@ object Project {
 
           }
 
-          dataAsTheyAre.PROJECT(Some(List("tableName","bert_value1", "bert_value2", "bert_value3")), Some(fun), None, None)
+          dataAsTheyAre.PROJECT(Some(List("tableName","bert_value1", "bert_value2", "bert_value3")), Some(fun), false, None, None)
         }
 
         case 2 => {
@@ -70,8 +70,8 @@ object Project {
               }
           }
 
-          val projectrd = dataAsTheyAre.PROJECT(Some(List("tableName","bert_value1", "bert_value2", "bert_value3")), None, None)
-          val projectrd2 = projectrd.PROJECT(None, None, None)
+          val projectrd = dataAsTheyAre.PROJECT(Some(List("tableName","bert_value1", "bert_value2", "bert_value3")), None, false, None)
+          val projectrd2 = projectrd.PROJECT(None, None, false, None)
           projectrd2.SELECT(reg_con = Predicate(0, REG_OP.EQ, "+ 1000.0"))
         }
 
