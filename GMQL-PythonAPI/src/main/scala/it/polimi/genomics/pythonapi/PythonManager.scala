@@ -241,6 +241,14 @@ object PythonManager {
     new CollectedResult(result)
   }
 
+  def serializeVariable(index: Int): String = {
+    val variableToSerialize = this.getVariable(index)
+    throw new NotImplementedError()
+    // TODO: complete...
+  }
+
+  /*Spark context related*/
+
   def checkSparkContext(): Unit = {
     /*Check if there is an instantiated spark context*/
     if(this.sparkContext.isEmpty){
