@@ -196,7 +196,7 @@ class GmqlSciImplementation
         case IROrderMD(ordering, destination, top, source) => new GmqlOrderMD(prepare(source).asInstanceOf[GmqlMetaOperator],
                                                                               ordering, top, destination)
 
-        case IRProjectMD(attributes, _, source) => new GmqlProjectMD( prepare(source).asInstanceOf[GmqlMetaOperator],
+        case IRProjectMD(attributes, _, _,source) => new GmqlProjectMD( prepare(source).asInstanceOf[GmqlMetaOperator],
                                                                       attributes.getOrElse(List()))
 
         case IRReadMD(_, _, ds) => new GmqlReadMD(ds)

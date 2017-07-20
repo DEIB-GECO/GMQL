@@ -114,8 +114,9 @@ object OperatorManager {
 
   def project(index: Int, projected_meta : Option[java.util.List[String]],
               extended_meta : Option[MetaExtension],
+              all_but_meta: Boolean,
               projected_regs : Option[java.util.List[String]],
-              all_but : Option[java.util.List[String]],
+              all_but_regs : Option[java.util.List[String]],
               extended_regs : Option[java.util.List[RegionFunction]]
              ): Int = {
 
@@ -129,9 +130,9 @@ object OperatorManager {
     }
     // ALL BUT
     var all_but_scala: Option[List[String]] = None
-    if(all_but.isDefined){
+    if(all_but_regs.isDefined){
       //println("All but is defined")
-      all_but_scala = Some(all_but.get.asScala.toList)
+      all_but_scala = Some(all_but_regs.get.asScala.toList)
     }
 
     // PROJECTED REGIONS
@@ -157,7 +158,7 @@ object OperatorManager {
       //extended_regs_scala.get.map(x => println(x.inputIndexes + "\t" + x.output_index + "\t" + x.output_name))
     }
 
-    val nv = v.PROJECT(projected_meta_scala, extended_meta,
+    val nv = v.PROJECT(projected_meta_scala, extended_meta, all_but_meta,
       projected_regs_scala,all_but_scala, extended_regs_scala)
 
     val new_index = PythonManager.putNewVariable(nv)
@@ -169,7 +170,7 @@ object OperatorManager {
   * */
 
   def getCoverTypes(name : String): CoverFlag = {
-    name match {
+    name.toLowerCase match {
       case "normal" => CoverFlag.COVER
       case "flat" => CoverFlag.FLAT
       case "summit" => CoverFlag.SUMMIT
@@ -179,7 +180,7 @@ object OperatorManager {
   }
 
   def getCoverParam(p : String): CoverParam = {
-    p match {
+    p.toUpperCase match {
       case "ALL" => new ALL{}
       case "ANY" => new ANY{}
       case _ =>

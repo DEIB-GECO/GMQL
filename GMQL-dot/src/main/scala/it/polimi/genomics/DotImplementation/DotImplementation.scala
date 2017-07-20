@@ -81,7 +81,7 @@ try{
         case IRStoreMD(_, p, _) => sb append edge(i, all_nodes.indexOf(p))
         case IRStoreRD(_, p,mp,_, _) => sb append edge(i, all_nodes.indexOf(p)) append edge(i, all_nodes.indexOf(mp))
         case IRSemiJoin(l, _, r) => sb append edge(i, all_nodes.indexOf(l)) append edge(i, all_nodes.indexOf(r))
-        case IRProjectMD(_, _, p) => sb append edge(i, all_nodes.indexOf(p))
+        case IRProjectMD(_, _,b, p) => sb append edge(i, all_nodes.indexOf(p))
         case IRUnionMD(l, r, _, _) => sb append edge(i, all_nodes.indexOf(l)) append edge(i, all_nodes.indexOf(r))
         case IRAggregateRD(_, p) => sb append edge(i, all_nodes.indexOf(p))
         case IRProjectRD(_, _, p,m) => sb append edge(i, all_nodes.indexOf(p))append edge(i, all_nodes.indexOf(p))
@@ -173,7 +173,7 @@ try{
       case IRStoreMD(_,_,_) => "struct" + pos + " [label=\"StoreMD\",color=\"blue\"];\n"
       case IRStoreRD(_,_,_,_,_) => "struct" + pos + " [label=\"StoreRD\",color=\"red\"];\n"
       case IRSemiJoin(_,c,_) =>"struct" +  pos +  " [shape=record,color=\"blue\",label=\"{IRSemiJoin | " + c +  "}" + "\"];\n"
-      case IRProjectMD(p,e,_) => "struct" + pos + " [shape=record,color=\"blue\",label=\"{IRProjectMD | " + "projected attributes=" + {if(p.isDefined)  (p.get mkString ",") else p} + " | meta aggregate=" +  {if(e.isDefined) (e.get.getClass.getSimpleName) else e} +  "}\"];\n"
+      case IRProjectMD(p,e,b,_) => "struct" + pos + " [shape=record,color=\"blue\",label=\"{IRProjectMD | " + "projected attributes=" + {if(p.isDefined)  (p.get mkString ",") else p} + " | meta aggregate=" +  {if(e.isDefined) (e.get.getClass.getSimpleName) else e} +  " | all But=" + b.toString + "}\"];\n"
       case IRUnionMD(_,_,_,_) => "struct" + pos + " [shape=record,color=\"blue\",label=\"IRUnionMD" + "\"];\n"
       case IRUnionAggMD(_,_,_,_) => "struct" + pos + " [shape=record,color=\"blue\",label=\"IRUnionMD" + "\"];\n"
       case IRAggregateRD(p, _) => "struct" + pos + " [shape=record,color=\"red\",label=\"{IRAggregateRD | new attr. name = " + "\"];\n"
@@ -210,7 +210,7 @@ try{
       case IRStoreMD(_,p,_) => add_all_nodes(p.asInstanceOf[IROperator]) + node
       case IRStoreRD(_,p,mp,_,_) => add_all_nodes(p.asInstanceOf[IROperator]) ++ add_all_nodes(mp.asInstanceOf[IROperator]) + node
       case IRSemiJoin(l,_,r) => (add_all_nodes(l.asInstanceOf[IROperator]) ++ add_all_nodes(r.asInstanceOf[IROperator])) + node
-      case IRProjectMD(_,_,p) => add_all_nodes(p.asInstanceOf[IROperator]) + node
+      case IRProjectMD(_,_,_,p) => add_all_nodes(p.asInstanceOf[IROperator]) + node
       case IRUnionMD(l,r,_,_) => (add_all_nodes(l.asInstanceOf[IROperator]) ++ add_all_nodes(r.asInstanceOf[IROperator])) + node
       case IRUnionAggMD(l,r,_,_) => (add_all_nodes(l.asInstanceOf[IROperator]) ++ add_all_nodes(r.asInstanceOf[IROperator])) + node
       case IRAggregateRD(_,p) => add_all_nodes(p.asInstanceOf[IROperator]) + node

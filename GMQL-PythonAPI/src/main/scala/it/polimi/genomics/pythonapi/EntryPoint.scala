@@ -29,12 +29,14 @@ object EntryPoint {
     Logger.getRootLogger.removeAllAppenders()
     Logger.getRootLogger.addAppender( new NullAppender)
 
+    val port = args(0).toInt
+
     //val sc = startSparkContext()
 
     //val pythonManager = PythonManager
     //pythonManager.setSparkContext(sc=sc)
 
-    val gatewayServer : GatewayServer = new GatewayServer()
+    val gatewayServer : GatewayServer = new GatewayServer(this, port)
     gatewayServer.start()
     this.logger.info("GatewayServer started")
 
@@ -50,12 +52,13 @@ object EntryPoint {
     * Setting up the Spark context
     * */
     val conf = new SparkConf()
-      .setAppName(properties.applicationName)
-      .setMaster(properties.master)
-      .set("spark.serializer", properties.serializer)
-      .set("spark.executor.memory", properties.executorMemory)
-      .set("spark.driver.memory", properties.driverMemory)
-      .set("spark.kryoserializer.buffer.max", properties.kryobuffer)
+        .setAppName(properties.applicationName)
+        .setMaster(properties.master)
+        .set("spark.serializer", properties.serializer)
+        .set("spark.executor.memory", properties.executorMemory)
+        .set("spark.driver.memory", properties.driverMemory)
+        .set("spark.kryoserializer.buffer.max", properties.kryobuffer)
+        .set("spark.driver.maxResultSize", properties.maxResultSize)
 
     val sc = SparkContext.getOrCreate(conf)
     logger.info("Spark Context initiated")
