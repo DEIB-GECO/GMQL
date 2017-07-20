@@ -76,10 +76,9 @@ object Wrapper {
     temp.toArray
   }
 
-
   def initGMQL(output_format: String, remote_proc: Boolean): Unit = {
-    val spark_conf = new SparkConf().setMaster("local[*]").
-      setAppName("GMQL-R").set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+    val spark_conf = new SparkConf().setMaster("local[*]")
+      .setAppName("GMQL-R").set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
       .set("spark.executor.memory", "6g")
       .set("spark.driver.memory", "2g")
     Spark_context = new SparkContext(spark_conf)
@@ -239,10 +238,10 @@ object Wrapper {
 
 
   def materialize(data_to_materialize: String, data_output_path: String): String = {
-
+    /*
     if(outputformat == GMQLSchemaFormat.COLLECT)
       return "No materialization available, you choose memory as output"
-
+    */
     if (vv.get(data_to_materialize).isEmpty)
       return "No valid Data to materialize"
 
@@ -292,7 +291,9 @@ object Wrapper {
     mem_schema = output.asInstanceOf[GMQL_DATASET]._3.
       map(x => Array[String](x._1)).toArray
 
-    "Taken"
+    executed_query = true
+    vv = vv.empty
+    "Executed"
   }
 
   def get_reg(): Array[Array[String]] = {
