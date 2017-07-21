@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.core.DataStructures.IRVariable
-import it.polimi.genomics.core.ParsingType
+import it.polimi.genomics.core.{ParsingType, Utilities}
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
@@ -216,20 +216,22 @@ object PythonManager {
 
   def materialize(index : Int, outputPath : String): Unit =
   {
-    this.checkSparkContext()
-    /*If we are in REMOTE MODE:
-    *   1) Encode the IRVariable into a Base64 string
-    *   2) send to python the string
-    * */
-
     // get the variable from the map
     val variableToMaterialize = this.variables.get(index)
     this.server setOutputPath outputPath MATERIALIZE variableToMaterialize.get
+  }
+
+  def get_serialized_materialization_list(): String = {
+    val materializationList = this.server.materializationList.toList
+    Utilities.serializeToBase64(materializationList)
+  }
+
+  def execute(): Unit = {
+    this.checkSparkContext()
     //starting the server execution
     this.server.run()
     //clear the materialization list
     this.server.clearMaterializationList()
-    // this.stopSparkContext()
   }
 
   def collect(index : Int) : CollectedResult = {
@@ -241,11 +243,18 @@ object PythonManager {
     new CollectedResult(result)
   }
 
+  def take(index: Int, n: Int): CollectedResult = {
+    this.checkSparkContext()
+    val variableToTake = this.getVariable(index)
+    val result = this.server.TAKE(variableToTake, n)
+    new CollectedResult(result)
+  }
+
   def serializeVariable(index: Int): String = {
     val variableToSerialize = this.getVariable(index)
-    throw new NotImplementedError()
-    // TODO: complete...
+    Utilities.serializeToBase64(List(variableToSerialize))
   }
+
 
   /*Spark context related*/
 
