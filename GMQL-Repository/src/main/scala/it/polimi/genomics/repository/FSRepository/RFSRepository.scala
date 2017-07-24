@@ -3,16 +3,16 @@ package it.polimi.genomics.repository.FSRepository
 import java.io.{File, InputStream}
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
-import it.polimi.genomics.core.{GMQLSchemaField, GMQLSchemaFormat}
+import it.polimi.genomics.core.{GMQLSchemaCoordinateSystem, GMQLSchemaField, GMQLSchemaFormat}
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
 import it.polimi.genomics.repository.GMQLExceptions._
 import it.polimi.genomics.repository.{Utilities => General_Utilities, _}
 import it.polimi.genomics.wsc.Knox.KnoxClient
-import org.apache.hadoop.fs.{Path}
+import org.apache.hadoop.fs.Path
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
-import scala.concurrent.{Await}
+import scala.concurrent.Await
 
 /**
   * Created by abdulrahman on 12/04/16.
@@ -33,7 +33,7 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
     */
   @throws(classOf[GMQLNotValidDatasetNameException])
   @throws(classOf[GMQLUserNotFound])
-  override def createDs(dataSet: IRDataSet, userName: String, Samples: java.util.List[GMQLSample], GMQLScriptPath: String, schemaType: GMQLSchemaFormat.Value): Unit = {
+  override def createDs(dataSet: IRDataSet, userName: String, Samples: java.util.List[GMQLSample], GMQLScriptPath: String, schemaType: GMQLSchemaFormat.Value, schemaCoordinateSystem:GMQLSchemaCoordinateSystem.Value): Unit = {
 
     val tempDir = General_Utilities().getTempDir(userName) + "/" + dataSet.position + "_/"
     val tempDirectory = new File(tempDir)
@@ -49,7 +49,7 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
     }.toList.asJava
 
     //create DS as a set of XML files in the local repository, this will read the meta files from the temp directory.
-    super.createDs(dataSet, userName, samples, GMQLScriptPath,schemaType)
+    super.createDs(dataSet, userName, samples, GMQLScriptPath,schemaType,schemaCoordinateSystem)
 
     //clean temp from the meta files.
     tempDirectory.delete()

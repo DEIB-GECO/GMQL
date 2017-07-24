@@ -15,6 +15,7 @@ import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 
 case class GMQLSchema (name:String,
                        schemaType:GMQLSchemaFormat.Value,
+                       schemaCoordinateSystem: GMQLSchemaCoordinateSystem.Value,
                        fields:List[GMQLSchemaField])
 
 /**
@@ -26,6 +27,29 @@ case class GMQLSchema (name:String,
   */
 case class GMQLSchemaField(name:String, fieldType:ParsingType.Value)
 
+/**
+  * Enum for the coordinate system that is used for dataset
+  */
+object GMQLSchemaCoordinateSystem extends Enumeration{
+  type outputFormat = Value
+  val ZeroBased = Value("0-based")
+  val OneBased = Value("1-based")
+  val None = Value("none")
+  /**
+    *
+    *  Get the [[ GMQLSchemaFormat]] of a specific String
+    *
+    * @param coordinateSystem String of the coordinate system
+    * @return
+    */
+  def getType(coordinateSystem:String): GMQLSchemaCoordinateSystem.Value ={
+    coordinateSystem. toLowerCase() match {
+      case "0-based" => GMQLSchemaCoordinateSystem.ZeroBased
+      case "1-based" => GMQLSchemaCoordinateSystem.OneBased
+      case _ => GMQLSchemaCoordinateSystem.None
+    }
+  }
+}
 
 /**
   * Enum for the types of schemas that we can have in our repository
@@ -55,9 +79,9 @@ object GMQLSchemaFormat extends Enumeration{
 }
 
 object GMQLSchema {
-  def generateSchemaXML(schema : List[(String, PARSING_TYPE)], dsname:String,outputFormat: GMQLSchemaFormat.Value): String ={
+  def generateSchemaXML(schema : List[(String, PARSING_TYPE)], dsname:String,outputFormat: GMQLSchemaFormat.Value, outputCoordinateSystem: GMQLSchemaCoordinateSystem.Value): String ={
     val schemaPart = if(outputFormat == GMQLSchemaFormat.GTF) {
-      "\t<gmqlSchema type=\"gtf\">\n"+
+      "\t<gmqlSchema type=\"gtf\""+outputCoordinateSystem.toString+"\">\n"+
         "\t\t<field type=\"STRING\">seqname</field>\n" +
         "\t\t<field type=\"STRING\">source</field>\n"+
         "\t\t<field type=\"STRING\">feature</field>\n"+
@@ -68,7 +92,7 @@ object GMQLSchema {
         "\t\t<field type=\"STRING\">frame</field>"
 
     }else {
-      "\t<gmqlSchema type=\"Peak\">\n" +
+      "\t<gmqlSchema type=\"Peak\""+outputCoordinateSystem.toString+"\">\n" +
         "\t\t<field type=\"STRING\">chr</field>\n" +
         "\t\t<field type=\"LONG\">left</field>\n" +
         "\t\t<field type=\"LONG\">right</field>\n" +

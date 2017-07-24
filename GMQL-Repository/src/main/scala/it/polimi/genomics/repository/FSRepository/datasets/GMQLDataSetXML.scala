@@ -1,13 +1,12 @@
 package it.polimi.genomics.repository.FSRepository.datasets
 
-import java.beans.Transient
 import java.io._
 import java.nio.charset.{Charset, CodingErrorAction}
 import java.nio.file.{Files, Path, Paths}
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
-import it.polimi.genomics.core.{GMQLSchema, GMQLSchemaFormat, ParsingType}
 import it.polimi.genomics.core.ParsingType._
+import it.polimi.genomics.core.{GMQLSchema, GMQLSchemaCoordinateSystem, GMQLSchemaFormat, ParsingType}
 import it.polimi.genomics.repository.FSRepository.FS_Utilities
 import org.slf4j.Logger
 
@@ -17,8 +16,8 @@ import it.polimi.genomics.repository.GMQLExceptions.{GMQLDSNotFound, GMQLNotVali
 import it.polimi.genomics.repository._
 import org.slf4j.LoggerFactory
 
-import scala.xml.XML
 import scala.collection.JavaConverters._
+import scala.xml.XML
 /**
   * Created by abdulrahman Kaitoua on 12/04/16.
   */
@@ -43,6 +42,7 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
 
   def schemaDir: String = Utilities().RepoDir + this.userName + "/schema/" + DSname + ".schema";
   var schemaType: GMQLSchemaFormat.Value = GMQLSchemaFormat.TAB
+  var schemaCoordinateSystem: GMQLSchemaCoordinateSystem.Value = GMQLSchemaCoordinateSystem.ZeroBased
   Utilities()
 
   /**
@@ -124,9 +124,10 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
     * @param repo String field for the XML file, to describe the repository which this dataset is generated for
     */
   @throws(classOf[GMQLNotValidDatasetNameException])
-  def this(dataset: IRDataSet, username: String, fields: List[GMQLSample], GMQLCodeUrl: String, schemaType: GMQLSchemaFormat.Value, repo:String ) {
+  def this(dataset: IRDataSet, username: String, fields: List[GMQLSample], GMQLCodeUrl: String, schemaType: GMQLSchemaFormat.Value, schemaCoordinateSystem: GMQLSchemaCoordinateSystem.Value, repo:String ) {
     this(dataset, username, fields, GMQLCodeUrl,repo )
     this.schemaType = schemaType
+    this.schemaCoordinateSystem = schemaCoordinateSystem
   }
 
   /**
@@ -139,9 +140,10 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
     * @param repo String field for the XML file, to describe the repository which this dataset is generated for
     */
   @throws(classOf[GMQLNotValidDatasetNameException])
-  def this(dataset: IRDataSet, username: String, fields: List[GMQLSample], schemaType: GMQLSchemaFormat.Value, repo:String ) {
+  def this(dataset: IRDataSet, username: String, fields: List[GMQLSample], schemaType: GMQLSchemaFormat.Value, schemaCoordinateSystem: GMQLSchemaCoordinateSystem.Value, repo:String ) {
     this(dataset, username, repo, fields )
     this.schemaType = schemaType
+    this.schemaCoordinateSystem = schemaCoordinateSystem
   }
 
   /**
@@ -205,7 +207,6 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
       }
       // Loading schema
       val schemaFields = (XML.loadFile(this.schemaDir) \\ "field")
-      import it.polimi.genomics.repository.FSRepository._
       this.schema = schemaFields.map(x => (x.text.trim, ParsingType.attType(x.attribute("type").get.head.text))).toList
       this
     } else throw new GMQLDSNotFound()
@@ -280,11 +281,11 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
     */
   private def generateSchemaXML(schema: InternalSchema): String = {
     if(Repo.startsWith("GENERATED")){
-      GMQLSchema.generateSchemaXML(schema,DSname,schemaType)
+      GMQLSchema.generateSchemaXML(schema,DSname,schemaType,schemaCoordinateSystem)
     }else{
       "<?xml version='1.0' encoding='UTF-8'?>\n" +
         "<gmqlSchemaCollection name=\"" + DSname + "\" xmlns=\"http://genomic.elet.polimi.it/entities\">\n" +
-        "\t<gmqlSchema type=\""+schemaType.toString+"\">\n"+
+        "\t<gmqlSchema type=\""+schemaType.toString+"\"" + " coordinate_system=\"" + schemaCoordinateSystem.toString + "\">\n"+
         schema.map { x =>
          "\t\t<field type=\"" + x._2.toString + "\">" + x._1 + "</field>"
         }.mkString("\n") + "\n" +

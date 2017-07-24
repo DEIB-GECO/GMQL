@@ -4,7 +4,7 @@ import java.io._
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
-import it.polimi.genomics.core.{GMQLSchema, GMQLSchemaField, GMQLSchemaFormat, ParsingType}
+import it.polimi.genomics.core._
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
 import it.polimi.genomics.repository.GMQLExceptions._
 import it.polimi.genomics.repository.{DatasetOrigin, GMQLRepository, GMQLSample, RepositoryType, Utilities => General_Utilities}
@@ -33,7 +33,7 @@ trait XMLDataSetRepository extends GMQLRepository{
     * @throws GMQLUserNotFound
     * @throws GMQLSampleNotFound
     */
-  def createDs(dataSet:IRDataSet, userName: String = General_Utilities().USERNAME, Samples: java.util.List[GMQLSample], GMQLScriptPath: String,schemaType:GMQLSchemaFormat.Value): Unit = {
+  def createDs(dataSet:IRDataSet, userName: String = General_Utilities().USERNAME, Samples: java.util.List[GMQLSample], GMQLScriptPath: String,schemaType:GMQLSchemaFormat.Value, schemaCoordinateSystem: GMQLSchemaCoordinateSystem.Value): Unit = {
     // Check the dataset name, return if the dataset is already used in
     // the repository of the this user or the public repository.
     if (DSExists(dataSet.position, userName)) {
@@ -43,7 +43,7 @@ trait XMLDataSetRepository extends GMQLRepository{
 
     val samples: List[GMQLSample] = Samples.asScala.map{ x=>if (x.meta.equals("nothing.meta")) new GMQLSample(x.name, x.name+".meta",x.ID) else x}.toList
     //create DS descriptive file of the Data set
-    val gMQLDataSetXML = new GMQLDataSetXML(dataSet,userName,samples,GMQLScriptPath, schemaType,"GENERATED_"+General_Utilities().MODE )
+    val gMQLDataSetXML = new GMQLDataSetXML(dataSet,userName,samples,GMQLScriptPath, schemaType, schemaCoordinateSystem, "GENERATED_"+General_Utilities().MODE )
     gMQLDataSetXML.Create()
   }
 
@@ -73,9 +73,11 @@ trait XMLDataSetRepository extends GMQLRepository{
       val xmlFile = XML.load(schemaPath)
       val schemaFields = (xmlFile \\ "field")
       val schemaType = (xmlFile \\ "gmqlSchema").head.attribute("type").get.head.text
+      val coordinateSystemAttribute = (xmlFile \\ "gmqlSchema").head.attribute("coordinate_system")
+      val schemaCoordinateSystem = if (coordinateSystemAttribute.isDefined) coordinateSystemAttribute.get.head.text else "none"
       val schema = schemaFields.map { x => (x.text.trim, ParsingType.attType(x.attribute("type").get.head.text)) }.toList.asJava
       val dataSet = new IRDataSet(dataSetName, schema)
-      val gMQLDataSetXML = new GMQLDataSetXML(dataSet, userName, Samples.asScala.toList, GMQLSchemaFormat.getType(schemaType), "IMPORTED_"+General_Utilities().MODE  )
+      val gMQLDataSetXML = new GMQLDataSetXML(dataSet, userName, Samples.asScala.toList, GMQLSchemaFormat.getType(schemaType), GMQLSchemaCoordinateSystem.getType(schemaCoordinateSystem), "IMPORTED_"+General_Utilities().MODE  )
       gMQLDataSetXML.Create()
   }
 
@@ -279,8 +281,9 @@ trait XMLDataSetRepository extends GMQLRepository{
     val cc = (xmlFile \\ "field")
     val schemaList = cc.flatMap{ x => if(gtfFields.contains(x.text.trim)||tabFields.contains(x.text.trim)) None else Some(new GMQLSchemaField(x.text.trim, ParsingType.attType(x.attribute("type").get.head.text)))}.toList
     val schemaType = GMQLSchemaFormat.getType((xmlFile \\ "gmqlSchema" \ "@type").text)
+    val schemaCoordinateSystem = GMQLSchemaCoordinateSystem.getType((xmlFile \\ "gmqlSchema" \ "@coordinate_system").text)
     val schemaname = (xmlFile \\ "gmqlSchemaCollection" \ "@name").text
-    new GMQLSchema(schemaname,schemaType, schemaList)
+    new GMQLSchema(schemaname,schemaType, schemaCoordinateSystem, schemaList)
   }
 
   /**
@@ -352,8 +355,9 @@ trait XMLDataSetRepository extends GMQLRepository{
       new GMQLSchemaField(schemaFN, schemaType)
     }.toList
     val schemaType = GMQLSchemaFormat.getType((xmlFile \\ "gmqlSchema" \ "@type").text)
+    val schemaCoordinateSystem = GMQLSchemaCoordinateSystem.getType((xmlFile \\ "gmqlSchema" \ "@coordinate_system").text)
     val schemaname = (xmlFile \\ "gmqlSchemaCollection" \ "@name").text
-    new GMQLSchema(schemaname,schemaType, schemaList)
+    new GMQLSchema(schemaname,schemaType, schemaCoordinateSystem, schemaList)
   }
 
   /**

@@ -5,12 +5,12 @@ import java.nio.file.{Files, Paths}
 import java.text.SimpleDateFormat
 import java.util.Date
 
-import it.polimi.genomics.core.{BinSize, GMQLSchemaFormat, GMQLScript, ImplementationPlatform}
-import it.polimi.genomics.manager.Launchers.{GMQLLocalLauncher, GMQLSparkLauncher}
+import it.polimi.genomics.core._
+import it.polimi.genomics.manager.Launchers.GMQLLocalLauncher
 import it.polimi.genomics.repository.FSRepository.{DFSRepository, LFSRepository, XMLDataSetRepository}
 import it.polimi.genomics.repository.{Utilities => repo_Utilities}
 import org.apache.spark.{SparkConf, SparkContext}
-import org.slf4j.{Logger, LoggerFactory}
+import org.slf4j.LoggerFactory
 
 /**
   * Created by abdulrahman on 31/01/2017.
@@ -66,6 +66,7 @@ object CLI {
     var username: String = System.getProperty("user.name")
     var outputPath: String = ""
     var outputFormat: GMQLSchemaFormat.Value = GMQLSchemaFormat.TAB
+    var outputCoordinateSystem: GMQLSchemaCoordinateSystem.Value = GMQLSchemaCoordinateSystem.ZeroBased
     var verbose: Boolean = false
     var i = 0;
 
@@ -137,7 +138,7 @@ object CLI {
     val sc:SparkContext =new SparkContext(conf)
 
     //GMQL context contains all the GMQL job needed information
-    val gmqlContext: GMQLContext = new GMQLContext(ImplementationPlatform.SPARK, repository, outputFormat, binSize, username,sc)
+    val gmqlContext: GMQLContext = new GMQLContext(ImplementationPlatform.SPARK, repository, outputFormat, outputCoordinateSystem, binSize, username,sc)
 
     //create GMQL server manager instance, if it is not created yet.
     val server: GMQLExecute = GMQLExecute()

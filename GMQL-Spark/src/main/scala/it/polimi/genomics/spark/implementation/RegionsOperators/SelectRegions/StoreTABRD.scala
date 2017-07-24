@@ -2,15 +2,15 @@ package it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions
 
 import it.polimi.genomics.core.DataStructures.{MetaOperator, RegionOperator}
 import it.polimi.genomics.core.DataTypes.GRECORD
-import it.polimi.genomics.core.GMQLSchemaFormat
+import it.polimi.genomics.core.GMQLSchemaCoordinateSystem
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.loaders.writeMultiOutputFiles
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
-import org.apache.spark.{HashPartitioner, SparkContext}
 import org.apache.spark.rdd.RDD
+import org.apache.spark.{HashPartitioner, SparkContext}
 import org.slf4j.LoggerFactory
 
 import scala.collection.Map
@@ -23,7 +23,7 @@ object StoreTABRD {
   private final val ENCODING = "UTF-8"
 
   @throws[SelectFormatException]
-  def apply(executor: GMQLSparkExecutor, path: String, value: RegionOperator, associatedMeta:MetaOperator, schema : List[(String, PARSING_TYPE)], sc: SparkContext): RDD[GRECORD] = {
+  def apply(executor: GMQLSparkExecutor, path: String, value: RegionOperator, associatedMeta:MetaOperator, schema : List[(String, PARSING_TYPE)], coordinateSystem: GMQLSchemaCoordinateSystem.Value, sc: SparkContext): RDD[GRECORD] = {
     val regions = executor.implement_rd(value, sc)
     val meta = executor.implement_md(associatedMeta,sc)
 
@@ -49,8 +49,10 @@ object StoreTABRD {
     val regionsPartitioner = new HashPartitioner(Ids.count.toInt)
 
     val keyedRDD =
-      regions.map(x => (outSample+"_"+ "%05d".format(newIDSbroad.value.get(x._1._1).getOrElse(x._1._1))+".gdm",
-        x._1._2 + "\t" + x._1._3 + "\t" + x._1._4 + "\t" + x._1._5 + "\t" + x._2.mkString("\t")))
+      regions.map{x =>
+        val newStart = if (coordinateSystem == GMQLSchemaCoordinateSystem.OneBased) (x._1._3 + 1) else x._1._3  //start: 0-based -> 1-based
+        (outSample+"_"+ "%05d".format(newIDSbroad.value.get(x._1._1).getOrElse(x._1._1))+".gdm",
+        x._1._2 + "\t" + newStart + "\t" + x._1._4 + "\t" + x._1._5 + "\t" + x._2.mkString("\t"))}
         .partitionBy(regionsPartitioner).mapPartitions(x=>x.toList.sortBy{s=> val data = s._2.split("\t"); (data(0),data(1).toLong,data(2).toLong)}.iterator)
 
     writeMultiOutputFiles.saveAsMultipleTextFiles(keyedRDD, RegionOutputPath)

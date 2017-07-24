@@ -3,7 +3,7 @@ package it.polimi.genomics.repository.FSRepository
 import java.io._
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
-import it.polimi.genomics.core.{GMQLSchemaField, GMQLSchemaFormat}
+import it.polimi.genomics.core.{GMQLSchemaCoordinateSystem, GMQLSchemaField, GMQLSchemaFormat}
 import it.polimi.genomics.repository
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
 import it.polimi.genomics.repository.GMQLExceptions.{GMQLDSException, GMQLDSNotFound, GMQLSampleNotFound, GMQLUserNotFound}
@@ -28,7 +28,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     * @param GMQLScriptPath The path to the script text file that generated this data set.
     * @param schemaType One of GMQL schema types as shown in [[ GMQLSchemaFormat]]
     */
-  override def createDs(dataSet:IRDataSet, userName: String, Samples: java.util.List[GMQLSample], GMQLScriptPath: String,schemaType:GMQLSchemaFormat.Value): Unit = {
+  override def createDs(dataSet:IRDataSet, userName: String, Samples: java.util.List[GMQLSample], GMQLScriptPath: String,schemaType:GMQLSchemaFormat.Value, schemaCoordinateSystem:GMQLSchemaCoordinateSystem.Value): Unit = {
     //Create Temp folder to place the meta files temporarly in Local file system
     val tmpFolderName = General_Utilities().getTempDir(userName)+dataSet.position+"_/"
     val tmpFolder = new File(tmpFolderName)
@@ -43,7 +43,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     }.toList.asJava
 
     //create DS as a set of XML files in the local repository
-    super.createDs(dataSet, userName, samples, GMQLScriptPath, schemaType)
+    super.createDs(dataSet, userName, samples, GMQLScriptPath, schemaType, schemaCoordinateSystem)
 
     //clean the temp Directory
     tmpFolder.delete()

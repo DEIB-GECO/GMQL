@@ -8,13 +8,12 @@ import com.sun.org.apache.xml.internal.security.utils.Base64
 import it.polimi.genomics.GMQLServer.{GmqlServer, Implementation}
 import it.polimi.genomics.compiler._
 import it.polimi.genomics.core.DataStructures.IRVariable
-import it.polimi.genomics.core.{GMQLSchemaFormat, ImplementationPlatform}
+import it.polimi.genomics.core.{GMQLSchemaCoordinateSystem, GMQLSchemaFormat, ImplementationPlatform}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
 import org.apache.log4j.xml.DOMConfigurator
 import org.apache.log4j.{FileAppender, Level, PatternLayout}
-import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd, SparkListenerApplicationStart, SparkListenerStageCompleted}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.slf4j.LoggerFactory
 
@@ -104,6 +103,7 @@ object GMQLExecuteCommand {
     var outputPath = ""
     var jobid = ""
     var outputFormat = GMQLSchemaFormat.TAB
+    var outputCoordinateSystem = GMQLSchemaCoordinateSystem.ZeroBased
     var schemata = Map[String, String]()
     var inputs = Map[String, String]()
     var outputs = Map[String, String]()
@@ -212,7 +212,7 @@ object GMQLExecuteCommand {
 
     logger.info("Start to execute GMQL Script..")
 
-    val implementation: Implementation = getImplemenation(executionType,jobid,outputFormat)
+    val implementation: Implementation = getImplemenation(executionType,jobid,outputFormat,outputCoordinateSystem)
 
     val server = new GmqlServer(implementation, Some(1000))
     // get the dag --> [IRVariable]
@@ -349,7 +349,7 @@ object GMQLExecuteCommand {
     operators
   }
 
-  def getImplemenation(executionType:String,jobid:String , outputFormat: GMQLSchemaFormat.Value) ={
+  def getImplemenation(executionType:String,jobid:String , outputFormat: GMQLSchemaFormat.Value, outputCoordinateSystem: GMQLSchemaCoordinateSystem.Value) ={
 //    if (executionType.equals(it.polimi.genomics.core.ImplementationPlatform.SPARK.toString.toLowerCase())) {
       val conf = new SparkConf().setAppName("GMQL V2.1 Spark " + jobid)
         .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "128")
@@ -373,7 +373,7 @@ object GMQLExecuteCommand {
 //        }
 //
 //      });
-      new GMQLSparkExecutor(testingIOFormats = false, sc = sc, outputFormat = outputFormat)
+      new GMQLSparkExecutor(testingIOFormats = false, sc = sc, outputFormat = outputFormat, outputCoordinateSystem = outputCoordinateSystem)
 //    }
 //    else /*if(executionType.equals(FLINK)) */ {
 //      new FlinkImplementation()
