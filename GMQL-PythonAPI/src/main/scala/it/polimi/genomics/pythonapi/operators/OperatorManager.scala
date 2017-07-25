@@ -3,11 +3,13 @@ package it.polimi.genomics.pythonapi.operators
 import it.polimi.genomics.core.DataStructures.CoverParameters._
 import it.polimi.genomics.core.DataStructures.CoverParameters.CoverFlag.CoverFlag
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.{ASC, DESC, Direction}
-import it.polimi.genomics.core.DataStructures.GroupMDParameters.{NoTop, Top, TopG, TopParameter}
+import it.polimi.genomics.core.DataStructures.GroupMDParameters._
+import it.polimi.genomics.core.DataStructures.GroupRDParameters.{FIELD, GroupingParameter}
 import it.polimi.genomics.core.DataStructures.IRVariable
 import it.polimi.genomics.core.DataStructures.JoinParametersRD._
 import it.polimi.genomics.core.DataStructures.MetaAggregate.{MetaAggregateStruct, MetaExtension}
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
+import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition.{AttributeEvaluationStrategy, Default, MetaJoinCondition}
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
 import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionFunction, RegionsToMeta, RegionsToRegion}
@@ -329,6 +331,7 @@ object OperatorManager {
     paramName.toUpperCase match {
       case "TOP" => Top(k.toInt)
       case "TOPG" => TopG(k.toInt)
+      case "TOPP" => TopP(k.toInt)
       case _ => NoTop()
     }
   }
@@ -341,8 +344,11 @@ object OperatorManager {
       DESC
   }
 
-  def order(index: Int, meta_ordering : java.util.List[String], meta_ascending : java.util.List[Boolean],
-           metaTop : String, metaK : String, region_ordering : java.util.List[String], region_ascending: java.util.List[Boolean],
+  def order(index: Int, meta_ordering : java.util.List[String],
+            meta_ascending : java.util.List[Boolean],
+            metaTop : String, metaK : String,
+            region_ordering : java.util.List[String],
+            region_ascending: java.util.List[Boolean],
             regionTop: String, regionK : String): Int = {
     val metaTopParameter = getOrderTopParameter(metaTop, metaK)
     val regionTopParameter = getOrderTopParameter(regionTop, regionK)
@@ -394,6 +400,45 @@ object OperatorManager {
     val nv = v.ORDER(metaOrdering,"_group",metaTopParameter,regionOrdering,regionTopParameter)
 
     // generate new index
+    val new_index = PythonManager.putNewVariable(nv)
+    new_index
+  }
+
+  /*
+  * GROUP
+  * */
+
+  def getMetaGroupByCondition(meta_keys: List[String]): MetaGroupByCondition = {
+    MetaGroupByCondition(meta_keys)
+  }
+
+  def getGroupingParameters(region_keys: List[String], v: IRVariable): List[GroupingParameter] = {
+    region_keys.map(x => {
+      val fieldNum = v.get_field_by_name(x)
+      if(fieldNum.isEmpty)
+        throw new IllegalArgumentException("Region attribute " + x + " is not present!")
+      else
+        FIELD(fieldNum.get)
+    })
+  }
+
+  def group(index: Int, meta_keys: Option[List[String]], meta_aggregates: Option[List[RegionsToMeta]],
+            meta_group_name: String,
+            region_keys: Option[List[String]], region_aggregates: Option[List[RegionsToRegion]]): Int = {
+    val v = PythonManager.getVariable(index)
+
+
+    var meta_keys_condition: Option[MetaGroupByCondition] = None
+    if(meta_keys.isDefined) {
+      meta_keys_condition = Some(getMetaGroupByCondition(meta_keys.get))
+    }
+    var region_keys_condition: Option[List[GroupingParameter]] = None
+    if(region_keys.isDefined) {
+      region_keys_condition = Some(getGroupingParameters(region_keys.get, v))
+    }
+
+    val nv = v GROUP(meta_keys_condition, meta_aggregates, meta_group_name,
+      region_keys_condition, region_aggregates)
     val new_index = PythonManager.putNewVariable(nv)
     new_index
   }
