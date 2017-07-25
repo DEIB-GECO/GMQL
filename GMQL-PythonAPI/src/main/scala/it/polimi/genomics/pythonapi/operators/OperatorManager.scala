@@ -422,23 +422,36 @@ object OperatorManager {
     })
   }
 
-  def group(index: Int, meta_keys: Option[List[String]], meta_aggregates: Option[List[RegionsToMeta]],
-            meta_group_name: String,
-            region_keys: Option[List[String]], region_aggregates: Option[List[RegionsToRegion]]): Int = {
-    val v = PythonManager.getVariable(index)
+  def group(index: Int, meta_keys: Option[java.util.List[String]],
+            meta_aggregates: Option[java.util.List[RegionsToMeta]], meta_group_name: String,
+            region_keys: Option[java.util.List[String]],
+            region_aggregates: Option[java.util.List[RegionsToRegion]]): Int = {
 
+    val v = PythonManager.getVariable(index)
 
     var meta_keys_condition: Option[MetaGroupByCondition] = None
     if(meta_keys.isDefined) {
-      meta_keys_condition = Some(getMetaGroupByCondition(meta_keys.get))
-    }
-    var region_keys_condition: Option[List[GroupingParameter]] = None
-    if(region_keys.isDefined) {
-      region_keys_condition = Some(getGroupingParameters(region_keys.get, v))
+      meta_keys_condition = Some(getMetaGroupByCondition(meta_keys.get.asScala.toList))
     }
 
-    val nv = v GROUP(meta_keys_condition, meta_aggregates, meta_group_name,
-      region_keys_condition, region_aggregates)
+    var meta_aggregates_scala: Option[List[RegionsToMeta]] = None
+    if(meta_aggregates.isDefined) {
+      meta_aggregates_scala = Some(meta_aggregates.get.asScala.toList)
+    }
+
+    var region_keys_condition: Option[List[GroupingParameter]] = None
+    if(region_keys.isDefined) {
+      region_keys_condition = Some(getGroupingParameters(region_keys.get.asScala.toList, v))
+    }
+
+    var region_aggregates_scala: Option[List[RegionsToRegion]] = None
+    if(region_aggregates.isDefined) {
+      region_aggregates_scala = Some(region_aggregates.get.asScala.toList)
+    }
+
+    val nv = v GROUP(meta_keys_condition, meta_aggregates_scala, meta_group_name,
+      region_keys_condition, region_aggregates_scala)
+
     val new_index = PythonManager.putNewVariable(nv)
     new_index
   }
