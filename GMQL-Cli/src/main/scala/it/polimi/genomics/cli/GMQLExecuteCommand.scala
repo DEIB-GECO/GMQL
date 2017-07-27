@@ -183,19 +183,10 @@ object GMQLExecuteCommand {
           logger.info("A DAG was received SUCCESSFULLY")
         }
       } else if ("-dagpath".equals(args(i).toLowerCase())) {
-        // The serialized DAG is in a File
-        val dFile = new File (args(i + 1))
-        if(!dFile.exists()) {
-          logger.error(s"DAG file not found $dagPath")
-        }
-        // take the dag path
-        dagPath = dFile.getPath
-        // deserialization from file
-        dag = Some(Utilities.deserializeDAG(
-          new String(Files.readAllBytes(Paths.get(dagPath)))
-        ))
-        logger.info("DAG set to: " + dagPath)
-
+        dagPath = args(i + 1)
+        val serializedDag = readFile(dagPath)
+        dag = Some(Utilities.deserializeDAG(serializedDag))
+        logger.info("DAG path set to: " + dagPath)
       } else {
         logger.warn("( "+ args(i) + " ) NOT A VALID COMMAND ... ")
 
@@ -300,39 +291,13 @@ object GMQLExecuteCommand {
     }
   }
 
-
-  //TODO: Enable serialization of the DAG
-  //  def deSerializeDAG(dag:String): List[Operator] ={
-  //    val bytes = Base64.decode(dag.getBytes());
-  //    val objectInputStream1 = new ObjectInputStream( new ByteArrayInputStream(bytes) );
-  //
-  //    objectInputStream1.readObject().asInstanceOf[List[Operator]];
-  //  }
-
-//  def deSerializeDAG(dagEncoded: String): List[Operator] = {
-//    val bytes = Base64.decode(dagEncoded.getBytes());
-//    val objectInputStream1 = new ObjectInputStream(new ByteArrayInputStream(bytes));
-//
-//    val dag = objectInputStream1.readObject().asInstanceOf[java.util.ArrayList[Operator]];
-//
-//    println("hi\n" + dag.toString)
-//    var DAG: List[Operator] = List[Operator]()
-//    for (i <- 0 until dag.size() - 1) {
-//      DAG = DAG :+ dag.get(i)
-//    }
-//
-//    DAG
-//  }
-//
-//  def changePaths(dag : List[IRVariable]) : List[IRVariable] = {
-//    dag.map(x => changePathsToVariable(x))
-//  }
-//
-//  def changePathsToVariable(variable: IRVariable) : IRVariable = {
-//    variable.regionDag match {
-//      case x: IRGenometricJoin => x.
-//    }
-//  }
+  def readFile(path: String) : String = {
+    val conf = new Configuration();
+    val pathHadoop = new org.apache.hadoop.fs.Path(path);
+    val fs = FileSystem.get(pathHadoop.toUri(), conf);
+    val ifS = fs.open(pathHadoop)
+    scala.io.Source.fromInputStream(ifS).mkString
+  }
 
   def compile(id: String, translator: Translator, script: String, inputs: Map[String, String],outputs: Map[String, String]): List[Operator] = {
     var operators: List[Operator] = List[Operator]()

@@ -180,8 +180,13 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     */
   override def registerUser(userName: String): Boolean = {
     val dir = General_Utilities().getHDFSRegionDir(userName)
-    val creationMessage = if(FS_Utilities.createDFSDir(dir)) "\t Created..." else "\t Not created..."
+    var creationMessage = if(FS_Utilities.createDFSDir(dir)) "\t Created..." else "\t Not created..."
     logger.info( dir + creationMessage)
+
+    // create a folder also for the serialized dags
+    val dag_dir = General_Utilities().getHDFSDagQueryDir(userName, create = false)
+    creationMessage = if(FS_Utilities.createDFSDir(dag_dir)) "\t Dag folder created..." else "\t Dag folder not created..."
+    logger.info( dag_dir + creationMessage)
     super.registerUser(userName)
   }
 
@@ -235,5 +240,23 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
         logger.error("The Dataset sample Url is not found in the xml: ")
         throw new GMQLSampleNotFound
     }
+  }
+
+  /**
+    * Save a serialized dag to the dag folder for the specified user
+    *
+    * @param userName      [[String]] the username
+    * @param serializedDag [[String]] the serialized dag
+    * @return the resulting location
+    **/
+  override def saveDagQuery(userName: String, serializedDag: String, fileName: String): String = {
+    val queryPath = General_Utilities().getHDFSDagQueryDir(userName)
+    val conf = FS_Utilities.gethdfsConfiguration()
+    val fs = FileSystem.get(conf)
+    val resultPath = queryPath + "/" + fileName
+    val outStream = fs.create(new Path(resultPath))
+    serializedDag.map(x => outStream.write(x))
+    outStream.close()
+    resultPath
   }
 }

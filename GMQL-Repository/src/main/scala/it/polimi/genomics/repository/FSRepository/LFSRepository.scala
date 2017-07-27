@@ -148,4 +148,21 @@ class LFSRepository extends GMQLRepository with XMLDataSetRepository{
         throw new GMQLSampleNotFound
     }
   }
+
+  /**
+    * Save a serialized dag to the dag folder for the specified user
+    *
+    * @param userName      [[String]] the username
+    * @param serializedDag [[String]] the serialized dag
+    * @param fileName      [[String]] the file name of the dag in the folder
+    * @return the resulting location
+    **/
+  override def saveDagQuery(userName: String, serializedDag: String, fileName: String): String = {
+    val queryPath = General_Utilities().getDagQueryDir(userName)
+    val resultPath = queryPath + "/" + fileName
+    val outStream = new FileOutputStream(new File(resultPath))
+    serializedDag.map(x => outStream.write(x))
+    outStream.close()
+    resultPath
+  }
 }

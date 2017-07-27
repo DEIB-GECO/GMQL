@@ -9,6 +9,7 @@ import java.io.File
 import it.polimi.genomics.repository.FSRepository.{DFSRepository, FS_Utilities, LFSRepository, RFSRepository}
 import org.slf4j.{Logger, LoggerFactory}
 
+
 import scala.xml.XML
 
 /**
@@ -123,6 +124,43 @@ class Utilities() {
     * @return Directory location of the regions folder in HDFS
     */
   def getHDFSRegionDir(userName: String = USERNAME): String = HDFSRepoDir + userName + "/regions/"
+
+
+  /**
+    * Retrieve the dag folder for each user on HDFS
+    *
+    * @param userName [[ String]] of the user name
+    * @param create [[Boolean]] tells HDFS to create the folder or not
+    * @return Directory location of the dag folder in HDFS
+    *
+    * */
+  def getHDFSDagQueryDir(userName: String = USERNAME, create: Boolean = true): String = {
+    val dag_dir = HDFSRepoDir + userName + "/dag/"
+
+    if(create) {
+      val creationMessage = if(FS_Utilities.createDFSDir(dag_dir)) "\t Dag folder created..." else "\t Dag folder not created..."
+      logger.info( dag_dir + creationMessage)
+    }
+    dag_dir
+  }
+
+  /**
+    * Retrieve the dag folder for each user on local
+    *
+    * @param userName [[ String]] of the user name
+    * @param create [[Boolean]] tells local to create the folder or not
+    * @return Directory location of the dag folder in local
+    *
+    * */
+  def getDagQueryDir(userName: String = USERNAME, create: Boolean = true): String = {
+    val dag_dir = RepoDir + userName + "/dag/"
+
+    if(create) {
+      val creationMessage = if(new File(dag_dir).mkdirs()) "\t Dag folder created..." else "\t Dag folder not created..."
+      logger.info( dag_dir + creationMessage)
+    }
+    dag_dir
+  }
 
   /**
     *

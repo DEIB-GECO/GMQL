@@ -96,7 +96,14 @@ class GMQLExecute (){
 
     /* PATH RENAMING */
     val (outDSs, newSerializedDAG): (List[String], String) = job.renameDAGPaths(script.dag)
-    script.dag = newSerializedDAG
+    //script.dag = newSerializedDAG
+    script.dag = ""
+
+    // save the dag on a file
+    val repository = General_Utilities().getRepository()
+    val dagPath = repository.saveDagQuery(gMQLContext.username, newSerializedDAG, jobid + ".dag")
+
+    script.dagPath = dagPath
 
     val jID = job.jobId
 

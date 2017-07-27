@@ -9,4 +9,4 @@ package it.polimi.genomics.core
   * @param script [[ String]] of the GMQL script
   * @param scriptPath [[ String]] of the path to the script on local file system
   */
-case class GMQLScript (script:String, scriptPath:String, var dag: String = "", dagPath: String = "")
+case class GMQLScript (script:String, scriptPath:String, var dag: String = "", var dagPath: String = "")

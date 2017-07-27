@@ -240,12 +240,16 @@ trait XMLDataSetRepository extends GMQLRepository{
         val metadata = new File(General_Utilities().getMetaDir( userName ))
         val schema = new File(General_Utilities().getSchemaDir( userName ))
         val queries = new File(General_Utilities().getScriptsDir( userName ))
+        // create also the folder for dags
+        val dags = new File(General_Utilities().getDagQueryDir( userName, create = false ))
         try{
           logger.info( General_Utilities().getIndexDir( userName ) + (if (indexes.mkdirs) "\tCreated" else "\tfailed"))
           logger.info( General_Utilities().getDataSetsDir( userName ) + (if (datasets.mkdir) "\tCreated" else "\tfailed"))
           logger.info( General_Utilities().getMetaDir( userName ) + (if (metadata.mkdir) "\tCreated" else "\tfailed"))
           logger.info( General_Utilities().getSchemaDir( userName ) + (if (schema.mkdir) "\tCreated" else "\tfailed"))
           logger.info( General_Utilities().getScriptsDir( userName ) + (if (queries.mkdir) "\tCreated" else "\tfailed"))
+          // logging for the cration of dags folder
+          logger.info( General_Utilities().getDagQueryDir( userName, create = false ) + (if (dags.mkdir) "\tCreated" else "\tfailed"))
           true
         }
     catch {

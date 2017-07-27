@@ -273,6 +273,17 @@ trait GMQLRepository {
     * @return [[InputStream]] as the script string file.
     */
   def getScriptStream(dataSetName: String, userName: String): InputStream
+
+
+  /**
+    * Save a serialized dag to the dag folder for the specified user
+    *
+    * @param userName [[String]] the username
+    * @param serializedDag [[String]] the serialized dag
+    * @param fileName [[String]] the file name of the dag in the folder
+    * @return the resulting location
+    * */
+  def saveDagQuery(userName: String, serializedDag: String, fileName: String): String
 }
 
 
