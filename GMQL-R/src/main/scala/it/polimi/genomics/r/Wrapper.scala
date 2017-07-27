@@ -78,11 +78,13 @@ object Wrapper {
   }
 
   def initGMQL(output_format: String, remote_proc: Boolean): Unit = {
-    val spark_conf = new SparkConf().setMaster("local[*]")
-      .setAppName("GMQL-R").set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+    val spark_conf = new SparkConf()
+      .setMaster("local[*]")
+      .setAppName("GMQL-R")
+      .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
       .set("spark.executor.memory", "6g")
       .set("spark.driver.memory", "2g")
-    Spark_context = new SparkContext(spark_conf)
+    Spark_context = SparkContext.getOrCreate(spark_conf)
 
     outputformat = outputFormat(output_format)
 
@@ -125,7 +127,9 @@ object Wrapper {
     }
   }
 
-  def readDataset(data_input_path: String, parser_name: String, is_local: Boolean, schema: Any): String = {
+  def readDataset(data_input_path: String, parser_name: String, is_local: Boolean,
+                  schema: Array[Array[String]]): String =
+  {
     var parser: BedParser = null
     var out_p = ""
     var data_path = data_input_path
@@ -150,9 +154,8 @@ object Wrapper {
           }
         }
         else {
-          if (schema != null) {
-            parser = createParser(schema.asInstanceOf[Array[Array[String]]])
-          }
+          if (schema != null)
+            parser = createParser(schema)
           else
             return "No schema defined"
         }
@@ -551,7 +554,7 @@ object Wrapper {
 
   /* COVER, FLAT, SUMMIT, HISTOGRAM */
 
-  def flat(min: Any, max: Any, groupBy: Any, aggregates: Any, input_dataset: String): String = {
+  def flat(min: Any, max: Any, groupBy: Array[String], aggregates: Array[Array[String]], input_dataset: String): String = {
     val (error, flat) = doVariant(CoverFlag.FLAT, min, max, groupBy, aggregates, input_dataset)
     if (flat == null)
       return error
@@ -563,7 +566,7 @@ object Wrapper {
     out_p
   }
 
-  def histogram(min: Any, max: Any, groupBy: Any, aggregates: Any, input_dataset: String): String = {
+  def histogram(min: Any, max: Any, groupBy: Array[String], aggregates: Array[Array[String]], input_dataset: String): String = {
     val (error, histogram) = doVariant(CoverFlag.FLAT, min, max, groupBy, aggregates, input_dataset)
     if (histogram == null)
       return error
@@ -575,7 +578,7 @@ object Wrapper {
     out_p
   }
 
-  def summit(min: Any, max: Any, groupBy: Any, aggregates: Any, input_dataset: String): String = {
+  def summit(min: Any, max: Any, groupBy: Array[String], aggregates: Array[Array[String]], input_dataset: String): String = {
     val (error, summit) = doVariant(CoverFlag.SUMMIT, min, max, groupBy, aggregates, input_dataset)
     if (summit == null)
       return error
@@ -588,7 +591,7 @@ object Wrapper {
     out_p
   }
 
-  def cover(min: Any, max: Any, groupBy: Any, aggregates: Any, input_dataset: String): String = {
+  def cover(min: Any, max: Any, groupBy: Array[String], aggregates: Array[Array[String]], input_dataset: String): String = {
     val (error, cover) = doVariant(CoverFlag.COVER, min, max, groupBy, aggregates, input_dataset)
     if (cover == null)
       return error
@@ -600,8 +603,8 @@ object Wrapper {
     out_p
   }
 
-  def doVariant(flag: CoverFlag.CoverFlag, min: Any, max: Any, groupBy: Any,
-                aggregates: Any, input_dataset: String): (String, IRVariable) = {
+  def doVariant(flag: CoverFlag.CoverFlag, min: Any, max: Any, groupBy: Array[String],
+                aggregates: Array[Array[String]], input_dataset: String): (String, IRVariable) = {
     if (vv.get(input_dataset).isEmpty)
       return ("No valid dataset as input", null)
 
@@ -616,15 +619,16 @@ object Wrapper {
       return (paramMax._1, null)
 
     if (aggregates != null) {
+      println("not null aggregates")
       aggr_list = RegionToRegionAggregates(aggregates, dataAsTheyAre)
       if (aggr_list._2.isEmpty)
         return (aggr_list._1, null)
     }
+    println("null aggregates")
 
-    //val groupList: Option[List[String]] = MetadataAttributesList(groupBy)
+    val groupList: Option[List[String]] = MetadataAttributesList(groupBy)
 
-    //val variant = dataAsTheyAre.COVER(flag, paramMin._2, paramMax._2, aggr_list._2, groupList)
-    val variant = dataAsTheyAre.COVER(flag, paramMin._2, paramMax._2, aggr_list._2, null)
+    val variant = dataAsTheyAre.COVER(flag, paramMin._2, paramMax._2, aggr_list._2, groupList)
 
     ("OK", variant)
   }
@@ -770,14 +774,16 @@ object Wrapper {
     var group_list: Option[List[String]] = None
     val temp_list = new ListBuffer[String]()
 
-    if(group_by.length>0)
-    {
-      for (elem <- group_by)
-        temp_list += elem
-      if (temp_list.nonEmpty)
-        group_list = Some(temp_list.toList)
+    if(group_by==null) {
+      println("null")
+      return group_list
     }
-    //if 0 return None
+    println("not null")
+    for (elem <- group_by)
+      temp_list += elem
+    if (temp_list.nonEmpty)
+       group_list = Some(temp_list.toList)
+
     group_list
 
   }
@@ -787,21 +793,23 @@ object Wrapper {
     var join_by_list: Option[MetaJoinCondition] = None
     val joinList = new ListBuffer[AttributeEvaluationStrategy]()
 
-    if (join_by.length == 0)
+    if (join_by == null  ) {
+      println("null")
       return join_by_list
-    else {
-      for (elem <- join_by) {
-        val attribute = elem(0)
-        attribute match {
-          case "DEF" => joinList += Default(elem(1))
-          case "FULL" => joinList += FullName(elem(1))
-          case "EXACT" => joinList += Exact(elem(1))
-          case _ => return null
-        }
-      }
-      if (joinList.nonEmpty)
-        join_by_list = Some(MetaJoinCondition(joinList.toList))
     }
+    println("not null")
+
+    for (elem <- join_by) {
+      val attribute = elem(0)
+      attribute match {
+        case "DEF" => joinList += Default(elem(1))
+        case "FULL" => joinList += FullName(elem(1))
+        case "EXACT" => joinList += Exact(elem(1))
+      }
+    }
+    if (joinList.nonEmpty)
+      join_by_list = Some(MetaJoinCondition(joinList.toList))
+
     join_by_list
   }
 
