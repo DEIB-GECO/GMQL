@@ -31,6 +31,7 @@ object DefaultMetaExtensionFactory extends MetaExtensionFactory {
       case MEDIV(x,y) => extract_indexes(x) ++ extract_indexes(y)
       case MEName(x) => Set(x.toString)
       case MENegate(x) => extract_indexes(x)
+      case MESQRT(x) => extract_indexes(x)
       case _ => Set.empty
     }
   }
@@ -83,6 +84,15 @@ object DefaultMetaExtensionFactory extends MetaExtensionFactory {
       case MENegate(f) => { x: Array[Traversable[String]] => {
         val v1 = castDoubleOrString(make_fun(f, indexes)(x))
         if (v1.isInstanceOf[Double]) (-(v1.asInstanceOf[Double])).toString
+        else {
+//          logger.warn(castExc);
+          castExc
+        }
+      }
+      }
+      case MESQRT(f) => { x: Array[Traversable[String]] => {
+        val v1 = castDoubleOrString(make_fun(f, indexes)(x))
+        if (v1.isInstanceOf[Double]) (Math.sqrt(v1.asInstanceOf[Double])).toString
         else {
 //          logger.warn(castExc);
           castExc

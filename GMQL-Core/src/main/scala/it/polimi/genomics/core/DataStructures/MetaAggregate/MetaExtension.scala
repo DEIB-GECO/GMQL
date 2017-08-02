@@ -9,6 +9,7 @@ trait MetaExtension extends MetaAggregateStruct {
 
 trait MENode extends Serializable
 case class MENegate(o1:MENode) extends MENode {override def toString() = "negate(" + o1 +")"}
+case class MESQRT(o1:MENode) extends MENode {override def toString() = "sqrt(" + o1 +")"}
 case class MEADD(o1:MENode, o2:MENode)extends MENode {override def toString() = "add(" + o1 + "," + o2 +")"}
 case class MESUB(o1:MENode, o2:MENode) extends MENode{override def toString() = "sub(" + o1 + "," + o2 +")"}
 case class MEMUL(o1:MENode, o2:MENode) extends MENode{override def toString() = "mul(" + o1 + "," + o2 +")"}
