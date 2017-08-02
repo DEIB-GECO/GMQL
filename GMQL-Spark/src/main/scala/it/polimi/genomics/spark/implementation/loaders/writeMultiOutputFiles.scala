@@ -8,6 +8,8 @@ package it.polimi.genomics.spark.implementation.loaders
 
 import java.io._
 
+import org.apache.hadoop.io.NullWritable
+
 //import it.polimi.genomics.repository.{Utilities => General_Utilities}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
@@ -27,12 +29,12 @@ object writeMultiOutputFiles{
   /**
     * Generate file for each key ( sample ID)
     */
-  class RDDMultipleTextOutputFormat extends MultipleTextOutputFormat[Text, Text] {
-    override def generateFileNameForKeyValue(key: Text, value: Text, name: String): String = {
-      key.toString
+  class RDDMultipleTextOutputFormat extends MultipleTextOutputFormat[Any, Any] {
+    override def generateFileNameForKeyValue(key: Any, value: Any, name: String): String = {
+      key.asInstanceOf[String]
     }
 
-    override def generateActualKey(key: Text, value: Text) = null
+    override def generateActualKey(key: Any, value: Any):Any = NullWritable.get()
   }
 
   /**
