@@ -4,7 +4,7 @@ package it.polimi.genomics.core.DataStructures.MetaAggregate
   * Created by Olga Gorlova on 07.06.2017.
   */
 trait MetaExtension extends MetaAggregateStruct {
-  val fun : Array[Traversable[String]] => String
+  val fun : Array[Traversable[(String,String)]] => String
 }
 
 trait MENode extends Serializable
