@@ -94,7 +94,7 @@ object DefaultMetaExtensionFactory extends MetaExtensionFactory {
         }
       }
       }
-      case MESQRT(f) => { x: Array[Traversable[String]] => {
+      case MESQRT(f) => { x: Array[Traversable[(String,String)]] => {
         val v1 = castDoubleOrString(make_fun(f, indexes)(x))
         if (v1.isInstanceOf[Double]) (Math.sqrt(v1.asInstanceOf[Double])).toString
         else {
