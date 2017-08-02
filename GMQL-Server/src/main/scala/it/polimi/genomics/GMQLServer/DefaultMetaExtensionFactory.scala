@@ -17,7 +17,7 @@ object DefaultMetaExtensionFactory extends MetaExtensionFactory {
     val indexes = extract_indexes(dag).toList
 
     new MetaExtension {
-      override val fun: (Array[Traversable[String]]) => String = make_fun(dag,indexes)
+      override val fun: (Array[Traversable[(String,String)]]) => String = make_fun(dag,indexes)
       override val inputAttributeNames: List[String] = indexes
       override val newAttributeName = output
     }
@@ -35,10 +35,14 @@ object DefaultMetaExtensionFactory extends MetaExtensionFactory {
     }
   }
 
-  def make_fun(node : MENode, indexes : List[String]) : (Array[Traversable[String]] => String) = {
+  def make_fun(node : MENode, indexes : List[String]) : (Array[Traversable[(String,String)]] => String) = {
     node match {
-      case MEName(p) => (x: Array[Traversable[String]]) => x(indexes.indexOf(p)).head
-      case MEADD(a, b) => (x: Array[Traversable[String]]) => {
+      case MEName(p) => (x: Array[Traversable[(String,String)]]) => { /*x(indexes.indexOf(p)).head*/
+        var i = -1; var j = -1;
+        x.foreach { k => i += 1; if (k.head._1.toLowerCase().equals(p.toLowerCase())) j = i}
+        if (j> -1) x(j).head._2 else x.head.head._2
+      }
+      case MEADD(a, b) => (x: Array[Traversable[(String,String)]]) => {
         val v1 = castDoubleOrString(make_fun(a, indexes)(x))
         val v2 = castDoubleOrString(make_fun(b, indexes)(x))
         if (v1.isInstanceOf[Double] && v2.isInstanceOf[Double])
@@ -48,7 +52,7 @@ object DefaultMetaExtensionFactory extends MetaExtensionFactory {
           castExc
         }
       }
-      case MESUB(a, b) => (x: Array[Traversable[String]]) => {
+      case MESUB(a, b) => (x: Array[Traversable[(String,String)]]) => {
         val v1 = castDoubleOrString(make_fun(a, indexes)(x))
         val v2 = castDoubleOrString(make_fun(b, indexes)(x))
         if (v1.isInstanceOf[Double] && v2.isInstanceOf[Double])
@@ -58,7 +62,7 @@ object DefaultMetaExtensionFactory extends MetaExtensionFactory {
           castExc
         }
       }
-      case MEMUL(a, b) => (x: Array[Traversable[String]]) => {
+      case MEMUL(a, b) => (x: Array[Traversable[(String,String)]]) => {
         val v1 = castDoubleOrString(make_fun(a, indexes)(x))
         val v2 = castDoubleOrString(make_fun(b, indexes)(x))
         if (v1.isInstanceOf[Double] && v2.isInstanceOf[Double])
@@ -68,7 +72,7 @@ object DefaultMetaExtensionFactory extends MetaExtensionFactory {
           castExc
         }
       }
-      case MEDIV(a, b) => (x: Array[Traversable[String]]) => {
+      case MEDIV(a, b) => (x: Array[Traversable[(String,String)]]) => {
         val v1 = castDoubleOrString(make_fun(a, indexes)(x))
         val v2 = castDoubleOrString(make_fun(b, indexes)(x))
         if (v1.isInstanceOf[Double] && v2.isInstanceOf[Double])
@@ -78,9 +82,9 @@ object DefaultMetaExtensionFactory extends MetaExtensionFactory {
           castExc
         }
       }
-      case MEFloat(f) => (x: Array[Traversable[String]]) => f.toString
-      case MEStringConstant(c) => { (x: Array[Traversable[String]]) => c.toString }
-      case MENegate(f) => { x: Array[Traversable[String]] => {
+      case MEFloat(f) => (x: Array[Traversable[(String,String)]]) => f.toString
+      case MEStringConstant(c) => { (x: Array[Traversable[(String,String)]]) => c.toString }
+      case MENegate(f) => { x: Array[Traversable[(String,String)]] => {
         val v1 = castDoubleOrString(make_fun(f, indexes)(x))
         if (v1.isInstanceOf[Double]) (-(v1.asInstanceOf[Double])).toString
         else {
