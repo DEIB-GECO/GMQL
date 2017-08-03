@@ -17,7 +17,7 @@ object ProjectMD {
   private final val logger = LoggerFactory.getLogger(ProjectMD.getClass);
 
   @throws[SelectFormatException]
-  def apply(executor: GMQLSparkExecutor, projectedAttributes: Option[List[String]], metaAggregator: Option[MetaExtension], inputDataset: MetaOperator, sc: SparkContext): RDD[MetaType] = {
+  def apply(executor: GMQLSparkExecutor, projectedAttributes: Option[List[String]], metaAggregator: Option[MetaExtension], all_but_flag:Boolean, inputDataset: MetaOperator, sc: SparkContext): RDD[MetaType] = {
 
     logger.info("----------------ProjectMD executing..")
 
@@ -25,8 +25,14 @@ object ProjectMD {
     val filteredInput =
       if (projectedAttributes.isDefined) {
         val list = projectedAttributes.get
-        input.filter(a =>
-          list.foldLeft(false)( (x,y) => x | a._2._1.endsWith("."+y) | a._2._1.equals(y)))
+        input.filter{a =>
+          val exists: Boolean = list.foldLeft(false)((x, y) =>
+            x
+              | a._2._1.endsWith("."+y)
+              | a._2._1.startsWith(y+".")
+              | a._2._1.equals(y))
+          if(all_but_flag) !exists else exists
+        }
       } else input
 
     if (metaAggregator.isDefined) {
@@ -39,7 +45,7 @@ object ProjectMD {
             (x._1,
               (agg.newAttributeName ,
                 agg.fun(x._2.groupBy(_._2._1)
-                  .map(s=>if(agg.inputAttributeNames.foldLeft(false)( _ | s._1.endsWith(_)))s._2.map(_._2._2).toTraversable else Traversable()).toArray)))
+                  .map(s=>if(agg.inputAttributeNames.foldLeft(false)( _ | s._1.endsWith(_)))s._2.map(_._2).toTraversable else Traversable()).toArray)))
         }
       )
     } else {

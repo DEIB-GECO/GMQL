@@ -9,8 +9,9 @@ object AppProperties {
   var serializer = "org.apache.spark.serializer.KryoSerializer"
   var master = "local[*]"
   var executorMemory = "6g"
-  var driverMemory = "2g"
-  var kryobuffer = "100m"
+  var driverMemory = "8g"
+  var kryobuffer = "1g"
+  var maxResultSize = "5g"
 
   /*
  * Utility functions to set the parameters of Spark

@@ -206,6 +206,10 @@ object PythonManager {
     }
   }
 
+  def getNone = None
+
+  def getSome(thing: Any) = Some(thing)
+
   /*
   * Materialization
   * */
@@ -236,6 +240,14 @@ object PythonManager {
     // this.stopSparkContext()
     new CollectedResult(result)
   }
+
+  def serializeVariable(index: Int): String = {
+    val variableToSerialize = this.getVariable(index)
+    throw new NotImplementedError()
+    // TODO: complete...
+  }
+
+  /*Spark context related*/
 
   def checkSparkContext(): Unit = {
     /*Check if there is an instantiated spark context*/

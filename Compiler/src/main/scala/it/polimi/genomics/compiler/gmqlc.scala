@@ -184,6 +184,14 @@ object gmqlc {
       "J = MAP() A S;\n" +
       "MATERIALIZE J into hdfs://ip-172-31-3-242.us-west-2.compute.internal:8020/user/hadoop/newOut/;"
 
+    val projectss = "D = SELECT() /Users/abka02/Downloads/job_meta_agg_abdo_20170619_134513_data/files/;\n" +
+      "D1 = PROJECT(metadata_update: age AS 100) D;" +
+      "\nMATERIALIZE D1 INTO D1;\n" +
+      "D2 = PROJECT(metadata_update: age AS age + 100) D1;\n" +
+      "MATERIALIZE D2 INTO D2;\n" +
+      "D3 = PROJECT(metadata_update: age_plus AS age + 100) D;\n" +
+      "MATERIALIZE D3 INTO D3;"
+
     val ran = Random.nextInt()
     val Histogram =  "S = SELECT(NOT(leaveout==\"something\");parser: BedScoreParser) hdfs://ip-172-31-12-101.us-west-2.compute.internal:8020/user/hadoop/"/*+args(0)*/+"/;\n" +
       "J = Histogram() S;\n" +
@@ -246,13 +254,25 @@ object gmqlc {
       "RES1 = difference() DATA_SET_VAR DATA_SET_VAR1;\n" +
       "MATERIALIZE RES1 INTO EX1;"
 
+
+    val semijoin = "S0 = SELECT() /Users/abka02/Downloads/job_meta_agg_abdo_20170619_134513_data/files/;\n" +
+      "S2 = SELECT( semijoin: provider IN S0) /Users/abka02/Downloads/job_meta_agg_abdo_20170619_134513_data/files1/;\n" +
+      "MATERIALIZE S2 INTO DD;\n"
+
+    val orderTop = "DATA = SELECT(cell == \"Urothelia\") /Users/abka02/Downloads/job_order_abdo_20170619_110728_SS/files/;\n" +
+      "THETOP = ORDER(composite, treatment_type; meta_topg: 1) DATA;\n" +
+      "MATERIALIZE THETOP into res;"
+
+    val testOrderMD = "DATASET = SELECT() /Users/abka02/Downloads/group_test;\n" +
+      "RESULT = ORDER(biosample_term_name, region_count DESC; meta_topg: 1) DATASET;\n" +
+      "MATERIALIZE RESULT INTO RESULT;"
 //    val execQuery = args(2) match {
 //      case "histo" => Histogram
 //      case "map" => Map_server
 //    }
     val test_double_select = ""
       try {
-        if (translator.phase2(translator.phase1(dif))) {
+        if (translator.phase2(translator.phase1(testOrderMD))) {
           server.run()
           //server.getDotGraph()
         }
@@ -260,7 +280,7 @@ object gmqlc {
         case e: CompilerException => println(e.getMessage)
       }
 
-      println("\n\nQuery" +"\n" + dif + "\n\n")
+      println("\n\nQuery" +"\n" + testOrderMD + "\n\n")
       // "open /Users/pietro/Desktop/test_gmql/output/".!
       //  Console.readLine()
   }

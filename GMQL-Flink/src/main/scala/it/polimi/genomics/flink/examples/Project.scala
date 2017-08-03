@@ -35,7 +35,7 @@ object Project {
       what match{
         case 0 => {
           //PROJECT MD
-          dataAsTheyAre.PROJECT(Some(List("tableName","bert_value1", "bert_value2", "bert_value3")), None, None, None)
+          dataAsTheyAre.PROJECT(Some(List("tableName","bert_value1", "bert_value2", "bert_value3")), None, false, None, None)
         }
 
         case 1 => {
@@ -43,12 +43,12 @@ object Project {
           val fun = new MetaExtension {
             override val newAttributeName: String = "computed_bert_value1"
             override val inputAttributeNames: List[String] = List("bert_value1")
-            override val fun: (Array[Traversable[String]]) => String =
+            override val fun: (Array[Traversable[(String,String)]]) => String =
             //average of the double
-              (l : Array[Traversable[String]]) => {
+              (l : Array[Traversable[(String,String)]]) => {
                 val r =
                   l(0)
-                    .map((a: String) => (a.toDouble * 2, 1))
+                    .map((a: (String,String)) => (a._2.toDouble * 2, 1))
                     .reduce((a: (Double, Int), b: (Double, Int)) => (a._1 + b._1, a._2 + b._2))
 
                 (r._1 / r._2).toString
@@ -56,7 +56,7 @@ object Project {
 
           }
 
-          dataAsTheyAre.PROJECT(Some(List("tableName","bert_value1", "bert_value2", "bert_value3")), Some(fun), None, None)
+          dataAsTheyAre.PROJECT(Some(List("tableName","bert_value1", "bert_value2", "bert_value3")), Some(fun), false, None, None)
         }
 
         case 2 => {
@@ -70,8 +70,8 @@ object Project {
               }
           }
 
-          val projectrd = dataAsTheyAre.PROJECT(Some(List("tableName","bert_value1", "bert_value2", "bert_value3")), None, None)
-          val projectrd2 = projectrd.PROJECT(None, None, None)
+          val projectrd = dataAsTheyAre.PROJECT(Some(List("tableName","bert_value1", "bert_value2", "bert_value3")), None, false, None)
+          val projectrd2 = projectrd.PROJECT(None, None, false, None)
           projectrd2.SELECT(reg_con = Predicate(0, REG_OP.EQ, "+ 1000.0"))
         }
 
@@ -81,7 +81,7 @@ object Project {
             override val newAttributeName: String = "computed_bert_value1_region_aggregate"
             override val inputIndex: Int = 1
             override val associative : Boolean = true
-            override val funOut: (GValue,Int) => GValue = {(v1,v2)=>v1}
+            override val funOut: (GValue,(Int, Int)) => GValue = {(v1,v2)=>v1}
             override val fun: List[GValue] => GValue =
             //sum of values
               (l : List[GValue]) => {

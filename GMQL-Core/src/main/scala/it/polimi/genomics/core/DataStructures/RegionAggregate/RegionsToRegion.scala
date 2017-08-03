@@ -1,6 +1,6 @@
 package it.polimi.genomics.core.DataStructures.RegionAggregate
 
-import it.polimi.genomics.core.{ParsingType, GValue}
+import it.polimi.genomics.core.GValue
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 
 /**
@@ -16,5 +16,5 @@ trait RegionsToRegion extends R2RAggregator{
   val associative : Boolean
   val index : Int
   val fun : List[GValue] => GValue
-  val funOut : (GValue,Int) => GValue
+  val funOut : (GValue,(Int, Int)) => GValue
 }

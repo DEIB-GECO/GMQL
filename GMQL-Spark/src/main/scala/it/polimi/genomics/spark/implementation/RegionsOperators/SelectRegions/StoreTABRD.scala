@@ -7,6 +7,7 @@ import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.loaders.writeMultiOutputFiles
+import it.polimi.genomics.spark.implementation.loaders.writeMultiOutputFiles.RDDMultipleTextOutputFormat
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
 import org.apache.spark.{HashPartitioner, SparkContext}
@@ -53,12 +54,13 @@ object StoreTABRD {
         x._1._2 + "\t" + x._1._3 + "\t" + x._1._4 + "\t" + x._1._5 + "\t" + x._2.mkString("\t")))
         .partitionBy(regionsPartitioner).mapPartitions(x=>x.toList.sortBy{s=> val data = s._2.split("\t"); (data(0),data(1).toLong,data(2).toLong)}.iterator)
 
-    writeMultiOutputFiles.saveAsMultipleTextFiles(keyedRDD, RegionOutputPath)
+    keyedRDD.saveAsHadoopFile(RegionOutputPath,classOf[String],classOf[String],classOf[RDDMultipleTextOutputFormat])
+//    writeMultiOutputFiles.saveAsMultipleTextFiles(keyedRDD, RegionOutputPath)
 
     val metaKeyValue = meta.map(x => (outSample+"_"+ "%05d".format(newIDSbroad.value.get(x._1).get) + ".gdm.meta", x._2._1 + "\t" + x._2._2)).repartition(1).sortBy(x=>(x._1,x._2))
 
-    writeMultiOutputFiles.saveAsMultipleTextFiles(metaKeyValue, MetaOutputPath)
-
+//    writeMultiOutputFiles.saveAsMultipleTextFiles(metaKeyValue, MetaOutputPath)
+    metaKeyValue.saveAsHadoopFile(MetaOutputPath,classOf[String],classOf[String],classOf[RDDMultipleTextOutputFormat])
     writeMultiOutputFiles.fixOutputMetaLocation(MetaOutputPath)
 
     regions

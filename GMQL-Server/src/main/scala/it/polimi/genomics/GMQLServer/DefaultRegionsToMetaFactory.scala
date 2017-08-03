@@ -66,7 +66,7 @@ object DefaultRegionsToMetaFactory extends ExtendFunctionFactory {
         else GNull()
       }
     }
-    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>v1}
+    override val funOut: (GValue,(Int, Int)) => GValue = {(v1,v2)=>v1}
   }
 
   def avg(data: Array[Double]): Double = {
@@ -112,7 +112,7 @@ object DefaultRegionsToMetaFactory extends ExtendFunctionFactory {
         else GNull()
       }
     }
-    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>v1}
+    override val funOut: (GValue,(Int, Int)) => GValue = {(v1,v2)=>v1}
   }
 
   private def getQ3(position:Int,new_name:Option[String]) = new RegionsToMeta {
@@ -139,7 +139,7 @@ object DefaultRegionsToMetaFactory extends ExtendFunctionFactory {
         else GNull()
       }
     }
-    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>v1}
+    override val funOut: (GValue,(Int, Int)) => GValue = {(v1,v2)=>v1}
   }
 
   private def getQ1(position:Int,new_name:Option[String]) = new RegionsToMeta {
@@ -166,7 +166,7 @@ object DefaultRegionsToMetaFactory extends ExtendFunctionFactory {
         else GNull()
       }
     }
-    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>v1}
+    override val funOut: (GValue,(Int, Int)) => GValue = {(v1,v2)=>v1}
   }
 
   private def getSum(position:Int,new_name:Option[String]) = new RegionsToMeta {
@@ -184,7 +184,7 @@ object DefaultRegionsToMetaFactory extends ExtendFunctionFactory {
         else GNull()
       }
     }
-    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>v1}
+    override val funOut: (GValue,(Int, Int)) => GValue = {(v1,v2)=>v1}
   }
 
   private def getCount(position:Int,new_name:Option[String]) = new RegionsToMeta {
@@ -196,7 +196,7 @@ object DefaultRegionsToMetaFactory extends ExtendFunctionFactory {
       (line) =>{GDouble(line.length)
       }
     }
-    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>GDouble(v2)}
+    override val funOut: (GValue,(Int, Int)) => GValue = {(v1,v2)=>GDouble(v2._1)}
   }
 
   private def getMin(position:Int, new_name:Option[String]) = new RegionsToMeta {
@@ -210,7 +210,7 @@ object DefaultRegionsToMetaFactory extends ExtendFunctionFactory {
           GDouble(lines.reduce( (x,y) =>Math.min(x,y)))
         else GNull()
     }
-    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>v1}
+    override val funOut: (GValue,(Int, Int)) => GValue = {(v1,v2)=>v1}
   }
 
   private def getMax(position:Int, new_name:Option[String]) = new RegionsToMeta {
@@ -224,7 +224,7 @@ object DefaultRegionsToMetaFactory extends ExtendFunctionFactory {
           GDouble(lines.reduce( (x,y) =>Math.max(x,y)))
         else GNull()
     }
-    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>v1}
+    override val funOut: (GValue,(Int, Int)) => GValue = {(v1,v2)=>v1}
   }
 
   private def getAvg(position:Int, new_name:Option[String]) = new RegionsToMeta {
@@ -245,8 +245,8 @@ object DefaultRegionsToMetaFactory extends ExtendFunctionFactory {
         else
           GNull()
     }
-    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>/*if(v1.asInstanceOf[GDouble].v>0) GDouble(v1.asInstanceOf[GDouble].v/v2)else GDouble(0)*/
-      if (v2 > 0 && !v1.isInstanceOf[GNull]) GDouble(v1.asInstanceOf[GDouble].v / v2) else GNull()}
+    override val funOut: (GValue,(Int, Int)) => GValue = {(v1,v2)=>/*if(v1.asInstanceOf[GDouble].v>0) GDouble(v1.asInstanceOf[GDouble].v/v2)else GDouble(0)*/
+      if (v2._2 > 0 && !v1.isInstanceOf[GNull]) GDouble(v1.asInstanceOf[GDouble].v / v2._2) else GNull()}
   }
 
   private def getBAG(position:Int, new_name:Option[String]) = new RegionsToMeta {
@@ -273,7 +273,7 @@ object DefaultRegionsToMetaFactory extends ExtendFunctionFactory {
           GString(" ")
 
     }
-    override val funOut: (GValue,Int) => GValue = {(v1,v2)=>v1}
+    override val funOut: (GValue,(Int, Int)) => GValue = {(v1,v2)=>v1}
   }
 
 }

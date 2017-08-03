@@ -41,7 +41,7 @@ object GraphEnumerator {
             case IRSelectMD(metaCondition, inputDataset : MetaOperator) => List(inputDataset)
             case IRPurgeMD(regionDataset : RegionOperator, inputDataset : MetaOperator) => List(inputDataset, regionDataset)
             case IRSemiJoin(externalMeta : MetaOperator, joinCondition : MetaJoinCondition, inputDataset : MetaOperator) => List(externalMeta, inputDataset)
-            case IRProjectMD(projectedAttributes : Option[List[String]], metaAggregator : Option[MetaExtension], inputDataset : MetaOperator) =>List(inputDataset)
+            case IRProjectMD(projectedAttributes : Option[List[String]], metaAggregator : Option[MetaExtension], _,inputDataset : MetaOperator) =>List(inputDataset)
             case IRUnionMD(leftDataset: MetaOperator, rightDataset: MetaOperator, leftName : String, rightName : String) => List(leftDataset, rightDataset)
             case IRAggregateRD(aggregator : List[RegionsToMeta], inputDataset : RegionOperator) => List(inputDataset)
             case IRCombineMD(grouping : Option[MetaJoinOperator], leftDataset : MetaOperator, rightDataset : MetaOperator, leftName : String, rightName : String) => List(leftDataset, rightDataset) ++ { if(grouping.isDefined) List(grouping.get) else List()}

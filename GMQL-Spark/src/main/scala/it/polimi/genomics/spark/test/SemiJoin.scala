@@ -2,21 +2,19 @@ package it.polimi.genomics.spark.test
 
 import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.core.DataStructures.CoverParameters.{CoverFlag, N}
-import it.polimi.genomics.core.DataStructures.GroupMDParameters.{Direction, NoTop, TopG, TopP}
-import it.polimi.genomics.core.DataStructures.IRSelectRD
+import it.polimi.genomics.core.DataStructures.GroupMDParameters.{Direction, NoTop, TopP}
+import it.polimi.genomics.core.DataStructures.MetaJoinCondition.{Default, MetaJoinCondition}
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core._
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor.GMQL_DATASET
-import it.polimi.genomics.spark.implementation.loaders.test3Parser
-import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 
 /**
   * The entry point of the application
   * It initialize the server, call server's methods to build the query and invoke the server's run method to start the execution.
   */
-object Cover {
+object SemiJoin {
 
   def main(args : Array[String]) {
 
@@ -28,26 +26,40 @@ object Cover {
 
     val server = new GmqlServer(new GMQLSparkExecutor(sc=sc,outputFormat = GMQLSchemaFormat.COLLECT))
 
-    var i =0
-    val metaDS: RDD[(Long, (String, String))] = sc.parallelize((1 to 100).flatMap(x=> List((x%2l,("test","Abdo")),(x%2l,("king","Abdo")))))
-    val regionDS = sc.parallelize((1 to 1000).map{x=>i+=1;(new GRecordKey(x%2,"Chr"+(x%2),x,x+200,'*'),Array[GValue](GDouble(i)) )})
+    val metaDS = sc.parallelize((1 to 100).map(x=> (x%5l,("test","Abdo"))) :+ (1l,("hi","Khalil")) :+ (2l,("hi","sultan")):+ (3l,("hi","salem")))
+    val regionDS = sc.parallelize((1 to 1000).map{x=>(new GRecordKey(x%2,"Chr"+(x%2),x,x+200,'*'),Array[GValue](GDouble(1)) )})
+
+    val metaDS1 = sc.parallelize((1 to 100).map(x=> (x%5l,("test","Abdo"))):+ (1l,("hi","Khalil")) :+ (2l,("hi","sami")) :+ (3l,("hi","sultan")) :+ (4l,("hi","ahmad")))
+    val regionDS1 = sc.parallelize((1 to 1000).map{x=>(new GRecordKey(x%2,"Chr"+(x%2),x,x+200,'*'),Array[GValue](GDouble(1)) )})
 
     val ex_data_path = "/home/abdulrahman/Desktop/datasets/coverData/"
     val output_path = "/Users/abdulrahman/Desktop/testCover/res111/"
 
 
+
     val dataAsTheyAre = server.READ(ex_data_path).USING(metaDS,regionDS,List[(String, PARSING_TYPE)](("score",ParsingType.DOUBLE)))
+
+    val REFDS = server.READ(ex_data_path).USING(metaDS1,regionDS1,List[(String, PARSING_TYPE)](("score",ParsingType.DOUBLE)))
+
+//    val semiJoinSelect = dataAsTheyAre.SELECT(
+//      MetaJoinCondition(List(Default("hi")),true),
+//      REFDS
+//    )
+
+    val semiJoinSelect = REFDS.SELECT(
+      MetaJoinCondition(List(Default("hi")),true),
+      dataAsTheyAre
+
+    )
 
     val cover = dataAsTheyAre.COVER(CoverFlag.HISTOGRAM, new N{override val n=2}, new N{override val n=3}, List(), None )
 
-    val project = dataAsTheyAre.PROJECT(projected_meta = Some(List("test")),extended_meta = None,all_but_meta = true, all_but_reg = Some(List("score")), extended_values = None)
+    val res = dataAsTheyAre.ORDER(None, "group_name", NoTop(), Some(List((0, Direction.ASC))), TopP(1))
 
-    val res = dataAsTheyAre.ORDER(None, "group_name", NoTop(), Some(List((0, Direction.DESC))), TopP(10))
+    val output = server setOutputPath output_path COLLECT (semiJoinSelect)
 
-    val output = server setOutputPath output_path COLLECT (project)
-
-    output.asInstanceOf[GMQL_DATASET]._1.foreach(x=>println(x._1,x._2.mkString("\t")))
-    output.asInstanceOf[GMQL_DATASET]._2.foreach(x=>println(x._1,x._2))
+    println("The size is : "+output.asInstanceOf[GMQL_DATASET]._2.size)
+    output.asInstanceOf[GMQL_DATASET]._2.foreach(x=>println((x._1,x._2/*.mkString("\t")*/)))
 //    server.run()
 
   }

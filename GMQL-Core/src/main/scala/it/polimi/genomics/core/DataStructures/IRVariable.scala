@@ -101,17 +101,17 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
 
   }
 
-    def PROJECT(projected_meta : Option[List[String]] = None, extended_meta : Option[MetaExtension] = None,
-              projected_values : Option[List[Int]] = None,all_but : Option[List[String]] = None,
+    def PROJECT(projected_meta : Option[List[String]] = None, extended_meta : Option[MetaExtension] = None,all_but_meta : Boolean  = false ,
+              projected_values : Option[List[Int]] = None,all_but_reg : Option[List[String]] = None,
               extended_values : Option[List[RegionFunction]] = None): IRVariable = {
 
-      val new_projected_values = if(all_but.isDefined)
-         Some(this.schema.zipWithIndex.filter(x=> !all_but.contains(x._1._1) ).map(_._2))
+      val new_projected_values = if(all_but_reg.isDefined)
+         Some(this.schema.zipWithIndex.filter(x=> !all_but_reg.contains(x._1._1) ).map(_._2))
       else projected_values
 
     var new_meta_dag = this.metaDag
     if (projected_meta.isDefined || extended_meta.isDefined){
-      new_meta_dag = IRProjectMD(projected_meta, extended_meta, new_meta_dag)
+      new_meta_dag = IRProjectMD(projected_meta, extended_meta, all_but_meta,new_meta_dag)
     }
     if (new_projected_values.isDefined || extended_values.isDefined){
 
@@ -120,7 +120,9 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
           val list = new_projected_values.get
           val new_list =
             if (extended_values.isDefined){
-              list ++ ((this.schema.size) to (this.schema.size + extended_values.get.size - 1)).toList
+              list ++ ((this.schema.size) to (this.schema.size + extended_values.get.filter(x =>
+                !x.output_index.isDefined || x.output_index.get >= 0
+              ).size - 1)).toList
             }
             else {
               list
