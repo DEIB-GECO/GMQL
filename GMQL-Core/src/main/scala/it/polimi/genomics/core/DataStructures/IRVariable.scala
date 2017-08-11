@@ -309,7 +309,8 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
            region_builder : RegionBuilder,
            right_dataset : IRVariable,
            reference_name : Option[String] = None,
-           experiment_name : Option[String] = None) : IRVariable = {
+           experiment_name : Option[String] = None,
+           join_on_attributes : Option[List[(Int, Int)]] = None) : IRVariable = {
 
     val new_meta_join_result = if(meta_join.isDefined){
       SomeMetaJoinOperator(IRJoinBy(meta_join.get, this.metaDag, right_dataset.metaDag))
@@ -322,7 +323,15 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
       right_dataset.metaDag,
       reference_name.getOrElse("left"),
       experiment_name.getOrElse("right"))
-    val new_region_dag = IRGenometricJoin(new_meta_join_result, region_join_condition, region_builder, this.regionDag, right_dataset.regionDag)
+
+    val new_region_dag = IRGenometricJoin(
+      new_meta_join_result,
+      region_join_condition,
+      region_builder,
+      join_on_attributes,
+      this.regionDag,
+      right_dataset.regionDag)
+
     new_region_dag.binSize = binS.size
 
     val new_schema = this.schema.map(x => (reference_name.getOrElse("left")+"."+x._1,x._2)) ++
