@@ -322,10 +322,17 @@ case class IRDifferenceRD(meta_join : OptionalMetaJoinOperator,
  * @param metajoin_condition optional, it is the meta join condition
  * @param join_condition list of join quadruple; the quadruple are in a disjunctive relationship
  * @param region_builder the function to be used for computing the new region
+ * @param join_on_attributes list of pairs (positionLeft, positionRight), corresponding to the position
+  *                           of the join keys in the schema of the left and the right datasets
  * @param left_dataset left dataset
  * @param right_dataset right dataset
  */
-case class IRGenometricJoin(metajoin_condition : OptionalMetaJoinOperator, join_condition : List[JoinQuadruple], region_builder : RegionBuilder, left_dataset : RegionOperator, right_dataset : RegionOperator) extends RegionOperator{
+case class IRGenometricJoin(metajoin_condition : OptionalMetaJoinOperator,
+                            join_condition : List[JoinQuadruple],
+                            region_builder : RegionBuilder,
+                            join_on_attributes : Option[List[(Int, Int)]],
+                            left_dataset : RegionOperator,
+                            right_dataset : RegionOperator) extends RegionOperator{
 
 }
 
