@@ -226,7 +226,7 @@ class GmqlSciImplementation
                                                                                                       Some(prepare(groupby).asInstanceOf[GmqlMetaGroupOperator]),
                                                                                                       flag, min, max, aggrs)
 
-        case IRGenometricJoin(mj, preds, builder, anchor, experiment) => new GmqlGenometricJoinRD(prepare(mj.getOperator).asInstanceOf[GmqlMetaJoinOperator],
+        case IRGenometricJoin(mj, preds, builder, _,anchor, experiment) => new GmqlGenometricJoinRD(prepare(mj.getOperator).asInstanceOf[GmqlMetaJoinOperator],
                                                                                                   prepare(anchor).asInstanceOf[GmqlRegionOperator],
                                                                                                   prepare(experiment).asInstanceOf[GmqlRegionOperator],
                                                                                                   JoinPredUtils.convert(preds), builder)

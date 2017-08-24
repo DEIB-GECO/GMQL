@@ -19,7 +19,7 @@ object GenometricJoin4TopMin2 {
   private final val logger = LoggerFactory.getLogger(this.getClass);
 
   @throws[SelectFormatException]
-  def apply(executor : GMQLSparkExecutor, metajoinCondition : OptionalMetaJoinOperator, joinCondition : List[JoinQuadruple], regionBuilder : RegionBuilder, leftDataset : RegionOperator, rightDataset : RegionOperator, BINNING_PARAMETER:Long, MAXIMUM_DISTANCE:Long, sc : SparkContext) : RDD[GRECORD] = {
+  def apply(executor : GMQLSparkExecutor, metajoinCondition : OptionalMetaJoinOperator, joinCondition : List[JoinQuadruple], regionBuilder : RegionBuilder, leftDataset : RegionOperator, rightDataset : RegionOperator,join_on_attributes:Option[List[(Int,Int)]], BINNING_PARAMETER:Long, MAXIMUM_DISTANCE:Long, sc : SparkContext) : RDD[GRECORD] = {
     // load datasets
     val ref : RDD[GRECORD] =
       executor.implement_rd(leftDataset, sc)
@@ -38,6 +38,11 @@ object GenometricJoin4TopMin2 {
             yield(ex,groupID)
           e :+ (x._1,groupID)
         }.distinct()
+
+    if(join_on_attributes.isDefined)
+    {
+//      keyDataBy( ref, Bgroups, join_on_attributes).cache()
+    }
 
     // assign group to ref
     val groupedDs : RDD[(Long,Long, String, Long, Long, Char, Array[GValue]/*, Long*/)] =
@@ -236,6 +241,15 @@ object GenometricJoin4TopMin2 {
   ////////////////////////////////////////////////////
 
   def assignRegionGroups(ds: RDD[GRECORD], Bgroups:RDD[(Long, Long)]): RDD[( Long, Long, String, Long, Long, Char, Array[GValue]/*, Long*/)] = {
+    if (!ds.isEmpty()) ds.partitionBy(new HashPartitioner(Bgroups.keys.distinct().count.toInt)).keyBy(x=>x._1._1).join(Bgroups,new HashPartitioner(Bgroups.count.toInt)).map { x =>
+      val region = x._2._1
+      (x._2._2, region._1._1, region._1._2, region._1._3, region._1._4, region._1._5, region._2 /*, aggregationId*/)
+    }else ds.partitionBy(new HashPartitioner(Bgroups.count.toInt)).flatMap(region=>
+      Some(1L, region._1._1, region._1._2, region._1._3, region._1._4, region._1._5, region._2 /*, aggregationId*/)
+    )
+  }
+
+  def keyDataBy(ds: RDD[GRECORD], Bgroups:RDD[(Long, Long)]): RDD[( Long, Long, String, Long, Long, Char, Array[GValue]/*, Long*/)] = {
     if (!ds.isEmpty()) ds.partitionBy(new HashPartitioner(Bgroups.keys.distinct().count.toInt)).keyBy(x=>x._1._1).join(Bgroups,new HashPartitioner(Bgroups.count.toInt)).map { x =>
       val region = x._2._1
       (x._2._2, region._1._1, region._1._2, region._1._3, region._1._4, region._1._5, region._2 /*, aggregationId*/)

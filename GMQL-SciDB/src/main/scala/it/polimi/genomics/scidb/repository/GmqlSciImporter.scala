@@ -257,7 +257,7 @@ object GmqlSciImporter
     // Prepare schemas --------------------------------
 
     // File schema ------------------------------------
-    val fileSchema = List
+    val fileSchema: List[Attribute] = List
       .tabulate( schema.maxBy(_._2)._2 )( n =>                  // produce the required number of attirbutes
         schema.find(item => item._2 == n+1) match
         {
