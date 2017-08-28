@@ -28,6 +28,9 @@ object DefaultRegionExtensionFactory extends RegionExtensionFactory{
       override val out_type = dag match {
         case REStringConstant(_) => ParsingType.STRING
         case _ => ParsingType.DOUBLE
+        case RENullConstant(ParsingType.INTEGER) => ParsingType.DOUBLE
+        case RENullConstant(ParsingType.DOUBLE) => ParsingType.DOUBLE
+        case RENullConstant(ParsingType.STRING) => ParsingType.STRING
       }
     }
   }
@@ -130,6 +133,7 @@ object DefaultRegionExtensionFactory extends RegionExtensionFactory{
       }
       case REFloat(f) => (x:Array[GValue]) => GDouble(f)
       case REStringConstant(c) => { (x:Array[GValue]) => GString(c)}
+      case RENullConstant(_) => { (x:Array[GValue]) => GNull()}
       case RENegate(f) => {x:Array[GValue] => GDouble(-make_fun(f,indexes)(x).asInstanceOf[GDouble].v)}
       case RESQRT(f) => {x:Array[GValue] => GDouble(Math.sqrt(make_fun(f,indexes)(x).asInstanceOf[GDouble].v))}
     }

@@ -21,6 +21,7 @@ case class RESUB(o1:RENode, o2:RENode) extends RENode{override def toString() = 
 case class REMUL(o1:RENode, o2:RENode) extends RENode{override def toString() = "mul(" + o1 + "," + o2 +")"}
 case class REDIV(o1:RENode, o2:RENode) extends RENode{override def toString() = "div(" + o1 + "," + o2 +")"}
 case class REStringConstant(const : String) extends RENode{override def toString() = "string = " + const}
+case class RENullConstant(field_type : PARSING_TYPE) extends RENode{override def toString() = "null of type " + field_type}
 
 
 object COORD_POS {
