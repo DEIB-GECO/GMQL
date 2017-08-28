@@ -70,7 +70,7 @@ package object scidb
 
         // Region Operators -----------------------------
 
-        case IRGenometricJoin(metajoin, predicates, generator, anchor, experiment) =>
+        case IRGenometricJoin(metajoin, predicates, generator, _, anchor, experiment) =>
           "IRGenometricJoin ( " +
             "\n\tintermediate: " + (if(dag.intermediateResult.isDefined) dag.intermediateResult.get.toString else "None") +
             "\n\tpredicates: " + predicates +

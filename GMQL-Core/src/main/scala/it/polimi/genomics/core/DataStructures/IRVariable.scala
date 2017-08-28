@@ -101,12 +101,14 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
 
   }
 
-    def PROJECT(projected_meta : Option[List[String]] = None, extended_meta : Option[MetaExtension] = None,all_but_meta : Boolean  = false ,
-              projected_values : Option[List[Int]] = None,all_but_reg : Option[List[String]] = None,
+    def PROJECT(projected_meta : Option[List[String]] = None, extended_meta : Option[MetaExtension] = None,
+                all_but_meta : Boolean  = false ,
+              projected_values : Option[List[Int]] = None,
+                all_but_reg : Option[List[String]] = None,
               extended_values : Option[List[RegionFunction]] = None): IRVariable = {
 
       val new_projected_values = if(all_but_reg.isDefined)
-         Some(this.schema.zipWithIndex.filter(x=> !all_but_reg.contains(x._1._1) ).map(_._2))
+         Some(this.schema.zipWithIndex.filter(x=> !all_but_reg.get.contains(x._1._1) ).map(_._2))
       else projected_values
 
     var new_meta_dag = this.metaDag
@@ -179,8 +181,11 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
 
   /** Group by with both meta grouping and region grouping
     */
-  def GROUP(meta_keys : Option[MetaGroupByCondition] = None, meta_aggregates : Option[List[RegionsToMeta]] = None, meta_group_name : String = "_group",
-            region_keys : Option[List[GroupingParameter]], region_aggregates : Option[List[RegionsToRegion]]): IRVariable ={
+  def GROUP(meta_keys : Option[MetaGroupByCondition] = None,
+            meta_aggregates : Option[List[RegionsToMeta]] = None,
+            meta_group_name : String = "_group",
+            region_keys : Option[List[GroupingParameter]],
+            region_aggregates : Option[List[RegionsToRegion]]): IRVariable ={
 
     //only region grouping
     if (!meta_keys.isDefined && !meta_aggregates.isDefined) {

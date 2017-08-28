@@ -7,12 +7,13 @@ import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder._
 import it.polimi.genomics.core.DataStructures.JoinParametersRD._
 import it.polimi.genomics.core.DataStructures.MetaAggregate._
-import it.polimi.genomics.core.DataStructures.MetaJoinCondition.{FullName, Exact, Default, AttributeEvaluationStrategy}
-import it.polimi.genomics.core.DataStructures.MetadataCondition.{MetadataCondition, META_OP}
+import it.polimi.genomics.core.DataStructures.MetaJoinCondition.{AttributeEvaluationStrategy, Default, Exact, FullName}
+import it.polimi.genomics.core.DataStructures.MetadataCondition.{META_OP, MetadataCondition}
 import it.polimi.genomics.core.DataStructures.MetadataCondition.META_OP._
 import it.polimi.genomics.core.DataStructures.RegionAggregate._
 import it.polimi.genomics.core.DataStructures.RegionCondition._
 import it.polimi.genomics.core.DataStructures.RegionCondition.REG_OP._
+import it.polimi.genomics.core.ParsingType
 
 import scala.util.parsing.combinator.JavaTokenParsers
 
@@ -44,6 +45,10 @@ trait GmqlParsers extends JavaTokenParsers {
     (floatingPointNumber ^^ (_.toDouble))
 
   val ALLBUT:Parser[String] = """[a|A][l|L][l|L][b|B][u|U][t|T]""".r
+  val NULL:Parser[String] = """[n|N][u|U][l|L][l|L]""".r
+  val INTEGER:Parser[String] = """[i|I][n|N][t|T][e|E][g|G][e|E][r|R]""".r
+  val DOUBLE:Parser[String] = """[d|D][o|O][u|U][b|B][l|L][e|E]""".r
+  val STRING:Parser[String] = """[s|S][t|T][r|R][i|I][n|N][g|G]""".r
   val IN:Parser[String] = """[i|I][n|N]""".r
   val AS:Parser[String] = """[a|A][s|S]""".r
   val OR:Parser[String] = """[o|O][r|R]""".r
@@ -301,6 +306,27 @@ trait GmqlParsers extends JavaTokenParsers {
     ((region_field_name ^^ {FieldName(_)}) <~ AS) ~ stringLiteral ^^ {
       x => RegionModifier(x._1, REStringConstant(x._2))
     } |
+    ((region_field_name ^^ {FieldName(_)}) <~ AS) ~ (META ~> "(" ~> metadata_attribute <~ "," <~ INTEGER <~ ")") ^^ {
+        x =>
+          RegionModifier(x._1, REMetaAccessor(x._2, ParsingType.INTEGER))
+      } |
+    ((region_field_name ^^ {FieldName(_)}) <~ AS) ~ (META ~> "(" ~> metadata_attribute <~ "," <~ DOUBLE <~ ")") ^^ {
+        x =>
+          RegionModifier(x._1, REMetaAccessor(x._2, ParsingType.DOUBLE))
+      } |
+    ((region_field_name ^^ {FieldName(_)}) <~ AS) ~ (META ~> "(" ~> metadata_attribute <~ "," <~ STRING <~ ")") ^^ {
+        x =>
+          RegionModifier(x._1, REMetaAccessor(x._2, ParsingType.STRING))
+      } |
+    ((region_field_name ^^ {FieldName(_)}) <~ AS) <~ NULL <~ "(" <~ INTEGER <~ ")" ^^ {
+      x => RegionModifier(x, RENullConstant(ParsingType.INTEGER))
+    } |
+    ((region_field_name ^^ {FieldName(_)}) <~ AS) <~ NULL <~ ":" <~ DOUBLE ^^ {
+        x => RegionModifier(x, RENullConstant(ParsingType.DOUBLE))
+      } |
+    ((region_field_name ^^ {FieldName(_)}) <~ AS) <~ NULL <~ ":" <~ STRING ^^ {
+        x => RegionModifier(x, RENullConstant(ParsingType.STRING))
+      } |
     (
       (
         not(RIGHT | LEFT | START | STOP) ~> any_field_identifier |
