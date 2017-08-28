@@ -22,6 +22,7 @@ case class REMUL(o1:RENode, o2:RENode) extends RENode{override def toString() = 
 case class REDIV(o1:RENode, o2:RENode) extends RENode{override def toString() = "div(" + o1 + "," + o2 +")"}
 case class REStringConstant(const : String) extends RENode{override def toString() = "string = " + const}
 case class RENullConstant(field_type : PARSING_TYPE) extends RENode{override def toString() = "null of type " + field_type}
+case class REMetaAccessor(metadata_attribute : String, field_type : PARSING_TYPE) extends RENode{override def toString() = "MetaAccessor( " + metadata_attribute + ")"}
 
 
 object COORD_POS {

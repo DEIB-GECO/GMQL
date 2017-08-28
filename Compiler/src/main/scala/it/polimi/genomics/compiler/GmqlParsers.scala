@@ -306,6 +306,18 @@ trait GmqlParsers extends JavaTokenParsers {
     ((region_field_name ^^ {FieldName(_)}) <~ AS) ~ stringLiteral ^^ {
       x => RegionModifier(x._1, REStringConstant(x._2))
     } |
+    ((region_field_name ^^ {FieldName(_)}) <~ AS) ~ (META ~> "(" ~> metadata_attribute <~ "," <~ INTEGER <~ ")") ^^ {
+        x =>
+          RegionModifier(x._1, REMetaAccessor(x._2, ParsingType.INTEGER))
+      } |
+    ((region_field_name ^^ {FieldName(_)}) <~ AS) ~ (META ~> "(" ~> metadata_attribute <~ "," <~ DOUBLE <~ ")") ^^ {
+        x =>
+          RegionModifier(x._1, REMetaAccessor(x._2, ParsingType.DOUBLE))
+      } |
+    ((region_field_name ^^ {FieldName(_)}) <~ AS) ~ (META ~> "(" ~> metadata_attribute <~ "," <~ STRING <~ ")") ^^ {
+        x =>
+          RegionModifier(x._1, REMetaAccessor(x._2, ParsingType.STRING))
+      } |
     ((region_field_name ^^ {FieldName(_)}) <~ AS) <~ NULL <~ "(" <~ INTEGER <~ ")" ^^ {
       x => RegionModifier(x, RENullConstant(ParsingType.INTEGER))
     } |

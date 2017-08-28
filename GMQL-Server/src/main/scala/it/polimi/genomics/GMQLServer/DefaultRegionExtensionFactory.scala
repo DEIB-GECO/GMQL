@@ -1,7 +1,8 @@
 package it.polimi.genomics.GMQLServer
 
 import it.polimi.genomics.core.DataStructures.Builtin.RegionExtensionFactory
-import it.polimi.genomics.core.DataStructures.RegionAggregate._
+import it.polimi.genomics.core.DataStructures.RegionAggregate.{REMetaAccessor, _}
+import it.polimi.genomics.core.DataStructures.RegionCondition.MetaAccessor
 import it.polimi.genomics.core._
 
 /**
@@ -15,7 +16,7 @@ object DefaultRegionExtensionFactory extends RegionExtensionFactory{
 
     new RegionExtension {
       override val fun: (Array[GValue]) => GValue = make_fun(dag,indexes)
-      override val inputIndexes: List[Int] = indexes
+      override val inputIndexes: List[Any] = indexes
       override val output_index = output match {
         case Right(p) => Some(p)
         case _ => None
@@ -31,11 +32,14 @@ object DefaultRegionExtensionFactory extends RegionExtensionFactory{
         case RENullConstant(ParsingType.INTEGER) => ParsingType.DOUBLE
         case RENullConstant(ParsingType.DOUBLE) => ParsingType.DOUBLE
         case RENullConstant(ParsingType.STRING) => ParsingType.STRING
+        case REMetaAccessor(_, ParsingType.INTEGER) => ParsingType.DOUBLE
+        case REMetaAccessor(_, ParsingType.DOUBLE) => ParsingType.DOUBLE
+        case REMetaAccessor(_, ParsingType.STRING) => ParsingType.STRING
       }
     }
   }
 
-  def extract_indexes(dag : RENode) : Set[Int] = {
+  def extract_indexes(dag : RENode) : Set[Any] = {
     dag match {
       case RESTART() => Set(COORD_POS.LEFT_POS,COORD_POS.RIGHT_POS,COORD_POS.STRAND_POS)
       case RESTOP() => Set(COORD_POS.LEFT_POS,COORD_POS.RIGHT_POS,COORD_POS.STRAND_POS)
@@ -50,11 +54,12 @@ object DefaultRegionExtensionFactory extends RegionExtensionFactory{
       case RESTRAND() => Set(COORD_POS.STRAND_POS)
       case RENegate(x) => extract_indexes(x)
       case RESQRT(x) => extract_indexes(x)
+      case REMetaAccessor(x,_) => Set(MetaAccessor(x))
       case _ => Set.empty
     }
   }
 
-  def make_fun(node : RENode, indexes : List[Int]) : (Array[GValue] => GValue) = {
+  def make_fun(node : RENode, indexes : List[Any]) : (Array[GValue] => GValue) = {
     node match {
       case REPos(p) => (x:Array[GValue]) => x(indexes.indexOf(p))
       case RELEFT() => (x:Array[GValue]) => x(indexes.indexOf(COORD_POS.LEFT_POS))
@@ -134,6 +139,31 @@ object DefaultRegionExtensionFactory extends RegionExtensionFactory{
       case REFloat(f) => (x:Array[GValue]) => GDouble(f)
       case REStringConstant(c) => { (x:Array[GValue]) => GString(c)}
       case RENullConstant(_) => { (x:Array[GValue]) => GNull()}
+      case REMetaAccessor(a, ParsingType.INTEGER) => (x:Array[GValue]) => {
+        val v = x(indexes.indexOf(MetaAccessor(a)))
+        v match {
+          case GNull() => GNull()
+          case GString(s) => try { GDouble(s.toDouble) } catch { case _ => GNull() }
+          case _ => v
+      }
+      }
+      case REMetaAccessor(a, ParsingType.DOUBLE) => (x:Array[GValue]) => {
+        val v = x(indexes.indexOf(MetaAccessor(a)))
+        v match {
+          case GNull() => GNull()
+          case GString(s) => try { GDouble(s.toDouble) } catch { case _ => GNull() }
+          case _ => v
+        }
+      }
+      case REMetaAccessor(a, ParsingType.STRING) => (x:Array[GValue]) => {
+        val v = x(indexes.indexOf(MetaAccessor(a)))
+        v match {
+          case GNull() => GNull()
+          case GDouble(d) => GString(d.toString)
+          case GInt(d) => GString(d.toString)
+          case _ => v
+        }
+      }
       case RENegate(f) => {x:Array[GValue] => GDouble(-make_fun(f,indexes)(x).asInstanceOf[GDouble].v)}
       case RESQRT(f) => {x:Array[GValue] => GDouble(Math.sqrt(make_fun(f,indexes)(x).asInstanceOf[GDouble].v))}
     }
