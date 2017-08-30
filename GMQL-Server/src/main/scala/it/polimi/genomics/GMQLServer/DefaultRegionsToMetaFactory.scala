@@ -255,9 +255,7 @@ object DefaultRegionsToMetaFactory extends ExtendFunctionFactory {
     override val inputIndex: Int = position
     override val associative : Boolean = false
     override val fun: (List[GValue]) => GValue = {
-      (list) =>{
-        println("Size: ",list.size)
-        val out = if(list.nonEmpty)
+      (list) =>{if(list.nonEmpty)
           GString(list.distinct.sorted.map((gvalue) => {
             gvalue match{
               case GString(v) => v
@@ -271,8 +269,6 @@ object DefaultRegionsToMetaFactory extends ExtendFunctionFactory {
         //  GString((line.map((gvalue) => gvalue.asInstanceOf[GString].v).reduce(_ + _)).sorted) // TODO sorted is added only for comparation reason, we can get rid of it
         else
           GString(" ")
-        println (out)
-        out
       }
     }
     override val funOut: (GValue,(Int, Int)) => GValue = {(v1,v2)=>v1}
