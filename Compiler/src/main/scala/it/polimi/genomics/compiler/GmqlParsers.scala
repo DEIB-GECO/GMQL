@@ -84,6 +84,7 @@ trait GmqlParsers extends JavaTokenParsers {
   val ANY:Parser[String] = """[a|A][n|N][y|Y]""".r
   val ALL:Parser[String] = """[a|A][l|L][l|L]""".r
   val TOPG:Parser[String] = """[t|T][o|O][p|P][g|G]""".r
+  val TOPP:Parser[String] = """[t|T][o|O][p|P][p|P]""".r
   val TOP:Parser[String] = """[t|T][o|O][p|P]""".r
   val ASC:Parser[String] = """[a|A][s|S][c|C]""".r
   val DESC:Parser[String] = """[d|D][e|E][s|S][c|C]""".r
