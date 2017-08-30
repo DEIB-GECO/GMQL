@@ -102,7 +102,7 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
   }
 
     def PROJECT(projected_meta : Option[List[String]] = None,
-                extended_meta : Option[MetaExtension] = None,
+                extended_meta : Option[List[MetaExtension]] = None,
                 all_but_meta : Boolean  = false ,
                 projected_values : Option[List[Int]] = None,
                 all_but_reg : Option[List[String]] = None,
