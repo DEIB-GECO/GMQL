@@ -62,6 +62,7 @@ trait GmqlParsers extends JavaTokenParsers {
   val DIV:Parser[String] = "/"
   val SUM:Parser[String] = "+"
   val SUB:Parser[String] = "-"
+  val SQRT:Parser[String] = """[s|S][q|Q][r|R][t|T]""".r
   val STRAND:Parser[String] = """[s|S][t|T][r|R][a|A][n|N][d|D]""".r
   val CHR:Parser[String] = """[c|C][h|H][r|R]""".r |
     """[c|C][h|H][r|R][o|O][m|M]""".r |
@@ -294,6 +295,7 @@ trait GmqlParsers extends JavaTokenParsers {
     STOP ^^ {x => RESTOP()} | LEFT ^^ {x => RELEFT()} |
     RIGHT ^^ {x=> RERIGHT()} | CHR ^^ {x => RECHR()} | STRAND ^^ {x => RESTRAND()} |
     decimalNumber ^^ {x => REFloat(x.toDouble)} |
+    SQRT ~> "(" ~> re_expr <~ ")" ^^ {RESQRT(_)} |
     any_field_identifier ^^ {x => REFieldNameOrPosition(x)} | "(" ~> re_expr <~ ")" |
     SUB ~> re_expr ^^ {x => RENegate(x)}
 
