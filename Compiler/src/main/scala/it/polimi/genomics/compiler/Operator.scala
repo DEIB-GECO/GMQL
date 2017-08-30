@@ -277,6 +277,8 @@ trait SingleProjectOnMeta
 case class MetaProject(attribute_name : String) extends  SingleProjectOnMeta
 case class MetaModifier(output: String, dag: MENode) extends SingleProjectOnMeta
 
+case class MetaAllBut(attributes : List[String])
+
 trait SingleProjectOnRegion
 case class RegionProject(field: FieldPositionOrName) extends SingleProjectOnRegion
 case class REFieldNameOrPosition(field: FieldPositionOrName) extends RENode

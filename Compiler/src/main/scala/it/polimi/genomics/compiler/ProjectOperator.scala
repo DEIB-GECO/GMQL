@@ -20,7 +20,7 @@
     override val accepted_named_parameters = List("region_update","metadata_update","metadata")
     override def check_input_number = one_input
     var region_project_fields : Option[List[Int]] = None
-    var meta_projection : Option[List[String]] = None
+    var meta_projection : Option[Either[MetaAllBut, List[String]]] = None
     var region_modifier : Option[List[RegionFunction]] = None
     var meta_modifier : Option[MetaExtension] = None
 
@@ -144,7 +144,10 @@
 
             }
             case "metadata" => {
-              meta_projection = parser_named(metadata_attribute_list,p.param_name.trim, p.param_value.trim)
+              meta_projection = parser_named(
+                project_list_metadata,
+                p.param_name.trim,
+                p.param_value.trim)
             }
           }
         }
@@ -154,9 +157,32 @@
 
     override def translate_operator(status : CompilerStatus):CompilerDefinedVariable = {
 
+      val meta_projection_parameter:Option[List[String]] =
+        if (meta_projection.isDefined) {
+          Some(
+            meta_projection.get match {
+              case Left(l) => l.asInstanceOf[MetaAllBut].attributes
+              case Right(r) => r
+            }
+          )
+        } else {
+          None
+        }
+
+      val all_but_flag:Boolean =
+        if (meta_projection.isDefined) {
+          meta_projection.get match {
+            case Left(_) => true
+            case _ => false
+          }
+        } else {
+          false
+        }
+
       val projected = super_variable_left.get.PROJECT(
-        meta_projection,
+        meta_projection_parameter,
         meta_modifier,
+        all_but_meta =  all_but_flag,
         projected_values = region_project_fields,
         extended_values = region_modifier)
 

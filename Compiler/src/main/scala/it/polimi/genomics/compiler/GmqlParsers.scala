@@ -107,6 +107,12 @@ trait GmqlParsers extends JavaTokenParsers {
   val metadata_attribute:Parser[String] = rep1sep(ident, ".") ^^ {_.mkString(".")}
   val metadata_attribute_list:Parser[List[String]] = rep1sep(metadata_attribute, ",")
 
+  val allbut_metadata_attribute_list:Parser[MetaAllBut] =
+    ALLBUT ~> metadata_attribute_list ^^ {
+      MetaAllBut(_)
+    }
+
+
   val rich_metadata_attribute:Parser[AttributeEvaluationStrategy] =
       ((EXACT ~> "(") ~> metadata_attribute <~ ")") ^^ {Exact(_)} |
         ((FULLNAME ~> "(") ~> metadata_attribute <~ ")") ^^ {FullName(_)} |
@@ -376,7 +382,9 @@ trait GmqlParsers extends JavaTokenParsers {
 
 
 
-
+  val project_list_metadata:Parser[Either[MetaAllBut, List[String]]] =
+    allbut_metadata_attribute_list ^^ {Left(_)} |
+      metadata_attribute_list ^^ {Right(_)}
 
   val single_meta_project:Parser[SingleProjectOnMeta] = metadata_attribute ^^ {MetaProject(_)}
   val meta_project_list:Parser[List[SingleProjectOnMeta]] = rep1sep(single_meta_project, ",")
