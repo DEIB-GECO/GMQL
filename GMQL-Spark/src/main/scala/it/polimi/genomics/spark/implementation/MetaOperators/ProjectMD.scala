@@ -19,6 +19,7 @@ object ProjectMD {
   @throws[SelectFormatException]
   def apply(executor: GMQLSparkExecutor, projectedAttributes: Option[List[String]], metaAggregator: Option[MetaExtension], all_but_flag:Boolean, inputDataset: MetaOperator, sc: SparkContext): RDD[MetaType] = {
 
+//    if(metaAggregator.isDefined) println("defined",metaAggregator.get.newAttributeName,metaAggregator.get.inputAttributeNames,metaAggregator.get.inputAttributeNames,metaAggregator.get.fun(Array(List(("abdo","1"),("sam","2")))))
     logger.info("----------------ProjectMD executing..")
 
     val input = executor.implement_md(inputDataset, sc)
@@ -37,17 +38,16 @@ object ProjectMD {
 
     if (metaAggregator.isDefined) {
       val agg = metaAggregator.get
-      filteredInput.union(
-        filteredInput
-          .filter(in => agg.inputAttributeNames.foldLeft(false)( _ | in._2._1.endsWith(_)))
-          .groupBy(x=>x._1)
-          .map{x =>
-            (x._1,
-              (agg.newAttributeName ,
-                agg.fun(x._2.groupBy(_._2._1)
-                  .map(s=>if(agg.inputAttributeNames.foldLeft(false)( _ | s._1.endsWith(_)))s._2.map(_._2).toTraversable else Traversable()).toArray)))
+      val  ext: RDD[(Long, (String, String))] = if(agg.inputAttributeNames.isEmpty)  filteredInput.keys.distinct().map(x=>(x,(agg.newAttributeName,agg.fun(Array(List[(String,String)]())))))
+      else  filteredInput.filter(in => agg.inputAttributeNames.foldLeft(false)( _ | in._2._1.endsWith(_))).groupBy(x=>x._1)
+        .map{x =>
+          (x._1,
+            (agg.newAttributeName ,
+              agg.fun(x._2.groupBy(_._2._1)
+                .map(s=>if(agg.inputAttributeNames.foldLeft(false)( _ | s._1.endsWith(_)))s._2.map(_._2).toTraversable else Traversable()).toArray)))
         }
-      )
+
+      filteredInput.union(ext)
     } else {
       filteredInput
     }
