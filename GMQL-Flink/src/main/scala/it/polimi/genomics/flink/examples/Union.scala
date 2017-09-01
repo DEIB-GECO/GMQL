@@ -1,6 +1,7 @@
 package it.polimi.genomics.flink.examples
 
 import it.polimi.genomics.GMQLServer.GmqlServer
+import it.polimi.genomics.core.DataStructures.MetaJoinCondition.Default
 import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
 import it.polimi.genomics.flink.FlinkImplementation.reader.parser.BedScoreParser
 
@@ -26,7 +27,7 @@ object Union {
 
      //val union = dataAsTheyAre.UNION(None)
 
-     val union = dataAsTheyAre.MERGE(Some(List("bert_value2")))
+     val union = dataAsTheyAre.MERGE(Some(List(Default("bert_value2"))))
      server setOutputPath output_path MATERIALIZE union
 
 
