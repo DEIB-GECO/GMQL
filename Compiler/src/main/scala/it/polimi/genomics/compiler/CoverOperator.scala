@@ -2,6 +2,7 @@ package it.polimi.genomics.compiler
 
 import com.sun.org.apache.xalan.internal.xsltc.compiler.CompilerException
 import it.polimi.genomics.core.DataStructures.CoverParameters.{ALL, CoverFlag, CoverParam, N}
+import it.polimi.genomics.core.DataStructures.MetaJoinCondition.AttributeEvaluationStrategy
 import it.polimi.genomics.core.DataStructures.RegionAggregate.RegionsToRegion
 
 import scala.util.parsing.input.Position
@@ -23,7 +24,7 @@ abstract class RegionIntersectionOperator2(op_pos : Position,
   var minAcc : CoverParam = new N{override val n=0;}
   var maxAcc : CoverParam = new ALL{}
 
-  var meta_group : Option[List[String]] = None
+  var meta_group : Option[List[AttributeEvaluationStrategy]] = None
   var refined_agg_function_list : List[RegionsToRegion] = List.empty
 
 
@@ -42,7 +43,7 @@ abstract class RegionIntersectionOperator2(op_pos : Position,
     for (p <- parameters.named) {
       p.param_name.trim.toLowerCase() match {
         case "groupby" => {
-          meta_group = parser_named(metadata_attribute_list,p.param_name.trim, p.param_value.trim)
+          meta_group = parser_named(rich_metadata_attribute_list,p.param_name.trim, p.param_value.trim)
         }
         case "aggregate" => {
           refined_agg_function_list =
