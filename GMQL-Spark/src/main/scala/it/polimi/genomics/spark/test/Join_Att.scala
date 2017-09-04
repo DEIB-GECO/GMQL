@@ -82,7 +82,7 @@ object Join_Att {
 
     val difference = what match {
       case 16 =>
-        dataAsTheyAre.JOIN(None, List[JoinQuadruple](), RegionBuilder.BOTH_LEFT_DISTINCT, join_on_attributes = Some(List((0, 0))), right_dataset = optionalDS)
+        dataAsTheyAre.JOIN(None, List[JoinQuadruple](), RegionBuilder.BOTH, join_on_attributes = Some(List((0, 0))), right_dataset = optionalDS)
 
 
     }

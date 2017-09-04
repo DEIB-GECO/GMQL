@@ -9,6 +9,6 @@ object RegionBuilder extends Enumeration{
   // BOTH_RIGHT, keeps both regions while the right region will be in the coordinates and the left region coordinates will be as att/Val.
 
   type RegionBuilder = Value
-  val LEFT, LEFT_DISTINCT, RIGHT, RIGHT_DISTINCT, INTERSECTION, CONTIG, BOTH_LEFT, BOTH_LEFT_DISTINCT, BOTH_RIGHT, BOTH_RIGHT_DISTINCT = Value
+  val LEFT, LEFT_DISTINCT, RIGHT, RIGHT_DISTINCT, INTERSECTION, CONTIG, BOTH = Value
 }
 

@@ -255,8 +255,8 @@ object GenometricJoin4TopMin3 {
     val distinct_output = regionBuilder match {
       case RegionBuilder.RIGHT_DISTINCT => distinct(output)
       case RegionBuilder.LEFT_DISTINCT => distinct(output)
-      case RegionBuilder.BOTH_RIGHT_DISTINCT => distinct(output)
-      case RegionBuilder.BOTH_LEFT_DISTINCT =>distinct(output)
+//      case RegionBuilder.BOTH_RIGHT_DISTINCT => distinct(output)
+//      case RegionBuilder.BOTH_LEFT_DISTINCT =>distinct(output)
 
       case _ => output
     }
@@ -400,10 +400,10 @@ object GenometricJoin4TopMin3 {
       case RegionBuilder.INTERSECTION => joinRegionsIntersection(p)
       case RegionBuilder.CONTIG =>
         Some(new GRecordKey(p._1, p._2, Math.min(p._3, p._8), Math.max(p._4, p._9), if(p._5.equals(p._10)) p._5 else '*'), p._6 ++ p._11)
-      case RegionBuilder.BOTH_LEFT => Some(new GRecordKey(p._1, p._2, p._3,p._4,  p._5 ), p._6 ++ Array[GValue](GString(p._7), GDouble(p._8), GDouble(p._9), GString(p._10.toString)) ++ p._11 )
-      case RegionBuilder.BOTH_LEFT_DISTINCT => Some(new GRecordKey(p._1, p._2, p._3,p._4,  p._5 ), p._6 ++ Array[GValue](GString(p._7), GDouble(p._8), GDouble(p._9), GString(p._10.toString)) ++ p._11 )
-      case RegionBuilder.BOTH_RIGHT => Some(new GRecordKey(p._1, p._7, p._8,p._9,  p._10 ), Array[GValue](GString(p._2), GDouble(p._3), GDouble(p._4), GString(p._5.toString)) ++ p._6  ++ p._11 )
-      case RegionBuilder.BOTH_RIGHT_DISTINCT => Some(new GRecordKey(p._1, p._7, p._8,p._9,  p._10 ), Array[GValue](GString(p._2), GDouble(p._3), GDouble(p._4), GString(p._5.toString)) ++ p._6  ++ p._11 )
+      case RegionBuilder.BOTH => Some(new GRecordKey(p._1, p._2, p._3,p._4,  p._5 ), p._6 ++ Array[GValue](GString(p._7), GDouble(p._8), GDouble(p._9), GString(p._10.toString)) ++ p._11 )
+//      case RegionBuilder.BOTH_LEFT_DISTINCT => Some(new GRecordKey(p._1, p._2, p._3,p._4,  p._5 ), p._6 ++ Array[GValue](GString(p._7), GDouble(p._8), GDouble(p._9), GString(p._10.toString)) ++ p._11 )
+//      case RegionBuilder.BOTH_RIGHT => Some(new GRecordKey(p._1, p._7, p._8,p._9,  p._10 ), Array[GValue](GString(p._2), GDouble(p._3), GDouble(p._4), GString(p._5.toString)) ++ p._6  ++ p._11 )
+//      case RegionBuilder.BOTH_RIGHT_DISTINCT => Some(new GRecordKey(p._1, p._7, p._8,p._9,  p._10 ), Array[GValue](GString(p._2), GDouble(p._3), GDouble(p._4), GString(p._5.toString)) ++ p._6  ++ p._11 )
 
     }
   }
