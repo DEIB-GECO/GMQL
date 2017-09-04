@@ -382,7 +382,7 @@ trait GmqlParsers extends JavaTokenParsers {
           ) <~ AS
         ) ~ me_expr ^^ { x => MetaModifier(x._1,x._2)}
 
-
+  val metadata_modifier_list:Parser[List[MetaModifier]] = rep1sep(single_metadata_modifier, ",")
 
   val project_list_metadata:Parser[Either[MetaAllBut, List[String]]] =
     allbut_metadata_attribute_list ^^ {Left(_)} |

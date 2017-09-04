@@ -129,7 +129,7 @@ case class IRSemiJoin(external_meta : MetaOperator, join_condition : MetaJoinCon
  */
 //TODO cambia: togliere distinct e extended
 case class IRProjectMD(projected_attributes : Option[List[String]],
-                       extended_attributes : Option[MetaExtension],
+                       extended_attributes : Option[List[MetaExtension]],
                        all_but_flag : Boolean,
                        input_dataset : MetaOperator) extends MetaOperator {
 
