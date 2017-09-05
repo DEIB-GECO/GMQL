@@ -81,7 +81,7 @@ object GMQLSchemaFormat extends Enumeration{
 object GMQLSchema {
   def generateSchemaXML(schema : List[(String, PARSING_TYPE)], dsname:String,outputFormat: GMQLSchemaFormat.Value, outputCoordinateSystem: GMQLSchemaCoordinateSystem.Value): String ={
     val schemaPart = if(outputFormat == GMQLSchemaFormat.GTF) {
-      "\t<gmqlSchema type=\"gtf\""+outputCoordinateSystem.toString+"\">\n"+
+      "\t<gmqlSchema type=\"gtf\"" + " coordinate_system=\"" +outputCoordinateSystem.toString+"\">\n"+
         "\t\t<field type=\"STRING\">seqname</field>\n" +
         "\t\t<field type=\"STRING\">source</field>\n"+
         "\t\t<field type=\"STRING\">feature</field>\n"+
@@ -92,7 +92,7 @@ object GMQLSchema {
         "\t\t<field type=\"STRING\">frame</field>"
 
     }else {
-      "\t<gmqlSchema type=\"Peak\""+outputCoordinateSystem.toString+"\">\n" +
+      "\t<gmqlSchema type=\"Peak\"" + " coordinate_system=\"" +outputCoordinateSystem.toString+"\">\n" +
         "\t\t<field type=\"STRING\">chr</field>\n" +
         "\t\t<field type=\"LONG\">left</field>\n" +
         "\t\t<field type=\"LONG\">right</field>\n" +
