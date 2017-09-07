@@ -4,7 +4,7 @@ import java.io.{File, FileFilter}
 import java.util.concurrent.atomic.AtomicInteger
 
 import it.polimi.genomics.GMQLServer.GmqlServer
-import it.polimi.genomics.core.DataStructures.IRVariable
+import it.polimi.genomics.core.DataStructures.{IROperator, IRReadMD, IRReadRD, IRVariable}
 import it.polimi.genomics.core.{ParsingType, Utilities}
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
@@ -87,12 +87,23 @@ object PythonManager {
     index
   }
 
+  def cloneVariable(index: Int): Int = {
+    val variable = this.getVariable(index)
+    val binning_parameter = this.server.binning_parameter
+    val new_variable = IRVariable(metaDag = variable.metaDag,
+      regionDag = variable.regionDag, schema = variable.schema)(binning_parameter)
+    this.putNewVariable(new_variable)
+  }
+
   def getVariableSchemaNames(index: Int): java.util.List[String] = {
     val variable = this.getVariable(index)
     val result = variable.schema.map({case (a,b) => a})
     result.asJava
   }
 
+  /*
+  * MANAGEMENT
+  * */
   def getServer : GmqlServer = {
     this.server
   }
@@ -112,12 +123,14 @@ object PythonManager {
   * Parsing of datasets
   * */
 
+  @deprecated
   def read_dataset(dataset_path: String): Int = {
     val parser : CustomParser = new CustomParser()
     parser.setSchema(findSchemaFile(dataset_path))
     read_dataset(dataset_path, parser)
   }
 
+  @deprecated
   def findSchemaFile(dataset_path: String) : String = {
     val dir = new File(dataset_path)
     if (dir.isDirectory) {
@@ -255,6 +268,26 @@ object PythonManager {
     Utilities.serializeToBase64(List(variableToSerialize))
   }
 
+  def modify_dag_source(index: Int, source: String, dest: String) : Unit = {
+    val variable = this.getVariable(index)
+    modify_dag_source(variable.metaDag, source, dest)
+    modify_dag_source(variable.regionDag, source, dest)
+  }
+
+  def modify_dag_source(dag: IROperator, source: String, dest: String): Unit = {
+    dag match {
+      case x: IRReadMD[_,_,_,_] =>
+        if(x.dataset.position == source) {
+          x.dataset.position = dest
+        }
+      case x: IRReadRD[_,_,_,_] =>
+        if(x.dataset.position == source) {
+          x.dataset.position = dest
+        }
+      case _ =>
+    }
+    dag.getOperatorList.map(operator => modify_dag_source(operator, source, dest))
+  }
 
   /*Spark context related*/
 
