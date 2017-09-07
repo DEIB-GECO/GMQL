@@ -77,9 +77,9 @@ object DataTypes {
 sealed trait GValue extends Serializable /*with Comparable[GValue]*/ with Ordered[GValue]{
   def compare(o : GValue) : Int = {
     o match {
-      case GDouble(v) => this.asInstanceOf[GDouble].v compare v
-      case GString(v) => this.asInstanceOf[GString].v compare v
-      case GInt(v) => this.asInstanceOf[GInt].v compare v
+      case GDouble(v) => if(this.isInstanceOf[GDouble])this.asInstanceOf[GDouble].v compare v else -1
+      case GString(v) => if(this.isInstanceOf[GString]) this.asInstanceOf[GString].v compare v else -1
+      case GInt(v) => if(this.isInstanceOf[GInt]) this.asInstanceOf[GInt].v compare v else -1
       case GNull() => 0
     }
   }
