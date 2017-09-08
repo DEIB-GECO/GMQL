@@ -25,6 +25,7 @@ object DefaultRegionsToRegionFactory extends MapFunctionFactory{
       case "AVG" => getAvg(position,output_name)
       case "MEDIAN" => getMEDIAN(position,output_name)
       case "BAG" => getBAG(position,output_name)
+      case "BAGD" => getBAGD(position,output_name)
       case _ => throw new Exception("No map function with the given name (" + name + ") found.")
     }
   }
@@ -132,6 +133,27 @@ object DefaultRegionsToRegionFactory extends MapFunctionFactory{
     override val fun: (List[GValue]) => GValue = {
       (list) =>
         if(list.nonEmpty)
+          GString(list.sorted.map((gvalue) => {
+            gvalue match{
+              case GString(v) => v
+              case GDouble(v) => v.toString
+              case GInt(v) => v.toString
+              case GNull() => "."
+            }
+          }).mkString(",")) // TODO sorted is added only for comparation reason, we can get rid of it
+        else
+          GString(".")
+
+    }}
+
+  private def getBAGD(position:Int, output_name:Option[String]) = new RegionsToRegion {
+    override val resType = ParsingType.STRING
+    override val index: Int = position
+    override val associative: Boolean = false
+    override val funOut: (GValue,(Int, Int)) => GValue = {(v1,v2)=>/*v1*/ if (v2._1 > 0) v1 else GNull()}
+    override val fun: (List[GValue]) => GValue = {
+      (list) =>
+        if(list.nonEmpty)
           GString(list.distinct.sorted.map((gvalue) => {
             gvalue match{
               case GString(v) => v
@@ -141,9 +163,8 @@ object DefaultRegionsToRegionFactory extends MapFunctionFactory{
             }
           }).mkString(",")) // TODO sorted is added only for comparation reason, we can get rid of it
         else
-          GString(" ")
+          GString(".")
 
     }}
-
 
 }
