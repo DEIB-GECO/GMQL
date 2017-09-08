@@ -60,6 +60,7 @@ object GMQLExecuteCommand {
 //    "[-inputs DS1:/location/on/HDFS/,DS2:/location/on/HDFS] " +
     "[-verbose true|false] " +
     "[-outputFormat GTF|TAB]" +
+    "[-outputCoordinateSystem 0-based|1-based|default]" +
     "-scriptpath /where/gmql/script/is \n" +
     "\n" +
     "\n" +
@@ -82,6 +83,9 @@ object GMQLExecuteCommand {
     "\n" +
     "\t[-outputFormat GTF|TAB]\n" +
     "\t\tThe default output format is TAB: tab delimited files in the format of BED files." +
+    "\n" +
+    "\t[-outputCoordinateSystem 0-based|1-based|default]\n" +
+    "\t\tThe default output coordinate system for GTF output format is 1-based, for TAB output format is 0-based." +
     "\n" +
     "\t-scriptpath /where/gmql/script/is/located\n" +
     "\t\tManditory parameter, select the GMQL script to execute"
@@ -165,14 +169,14 @@ object GMQLExecuteCommand {
           }
         logger.info(s"Output Format set to: $out" + outputFormat)
 
-      } else if ("-outputCoordinateSystem".equals(args(i).toLowerCase())) {
+      } else if ("-outputcoordinatesystem".equals(args(i).toLowerCase())) {
         val out = args(i + 1).toLowerCase().trim
         outputCoordinateSystem =
-          if (out == GMQLSchemaCoordinateSystem.ZeroBased.toString)
+          if (out == GMQLSchemaCoordinateSystem.ZeroBased.toString.toLowerCase)
             GMQLSchemaCoordinateSystem.ZeroBased
-          else if (out == GMQLSchemaCoordinateSystem.OneBased.toString)
+          else if (out == GMQLSchemaCoordinateSystem.OneBased.toString.toLowerCase)
             GMQLSchemaCoordinateSystem.OneBased
-          else if (out == GMQLSchemaCoordinateSystem.Default.toString)
+          else if (out == GMQLSchemaCoordinateSystem.Default.toString.toLowerCase)
             GMQLSchemaCoordinateSystem.Default
           else {
             logger.warn(s"Not knwon coordinate system $out, Setting the output coordinate system for ${GMQLSchemaCoordinateSystem.Default}")

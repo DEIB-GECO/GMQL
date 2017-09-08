@@ -302,7 +302,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
             this.username, samples, script.scriptPath,
             if(gMQLContext.outputFormat.equals(GMQLSchemaFormat.GTF))GMQLSchemaFormat.GTF else GMQLSchemaFormat.TAB,
             if(gMQLContext.outputCoordinateSystem.equals(GMQLSchemaCoordinateSystem.ZeroBased))GMQLSchemaCoordinateSystem.ZeroBased
-            else if (gMQLContext.outputCoordinateSystem.equals(GMQLSchemaCoordinateSystem.ZeroBased)) GMQLSchemaCoordinateSystem.OneBased
+            else if (gMQLContext.outputCoordinateSystem.equals(GMQLSchemaCoordinateSystem.OneBased)) GMQLSchemaCoordinateSystem.OneBased
             else GMQLSchemaCoordinateSystem.Default)
         }
         elapsedTime.createDsTime = System.currentTimeMillis() - dsCreationTimestamp

@@ -112,14 +112,14 @@ object CLI {
           }
         logger.info(s"Output Format set to: $out" + outputFormat)
 
-      } else if ("-outputCoordinateSystem".equals(args(i).toLowerCase())) {
-        val out = args(i + 1).toUpperCase().trim
+      } else if ("-outputcoordinatesystem".equals(args(i).toLowerCase())) {
+        val out = args(i + 1).toLowerCase().trim
         outputCoordinateSystem =
-          if(out == GMQLSchemaCoordinateSystem.ZeroBased.toString)
+          if(out == GMQLSchemaCoordinateSystem.ZeroBased.toString.toLowerCase)
             GMQLSchemaCoordinateSystem.ZeroBased
-          else if(out == GMQLSchemaCoordinateSystem.OneBased.toString)
+          else if(out == GMQLSchemaCoordinateSystem.OneBased.toString.toLowerCase)
             GMQLSchemaCoordinateSystem.OneBased
-          else if (out == GMQLSchemaCoordinateSystem.Default.toString)
+          else if (out == GMQLSchemaCoordinateSystem.Default.toString.toLowerCase)
             GMQLSchemaCoordinateSystem.Default
           else {
             logger.warn(s"Not known coordinate system $out, Setting the output coordinate system for ${GMQLSchemaCoordinateSystem.Default}")

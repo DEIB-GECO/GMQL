@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory
 class FlinkImplementation(var binSize : BinSize = BinSize(),
                           val maxBinDistance : Int = 1000000,
                           testingIOFormats : Boolean = false,
-                          metaFirst : Boolean = false, outputFormat:GMQLSchemaFormat.Value = GMQLSchemaFormat.TAB, outputCoordinateSystem: GMQLSchemaCoordinateSystem.Value = GMQLSchemaCoordinateSystem.ZeroBased) extends Implementation with java.io.Serializable{
+                          metaFirst : Boolean = false, outputFormat:GMQLSchemaFormat.Value = GMQLSchemaFormat.TAB, outputCoordinateSystem: GMQLSchemaCoordinateSystem.Value = GMQLSchemaCoordinateSystem.Default) extends Implementation with java.io.Serializable{
 
   val overwrite_option = WriteMode.OVERWRITE  // (or NO_OVERWRITE)
 

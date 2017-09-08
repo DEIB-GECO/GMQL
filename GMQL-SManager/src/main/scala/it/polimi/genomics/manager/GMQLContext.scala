@@ -34,7 +34,7 @@ case class GMQLContext(val implPlatform: core.ImplementationPlatform.Value, val 
   /**
     * default constructor
     */
-  def this() = this(core.ImplementationPlatform.SPARK, new LFSRepository(), core.GMQLSchemaFormat.TAB, core.GMQLSchemaCoordinateSystem.ZeroBased)
+  def this() = this(core.ImplementationPlatform.SPARK, new LFSRepository(), core.GMQLSchemaFormat.TAB, core.GMQLSchemaCoordinateSystem.Default)
 
   /**
     * Construct GMQL Context with the repository type
@@ -42,7 +42,7 @@ case class GMQLContext(val implPlatform: core.ImplementationPlatform.Value, val 
     * @param gMQLRepository  one of [[GMQLRepository]] subclasses
     * @return [[GMQLContext]] instance
     */
-  def this(gMQLRepository: GMQLRepository) = this(core.ImplementationPlatform.SPARK, gMQLRepository, core.GMQLSchemaFormat.TAB, core.GMQLSchemaCoordinateSystem.ZeroBased)
+  def this(gMQLRepository: GMQLRepository) = this(core.ImplementationPlatform.SPARK, gMQLRepository, core.GMQLSchemaFormat.TAB, core.GMQLSchemaCoordinateSystem.Default)
 
   /**
     * Construct GMQL Context with the repository type, and output format type
@@ -59,7 +59,7 @@ case class GMQLContext(val implPlatform: core.ImplementationPlatform.Value, val 
     * the implementation instance as the executor that will run GMQL script.
     */
   val implementation: Implementation = if (implPlatform == ImplementationPlatform.SPARK) {
-    new GMQLSparkExecutor(binSize = binSize, sc = sc, outputFormat = outputFormat)
+    new GMQLSparkExecutor(binSize = binSize, sc = sc, outputFormat = outputFormat, outputCoordinateSystem = outputCoordinateSystem)
   } else /*if(implPlatform == ImplementationPlatform.FLINK)*/ {
     new FlinkImplementation(binSize = binSize, outputFormat = outputFormat)
   }
