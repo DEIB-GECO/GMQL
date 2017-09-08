@@ -72,7 +72,7 @@ object StoreGTFRD {
           else Some(s._1._1 + " \"" + s._2 + "\";")
         }.mkString(" ")
 
-        val newStart = if (coordinateSystem == GMQLSchemaCoordinateSystem.OneBased) (x._1._3 + 1) else x._1._3  //start: 0-based -> 1-based
+        val newStart = if (coordinateSystem == GMQLSchemaCoordinateSystem.ZeroBased) x._1._3 else (x._1._3 + 1)  //start: 0-based -> 1-based
 
         (outSample + "_" + "%05d".format(newIDSbroad.value.get(x._1._1).getOrElse(x._1._1)) + ".gtf",
           x._1._2 //chrom

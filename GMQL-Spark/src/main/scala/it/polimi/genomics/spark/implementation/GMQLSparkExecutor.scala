@@ -42,7 +42,7 @@ object GMQLSparkExecutor{
 class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : Int = 100000, REF_PARALLILISM: Int = 20,
                         testingIOFormats:Boolean = false, sc:SparkContext,
                         outputFormat:GMQLSchemaFormat.Value = GMQLSchemaFormat.TAB,
-                        outputCoordinateSystem: GMQLSchemaCoordinateSystem.Value = GMQLSchemaCoordinateSystem.ZeroBased,
+                        outputCoordinateSystem: GMQLSchemaCoordinateSystem.Value = GMQLSchemaCoordinateSystem.Default,
                         stopContext:Boolean = true)
   extends Implementation with java.io.Serializable{
 

@@ -24,7 +24,7 @@ import org.apache.spark.SparkContext
   * @param username { @link String} of the user name.
   * @param sc { @link SparkContext}
   */
-case class GMQLContext(val implPlatform: core.ImplementationPlatform.Value, val gMQLRepository: GMQLRepository, val outputFormat: core.GMQLSchemaFormat.Value, val outputCoordinateSystem: core.GMQLSchemaCoordinateSystem.Value = GMQLSchemaCoordinateSystem.None, val binSize: BinSize = BinSize(), val username: String = repo_Utilities().USERNAME, sc: SparkContext = null) {
+case class GMQLContext(val implPlatform: core.ImplementationPlatform.Value, val gMQLRepository: GMQLRepository, val outputFormat: core.GMQLSchemaFormat.Value, val outputCoordinateSystem: core.GMQLSchemaCoordinateSystem.Value = GMQLSchemaCoordinateSystem.Default, val binSize: BinSize = BinSize(), val username: String = repo_Utilities().USERNAME, sc: SparkContext = null) {
   try {
     sc.setLogLevel("WARN")
   } catch {

@@ -34,7 +34,7 @@ object GMQLSchemaCoordinateSystem extends Enumeration{
   type outputFormat = Value
   val ZeroBased = Value("0-based")
   val OneBased = Value("1-based")
-  val None = Value("none")
+  val Default = Value("default")
   /**
     *
     *  Get the [[ GMQLSchemaFormat]] of a specific String
@@ -46,7 +46,7 @@ object GMQLSchemaCoordinateSystem extends Enumeration{
     coordinateSystem. toLowerCase() match {
       case "0-based" => GMQLSchemaCoordinateSystem.ZeroBased
       case "1-based" => GMQLSchemaCoordinateSystem.OneBased
-      case _ => GMQLSchemaCoordinateSystem.None
+      case _ => GMQLSchemaCoordinateSystem.Default
     }
   }
 }
