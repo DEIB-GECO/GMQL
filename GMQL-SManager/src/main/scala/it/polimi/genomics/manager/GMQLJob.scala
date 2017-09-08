@@ -7,8 +7,8 @@ import java.util.Date
 import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.compiler._
 import it.polimi.genomics.core.DataStructures.{IRDataSet, IRVariable}
-import it.polimi.genomics.core.{GMQLSchemaFormat, GMQLScript}
-import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLocalLauncher, GMQLRemoteLauncher}
+import it.polimi.genomics.core.{GMQLSchemaCoordinateSystem, GMQLSchemaFormat, GMQLScript}
+import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLocalLauncher}
 import it.polimi.genomics.manager.Status._
 import it.polimi.genomics.repository.FSRepository.{FS_Utilities => FSR_Utilities}
 import it.polimi.genomics.repository.GMQLExceptions.GMQLNotValidDatasetNameException
@@ -300,8 +300,10 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
 
           repositoryHandle.createDs(new IRDataSet(ds, sch.asScala.map(x=>(x.name,x.fieldType)).toList.asJava),
             this.username, samples, script.scriptPath,
-            if(gMQLContext.outputFormat.equals(GMQLSchemaFormat.GTF))GMQLSchemaFormat.GTF else GMQLSchemaFormat.TAB)
-
+            if(gMQLContext.outputFormat.equals(GMQLSchemaFormat.GTF))GMQLSchemaFormat.GTF else GMQLSchemaFormat.TAB,
+            if(gMQLContext.outputCoordinateSystem.equals(GMQLSchemaCoordinateSystem.ZeroBased))GMQLSchemaCoordinateSystem.ZeroBased
+            else if (gMQLContext.outputCoordinateSystem.equals(GMQLSchemaCoordinateSystem.ZeroBased)) GMQLSchemaCoordinateSystem.OneBased
+            else GMQLSchemaCoordinateSystem.Default)
         }
         elapsedTime.createDsTime = System.currentTimeMillis() - dsCreationTimestamp
         logger.info("DataSet creation Time: " + (elapsedTime.createDsTime/1000))

@@ -92,6 +92,7 @@ class GMQLSparkSubmit(job:GMQLJob) {
 //        "-schemata",job.inputDataSets.map(x => x._2+":::"+getSchema(job,x._1)).mkString(","),
         "-jobid", job.jobId,
         "-outputFormat",job.gMQLContext.outputFormat.toString,
+        "-outputCoordinateSystem", job.gMQLContext.outputCoordinateSystem.toString,
         "-outputDirs", outDir,
         "-logDir",General_Utilities().getLogDir(job.username))
       .setConf("spark.app.id", APPID)

@@ -103,7 +103,7 @@ object GMQLExecuteCommand {
     var outputPath = ""
     var jobid = ""
     var outputFormat = GMQLSchemaFormat.TAB
-    var outputCoordinateSystem = GMQLSchemaCoordinateSystem.ZeroBased
+    var outputCoordinateSystem = GMQLSchemaCoordinateSystem.Default
     var schemata = Map[String, String]()
     var inputs = Map[String, String]()
     var outputs = Map[String, String]()
@@ -165,7 +165,22 @@ object GMQLExecuteCommand {
           }
         logger.info(s"Output Format set to: $out" + outputFormat)
 
-      } else if ("-inputDirs".equals(args(i))) {
+      } else if ("-outputCoordinateSystem".equals(args(i).toLowerCase())) {
+        val out = args(i + 1).toLowerCase().trim
+        outputCoordinateSystem =
+          if (out == GMQLSchemaCoordinateSystem.ZeroBased.toString)
+            GMQLSchemaCoordinateSystem.ZeroBased
+          else if (out == GMQLSchemaCoordinateSystem.OneBased.toString)
+            GMQLSchemaCoordinateSystem.OneBased
+          else if (out == GMQLSchemaCoordinateSystem.Default.toString)
+            GMQLSchemaCoordinateSystem.Default
+          else {
+            logger.warn(s"Not knwon coordinate system $out, Setting the output coordinate system for ${GMQLSchemaCoordinateSystem.Default}")
+            GMQLSchemaCoordinateSystem.Default
+          }
+        logger.info(s"Output Coordinate System set to: $out" + outputCoordinateSystem)
+      }
+      else if ("-inputDirs".equals(args(i))) {
         //List of [NAME:::Dir] separated by comma
         //Input Datasets directories.
         // We added this option to GMQL-Submit CLI options because the serialization of DAG Scala code generated
