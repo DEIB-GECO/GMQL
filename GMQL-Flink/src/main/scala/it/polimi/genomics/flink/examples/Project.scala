@@ -43,12 +43,12 @@ object Project {
           val fun = new MetaExtension {
             override val newAttributeName: String = "computed_bert_value1"
             override val inputAttributeNames: List[String] = List("bert_value1")
-            override val fun: (Array[Traversable[String]]) => String =
+            override val fun: (Array[Traversable[(String,String)]]) => String =
             //average of the double
-              (l : Array[Traversable[String]]) => {
+              (l : Array[Traversable[(String,String)]]) => {
                 val r =
                   l(0)
-                    .map((a: String) => (a.toDouble * 2, 1))
+                    .map((a: (String,String)) => (a._2.toDouble * 2, 1))
                     .reduce((a: (Double, Int), b: (Double, Int)) => (a._1 + b._1, a._2 + b._2))
 
                 (r._1 / r._2).toString
@@ -56,7 +56,7 @@ object Project {
 
           }
 
-          dataAsTheyAre.PROJECT(Some(List("tableName","bert_value1", "bert_value2", "bert_value3")), Some(fun), false, None, None)
+          dataAsTheyAre.PROJECT(Some(List("tableName","bert_value1", "bert_value2", "bert_value3")), Some(List(fun)), false, None, None)
         }
 
         case 2 => {

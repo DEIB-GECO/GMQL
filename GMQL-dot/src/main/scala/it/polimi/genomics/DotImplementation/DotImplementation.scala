@@ -118,7 +118,7 @@ try{
         } else {
           sb append edge(i, all_nodes.indexOf(c.asInstanceOf[NoMetaJoinOperator].operator)) append edge(i, all_nodes.indexOf(l)) append edge(i, all_nodes.indexOf(r))
         }
-        case IRGenometricJoin(c, _, _, l, r) => if (c.isInstanceOf[SomeMetaJoinOperator]) {
+        case IRGenometricJoin(c, _, _, _,l, r) => if (c.isInstanceOf[SomeMetaJoinOperator]) {
           sb append edge(i, all_nodes.indexOf(c.asInstanceOf[SomeMetaJoinOperator].operator)) append edge(i, all_nodes.indexOf(l)) append edge(i, all_nodes.indexOf(r))
         } else {
           sb append edge(i, all_nodes.indexOf(c.asInstanceOf[NoMetaJoinOperator].operator)) append edge(i, all_nodes.indexOf(l)) append edge(i, all_nodes.indexOf(r))
@@ -194,7 +194,7 @@ try{
       case IRMergeMD(_,_) => "struct" + pos + " [shape=record,color=\"blue\",label=\"{IRMergeMD " +  "}\"];\n"
       case IRMergeRD(_,_) => "struct" + pos + " [shape=record,color=\"red\",label=\"{IRMergeRD " +  "}\"];\n"
       case IRDifferenceRD(_,_,_,_) => "struct" + pos + " [shape=record,color=\"blue\",label=\"{IRDifferenceRD " +  "}\"];\n"
-      case IRGenometricJoin(_,c,b,_,_) =>  "struct" + pos + " [shape=record,color=\"red\",label=\"{IRGenometricJoin | cond=" + c.mkString(",") + " | builder= " + b + "}\"];\n"
+      case IRGenometricJoin(_,c,b,_,_,_) =>  "struct" + pos + " [shape=record,color=\"red\",label=\"{IRGenometricJoin | cond=" + c.mkString(",") + " | builder= " + b + "}\"];\n"
     }
   }
 
@@ -237,7 +237,7 @@ try{
 //      case IRDifferenceRD(None,l,r) => (add_all_nodes(l.asInstanceOf[IROperator]) ++ add_all_nodes(r.asInstanceOf[IROperator])) + node
       case IRDifferenceRD(c,l,r,_) => if(c.isInstanceOf[SomeMetaJoinOperator]) {(add_all_nodes(c.asInstanceOf[SomeMetaJoinOperator].operator.asInstanceOf[IROperator]) ++ add_all_nodes(l.asInstanceOf[IROperator]) ++ add_all_nodes(r.asInstanceOf[IROperator])) + node} else {(add_all_nodes(c.asInstanceOf[NoMetaJoinOperator].operator.asInstanceOf[IROperator]) ++ add_all_nodes(l.asInstanceOf[IROperator]) ++ add_all_nodes(r.asInstanceOf[IROperator])) + node}
 //      case IRGenometricJoin(None,_,_,l,r) => (add_all_nodes(l.asInstanceOf[IROperator]) ++ add_all_nodes(r.asInstanceOf[IROperator])) + node
-      case IRGenometricJoin(c,_,_,l,r) => if(c.isInstanceOf[SomeMetaJoinOperator]) { (add_all_nodes(c.asInstanceOf[SomeMetaJoinOperator].operator.asInstanceOf[IROperator]) ++ add_all_nodes(l.asInstanceOf[IROperator]) ++ add_all_nodes(r.asInstanceOf[IROperator])) + node} else {(add_all_nodes(c.asInstanceOf[NoMetaJoinOperator].operator.asInstanceOf[IROperator]) ++ add_all_nodes(l.asInstanceOf[IROperator]) ++ add_all_nodes(r.asInstanceOf[IROperator])) + node}
+      case IRGenometricJoin(c,_,_,_,l,r) => if(c.isInstanceOf[SomeMetaJoinOperator]) { (add_all_nodes(c.asInstanceOf[SomeMetaJoinOperator].operator.asInstanceOf[IROperator]) ++ add_all_nodes(l.asInstanceOf[IROperator]) ++ add_all_nodes(r.asInstanceOf[IROperator])) + node} else {(add_all_nodes(c.asInstanceOf[NoMetaJoinOperator].operator.asInstanceOf[IROperator]) ++ add_all_nodes(l.asInstanceOf[IROperator]) ++ add_all_nodes(r.asInstanceOf[IROperator])) + node}
     }
   }
 

@@ -128,7 +128,10 @@ case class IRSemiJoin(external_meta : MetaOperator, join_condition : MetaJoinCon
  * @param input_dataset input set of metadata
  */
 //TODO cambia: togliere distinct e extended
-case class IRProjectMD(projected_attributes : Option[List[String]], extended_attributes : Option[MetaExtension], all_but_flag : Boolean ,input_dataset : MetaOperator) extends MetaOperator {
+case class IRProjectMD(projected_attributes : Option[List[String]],
+                       extended_attributes : Option[List[MetaExtension]],
+                       all_but_flag : Boolean,
+                       input_dataset : MetaOperator) extends MetaOperator {
 
 }
 
@@ -138,7 +141,10 @@ case class IRProjectMD(projected_attributes : Option[List[String]], extended_att
  * @param new_values if not [[None]], it stores all the function to create new value fields
  * @param input_dataset the input set of region data
  */
-case class IRProjectRD(projected_values : Option[List[Int]], new_values : Option[List[RegionFunction]], input_dataset : RegionOperator, InputMeta:MetaOperator) extends RegionOperator {
+case class IRProjectRD(projected_values : Option[List[Int]],
+                       new_values : Option[List[RegionFunction]],
+                       input_dataset : RegionOperator,
+                       InputMeta:MetaOperator) extends RegionOperator {
 
 }
 
@@ -322,10 +328,17 @@ case class IRDifferenceRD(meta_join : OptionalMetaJoinOperator,
  * @param metajoin_condition optional, it is the meta join condition
  * @param join_condition list of join quadruple; the quadruple are in a disjunctive relationship
  * @param region_builder the function to be used for computing the new region
+ * @param join_on_attributes list of pairs (positionLeft, positionRight), corresponding to the position
+  *                           of the join keys in the schema of the left and the right datasets
  * @param left_dataset left dataset
  * @param right_dataset right dataset
  */
-case class IRGenometricJoin(metajoin_condition : OptionalMetaJoinOperator, join_condition : List[JoinQuadruple], region_builder : RegionBuilder, left_dataset : RegionOperator, right_dataset : RegionOperator) extends RegionOperator{
+case class IRGenometricJoin(metajoin_condition : OptionalMetaJoinOperator,
+                            join_condition : List[JoinQuadruple],
+                            region_builder : RegionBuilder,
+                            join_on_attributes : Option[List[(Int, Int)]],
+                            left_dataset : RegionOperator,
+                            right_dataset : RegionOperator) extends RegionOperator{
 
 }
 

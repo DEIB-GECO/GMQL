@@ -101,12 +101,15 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
 
   }
 
-    def PROJECT(projected_meta : Option[List[String]] = None, extended_meta : Option[MetaExtension] = None,all_but_meta : Boolean  = false ,
-              projected_values : Option[List[Int]] = None,all_but_reg : Option[List[String]] = None,
-              extended_values : Option[List[RegionFunction]] = None): IRVariable = {
+    def PROJECT(projected_meta : Option[List[String]] = None,
+                extended_meta : Option[List[MetaExtension]] = None,
+                all_but_meta : Boolean  = false ,
+                projected_values : Option[List[Int]] = None,
+                all_but_reg : Option[List[String]] = None,
+                extended_values : Option[List[RegionFunction]] = None): IRVariable = {
 
       val new_projected_values = if(all_but_reg.isDefined)
-         Some(this.schema.zipWithIndex.filter(x=> !all_but_reg.contains(x._1._1) ).map(_._2))
+         Some(this.schema.zipWithIndex.filter(x=> !all_but_reg.get.contains(x._1._1) ).map(_._2))
       else projected_values
 
     var new_meta_dag = this.metaDag
@@ -179,8 +182,11 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
 
   /** Group by with both meta grouping and region grouping
     */
-  def GROUP(meta_keys : Option[MetaGroupByCondition] = None, meta_aggregates : Option[List[RegionsToMeta]] = None, meta_group_name : String = "_group",
-            region_keys : Option[List[GroupingParameter]], region_aggregates : Option[List[RegionsToRegion]]): IRVariable ={
+  def GROUP(meta_keys : Option[MetaGroupByCondition] = None,
+            meta_aggregates : Option[List[RegionsToMeta]] = None,
+            meta_group_name : String = "_group",
+            region_keys : Option[List[GroupingParameter]],
+            region_aggregates : Option[List[RegionsToRegion]]): IRVariable ={
 
     //only region grouping
     if (!meta_keys.isDefined && !meta_aggregates.isDefined) {
@@ -309,7 +315,8 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
            region_builder : RegionBuilder,
            right_dataset : IRVariable,
            reference_name : Option[String] = None,
-           experiment_name : Option[String] = None) : IRVariable = {
+           experiment_name : Option[String] = None,
+           join_on_attributes : Option[List[(Int, Int)]] = None) : IRVariable = {
 
     val new_meta_join_result = if(meta_join.isDefined){
       SomeMetaJoinOperator(IRJoinBy(meta_join.get, this.metaDag, right_dataset.metaDag))
@@ -322,7 +329,15 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
       right_dataset.metaDag,
       reference_name.getOrElse("left"),
       experiment_name.getOrElse("right"))
-    val new_region_dag = IRGenometricJoin(new_meta_join_result, region_join_condition, region_builder, this.regionDag, right_dataset.regionDag)
+
+    val new_region_dag = IRGenometricJoin(
+      new_meta_join_result,
+      region_join_condition,
+      region_builder,
+      join_on_attributes,
+      this.regionDag,
+      right_dataset.regionDag)
+
     new_region_dag.binSize = binS.size
 
     val new_schema = this.schema.map(x => (reference_name.getOrElse("left")+"."+x._1,x._2)) ++

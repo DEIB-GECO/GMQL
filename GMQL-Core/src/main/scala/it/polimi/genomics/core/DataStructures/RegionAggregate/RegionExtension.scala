@@ -15,11 +15,14 @@ case class REPos(position : Int) extends RENode {override def toString() = "posi
 case class REFloat(const : Double) extends RENode{override def toString() = "float" + const}
 case class REInt(const : Int) extends RENode{override def toString() = "int" + const}
 case class RENegate(o1:RENode) extends RENode {override def toString() = "negate(" + o1 +")"}
+case class RESQRT(o1:RENode) extends RENode {override def toString() = "sqrt(" + o1 +")"}
 case class READD(o1:RENode, o2:RENode)extends RENode {override def toString() = "add(" + o1 + "," + o2 +")"}
 case class RESUB(o1:RENode, o2:RENode) extends RENode{override def toString() = "sub(" + o1 + "," + o2 +")"}
 case class REMUL(o1:RENode, o2:RENode) extends RENode{override def toString() = "mul(" + o1 + "," + o2 +")"}
 case class REDIV(o1:RENode, o2:RENode) extends RENode{override def toString() = "div(" + o1 + "," + o2 +")"}
 case class REStringConstant(const : String) extends RENode{override def toString() = "string = " + const}
+case class RENullConstant(field_type : PARSING_TYPE) extends RENode{override def toString() = "null of type " + field_type}
+case class REMetaAccessor(metadata_attribute : String, field_type : PARSING_TYPE) extends RENode{override def toString() = "MetaAccessor( " + metadata_attribute + ")"}
 
 
 object COORD_POS {

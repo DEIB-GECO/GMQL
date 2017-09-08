@@ -7,6 +7,7 @@ import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.loaders.writeMultiOutputFiles
+import it.polimi.genomics.spark.implementation.loaders.writeMultiOutputFiles.RDDMultipleTextOutputFormat
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.spark.rdd.RDD
@@ -64,8 +65,8 @@ object StoreGTFRD {
       val sourceIndex = if (source.size > 0) source.head._2 else -1
       val featureIndex = if (feature.size > 0) feature.head._2 else -1
       val frameIndex = if (frame.size > 0) frame.head._2 else -1
-
-      regions.map { x =>
+      implicit val caseInsensitiveOrdering = Ordering.by {s:(String,String)=>println(s);val data = s._1.split("\t"); (data(0),data(3).toLong,data(4).toLong)}
+      regions.sortBy(s=>s._1).map { x =>
 
         val values = schema.zip(x._2).flatMap { s =>
           if (s._1._1.equals("score")||s._1._1.equals("source")||s._1._1.equals("feature")||s._1._1.equals("frame")) None
@@ -86,16 +87,23 @@ object StoreGTFRD {
             + {if (frameIndex >=0) x._2(frameIndex) else  "."} //frame
             + "\t" + values
         )
-      }.partitionBy(regionsPartitioner)
-        .mapPartitions(x=>x.toList.sortBy{s=> val data = s._2.split("\t"); (data(0),data(3).toLong,data(4).toLong)}.iterator)
+      } .partitionBy(regionsPartitioner)
+        //.mapPartitions(x=>x.toList.sortBy{s=> val data = s._2.split("\t"); (data(0),data(3).toLong,data(4).toLong)}.iterator)
     }
 
-    writeMultiOutputFiles.saveAsMultipleTextFiles(keyedRDD, RegionOutputPath)
+//    val keyedRDDR = if(Ids.count == regions.partitions) keyedRDD.sortBy{s=>val data = s._2.split("\t"); (data(0),data(3).toLong,data(4).toLong)} else keyedRDD
+//    writeMultiOutputFiles.saveAsMultipleTextFiles(keyedRDD, RegionOutputPath)
+    keyedRDD.saveAsHadoopFile(RegionOutputPath,classOf[String],classOf[String],classOf[RDDMultipleTextOutputFormat])
+
 
     val metaKeyValue = {
-      meta.map(x => (outSample+"_"+ "%05d".format(newIDSbroad.value.get(x._1).get) + ".gtf.meta", x._2._1 + "\t" + x._2._2)).repartition(1).sortBy(x=>(x._1,x._2))
+      meta.sortBy(x=>(x._1,x._2)).map(x => (outSample+"_"+ "%05d".format(newIDSbroad.value.get(x._1).get) + ".gtf.meta", x._2._1 + "\t" + x._2._2)).partitionBy(regionsPartitioner)
     }
-    writeMultiOutputFiles.saveAsMultipleTextFiles(metaKeyValue, MetaOutputPath)
+
+//    val metaKeyValueR  = if(Ids.count == meta.partitions) metaKeyValue.sortBy(_._2) else metaKeyValue
+
+//    writeMultiOutputFiles.saveAsMultipleTextFiles(metaKeyValue, MetaOutputPath)
+    metaKeyValue.saveAsHadoopFile(MetaOutputPath,classOf[String],classOf[String],classOf[RDDMultipleTextOutputFormat])
 
     writeMultiOutputFiles.fixOutputMetaLocation(MetaOutputPath)
 

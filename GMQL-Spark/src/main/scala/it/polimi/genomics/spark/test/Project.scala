@@ -5,8 +5,8 @@ package it.polimi.genomics.spark.test
   */
 
 
-import it.polimi.genomics.GMQLServer.GmqlServer
-import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaExtension
+import it.polimi.genomics.GMQLServer.{DefaultMetaExtensionFactory, GmqlServer}
+import it.polimi.genomics.core.DataStructures.MetaAggregate._
 import it.polimi.genomics.core.DataStructures.RegionAggregate.RegionExtension
 import it.polimi.genomics.core.DataStructures.RegionCondition.{MetaAccessor, Predicate, REG_OP}
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
@@ -45,8 +45,8 @@ object Project {
     val optionalDS = server READ ex_data_path_optional USING BedScoreParser
 
 //    val what = 1 // project MD
-    // val what = 1 // project MD and aggregate something
-     val what = 3 // project MD RD and extends tuple
+     val what = 1 // project MD and aggregate something
+//     val what = 3 // project MD RD and extends tuple
     // val what = 2 // project MD RD and aggregate something
 
 
@@ -59,22 +59,22 @@ object Project {
 
         case 1 => {
           //PROJECT MD ATTRIBUTE AND AGGREGATE MD
-          val fun = new MetaExtension {
-            override val newAttributeName: String = "computed_result_C"
-            override val inputAttributeNames: List[String] = List("A","B")
-            override val fun: (Array[Traversable[String]]) => String =
-            //average of the double
-              (l : Array[Traversable[String]]) => {
-                val r =
-                  l(0)
-                    .map((a: String) => (a.toDouble * 2, 1))
-                    .reduce((a: (Double, Int), b: (Double, Int)) => (a._1 + b._1, a._2 + b._2))
+//          val fun = new MetaExtension {
+//            override val newAttributeName: String = "computed_result_C"
+//            override val inputAttributeNames: List[String] = List("A","B")
+//            override val fun: (Array[Traversable[(String,String)]]) => String =
+//            //average of the double
+//              (l : Array[Traversable[(String,String)]]) => {
+//                val r =
+//                  l(0)
+//                    .map((a: (String, String)) => (a._2.toDouble * 2, 1))
+//                    .reduce((a: (Double, Int), b: (Double, Int)) => (a._1 + b._1, a._2 + b._2))
+//
+//                (r._1 / r._2).toString
+//              }
+//          }
 
-                (r._1 / r._2).toString
-              }
-          }
-
-          dataAsTheyAre.PROJECT(Some(List("filename","A", "B")), Some(fun), false, None)
+          dataAsTheyAre.PROJECT(Some(List("filename")), Some(List(DefaultMetaExtensionFactory.get(MEADD(MEName("ID"),MEFloat(3.0)), "_id1"), DefaultMetaExtensionFactory.get(MESUB(MEFloat(7.0),MEFloat(3.0)), "_id2"))), true, None)
         }
 
         case 2 => {

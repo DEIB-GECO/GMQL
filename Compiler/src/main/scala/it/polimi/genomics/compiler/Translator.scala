@@ -117,7 +117,7 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
 
   val keyword: Parser[String] = INTERSECT | ASC | OR | AND | NOT | LEFT | RIGHT | STRAND | CHR |
     START | STOP | META | UPSTREAM | DOWNSTREAM | MINDIST | DISTANCE | DISTLESS |
-    DISTGREATER | IN | CONTIG | ANY | ALL | TOPG | TOP | AS | DESC
+    DISTGREATER | IN | CONTIG | ANY | ALL | TOPG | TOPP | TOP | AS | DESC
   val gmql_identifier: Parser[String] = rep1sep(ident | "?", ".") ^^ {
     _.mkString(".")
   }

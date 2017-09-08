@@ -45,7 +45,7 @@ object GenometricMap71 {
     val refBinnedRep = ref.binDS(BINNING_PARAMETER,refGroups,expDataPartitioner)
 
     val RefExpJoined: RDD[(Long, (GRecordKey, Array[GValue], Array[GValue], (Int, Array[Int])))] = refBinnedRep.cogroup(expBinned)
-      .flatMap { grouped => val key: (Long, String, Int) = grouped._1;
+      .flatMap { (grouped: ((Long, String, Int), (Iterable[(Long, Long, Long, Char, Array[GValue])], Iterable[(Long, Long, Char, Array[GValue])]))) => val key: (Long, String, Int) = grouped._1;
         val ref: Iterable[(Long, Long, Long, Char, Array[GValue])] = grouped._2._1.toList.sortBy(x=>(x._1,x._2,x._3));
         val exp: Iterable[(Long, Long, Char, Array[GValue])] = grouped._2._2.toList.sortBy(x=>(x._1,x._2))
         sweep(key,ref.iterator,exp.iterator,BINNING_PARAMETER)
@@ -78,6 +78,7 @@ object GenometricMap71 {
 
     output
   }
+
   def sweep(key:(Long, String, Int),ref_regions:Iterator[(Long, Long, Long, Char, Array[GValue])],iExp:Iterator[(Long, Long, Char, Array[GValue])]
                     ,bin:Long ):Iterator[(Long, (GRecordKey, Array[GValue], Array[GValue], (Int, Array[Int])))] = {
 

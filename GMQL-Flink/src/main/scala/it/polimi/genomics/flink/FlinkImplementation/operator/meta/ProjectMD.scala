@@ -38,22 +38,22 @@ object ProjectMD {
         val inputAttributesName = agg.inputAttributeNames.foldLeft(new HashSet[String]())((z, v) => {z + v})
         filteredInput.union(
           filteredInput
-            .flatMap((v, out: Collector[(Long, String, Traversable[String])]) => {
+            .flatMap((v, out: Collector[(Long, String, Traversable[(String,String)])]) => {
               if(inputAttributesName.contains(v._2)){
-                out.collect((v._1, v._2, Traversable(v._3)))
+                out.collect((v._1, v._2, Traversable((v._2,v._3))))
               }
             })
             .groupBy(0)
             .reduceGroup(x => {
               val y = x.toTraversable
-              val grouped : Map[String, (Long, String, Traversable[String])] =
+              val grouped : Map[String, (Long, String, Traversable[(String,String)])] =
                 y
                   .groupBy(_._2)
                   .map((v) => (v._1, v._2.reduce((a,b) => {
                     (a._1, a._2, a._3 ++ b._3)
                   })))
                   .toMap
-              val array : Array[Traversable[String]] =
+              val array : Array[Traversable[(String,String)]] =
                 agg
                   .inputAttributeNames
                   .map((v) => {

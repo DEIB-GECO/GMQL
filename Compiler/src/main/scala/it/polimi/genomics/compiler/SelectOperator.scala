@@ -133,7 +133,12 @@ case class SelectOperator(op_pos : Position,
       None
     }
     sj_con = if(semi_join_temp_condition.isDefined){
-      Some(MetaJoinCondition(semi_join_temp_condition.get.attributes))
+      Some(
+        MetaJoinCondition(
+          semi_join_temp_condition.get.attributes,
+          negation = semi_join_temp_condition.get.is_negated
+        )
+      )
     } else {
       None
     }
