@@ -61,16 +61,15 @@ object OrderMD {
     val orderingWithIndex: Map[String, Int] = ordering.zipWithIndex.map(x=>(x._1._1,x._2)).toMap
 
     val SortingAttVallist1 = distinctFilteredValues.groupBy(_._1)
-    val SortingAttVallist = SortingAttVallist1.map{x=>
-        val missingAtt = keys.filter{s=> val dd = x._2.filter(_._2._1.equals(s)).size;println(dd);dd <= 0};
-        val misingPair = missingAtt.map(m=>(orderingWithIndex.get(m).get,m,GDouble(Double.MinValue))).toArray
-        (x._1,(x._2.map{f =>
-          (orderingWithIndex.get(f._2._1).get, f._2._1,GDouble(try{
-                    f._2._2.toDouble
-                  } catch {
-                  case e : Throwable =>/* println(f._2._2.hashCode);*/f._2._2.hashCode.toDouble
-                  }
-          ))
+    val SortingAttVallist: Array[(Long, List[(String, GValue)])] = SortingAttVallist1.map{ x=>
+        val missingAtt = keys.filter{s=> val dd = x._2.filter(_._2._1.equals(s)).size;dd <= 0};
+        val misingPair: Array[(Int, String, GValue)] = missingAtt.map(m=>(orderingWithIndex.get(m).get,m,GDouble(Double.MinValue))).toArray
+        (x._1,(x._2.map{f => val value: GValue = try{
+          GDouble(f._2._2.toDouble)
+        } catch {
+          case e : Throwable =>/* println(f._2._2.hashCode);*/GString(f._2._2)
+        }
+          (orderingWithIndex.get(f._2._1).get, f._2._1,value)
         }.toArray ++ misingPair).toList
           .sortBy(b=>b._1)
           .map(f=>(f._2,f._3)))
@@ -135,12 +134,10 @@ object OrderMD {
     //sampleID newAttribute_group groupID
     val sortedTop : List[(Long, (String, String))] =
       if(grouping){
-
         //Grouping group by the first n-1 ordering attributes and then selectes the top k
        val sortedGroups1 = SortingAttVallist.groupBy{record =>
          Hashing.md5.newHasher.putString(record._2.map(_._2).toList.init.mkString("§"), Charsets.UTF_8).hash.asLong
-      }.map(s=>(s._1,s._2.sortBy(sort=>sort._2.map(r=>r._2.asInstanceOf[GValue]).toArray[GValue])(valuesOrdering)))
-
+      }.map(s=>(s._1,s._2.sortBy((sort: (Long, List[(String, GValue)])) =>sort._2.map(_._2).toArray[GValue])(valuesOrdering)))
         val percentages1= if(topParameter.isInstanceOf[TopP]){
           sortedGroups1.map(x=>(x._1,x._2.size * top/100))
         }else HashMap[Long,Int]()
