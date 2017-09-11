@@ -25,6 +25,7 @@ object DefaultRegionsToRegionFactory extends MapFunctionFactory{
       case "AVG" => getAvg(position,output_name)
       case "MEDIAN" => getMEDIAN(position,output_name)
       case "BAG" => getBAG(position,output_name)
+      case "BAGD" => getBAGD(position,output_name)
       case _ => throw new Exception("No map function with the given name (" + name + ") found.")
     }
   }
@@ -127,23 +128,43 @@ object DefaultRegionsToRegionFactory extends MapFunctionFactory{
   private def getBAG(position:Int, output_name:Option[String]) = new RegionsToRegion {
     override val resType = ParsingType.STRING
     override val index: Int = position
-    override val associative: Boolean = true
+    override val associative: Boolean = false
     override val funOut: (GValue,(Int, Int)) => GValue = {(v1,v2)=>/*v1*/ if (v2._1 > 0) v1 else GNull()}
     override val fun: (List[GValue]) => GValue = {
-      (line) =>
-        if(line.nonEmpty)
-          GString((line.map((gvalue) => {
+      (list) =>
+        if(list.nonEmpty)
+          GString(list.sorted.map((gvalue) => {
             gvalue match{
-              case GString(v) => List(v)
-              case GDouble(v) => List(v.toString)
-              case GInt(v) => List(v.toString)
-              case GNull() => List("_")
+              case GString(v) => v
+              case GDouble(v) => v.toString
+              case GInt(v) => v.toString
+              case GNull() => "."
             }
-          }).distinct.reduce((a, b) => a ++ b)).sorted.mkString(" ")) // TODO sorted is added only for comparation reason, we can get rid of it
+          }).mkString(",")) // TODO sorted is added only for comparation reason, we can get rid of it
         else
-          GString(" ")
+          GString(".")
 
     }}
 
+  private def getBAGD(position:Int, output_name:Option[String]) = new RegionsToRegion {
+    override val resType = ParsingType.STRING
+    override val index: Int = position
+    override val associative: Boolean = false
+    override val funOut: (GValue,(Int, Int)) => GValue = {(v1,v2)=>/*v1*/ if (v2._1 > 0) v1 else GNull()}
+    override val fun: (List[GValue]) => GValue = {
+      (list) =>
+        if(list.nonEmpty)
+          GString(list.distinct.sorted.map((gvalue) => {
+            gvalue match{
+              case GString(v) => v
+              case GDouble(v) => v.toString
+              case GInt(v) => v.toString
+              case GNull() => "."
+            }
+          }).mkString(",")) // TODO sorted is added only for comparation reason, we can get rid of it
+        else
+          GString(".")
+
+    }}
 
 }

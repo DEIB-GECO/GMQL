@@ -1,6 +1,8 @@
 package it.polimi.genomics.repository.FSRepository
 
 import java.io._
+import java.text.SimpleDateFormat
+import java.util.Date
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
 import it.polimi.genomics.core.{GMQLSchemaField, GMQLSchemaFormat}
@@ -59,14 +61,19 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     */
   override def importDs(dataSetName: String, userName: String, Samples: java.util.List[GMQLSample], schemaPath: String): Unit = {
     if (FS_Utilities.validate(schemaPath)) {
+      val date = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+      val samples = Samples.asScala.map(x=> GMQLSample(x.ID,dataSetName+"_"+date+ "/"+new File(x.name).getName,dataSetName +"_"+date+ "/"+new File(x.meta).getName) ).asJava
       // Import the dataset schema and Script files to the local folder
-      super.importDs(dataSetName: String, userName: String, Samples: java.util.List[GMQLSample], schemaPath: String)
+      super.importDs(dataSetName: String, userName: String, samples ,schemaPath)
 
       // Copy sample and Meta data from HDFS to the local folder
-      Samples.asScala.map(x => FS_Utilities.copyfiletoHDFS(x.name, General_Utilities().getHDFSRegionDir(userName) + x.name))
+      samples.asScala.map{x =>
+        val HDFSfile = General_Utilities().getHDFSDSRegionDir(userName,dataSetName+"_"+date) +  new File(x.name).getName
+        FS_Utilities.copyfiletoHDFS(x.name, HDFSfile)
+      }
 
       FS_Utilities.copyfiletoHDFS(General_Utilities().getSchemaDir(userName)+dataSetName+".schema",
-        General_Utilities().getHDFSRegionDir(userName)+ new Path(Samples.get(0).name).getParent.toString+ "/test.schema"
+        General_Utilities().getHDFSRegionDir(userName)+ new Path(samples.get(0).name).getParent.toString+ "/test.schema"
       )
     } else {
       logger.info("The dataset schema does not confirm the schema style (XSD)")

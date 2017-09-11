@@ -266,13 +266,18 @@ case class FieldPosition(pos : Int) extends FieldPositionOrName
 case class FieldName(name : String) extends FieldPositionOrName
 case class FieldNameWithWildCards(name_with_wildcards : String) extends FieldPositionOrName
 
-case class MetaJoinConditionTemp(attributes : List[AttributeEvaluationStrategy], join_dataset_name : VariableIdentifier)
+case class MetaJoinConditionTemp(attributes : List[AttributeEvaluationStrategy],
+                                 join_dataset_name : VariableIdentifier,
+                                 is_negated : Boolean = false
+                                )
 case class RegionPredicateTemp(field:String, operator : REG_OP,  value : Any)  extends RegionCondition {}
 
 
 trait SingleProjectOnMeta
 case class MetaProject(attribute_name : String) extends  SingleProjectOnMeta
 case class MetaModifier(output: String, dag: MENode) extends SingleProjectOnMeta
+
+case class MetaAllBut(attributes : List[String])
 
 trait SingleProjectOnRegion
 case class RegionProject(field: FieldPositionOrName) extends SingleProjectOnRegion

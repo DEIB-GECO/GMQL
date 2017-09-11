@@ -1,7 +1,7 @@
 package it.polimi.genomics.compiler
 
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.Direction
-import it.polimi.genomics.core.DataStructures.GroupMDParameters.{TopG, Top, TopParameter, NoTop}
+import it.polimi.genomics.core.DataStructures.GroupMDParameters._
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
 
@@ -21,8 +21,14 @@ case class OrderOperator(op_pos : Position,
   with BuildingOperator2 with Serializable {
 
   override val operator_name = "ORDER"
-  override val accepted_named_parameters = List("meta_top", "meta_topg",
-    "region_order", "region_top", "region_topg")
+  override val accepted_named_parameters = List(
+    "meta_top",
+    "meta_topg",
+    "meta_topp",
+    "region_order",
+    "region_top",
+    "region_topg",
+    "region_topp")
 
   var meta_order:Option[List[(String,Direction)]] = None
   var meta_top:TopParameter = NoTop()
@@ -43,9 +49,11 @@ case class OrderOperator(op_pos : Position,
       n.param_name.trim.toLowerCase match {
         case "meta_top" => { meta_top = Top(parser_named(wholeNumber,n.param_name,n.param_value).get.toInt)}
         case "meta_topg" => { meta_top = TopG(parser_named(wholeNumber,n.param_name,n.param_value).get.toInt)}
+        case "meta_topp" => {meta_top = TopP(parser_named(wholeNumber,n.param_name,n.param_value).get.toInt)}
         case "region_order" => { region_order = parser_named(region_order_list, n.param_name,n.param_value)}
         case "region_top" => { region_top = Top(parser_named(wholeNumber,n.param_name,n.param_value).get.toInt)}
         case "region_topg" => { region_top = TopG(parser_named(wholeNumber,n.param_name,n.param_value).get.toInt)}
+        case "region_topp" => {region_top = TopP(parser_named(wholeNumber,n.param_name,n.param_value).get.toInt)}
       }
     }
 

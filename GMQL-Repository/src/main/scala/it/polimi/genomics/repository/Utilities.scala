@@ -163,6 +163,14 @@ class Utilities() {
   }
 
   /**
+    * Returns the dataset folder in HDFS
+    * @param userName
+    * @param DSName
+    * @return
+    */
+  def getHDFSDSRegionDir(userName: String = USERNAME, DSName:String): String = HDFSRepoDir + userName + "/regions/" + DSName+"/"
+
+  /**
     *
     * Constract the Directory to the regions folder on Local file system
     *
