@@ -70,7 +70,8 @@ case class JoinOperator(op_pos : Position,
                 n.param_value).get))
         }
         case "output" => {
-          val info = "Available options are: CONTIG, INT, LEFT, RIGHT. "
+          val info = "Available options are: " +
+            "CONTIG, INT, LEFT, RIGHT, RIGHT_DISTINCT and LEFT_DISTINCT. "
           output_builder = parser_named(region_builder, n.param_name, n.param_value, Some(info)).get
         }
       }
