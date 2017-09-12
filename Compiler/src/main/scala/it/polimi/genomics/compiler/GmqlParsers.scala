@@ -316,7 +316,7 @@ trait GmqlParsers extends JavaTokenParsers {
 
   val single_region_modifier:Parser[SingleProjectOnRegion] =
     ((region_field_name ^^ {FieldName(_)}) <~ AS) ~ stringLiteral ^^ {
-      x => RegionModifier(x._1, REStringConstant(x._2))
+      x => RegionModifier(x._1, REStringConstant(x._2.drop(1).dropRight(1)))
     } |
     ((region_field_name ^^ {FieldName(_)}) <~ AS) ~ (META ~> "(" ~> metadata_attribute <~ "," <~ INTEGER <~ ")") ^^ {
         x =>
