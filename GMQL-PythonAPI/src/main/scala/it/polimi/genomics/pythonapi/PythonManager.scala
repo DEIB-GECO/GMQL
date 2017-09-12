@@ -4,7 +4,7 @@ import java.io.{File, FileFilter}
 import java.util.concurrent.atomic.AtomicInteger
 
 import it.polimi.genomics.GMQLServer.GmqlServer
-import it.polimi.genomics.core.DataStructures.{IROperator, IRReadMD, IRReadRD, IRVariable}
+import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.{ParsingType, Utilities}
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
@@ -278,11 +278,15 @@ object PythonManager {
     dag match {
       case x: IRReadMD[_,_,_,_] =>
         if(x.dataset.position == source) {
-          x.dataset.position = dest
+          val newDataset = IRDataSet(dest, x.dataset.schema)
+          x.dataset = newDataset
+          x.paths = List(dest)
         }
       case x: IRReadRD[_,_,_,_] =>
         if(x.dataset.position == source) {
-          x.dataset.position = dest
+          val newDataset = IRDataSet(dest, x.dataset.schema)
+          x.dataset = newDataset
+          x.paths = List(dest)
         }
       case _ =>
     }

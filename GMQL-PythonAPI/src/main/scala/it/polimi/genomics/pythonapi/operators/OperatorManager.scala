@@ -115,7 +115,7 @@ object OperatorManager {
   * */
 
   def project(index: Int, projected_meta : Option[java.util.List[String]],
-              extended_meta : Option[MetaExtension],
+              extended_meta : Option[java.util.List[MetaExtension]],
               all_but_meta: Boolean,
               projected_regs : Option[java.util.List[String]],
               all_but_regs : Option[java.util.List[String]],
@@ -160,7 +160,13 @@ object OperatorManager {
       //extended_regs_scala.get.map(x => println(x.inputIndexes + "\t" + x.output_index + "\t" + x.output_name))
     }
 
-    val nv = v.PROJECT(projected_meta_scala, extended_meta, all_but_meta,
+    // EXTENDED META
+    var extended_meta_scala : Option[List[MetaExtension]] = None
+    if(extended_meta.isDefined) {
+      extended_meta_scala = Some(extended_meta.get.asScala.toList)
+    }
+
+    val nv = v.PROJECT(projected_meta_scala, extended_meta_scala, all_but_meta,
       projected_regs_scala,all_but_scala, extended_regs_scala)
 
     val new_index = PythonManager.putNewVariable(nv)

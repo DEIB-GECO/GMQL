@@ -27,7 +27,7 @@ import it.polimi.genomics.core.ParsingType.PARSING_TYPE
  */
 case class IRReadMD[IR,OR,IM,OM](var paths : List[String],
                                  loader : GMQLLoader[IR,OR,IM,OM],
-                                 dataset : IRDataSet) extends MetaOperator
+                                 var dataset : IRDataSet) extends MetaOperator
 
 /**
   * Dag node to represent the memory dataset reader for meta data.
@@ -46,7 +46,7 @@ case class IRReadMEMMD(metaDS:Any) extends MetaOperator
  */
 case class IRReadRD[IR,OR,IM,OM](var paths : List[String],
                                  loader : GMQLLoader[IR,OR,IM,OM],
-                                 dataset : IRDataSet) extends RegionOperator
+                                 var dataset : IRDataSet) extends RegionOperator
 
 /**
   * Dag node to represent the memory dataset reader for region data.
