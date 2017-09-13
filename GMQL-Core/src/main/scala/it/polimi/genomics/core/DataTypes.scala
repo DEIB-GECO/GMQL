@@ -76,10 +76,25 @@ object DataTypes {
 @SerialVersionUID(2212l)
 sealed trait GValue extends Serializable /*with Comparable[GValue]*/ with Ordered[GValue]{
   def compare(o : GValue) : Int = {
-    o match {
-      case GDouble(v) => this.asInstanceOf[GDouble].v compare v
-      case GString(v) => this.asInstanceOf[GString].v compare v
-      case GInt(v) => this.asInstanceOf[GInt].v compare v
+    this match {
+      case GDouble(f) =>   o match {
+        case GDouble(v) =>  f compare v
+        case GString(v) => 1
+        case GInt(v) => f compare v.toDouble
+        case GNull() => 0
+      }
+      case GString(f) =>  o match {
+        case GDouble(v) =>  -1
+        case GString(v) => f compare v
+        case GInt(v) => -1
+        case GNull() => 0
+      }
+      case GInt(f) =>  o match {
+        case GDouble(v) =>  f.toDouble compare v
+        case GString(v) => 1
+        case GInt(v) => f compare v
+        case GNull() => 0
+      }
       case GNull() => 0
     }
   }

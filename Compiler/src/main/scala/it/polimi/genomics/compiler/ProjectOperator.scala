@@ -22,7 +22,7 @@
     var region_project_fields : Option[List[Int]] = None
     var meta_projection : Option[Either[MetaAllBut, List[String]]] = None
     var region_modifier : Option[List[RegionFunction]] = None
-    var meta_modifier : Option[MetaExtension] = None
+    var meta_modifier : Option[List[MetaExtension]] = None
 
       override def preprocess_operator(status: CompilerStatus) : Boolean = {
         super_variable_left = Some(
@@ -135,11 +135,18 @@
               }
             }
             case "metadata_update" => {
-              val parsed_modifier = parser_named(single_metadata_modifier,p.param_name.trim, p.param_value.trim)
+              val parsed_modifiers = parser_named(
+                metadata_modifier_list,
+                p.param_name.trim,
+                p.param_value.trim)
               meta_modifier = Some(
-                DefaultMetaExtensionFactory.get(
-                  parsed_modifier.get.dag,
-                  parsed_modifier.get.output))
+                parsed_modifiers.get.map(
+                  {parsed_modifier =>
+                    DefaultMetaExtensionFactory.get(
+                      parsed_modifier.dag,
+                      parsed_modifier.output)}
+                )
+              )
 
 
             }

@@ -17,7 +17,7 @@ object ProjectMD {
   private final val logger = LoggerFactory.getLogger(ProjectMD.getClass);
 
   @throws[SelectFormatException]
-  def apply(executor: GMQLSparkExecutor, projectedAttributes: Option[List[String]], metaAggregator: Option[MetaExtension], all_but_flag:Boolean, inputDataset: MetaOperator, sc: SparkContext): RDD[MetaType] = {
+  def apply(executor: GMQLSparkExecutor, projectedAttributes: Option[List[String]], metaAggregator: Option[List[MetaExtension]], all_but_flag:Boolean, inputDataset: MetaOperator, sc: SparkContext): RDD[MetaType] = {
 
 //    if(metaAggregator.isDefined) println("defined",metaAggregator.get.newAttributeName,metaAggregator.get.inputAttributeNames,metaAggregator.get.inputAttributeNames,metaAggregator.get.fun(Array(List(("abdo","1"),("sam","2")))))
     logger.info("----------------ProjectMD executing..")
@@ -38,14 +38,16 @@ object ProjectMD {
 
     if (metaAggregator.isDefined) {
       val agg = metaAggregator.get
-      val  ext: RDD[(Long, (String, String))] = if(agg.inputAttributeNames.isEmpty)  filteredInput.keys.distinct().map(x=>(x,(agg.newAttributeName,agg.fun(Array(List[(String,String)]())))))
-      else  filteredInput.filter(in => agg.inputAttributeNames.foldLeft(false)( _ | in._2._1.endsWith(_))).groupBy(x=>x._1)
-        .map{x =>
-          (x._1,
-            (agg.newAttributeName ,
-              agg.fun(x._2.groupBy(_._2._1)
-                .map(s=>if(agg.inputAttributeNames.foldLeft(false)( _ | s._1.endsWith(_)))s._2.map(_._2).toTraversable else Traversable()).toArray)))
-        }
+      val  ext: RDD[(Long, (String, String))] = agg.map { a =>
+        if (a.inputAttributeNames.isEmpty) filteredInput.keys.distinct().map(x => (x, (a.newAttributeName, a.fun(Array(List[(String, String)]())))))
+        else filteredInput.filter(in => a.inputAttributeNames.foldLeft(false)(_ | in._2._1.endsWith(_))).groupBy(x => x._1)
+          .map { x =>
+            (x._1,
+              (a.newAttributeName,
+                a.fun(x._2.groupBy(_._2._1)
+                  .map(s => if (a.inputAttributeNames.foldLeft(false)(_ | s._1.endsWith(_))) s._2.map(_._2).toTraversable else Traversable()).toArray)))
+          }
+      }.reduce(_ union _)
 
       filteredInput.union(ext)
     } else {

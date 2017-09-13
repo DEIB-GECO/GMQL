@@ -56,7 +56,7 @@ object Project {
 
           }
 
-          dataAsTheyAre.PROJECT(Some(List("tableName","bert_value1", "bert_value2", "bert_value3")), Some(fun), false, None, None)
+          dataAsTheyAre.PROJECT(Some(List("tableName","bert_value1", "bert_value2", "bert_value3")), Some(List(fun)), false, None, None)
         }
 
         case 2 => {

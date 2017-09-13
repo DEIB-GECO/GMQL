@@ -28,13 +28,13 @@ object DefaultRegionExtensionFactory extends RegionExtensionFactory{
 
       override val out_type = dag match {
         case REStringConstant(_) => ParsingType.STRING
-        case _ => ParsingType.DOUBLE
-        case RENullConstant(ParsingType.INTEGER) => ParsingType.DOUBLE
+        case RENullConstant(ParsingType.INTEGER) => ParsingType.INTEGER
         case RENullConstant(ParsingType.DOUBLE) => ParsingType.DOUBLE
         case RENullConstant(ParsingType.STRING) => ParsingType.STRING
-        case REMetaAccessor(_, ParsingType.INTEGER) => ParsingType.DOUBLE
+        case REMetaAccessor(_, ParsingType.INTEGER) => ParsingType.INTEGER
         case REMetaAccessor(_, ParsingType.DOUBLE) => ParsingType.DOUBLE
         case REMetaAccessor(_, ParsingType.STRING) => ParsingType.STRING
+        case _ => ParsingType.DOUBLE
       }
     }
   }
@@ -164,8 +164,31 @@ object DefaultRegionExtensionFactory extends RegionExtensionFactory{
           case _ => v
         }
       }
-      case RENegate(f) => {x:Array[GValue] => GDouble(-make_fun(f,indexes)(x).asInstanceOf[GDouble].v)}
-      case RESQRT(f) => {x:Array[GValue] => GDouble(Math.sqrt(make_fun(f,indexes)(x).asInstanceOf[GDouble].v))}
+      case RENegate(f) => {x:Array[GValue] =>
+        val value = make_fun(f,indexes)(x)
+        value match {
+          case GNull() => GNull()
+          case GDouble(v) => GDouble(-v)
+          case GString(v) => GNull()
+          case _ => GNull()
+        }
+
+      }
+      case RESQRT(f) => {x:Array[GValue] =>
+        println(f,indexes)
+        val value = make_fun(f,indexes)(x);
+        println(value)
+        val out  = value match {
+          case GNull() => GNull()
+          case GDouble(v) => GDouble(Math.sqrt(v))
+          case GString(v) => GNull()
+          case _ => GNull()
+        }
+        println("out", out)
+        out
+
+      }
+
     }
   }
 }
