@@ -76,8 +76,10 @@ trait GmqlParsers extends JavaTokenParsers {
     """[m|M][d|D]""".r
   val DISTANCE:Parser[String] = """[d|D][i|I][s|S][t|T][a|A][n|N][c|C][e|E]""".r |
     """[d|D][i|I][s|S][t|T]""".r
-  val DISTLESS:Parser[String] = """[d|D][l|L][e|E]""".r
-  val DISTGREATER:Parser[String] = """[d|D][g|G][e|E]""".r
+  val DISTEQLESS:Parser[String] = """[d|D][l|L][e|E]""".r
+  val DISTLESS:Parser[String] = """[d|D][l|L]""".r
+  val DISTGREATER:Parser[String] = """[d|D][g|G]""".r
+  val DISTEQGREATER:Parser[String] = """[d|D][g|G][e|E]""".r
   val INTERSECT:Parser[String] = """[i|I][n|N][t|T][e|E][r|R][s|S][e|E][c|C][t|T]""".r |
     """[i|I][n|N][t|T]""".r
   val CONTIG:Parser[String] = """[c|C][o|O][n|N][t|T][i|I][g|G]""".r | """[c|C][a|A][t|T]""".r
@@ -398,12 +400,22 @@ trait GmqlParsers extends JavaTokenParsers {
   val join_midistance:Parser[AtomicCondition] = MINDIST ~> "(" ~> wholeNumber <~ ")" ^^
     {x => MinDistance(x.toInt)}
   val join_distless:Parser[AtomicCondition] =
-    ((DISTANCE ~> ("<=" | "<") ~> ("-" ~> wholeNumber) |
+    ((DISTANCE ~> ("<=") ~> ("-" ~> wholeNumber) |
+      DISTEQLESS ~> "(" ~> ("-" ~> wholeNumber)  <~ ")") ^^ {x => DistLess(-x.toLong + 1)}) |
+    ((DISTANCE ~> ("<") ~> ("-" ~> wholeNumber) |
       DISTLESS ~> "(" ~> ("-" ~> wholeNumber)  <~ ")") ^^ {x => DistLess(-x.toLong)}) |
-      ((DISTANCE ~> ("<=" | "<") ~> wholeNumber |
-    DISTLESS ~> "(" ~> wholeNumber <~ ")") ^^ {x => DistLess(x.toLong)})
-  val join_distgreater:Parser[AtomicCondition] = (DISTANCE ~> ( ">=" | ">") ~> wholeNumber |
-    DISTGREATER ~> "(" ~> wholeNumber <~ ")") ^^ {x => DistGreater(x.toLong)}
+    ((DISTANCE ~> ("<=") ~> wholeNumber |
+      DISTEQLESS ~> "(" ~> wholeNumber <~ ")") ^^ {x => DistLess(x.toLong + 1)}) |
+    ((DISTANCE ~> ("<") ~> wholeNumber |
+      DISTLESS ~> "(" ~> wholeNumber <~ ")") ^^ {x => DistLess(x.toLong)})
+
+
+  val join_distgreater:Parser[AtomicCondition] =
+    (DISTANCE ~> ( ">=") ~> wholeNumber |
+     DISTEQGREATER ~> "(" ~> wholeNumber <~ ")") ^^ {x => DistGreater(x.toLong - 1)} |
+    (DISTANCE ~> ( ">") ~> wholeNumber |
+     DISTGREATER ~> "(" ~> wholeNumber <~ ")") ^^ {x => DistGreater(x.toLong)}
+
   val join_atomic_condition:Parser[AtomicCondition] = join_up | join_down |
     join_distgreater | join_distless | join_midistance
 
