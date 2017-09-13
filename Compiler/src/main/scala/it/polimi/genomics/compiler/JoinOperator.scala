@@ -19,11 +19,13 @@ case class JoinOperator(op_pos : Position,
   with BuildingOperator2 with Serializable {
 
   override val operator_name = "JOIN"
-  override val accepted_named_parameters = List("joinby", "output")
+  override val accepted_named_parameters = List("joinby", "output", "on_attributes")
 
-  var genometric_condition : List[JoinQuadruple] = List(JoinQuadruple(Some(DistLess(0))))
+  var genometric_condition : List[JoinQuadruple] = List()
   var output_builder : RegionBuilder =  RegionBuilder.CONTIG
   var meta_join_param : Option[MetaJoinCondition] = None
+  var on_attributes : Option[List[FieldPositionOrName]] = None
+  var on_positions : Option[List[(Int, Int)]] = None
 
   override def check_input_number = two_inputs
 
@@ -69,6 +71,23 @@ case class JoinOperator(op_pos : Position,
                 n.param_name,
                 n.param_value).get))
         }
+        case "on_attributes" => {
+          on_attributes = parser_named(join_on_attributes_condition ,n.param_name, n.param_value)
+
+          val list_pairs:List[(Int, Int)] = for (a <- on_attributes.get) yield {
+            a match {
+              // in case it is a FieldPosition,
+              // we assume it to be a coordinate attribute (i.e., chr)
+              case FieldPosition(x) => (x,x)
+              case FieldName(n) => {
+                (left_var_get_field_name(n).get, right_var_get_field_name(n).get)
+              }
+            }
+          }
+
+          on_positions = Some(list_pairs)
+        }
+
         case "output" => {
           val info = "Available options are: " +
             "CONTIG, INT, LEFT, RIGHT, RIGHT_DISTINCT and LEFT_DISTINCT. "
@@ -82,13 +101,37 @@ case class JoinOperator(op_pos : Position,
 
   override def translate_operator(status : CompilerStatus):CompilerDefinedVariable = {
 
+    //check the validity of parameters
+    //
+    //at least one of distal condition and attribute condition has to be defined
+    if (genometric_condition.isEmpty && !on_positions.isDefined) {
+      val msg = "JOIN operator at line " + op_pos.line +
+        ": operators requires that at least one of distance condition or on_attributes condition " +
+        "to be provided."
+      throw new CompilerException(msg)
+    }
+    //
+    //if the distal condition is present then there are no limitations on the builder
+    //conversely, (when only the on_attributes is present) the accepted builder are LEFT and RIGHT
+    if (genometric_condition.isEmpty &&
+        on_positions.isDefined &&
+        !(output_builder == RegionBuilder.LEFT || output_builder == RegionBuilder.RIGHT)) {
+
+      val msg = "JOIN operator at line " + op_pos.line +
+        ": when a condition on distance is not provided, the only possible region builders are LEFT and RIGHT."
+      throw new CompilerException(msg)
+
+    }
+
     val joined = super_variable_left.get.JOIN(
       meta_join_param,
       genometric_condition,
       output_builder,
       super_variable_right.get,
       Some(input1.name),
-      Some(input2.get.name))
+      Some(input2.get.name),
+      join_on_attributes = on_positions
+    )
 
     CompilerDefinedVariable(output.name,output.pos,joined)
   }

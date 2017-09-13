@@ -40,7 +40,6 @@ trait GmqlParsers extends JavaTokenParsers {
     fixed_field_position ^^ {FieldPosition(_)} |
       region_field_name ^^ {FieldName(_)}
 
-
   val field_value:Parser[Any] = (stringLiteral ^^ {x=> x.drop(1).dropRight(1)})  |
     (floatingPointNumber ^^ (_.toDouble))
 
@@ -409,6 +408,11 @@ trait GmqlParsers extends JavaTokenParsers {
     join_distgreater | join_distless | join_midistance
 
   val join_region_condition:Parser[List[AtomicCondition]] = rep1sep(join_atomic_condition, ",")
+
+  val join_on_attributes_condition = rep1sep(
+    CHR ^^ {x=>FieldPosition(COORD_POS.CHR_POS)} | region_field_name ^^ {FieldName(_)}  ,
+    ","
+  )
 
   val region_builder:Parser[RegionBuilder] =
     LEFT_DISTINCT ^^ {x => RegionBuilder.LEFT_DISTINCT} |
