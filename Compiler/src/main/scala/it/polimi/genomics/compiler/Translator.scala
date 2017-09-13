@@ -287,22 +287,26 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
         DifferenceOperator(x._1._2._1.pos, x._2._1, x._2._2, x._1._1, x._1._2._2)}
     }
 
+  /*
   val meta_group_parameters: Parser[GroupMetaParameters] =
     ((metadata_attribute_list ^^ {
       MetaGroupByCondition(_)
     }).? ~ (";" ~> extend_aggfun_list).?) ^^ {
       x => GroupMetaParameters(x._1, x._2)
     }
+    */
 
   val region_group_parameters: Parser[GroupRegionParameters] =
     ((rep1sep(any_field_identifier, ",")).? ~ (";" ~> map_aggfun_list).?) ^^ {
       x => GroupRegionParameters(x._1, x._2)
     }
 
+  /*
   val group_parameters: Parser[GroupParameters] = (meta_group_parameters.? ~ (";" ~> region_group_parameters).?) ^^ {
     x =>
       GroupParameters(x._1, x._2)
   }
+  */
 
   /*
   val groupStatement:Parser[Operator] =
