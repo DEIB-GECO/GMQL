@@ -1,6 +1,7 @@
 package it.polimi.genomics.compiler
 
 import it.polimi.genomics.core.DataStructures.CoverParameters.{CoverFlag, CoverParam}
+import it.polimi.genomics.core.DataStructures.MetaJoinCondition.AttributeEvaluationStrategy
 
 import scala.util.parsing.input.Position
 
@@ -19,7 +20,7 @@ case class MergeOperator(op_pos : Position,
   override val operator_name = "MERGE"
   override val accepted_named_parameters = List("groupby")
 
-  var meta_group : Option[List[String]] = None
+  var meta_group : Option[List[AttributeEvaluationStrategy]] = None
 
   override def check_input_number = one_input
 
@@ -32,7 +33,7 @@ case class MergeOperator(op_pos : Position,
     for (p <- parameters.named) {
       p.param_name.trim.toLowerCase() match {
         case "groupby" => {
-          meta_group = parser_named(metadata_attribute_list,p.param_name.trim, p.param_value.trim)
+          meta_group = parser_named(rich_metadata_attribute_list,p.param_name.trim, p.param_value.trim)
         }
 
       }
