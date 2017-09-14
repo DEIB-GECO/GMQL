@@ -494,4 +494,10 @@ trait GmqlParsers extends JavaTokenParsers {
 
   val difference_type:Parser[Boolean] = TRUE ^^ {x => true} | FALSE ^^ {x => false}
 
+
+  val group_region_keys:Parser[List[FieldName]] = rep1sep(region_field_name,",") ^^ {
+    x =>
+      x.map(y => FieldName(y))
+  }
+
 }

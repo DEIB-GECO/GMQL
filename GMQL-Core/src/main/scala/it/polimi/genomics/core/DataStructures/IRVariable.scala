@@ -197,7 +197,12 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
     //only the metadata grouping
     else if (!region_keys.isDefined && !region_aggregates.isDefined) {
       new IRVariable(
-        IRGroupMD(meta_keys.get, meta_aggregates.get, meta_group_name, this.metaDag, this.regionDag),
+        IRGroupMD(
+          meta_keys.get,
+          meta_aggregates.get,
+          meta_group_name,
+          this.metaDag,
+          this.regionDag),
         this.regionDag)
     }
     else{

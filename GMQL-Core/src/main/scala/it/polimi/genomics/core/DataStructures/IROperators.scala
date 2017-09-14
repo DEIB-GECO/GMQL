@@ -168,7 +168,11 @@ case class IRAggregateRD(aggregates : List[RegionsToMeta], input_dataset : Regio
  * @param group_name it indicates the name for the new grouping attribute
  * @param region_dataset region dataset on which aggregate functions will be evaluated
  */
-case class IRGroupMD(keys : MetaGroupByCondition, aggregates : List[RegionsToMeta], group_name : String, input_dataset : MetaOperator, region_dataset : RegionOperator) extends MetaOperator{
+case class IRGroupMD(keys : MetaGroupByCondition,
+                     aggregates : List[RegionsToMeta],
+                     group_name : String,
+                     input_dataset : MetaOperator,
+                     region_dataset : RegionOperator) extends MetaOperator{
 
 }
 
