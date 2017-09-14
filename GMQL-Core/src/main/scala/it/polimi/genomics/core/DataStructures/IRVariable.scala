@@ -10,7 +10,7 @@ import it.polimi.genomics.core.DataStructures.JoinParametersRD.JoinQuadruple
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
 import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaExtension
 import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
-import it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinCondition
+import it.polimi.genomics.core.DataStructures.MetaJoinCondition.{AttributeEvaluationStrategy, MetaJoinCondition}
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
 import it.polimi.genomics.core.DataStructures.RegionAggregate._
 import it.polimi.genomics.core.DataStructures.RegionCondition.{MetaAccessor, RegionCondition}
@@ -197,7 +197,12 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
     //only the metadata grouping
     else if (!region_keys.isDefined && !region_aggregates.isDefined) {
       new IRVariable(
-        IRGroupMD(meta_keys.get, meta_aggregates.get, meta_group_name, this.metaDag, this.regionDag),
+        IRGroupMD(
+          meta_keys.get,
+          meta_aggregates.get,
+          meta_group_name,
+          this.metaDag,
+          this.regionDag),
         this.regionDag)
     }
     else{
@@ -236,7 +241,7 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
   }
 
 
-  def COVER(flag : CoverFlag, minAcc : CoverParam, maxAcc : CoverParam, aggregates : List[RegionsToRegion], groupBy : Option[List[String]]) : IRVariable = {
+  def COVER(flag : CoverFlag, minAcc : CoverParam, maxAcc : CoverParam, aggregates : List[RegionsToRegion], groupBy : Option[List[AttributeEvaluationStrategy]]) : IRVariable = {
 
     val grouping : Option[MetaGroupOperator] =
       if (groupBy.isDefined){
@@ -259,7 +264,7 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
   }
 
 
-  def MERGE(groupBy : Option[List[String]]) : IRVariable = {
+  def MERGE(groupBy : Option[List[AttributeEvaluationStrategy]]) : IRVariable = {
     if (!groupBy.isDefined){
       new IRVariable(IRMergeMD(this.metaDag, None), IRMergeRD(this.regionDag, None), this.schema)
     }

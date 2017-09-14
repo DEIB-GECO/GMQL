@@ -62,12 +62,12 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
   override def importDs(dataSetName: String, userName: String, Samples: java.util.List[GMQLSample], schemaPath: String): Unit = {
     if (FS_Utilities.validate(schemaPath)) {
       val date = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-      val samples = Samples.asScala.map(x=> GMQLSample(x.ID,dataSetName+"_"+date+ "/"+new File(x.name).getName,dataSetName +"_"+date+ "/"+new File(x.meta).getName) ).asJava
+      val samples = Samples.asScala.map(x=> GMQLSample(ID = x.ID, name = dataSetName+"_"+date+ "/"+new File(x.name).getName,meta = x.meta) ).asJava
       // Import the dataset schema and Script files to the local folder
       super.importDs(dataSetName: String, userName: String, samples ,schemaPath)
 
       // Copy sample and Meta data from HDFS to the local folder
-      samples.asScala.map{x =>
+      Samples.asScala.map{x =>
         val HDFSfile = General_Utilities().getHDFSDSRegionDir(userName,dataSetName+"_"+date) +  new File(x.name).getName
         FS_Utilities.copyfiletoHDFS(x.name, HDFSfile)
       }

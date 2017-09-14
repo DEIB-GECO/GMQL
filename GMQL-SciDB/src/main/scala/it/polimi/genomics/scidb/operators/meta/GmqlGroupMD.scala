@@ -1,13 +1,14 @@
 package it.polimi.genomics.scidb.operators.meta
 
+import it.polimi.genomics.core.DataStructures.MetaJoinCondition.AttributeEvaluationStrategy
 import it.polimi.genomics.core.DataStructures.RegionAggregate.R2MAggregator
 import it.polimi.genomics.scidb.evaluators.AggregateEvaluator
 import it.polimi.genomics.scidb.libraries.gmql4scidb
-import it.polimi.genomics.scidb.operators.{GDS, GmqlRegionOperator, GmqlMetaOperator}
+import it.polimi.genomics.scidb.operators.{GDS, GmqlMetaOperator, GmqlRegionOperator}
 import it.polimi.genomics.scidbapi.SciArray
 import it.polimi.genomics.scidbapi.aggregate.{AGGR, AGGR_SUM}
 import it.polimi.genomics.scidbapi.expression._
-import it.polimi.genomics.scidbapi.schema.{Dimension, Attribute}
+import it.polimi.genomics.scidbapi.schema.{Attribute, Dimension}
 import it.polimi.genomics.scidbapi.schema.DataType._
 import it.polimi.genomics.scidbapi.script.SciScript
 
@@ -18,7 +19,7 @@ import it.polimi.genomics.scidbapi.script.SciScript
   */
 class GmqlGroupMD(metadata : GmqlMetaOperator,
                   regions : GmqlRegionOperator,
-                  group_keys : List[String],
+                  group_keys : List[AttributeEvaluationStrategy],
                   group_name : String,
                   aggregates : List[_<:R2MAggregator])
   extends GmqlMetaOperator
