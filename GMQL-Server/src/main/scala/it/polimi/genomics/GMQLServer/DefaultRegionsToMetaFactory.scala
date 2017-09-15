@@ -34,6 +34,7 @@ object DefaultRegionsToMetaFactory extends ExtendFunctionFactory {
       case "MAX" => getMax(position,output_name)
       case "AVG" => getAvg(position,output_name)
       case "BAG" => getBAG(position,output_name)
+      case "BAGD" => getBAGD(position,output_name)
       case "STD" => getSTD(position,output_name)
       case "MEDIAN" => getMEDIAN(position,output_name)
       case "Q2" => getMEDIAN(position,output_name)
@@ -256,7 +257,7 @@ object DefaultRegionsToMetaFactory extends ExtendFunctionFactory {
     override val associative : Boolean = false
     override val fun: (List[GValue]) => GValue = {
       (list) =>{if(list.nonEmpty)
-          GString(list.distinct.sorted.map((gvalue) => {
+          GString(list.sorted.map((gvalue) => {
             gvalue match{
               case GString(v) => v
               case GDouble(v) => v.toString
@@ -264,11 +265,33 @@ object DefaultRegionsToMetaFactory extends ExtendFunctionFactory {
               case GNull() => "."
             }
           }).mkString(",") )// TODO sorted is added only for comparation reason, we can get rid of it
+      else
+          GString(".")
+      }
+    }
+    override val funOut: (GValue,(Int, Int)) => GValue = {(v1,v2)=>v1}
+  }
 
-        //if(line.size>0)
-        //  GString((line.map((gvalue) => gvalue.asInstanceOf[GString].v).reduce(_ + _)).sorted) // TODO sorted is added only for comparation reason, we can get rid of it
-        else
-          GString(" ")
+  private def getBAGD(position:Int, new_name:Option[String]) = new RegionsToMeta {
+
+    override val newAttributeName = if(new_name.isDefined) new_name.get else "BagD"
+    override val inputIndex: Int = position
+    override val associative : Boolean = false
+    override val fun: (List[GValue]) => GValue = {
+      (list) =>{if(list.nonEmpty)
+        GString(list.distinct.sorted.map((gvalue) => {
+          gvalue match{
+            case GString(v) => v
+            case GDouble(v) => v.toString
+            case GInt(v) => v.toString
+            case GNull() => "."
+          }
+        }).mkString(",") )// TODO sorted is added only for comparation reason, we can get rid of it
+
+      //if(line.size>0)
+      //  GString((line.map((gvalue) => gvalue.asInstanceOf[GString].v).reduce(_ + _)).sorted) // TODO sorted is added only for comparation reason, we can get rid of it
+      else
+        GString(".")
       }
     }
     override val funOut: (GValue,(Int, Int)) => GValue = {(v1,v2)=>v1}

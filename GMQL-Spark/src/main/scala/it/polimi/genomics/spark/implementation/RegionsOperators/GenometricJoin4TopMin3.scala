@@ -4,6 +4,7 @@ import com.google.common.base.Charsets
 import com.google.common.hash.Hashing
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
 import it.polimi.genomics.core.DataStructures.JoinParametersRD._
+import it.polimi.genomics.core.DataStructures.RegionAggregate.COORD_POS
 import it.polimi.genomics.core.DataStructures.{OptionalMetaJoinOperator, RegionOperator}
 import it.polimi.genomics.core.DataTypes._
 import it.polimi.genomics.core.exception.SelectFormatException
@@ -277,9 +278,20 @@ object GenometricJoin4TopMin3 {
 
   def filterRef(ds: RDD[GRECORD], Bgroups:RDD[(Long, Long)], join_columns:List[Int]): RDD[(Long, (Long, Long, String, Long, Long, Char, Array[GValue]))] = {
     ds.partitionBy(new HashPartitioner(Bgroups.keys.distinct().count.toInt)).keyBy(x=>x._1._1).join(Bgroups).map { x =>
-      val region = x._2._1
+      val region: (GRecordKey, Array[GValue]) = x._2._1
+      val join_id = Hashing.md5.newHasher.putString(join_columns.map{ind=>
+        ind match {
+          case COORD_POS.CHR_POS => region._1._2
+          case COORD_POS.LEFT_POS => region._1._3
+          case COORD_POS.RIGHT_POS => region._1._4
+          case COORD_POS.START_POS => region._1._3
+          case COORD_POS.STOP_POS => region._1._4
+          case COORD_POS.STRAND_POS => region._1._5
+          case _ => region._2(ind)
+        }
+      }.mkString(","),Charsets.UTF_8).hash().asLong()
 
-      (Hashing.md5.newHasher.putString(join_columns.map(ind => region._2(ind)).mkString(","),Charsets.UTF_8).hash().asLong(),(x._2._2, region._1._1, region._1._2, region._1._3, region._1._4, region._1._5, region._2))
+      (join_id,(x._2._2, region._1._1, region._1._2, region._1._3, region._1._4, region._1._5, region._2))
     }
   }
 
@@ -287,7 +299,19 @@ object GenometricJoin4TopMin3 {
     ds.keyBy(x => x._1._1).join(Bgroups,new HashPartitioner(Bgroups.count.toInt)).map { x =>
       val region = x._2._1
 
-      (Hashing.md5.newHasher.putString(join_columns.map(ind=> region._2(ind)).mkString(","),Charsets.UTF_8).hash().asLong(),(x._2._2, region._1._1, region._1._2, region._1._3, region._1._4, region._1._5, region._2))
+      val join_id = Hashing.md5.newHasher.putString(join_columns.map{ind=>
+       ind match {
+         case COORD_POS.CHR_POS => region._1._2
+         case COORD_POS.LEFT_POS => region._1._3
+         case COORD_POS.RIGHT_POS => region._1._4
+         case COORD_POS.START_POS => region._1._3
+         case COORD_POS.STOP_POS => region._1._4
+         case COORD_POS.STRAND_POS => region._1._5
+         case _ => region._2(ind)
+       }
+
+      }.mkString(","),Charsets.UTF_8).hash().asLong()
+      ( join_id,(x._2._2, region._1._1, region._1._2, region._1._3, region._1._4, region._1._5, region._2))
     }
   }
 

@@ -3,10 +3,11 @@ package it.polimi.genomics.scidb.test.operator
 import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
 import it.polimi.genomics.core.DataStructures.GroupRDParameters.FIELD
 import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
+import it.polimi.genomics.core.DataStructures.MetaJoinCondition.Default
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.ParsingType
 import it.polimi.genomics.scidb.GmqlSciImplementation
-import it.polimi.genomics.scidb.test.{FakeR2R, FakeR2M}
+import it.polimi.genomics.scidb.test.{FakeR2M, FakeR2R}
 
 /**
   * Created by Cattani Simone on 15/04/16.
@@ -64,7 +65,7 @@ object GroupTest
     countVal1R.input_index = 0
     countVal1R.output_name = Some("count")
 
-    val GroupMD = IRGroupMD(MetaGroupByCondition(List("bert_value1")), List(minVal1, maxVal1, countVal1), "group", ReadSourceMD, ReadSourceRD)
+    val GroupMD = IRGroupMD(MetaGroupByCondition(List(Default("bert_value1"))), List(minVal1, maxVal1, countVal1), "group", ReadSourceMD, ReadSourceRD)
     val GroupRD = IRGroupRD(Some(List(FIELD(1))), Some(List(maxVal1R, minVal1R, countVal1R)), ReadSourceRD)
 
     val StoreAncMD = IRStoreMD("", GroupMD, RES)

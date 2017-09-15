@@ -5,6 +5,7 @@ import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCo
 import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionsToMeta, RegionsToRegion}
 import it.polimi.genomics.core.{GDouble, GValue}
 import it.polimi.genomics.GMQLServer.GmqlServer
+import it.polimi.genomics.core.DataStructures.MetaJoinCondition.Default
 import it.polimi.genomics.core.ParsingType
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
@@ -48,7 +49,7 @@ object Group {
              override val fun = sum
              override val funOut: (GValue,(Int, Int)) => GValue = {(v1,v2)=>v1}
            }
-           dataAsTheyAre.GROUP(Some(MetaGroupByCondition(List("bert_value1"))), Some(List(regionsToMeta)), "bert_value_1_group", None, None)
+           dataAsTheyAre.GROUP(Some(MetaGroupByCondition(List(Default("bert_value1")))), Some(List(regionsToMeta)), "bert_value_1_group", None, None)
          }
 
          case 1 => {

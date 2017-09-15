@@ -116,8 +116,9 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
       SUM
 
   val keyword: Parser[String] = INTERSECT | ASC | OR | AND | NOT | LEFT | RIGHT | STRAND | CHR |
-    START | STOP | META | UPSTREAM | DOWNSTREAM | MINDIST | DISTANCE | DISTLESS |
-    DISTGREATER | IN | CONTIG | ANY | ALL | TOPG | TOPP | TOP | AS | DESC
+    START | STOP | META | UPSTREAM | DOWNSTREAM | MINDIST | DISTANCE | DISTEQLESS | DISTLESS |
+    DISTEQGREATER | DISTGREATER | IN | CONTIG | ANY | ALL | TOPG | TOPP | TOP | AS | DESC
+
   val gmql_identifier: Parser[String] = rep1sep(ident | "?", ".") ^^ {
     _.mkString(".")
   }
@@ -213,6 +214,14 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
       x => OrderOperator(x._1._2._1.pos, x._2._1, x._2._2, x._1._1, x._1._2._2)
     }
 
+  val groupStatement: Parser[Operator] =
+    ((variableId <~ assignment_symbol) ~ ((GROUP <~ "(") ~ operator_parameters <~ ")")) ~
+      (operatorInput | (onlyPath ^^ {
+        (_, None)
+      })) <~ ";" ^^ {
+       x=> GroupOperator(x._1._2._1.pos, x._2._1, x._2._2, x._1._1, x._1._2._2)
+    }
+
   val coverStatement: Parser[Operator] =
     ((variableId <~ assignment_symbol) ~ ((COVER <~ "(") ~ operator_parameters <~ ")")) ~
       (operatorInput | (onlyPath ^^ {
@@ -286,33 +295,14 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
         DifferenceOperator(x._1._2._1.pos, x._2._1, x._2._2, x._1._1, x._1._2._2)}
     }
 
-  val meta_group_parameters: Parser[GroupMetaParameters] =
-    ((metadata_attribute_list ^^ {
-      MetaGroupByCondition(_)
-    }).? ~ (";" ~> extend_aggfun_list).?) ^^ {
-      x => GroupMetaParameters(x._1, x._2)
-    }
+
 
   val region_group_parameters: Parser[GroupRegionParameters] =
     ((rep1sep(any_field_identifier, ",")).? ~ (";" ~> map_aggfun_list).?) ^^ {
       x => GroupRegionParameters(x._1, x._2)
     }
 
-  val group_parameters: Parser[GroupParameters] = (meta_group_parameters.? ~ (";" ~> region_group_parameters).?) ^^ {
-    x =>
-      GroupParameters(x._1, x._2)
-  }
 
-  /*
-  val groupStatement:Parser[Operator] =
-    ((variableId <~ assignment_symbol) ~ ((GROUP <~ "(") ~ group_parameters <~ ")" )) ~ operatorInput <~ ";" ^^ {
-      x=>
-        val param = x._1._2._2
-
-        GroupOperator(x._1._2._1.pos, x._2._1, x._2._2,x._1._1,param.meta_grouping, param.region_grouping)
-    }
-
-*/
   def remove_comments(query: String): String = {
 
     query.replaceAll("[#].*", "").replaceAll("\\s+$", "")
@@ -340,7 +330,9 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
       differenceStatement |
       unionStatement |
       materializeStatement |
+      groupStatement |
       wrongStatement
+
     val filler = """(.|\n)*;""".r
 
     do {

@@ -40,7 +40,6 @@ trait GmqlParsers extends JavaTokenParsers {
     fixed_field_position ^^ {FieldPosition(_)} |
       region_field_name ^^ {FieldName(_)}
 
-
   val field_value:Parser[Any] = (stringLiteral ^^ {x=> x.drop(1).dropRight(1)})  |
     (floatingPointNumber ^^ (_.toDouble))
 
@@ -77,11 +76,15 @@ trait GmqlParsers extends JavaTokenParsers {
     """[m|M][d|D]""".r
   val DISTANCE:Parser[String] = """[d|D][i|I][s|S][t|T][a|A][n|N][c|C][e|E]""".r |
     """[d|D][i|I][s|S][t|T]""".r
-  val DISTLESS:Parser[String] = """[d|D][l|L][e|E]""".r
-  val DISTGREATER:Parser[String] = """[d|D][g|G][e|E]""".r
+  val DISTEQLESS:Parser[String] = """[d|D][l|L][e|E]""".r
+  val DISTLESS:Parser[String] = """[d|D][l|L]""".r
+  val DISTGREATER:Parser[String] = """[d|D][g|G]""".r
+  val DISTEQGREATER:Parser[String] = """[d|D][g|G][e|E]""".r
   val INTERSECT:Parser[String] = """[i|I][n|N][t|T][e|E][r|R][s|S][e|E][c|C][t|T]""".r |
     """[i|I][n|N][t|T]""".r
   val CONTIG:Parser[String] = """[c|C][o|O][n|N][t|T][i|I][g|G]""".r | """[c|C][a|A][t|T]""".r
+  val LEFT_DISTINCT:Parser[String] = """[l|L][e|E][f|F][t|T][_][d|D][i|I][s|S][t|T][i|I][n|N][c|C][t|T]""".r
+  val RIGHT_DISTINCT:Parser[String] = """[r|R][i|I][g|G][h|H][t|T]_[d|D][i|I][s|S][t|T][i|I][n|N][c|C][t|T]""".r
   val ANY:Parser[String] = """[a|A][n|N][y|Y]""".r
   val ALL:Parser[String] = """[a|A][l|L][l|L]""".r
   val TOPG:Parser[String] = """[t|T][o|O][p|P][g|G]""".r
@@ -316,7 +319,7 @@ trait GmqlParsers extends JavaTokenParsers {
 
   val single_region_modifier:Parser[SingleProjectOnRegion] =
     ((region_field_name ^^ {FieldName(_)}) <~ AS) ~ stringLiteral ^^ {
-      x => RegionModifier(x._1, REStringConstant(x._2))
+      x => RegionModifier(x._1, REStringConstant(x._2.drop(1).dropRight(1)))
     } |
     ((region_field_name ^^ {FieldName(_)}) <~ AS) ~ (META ~> "(" ~> metadata_attribute <~ "," <~ INTEGER <~ ")") ^^ {
         x =>
@@ -333,10 +336,10 @@ trait GmqlParsers extends JavaTokenParsers {
     ((region_field_name ^^ {FieldName(_)}) <~ AS) <~ NULL <~ "(" <~ INTEGER <~ ")" ^^ {
       x => RegionModifier(x, RENullConstant(ParsingType.INTEGER))
     } |
-    ((region_field_name ^^ {FieldName(_)}) <~ AS) <~ NULL <~ ":" <~ DOUBLE ^^ {
+    ((region_field_name ^^ {FieldName(_)}) <~ AS) <~ NULL <~ "(" <~ DOUBLE <~ ")" ^^ {
         x => RegionModifier(x, RENullConstant(ParsingType.DOUBLE))
       } |
-    ((region_field_name ^^ {FieldName(_)}) <~ AS) <~ NULL <~ ":" <~ STRING ^^ {
+    ((region_field_name ^^ {FieldName(_)}) <~ AS) <~ NULL <~ "(" <~ STRING <~ ")" ^^ {
         x => RegionModifier(x, RENullConstant(ParsingType.STRING))
       } |
     (
@@ -355,6 +358,7 @@ trait GmqlParsers extends JavaTokenParsers {
   lazy val me_factor:Parser[MENode] =
     decimalNumber ^^ {x => MEFloat(x.toDouble)} |
     metadata_attribute ^^ {x => MEName(x)} | "(" ~> me_expr <~ ")" |
+    SQRT ~> "(" ~> me_expr <~ ")" ^^ {MESQRT(_)} |
     SUB ~> me_expr ^^ {x => MENegate(x)}
 
   val me_term: Parser[MENode] = me_factor ~ rep((MULT|DIV) ~ me_factor) ^^ {
@@ -396,18 +400,36 @@ trait GmqlParsers extends JavaTokenParsers {
   val join_midistance:Parser[AtomicCondition] = MINDIST ~> "(" ~> wholeNumber <~ ")" ^^
     {x => MinDistance(x.toInt)}
   val join_distless:Parser[AtomicCondition] =
-    ((DISTANCE ~> ("<=" | "<") ~> ("-" ~> wholeNumber) |
+    ((DISTANCE ~> ("<=") ~> ("-" ~> wholeNumber) |
+      DISTEQLESS ~> "(" ~> ("-" ~> wholeNumber)  <~ ")") ^^ {x => DistLess(-x.toLong + 1)}) |
+    ((DISTANCE ~> ("<") ~> ("-" ~> wholeNumber) |
       DISTLESS ~> "(" ~> ("-" ~> wholeNumber)  <~ ")") ^^ {x => DistLess(-x.toLong)}) |
-      ((DISTANCE ~> ("<=" | "<") ~> wholeNumber |
-    DISTLESS ~> "(" ~> wholeNumber <~ ")") ^^ {x => DistLess(x.toLong)})
-  val join_distgreater:Parser[AtomicCondition] = (DISTANCE ~> ( ">=" | ">") ~> wholeNumber |
-    DISTGREATER ~> "(" ~> wholeNumber <~ ")") ^^ {x => DistGreater(x.toLong)}
+    ((DISTANCE ~> ("<=") ~> wholeNumber |
+      DISTEQLESS ~> "(" ~> wholeNumber <~ ")") ^^ {x => DistLess(x.toLong + 1)}) |
+    ((DISTANCE ~> ("<") ~> wholeNumber |
+      DISTLESS ~> "(" ~> wholeNumber <~ ")") ^^ {x => DistLess(x.toLong)})
+
+
+  val join_distgreater:Parser[AtomicCondition] =
+    (DISTANCE ~> ( ">=") ~> wholeNumber |
+     DISTEQGREATER ~> "(" ~> wholeNumber <~ ")") ^^ {x => DistGreater(x.toLong - 1)} |
+    (DISTANCE ~> ( ">") ~> wholeNumber |
+     DISTGREATER ~> "(" ~> wholeNumber <~ ")") ^^ {x => DistGreater(x.toLong)}
+
   val join_atomic_condition:Parser[AtomicCondition] = join_up | join_down |
     join_distgreater | join_distless | join_midistance
 
   val join_region_condition:Parser[List[AtomicCondition]] = rep1sep(join_atomic_condition, ",")
 
-  val region_builder:Parser[RegionBuilder] = LEFT ^^ {x => RegionBuilder.LEFT} |
+  val join_on_attributes_condition = rep1sep(
+    CHR ^^ {x=>FieldPosition(COORD_POS.CHR_POS)} | region_field_name ^^ {FieldName(_)}  ,
+    ","
+  )
+
+  val region_builder:Parser[RegionBuilder] =
+    LEFT_DISTINCT ^^ {x => RegionBuilder.LEFT_DISTINCT} |
+    RIGHT_DISTINCT ^^ {x => RegionBuilder.RIGHT_DISTINCT} |
+    LEFT ^^ {x => RegionBuilder.LEFT} |
     RIGHT ^^ {x => RegionBuilder.RIGHT} |
     INTERSECT ^^ {x => RegionBuilder.INTERSECTION} |
     CONTIG ^^ {x => RegionBuilder.CONTIG}
@@ -471,5 +493,11 @@ trait GmqlParsers extends JavaTokenParsers {
 
 
   val difference_type:Parser[Boolean] = TRUE ^^ {x => true} | FALSE ^^ {x => false}
+
+
+  val group_region_keys:Parser[List[FieldName]] = rep1sep(region_field_name,",") ^^ {
+    x =>
+      x.map(y => FieldName(y))
+  }
 
 }

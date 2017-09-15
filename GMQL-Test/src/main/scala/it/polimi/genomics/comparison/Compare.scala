@@ -30,7 +30,7 @@ object Compare {
 
   def main(args: Array[String]) {
 
-    var executionType = "ss"
+    var executionType = SPARK
     var output = ""
     var inputFile = ""
     var generate = true

@@ -1,9 +1,9 @@
 package it.polimi.genomics.scidb.test.operator
 
-import it.polimi.genomics.core.DataStructures.CoverParameters.{N, ANY, CoverFlag}
+import it.polimi.genomics.core.DataStructures.CoverParameters.{ANY, CoverFlag, N}
 import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
 import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
-import it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinCondition
+import it.polimi.genomics.core.DataStructures.MetaJoinCondition.{Default, MetaJoinCondition}
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.ParsingType
 import it.polimi.genomics.scidb.GmqlSciImplementation
@@ -45,7 +45,7 @@ object CoverTest
     countVal1.input_index = 0
     countVal1.output_name = Some("counted")
 
-    val MetaGroup = IRGroupBy(MetaGroupByCondition(List("bert_value1")), ReadAncMD)
+    val MetaGroup = IRGroupBy(MetaGroupByCondition(List(Default("bert_value1"))), ReadAncMD)
     val CollapseMD = IRCollapseMD(Some(MetaGroup), ReadAncMD)
     val CoverMD = IRRegionCover(CoverFlag.FLAT, new N{override val n=2;}, new ANY{}, List(countVal1), Some(MetaGroup), ReadAncRD)
 
