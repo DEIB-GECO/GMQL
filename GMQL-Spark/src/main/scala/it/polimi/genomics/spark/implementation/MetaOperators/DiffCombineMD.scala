@@ -40,15 +40,15 @@ object DiffCombineMD{
         else None
       }
 
-      val rightOut = right.flatMap{ r =>
-        pairs.flatMap{p =>
-          if (p._2.contains(r._1)) {
-            Some(Hashing.md5().newHasher().putLong(p._1)/*.putLong(r._1)*/.hash().asLong, (rtag + r._2._1, r._2._2))
-          }else None
-        }
-      }
+//      val rightOut = right.flatMap{ r =>
+//        pairs.flatMap{p =>
+//          if (p._2.contains(r._1)) {
+//            Some(Hashing.md5().newHasher().putLong(p._1)/*.putLong(r._1)*/.hash().asLong, (rtag + r._2._1, r._2._2))
+//          }else None
+//        }
+//      }
 
-      leftOut.union(rightOut)
+      leftOut//.union(rightOut)
 
     } else {
       val leftIds = left.keys.distinct().collect()
@@ -60,13 +60,13 @@ object DiffCombineMD{
 //        }
       }
 
-      val rightOut = right.flatMap{r=>
-        leftIds.map{l =>
-          (Hashing.md5().newHasher().putLong(l)/*.putLong( r._1)*/.hash.asLong, (rtag + r._2._1,r._2._2))
-        }
-      }
+//      val rightOut = right.flatMap{r=>
+//        leftIds.map{l =>
+//          (Hashing.md5().newHasher().putLong(l)/*.putLong( r._1)*/.hash.asLong, (rtag + r._2._1,r._2._2))
+//        }
+//      }
 
-      leftOut.union(rightOut)//.sortBy(x=>x._1)
+      leftOut//.union(rightOut)//.sortBy(x=>x._1)
     }
   }
 }
