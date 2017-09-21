@@ -41,7 +41,7 @@ class GMQLSparkLauncher(sparkJob:GMQLJob) extends GMQLLauncher(sparkJob){
       case SparkAppHandle.State.CONNECTED => Status.PENDING
       case SparkAppHandle.State.FAILED => Status.EXEC_FAILED
       case SparkAppHandle.State.FINISHED => Status.EXEC_SUCCESS
-      case SparkAppHandle.State.KILLED => Status.EXEC_FAILED
+      case SparkAppHandle.State.KILLED => Status.EXEC_STOPPED
       case SparkAppHandle.State.SUBMITTED => Status.PENDING
       case SparkAppHandle.State.RUNNING => Status.RUNNING
       case _ => Status.PENDING
