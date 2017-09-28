@@ -339,9 +339,6 @@ trait GmqlParsers extends JavaTokenParsers {
     ((region_field_name ^^ {FieldName(_)}) <~ AS) <~ NULL <~ "(" <~ DOUBLE <~ ")" ^^ {
         x => RegionModifier(x, RENullConstant(ParsingType.DOUBLE))
       } |
-    ((region_field_name ^^ {FieldName(_)}) <~ AS) <~ NULL <~ "(" <~ STRING <~ ")" ^^ {
-        x => RegionModifier(x, RENullConstant(ParsingType.STRING))
-      } |
     (
       (
         not(RIGHT | LEFT | START | STOP) ~> any_field_identifier |
