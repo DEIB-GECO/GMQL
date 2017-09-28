@@ -21,5 +21,6 @@ object Status extends Enumeration {
   val DS_CREATION_FAILED: Status.Value = Value("DS_CREATION_FAILED")
   val DS_CREATION_SUCCESS : Status.Value= Value("DS_CREATION_SUCCESS")
   val EXEC_FAILED: Status.Value= Value("EXEC_FAILED")
+  val EXEC_STOPPED: Status.Value= Value("EXEC_STOPPED")
   val SUCCESS : Status.Value= Value("SUCCESS")
 }
