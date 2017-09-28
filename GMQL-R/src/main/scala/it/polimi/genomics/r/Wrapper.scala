@@ -97,7 +97,6 @@ object Wrapper {
     }
 
     remote_processing = remote_proc
-
     println("GMQL Server is up")
   }
 
@@ -322,7 +321,9 @@ object Wrapper {
 
   /*GMQL OPERATION*/
 
-  def select(predicate: Any, region_predicate: Any, semi_join: Array[Array[String]], semi_join_dataset: Any, input_dataset: String): String = {
+  def select(predicate: String, region_predicate: String, semi_join: Array[Array[String]],
+             semi_join_dataset: String, semi_join_neg:Boolean, input_dataset: String): String = {
+
     if (vv.get(input_dataset).isEmpty)
       return "No valid Data as input"
 
@@ -333,6 +334,7 @@ object Wrapper {
     var selected_meta: (String, Option[MetadataCondition]) = ("", None)
     var selected_regions: (String, Option[RegionCondition]) = ("", None)
     val parser = new Parser(dataAsTheyAre, GMQL_server)
+    var semi_join_list:Option[MetaJoinCondition]=None
 
     if (predicate != null) {
       selected_meta = parser.parseSelectMetadata(predicate.toString)
@@ -346,13 +348,15 @@ object Wrapper {
         return selected_regions._1
     }
 
-    val semi_join_list = MetaJoinConditionList(semi_join)
-    if (semi_join_list == null)
-      return "No valid condition in semi join"
+    if(semi_join!=null){
+      semi_join_list= MetaJoinConditionList_with_neg(semi_join,semi_join_neg)
+      if (semi_join_list.isEmpty)
+        return "No valid condition in semi join"
 
-    if (semi_join_list.isDefined) {
-      if (vv.get(semi_join_dataset.toString).isEmpty)
-        return "No valid Data as semi join input"
+      if (semi_join_list.isDefined) {
+        if (vv.get(semi_join_dataset.toString).isEmpty)
+          return "No valid Data as semi join input"
+    }
 
       semiJoinDataAsTheyAre = vv(semi_join_dataset.toString)
       semi_join_metaDag = Some(semiJoinDataAsTheyAre.metaDag)
@@ -423,7 +427,7 @@ object Wrapper {
     out_p
   }*/
 
-  def extend(metadata: Any, input_dataset: String): String = {
+  def extend(metadata: Array[Array[String]], input_dataset: String): String = {
     if (vv.get(input_dataset).isEmpty)
       return "No valid Data as input"
 
@@ -445,28 +449,26 @@ object Wrapper {
     out_p
   }
 
-  def merge(group_by:Any, input_dataset: String): String = {
-    /*if (vv.get(input_dataset).isEmpty)
-      return "No valid dataset as input"
+  def merge(group_by:Array[Array[String]], input_dataset: String): String = {
+    if (vv.get(input_dataset).isEmpty)
+      return "No valid Data as input"
 
     val dataAsTheyAre = vv(input_dataset)
 
-    val group_list: Option[List[String]] = MetadataAttributesList(group_by)
-    val merge = dataAsTheyAre.MERGE(group_list)
+    val meta_condition_list: Option[List[AttributeEvaluationStrategy]] = MetaAttributeEvaluationStrategyList(group_by)
+    val merge = dataAsTheyAre.MERGE(meta_condition_list)
 
     val index = counter.getAndIncrement()
-    val out_p = input_data  set + "/merge" + index
+    val out_p = input_dataset + "/merge" + index
     vv = vv + (out_p -> merge)
 
-    out_p*/
-
-    "OK"
+    out_p
   }
 
   def order(meta_order: Any, meta_topg: Int, meta_top: Int, meta_top_perc: Int,
             region_order: Any, region_topg: Int, region_top: Int, reg_top_perc: Int, input_dataset: String): String = {
     if (vv.get(input_dataset).isEmpty)
-      return "No valid dataset as input"
+      return "No valid Data as input"
 
     val dataAsTheyAre = vv(input_dataset)
 
@@ -511,10 +513,10 @@ object Wrapper {
   //we use "right" and "left" as prefixes
   def union(right_dataset: String, left_dataset: String): String = {
     if (vv.get(right_dataset).isEmpty)
-      return "No valid right dataset as input"
+      return "No valid right Data as input"
 
     if (vv.get(left_dataset).isEmpty)
-      return "No valid left dataset as input"
+      return "No valid left Data as input"
 
     val leftDataAsTheyAre = vv(left_dataset)
     val rightDataAsTheyAre = vv(right_dataset)
@@ -532,17 +534,17 @@ object Wrapper {
   def difference(join_by: Array[Array[String]], left_dataset: String, right_dataset: String, is_exact: Boolean): String = {
 
     if (vv.get(right_dataset).isEmpty)
-      return "No valid right dataset as input"
+      return "No valid right Data as input"
 
     if (vv.get(left_dataset).isEmpty)
-      return "No valid left dataset as input"
+      return "No valid left Data as input"
 
     val leftDataAsTheyAre = vv(left_dataset)
     val rightDataAsTheyAre = vv(right_dataset)
 
-    val condition_list: Option[MetaJoinCondition] = MetaJoinConditionList(join_by)
+    val meta_condition_list: Option[MetaJoinCondition] = MetaJoinConditionList(join_by)
 
-    val difference = leftDataAsTheyAre.DIFFERENCE(condition_list, rightDataAsTheyAre, is_exact)
+    val difference = leftDataAsTheyAre.DIFFERENCE(meta_condition_list, rightDataAsTheyAre, is_exact)
 
     val index = counter.getAndIncrement()
     //val out_p = left_dataset+right_dataset+"/difference"+index
@@ -554,7 +556,7 @@ object Wrapper {
 
   /* COVER, FLAT, SUMMIT, HISTOGRAM */
 
-  def flat(min: Any, max: Any, groupBy: Array[String], aggregates: Array[Array[String]], input_dataset: String): String = {
+  def flat(min: Any, max: Any, groupBy: Array[Array[String]], aggregates: Array[Array[String]], input_dataset: String): String = {
     val (error, flat) = doVariant(CoverFlag.FLAT, min, max, groupBy, aggregates, input_dataset)
     if (flat == null)
       return error
@@ -566,7 +568,7 @@ object Wrapper {
     out_p
   }
 
-  def histogram(min: Any, max: Any, groupBy: Array[String], aggregates: Array[Array[String]], input_dataset: String): String = {
+  def histogram(min: Any, max: Any, groupBy: Array[Array[String]], aggregates: Array[Array[String]], input_dataset: String): String = {
     val (error, histogram) = doVariant(CoverFlag.FLAT, min, max, groupBy, aggregates, input_dataset)
     if (histogram == null)
       return error
@@ -578,7 +580,7 @@ object Wrapper {
     out_p
   }
 
-  def summit(min: Any, max: Any, groupBy: Array[String], aggregates: Array[Array[String]], input_dataset: String): String = {
+  def summit(min: Any, max: Any, groupBy: Array[Array[String]], aggregates: Array[Array[String]], input_dataset: String): String = {
     val (error, summit) = doVariant(CoverFlag.SUMMIT, min, max, groupBy, aggregates, input_dataset)
     if (summit == null)
       return error
@@ -591,7 +593,7 @@ object Wrapper {
     out_p
   }
 
-  def cover(min: Any, max: Any, groupBy: Array[String], aggregates: Array[Array[String]], input_dataset: String): String = {
+  def cover(min: Any, max: Any, groupBy: Array[Array[String]], aggregates: Array[Array[String]], input_dataset: String): String = {
     val (error, cover) = doVariant(CoverFlag.COVER, min, max, groupBy, aggregates, input_dataset)
     if (cover == null)
       return error
@@ -603,7 +605,7 @@ object Wrapper {
     out_p
   }
 
-  def doVariant(flag: CoverFlag.CoverFlag, min: Any, max: Any, groupBy: Array[String],
+  def doVariant(flag: CoverFlag.CoverFlag, min: Any, max: Any, groupBy: Array[Array[String]],
                 aggregates: Array[Array[String]], input_dataset: String): (String, IRVariable) = {
     if (vv.get(input_dataset).isEmpty)
       return ("No valid dataset as input", null)
@@ -624,9 +626,10 @@ object Wrapper {
       if (aggr_list._2.isEmpty)
         return (aggr_list._1, null)
     }
-    println("null aggregates")
+    else
+      println("null aggregates")
 
-    val groupList: Option[List[String]] = MetadataAttributesList(groupBy)
+    val groupList: Option[List[AttributeEvaluationStrategy]] = MetaAttributeEvaluationStrategyList(groupBy)
 
     val variant = dataAsTheyAre.COVER(flag, paramMin._2, paramMax._2, aggr_list._2, groupList)
 
@@ -635,23 +638,27 @@ object Wrapper {
 
 
   // we do not add left, right and count name: we set to None
-  def map(condition: Array[Array[String]], aggregates: Any, right_dataset: String, left_dataset: String): String = {
+  def map(condition: Array[Array[String]], aggregates: Array[Array[String]], right_dataset: String, left_dataset: String): String = {
     if (vv.get(right_dataset).isEmpty)
-      return "No valid right dataset as input"
+      return "No valid right Data as input"
 
     if (vv.get(left_dataset).isEmpty)
-      return "No valid left dataset as input"
+      return "No valid left Data as input"
 
     val leftDataAsTheyAre = vv(left_dataset)
     val rightDataAsTheyAre = vv(right_dataset)
 
-    val (error, aggr_list) = RegionToRegionAggregates(aggregates, leftDataAsTheyAre)
-    if (aggr_list == null)
-      return error
+    var aggr_list: (String, List[RegionsToRegion]) = ("", List())
+
+    if (aggregates != null) {
+      aggr_list = RegionToRegionAggregates(aggregates, leftDataAsTheyAre)
+      if (aggr_list._2.isEmpty)
+        return aggr_list._1
+    }
 
     val condition_list: Option[MetaJoinCondition] = MetaJoinConditionList(condition)
 
-    val map = leftDataAsTheyAre.MAP(condition_list, aggr_list, rightDataAsTheyAre, None, None, None)
+    val map = leftDataAsTheyAre.MAP(condition_list, aggr_list._2, rightDataAsTheyAre, None, None, None)
 
     val index = counter.getAndIncrement()
     val out_p = left_dataset + right_dataset + "/map" + index
@@ -664,10 +671,10 @@ object Wrapper {
   // we do not add ref and exp name: we set to None
   def join(region_join: Array[Array[String]], meta_join: Array[Array[String]], output: String, right_dataset: String, left_dataset: String): String = {
     if (vv.get(right_dataset).isEmpty)
-      return "No valid right dataset as input"
+      return "No valid right Data as input"
 
     if (vv.get(left_dataset).isEmpty)
-      return "No valid left dataset as input"
+      return "No valid left Data as input"
 
     val leftDataAsTheyAre = vv(left_dataset)
     val rightDataAsTheyAre = vv(right_dataset)
@@ -692,15 +699,18 @@ object Wrapper {
 
   def get_param(param: Any): (String, CoverParam) = {
     var covParam: CoverParam = null
+    var parser_res: (String, CoverParam)=null
     param match {
       case param: Int => covParam = new N {
-        override val n: Int = param
-      }
+          override val n: Int = param
+        }
       case param: String => {
         val parser = new Parser()
-        val (error, covParam) = parser.parseCoverParam(param)
-        if (covParam == null)
-          return ("No valid min or max input", covParam)
+        parser_res = parser.parseCoverParam(param)
+        if (parser_res._2 == null)
+          return ("No valid min or max input", parser_res._2)
+
+        covParam = parser_res._2
       }
     }
 
@@ -788,16 +798,36 @@ object Wrapper {
 
   }
 
+  def MetaJoinConditionList_with_neg(join_by: Array[Array[String]],neg:Boolean): Option[MetaJoinCondition] = {
+    var join_by_list: Option[MetaJoinCondition] = None
+    val joinList = new ListBuffer[AttributeEvaluationStrategy]()
+
+    if (join_by == null  )
+      return join_by_list
+
+    for (elem <- join_by) {
+      val attribute = elem(0)
+      attribute match {
+        case "DEF" => joinList += Default(elem(1))
+        case "FULL" => joinList += FullName(elem(1))
+        case "EXACT" => joinList += Exact(elem(1))
+      }
+    }
+    if (joinList.nonEmpty)
+      join_by_list = Some(MetaJoinCondition(joinList.toList,neg))
+
+    join_by_list
+  }
 
   def MetaJoinConditionList(join_by: Array[Array[String]]): Option[MetaJoinCondition] = {
     var join_by_list: Option[MetaJoinCondition] = None
     val joinList = new ListBuffer[AttributeEvaluationStrategy]()
 
     if (join_by == null  ) {
-      println("null")
+      //println("null")
       return join_by_list
     }
-    println("not null")
+   // println("not null")
 
     for (elem <- join_by) {
       val attribute = elem(0)
@@ -809,6 +839,30 @@ object Wrapper {
     }
     if (joinList.nonEmpty)
       join_by_list = Some(MetaJoinCondition(joinList.toList))
+
+    join_by_list
+  }
+
+  def MetaAttributeEvaluationStrategyList(join_by: Array[Array[String]]): Option[List[AttributeEvaluationStrategy]] = {
+    var join_by_list: Option[List[AttributeEvaluationStrategy]] = None
+    val joinList = new ListBuffer[AttributeEvaluationStrategy]()
+
+    if (join_by == null  ) {
+      //println("null")
+      return join_by_list
+    }
+    //println("not null")
+
+    for (elem <- join_by) {
+      val attribute = elem(0)
+      attribute match {
+        case "DEF" => joinList += Default(elem(1))
+        case "FULL" => joinList += FullName(elem(1))
+        case "EXACT" => joinList += Exact(elem(1))
+      }
+    }
+    if (joinList.nonEmpty)
+      join_by_list = Some(joinList.toList)
 
     join_by_list
   }
@@ -964,6 +1018,8 @@ object Wrapper {
   def main(args: Array[String]): Unit =
   {
     initGMQL("TAB", false)
+    var r = readDataset("/Users/simone/Downloads/DATA_SET_VAR_GTF","CUSTOMPARSER",true,null)
+    var c = cover(2,"ANY",null,null,r)
   }
 
 }
