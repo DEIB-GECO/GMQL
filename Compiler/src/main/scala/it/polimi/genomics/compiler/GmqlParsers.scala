@@ -375,7 +375,7 @@ trait GmqlParsers extends JavaTokenParsers {
 
   val single_metadata_modifier:Parser[MetaModifier] =
     (metadata_attribute <~ AS) ~ stringLiteral ^^ {
-      x => MetaModifier(x._1, MEStringConstant(x._2))
+      x => MetaModifier(x._1, MEStringConstant(x._2.drop(1).dropRight(1)))
     } |
       (
         (
