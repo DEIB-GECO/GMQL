@@ -2,7 +2,8 @@ package it.polimi.genomics.manager
 
 import it.polimi.genomics.GMQLServer.Implementation
 import it.polimi.genomics.core
-import it.polimi.genomics.core.{BinSize, GMQLSchemaCoordinateSystem, ImplementationPlatform}
+import it.polimi.genomics.core.GDMSUserClass.GDMSUserClass
+import it.polimi.genomics.core.{BinSize, GDMSUserClass, GMQLSchemaCoordinateSystem, ImplementationPlatform}
 import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
 import it.polimi.genomics.repository.FSRepository.LFSRepository
 import it.polimi.genomics.repository.{GMQLRepository, Utilities => repo_Utilities}
@@ -24,7 +25,7 @@ import org.apache.spark.SparkContext
   * @param username { @link String} of the user name.
   * @param sc { @link SparkContext}
   */
-case class GMQLContext(val implPlatform: core.ImplementationPlatform.Value, val gMQLRepository: GMQLRepository, val outputFormat: core.GMQLSchemaFormat.Value, val outputCoordinateSystem: core.GMQLSchemaCoordinateSystem.Value = GMQLSchemaCoordinateSystem.Default, val binSize: BinSize = BinSize(), val username: String = repo_Utilities().USERNAME, sc: SparkContext = null) {
+case class GMQLContext(val implPlatform: core.ImplementationPlatform.Value, val gMQLRepository: GMQLRepository, val outputFormat: core.GMQLSchemaFormat.Value, val outputCoordinateSystem: core.GMQLSchemaCoordinateSystem.Value = GMQLSchemaCoordinateSystem.Default, val binSize: BinSize = BinSize(), val username: String = repo_Utilities().USERNAME, val userClass:GDMSUserClass = GDMSUserClass.BASIC,  sc: SparkContext = null) {
   try {
     sc.setLogLevel("WARN")
   } catch {

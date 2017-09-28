@@ -3,6 +3,7 @@ package it.polimi.genomics.repository
 import java.io.InputStream
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
+import it.polimi.genomics.core.GDMSUserClass.GDMSUserClass
 import it.polimi.genomics.core.{GMQLSchema, GMQLSchemaCoordinateSystem, GMQLSchemaField, GMQLSchemaFormat}
 import it.polimi.genomics.repository.GMQLExceptions._
 
@@ -24,7 +25,27 @@ trait GMQLRepository {
     * @throws java.lang.Exception
     */
   @throws(classOf[GMQLDSException])
+  @deprecated
   def importDs(dataSetName:String, userName:String, Samples:java.util.List[GMQLSample], schemaPath:String)
+
+
+
+  /**
+    *
+    *  Import Dataset into GMQL from Local file system.
+    *
+    * @param dataSetName  String of the dataset name.
+    * @param userName String of the user name.
+    * @param userClass GDMSUserClass
+    * @param Samples List of GMQL samples [[ GMQLSample]].
+    * @param schemaPath String of the path to the xml file of the dataset schema.
+    * @throws GMQLNotValidDatasetNameException
+    * @throws GMQLUserNotFound
+    * @throws java.lang.Exception
+    */
+  @throws(classOf[GMQLDSException])
+  @throws(classOf[GMQLDSExceedsQuota])
+  def importDs(dataSetName:String, userName:String, userClass: GDMSUserClass, Samples:java.util.List[GMQLSample], schemaPath:String)
 
 
   /**
@@ -32,7 +53,7 @@ trait GMQLRepository {
     * Add a new dataset to GMQL repository, this dataset is usually a result of a script execution.
     *
     * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
-    * @param Schema
+    * @param userName
     * @param Samples
     * @param GMQLScriptPaht
     * @throws it.polimi.genomics.repository.GMQLExceptions.GMQLDSNotFound
@@ -47,7 +68,7 @@ trait GMQLRepository {
     *
     *  Delete data set from the repository
     *
-    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
+    * @param userName Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @throws GMQLDSNotFound
     * @throws GMQLDSException
     * @throws GMQLUserNotFound
@@ -99,7 +120,8 @@ trait GMQLRepository {
     *
     *   List all the samples [[ GMQLSample]] of specific dataset in the repository
     *
-    * @param dataSet
+    * @param dataSetName
+    * @param userName
     * @throws GMQLDSException
     * @return
     */
@@ -256,7 +278,7 @@ trait GMQLRepository {
   def changeDSName(datasetName:String, userName:String, newDSName:String)
 
   /**
-    * send streams of the sampe and its meta data.
+    * send streams of the sample and its meta data.
     *
     * @param dataSetName dataset name as a string
     * @param userName the owner of the dataset as a String
@@ -273,6 +295,89 @@ trait GMQLRepository {
     * @return [[InputStream]] as the script string file.
     */
   def getScriptStream(dataSetName: String, userName: String): InputStream
+
+
+  /**
+    * Return a stram of the dataset.xml file
+    * @param datasetName
+    * @param userName
+    * @return
+    */
+  def getDsInfoStream(datasetName: String, userName: String): InputStream
+
+
+  // Dataset Meta and Profiling information
+
+  /**
+    * Returns the metadata associated to a dataset, e.g:
+    *   Source => Politecnico di Milano
+    *   Type => GDM
+    *   Creation Date => 21 Mar 2011
+    *   Creation Time => 00:18:56
+    *   Size => "50.12 MB"
+    *
+    * @param datasetName dataset name as a string
+    * @param userName   the owner of the dataset
+    * @return a Map[String, String] containing property_name => value
+    */
+  def getDatasetMeta(datasetName: String, userName: String): Map[String, String]
+
+
+  /**
+    * Set an entry on dataset metadata
+    *
+    * @param datasetName
+    * @param userName
+    * @param key
+    * @param value
+    */
+  def setDatasetMeta(datasetName: String, userName: String, key: String, value: String)
+
+
+  /**
+    * Returns profiling information concerning the whole dataset, e.g.:
+    *   Number of samples => 15
+    *   Number of regions => 31209
+    *   Average region length => 123.12
+    *
+    * @param datasetName dataset name as a string
+    * @param userName   the owner of the dataset
+    * @return a Map[String, String] containing property_name => value
+   */
+  def getDatasetProfile(datasetName: String, userName: String): Map[String, String]
+
+
+  /**
+    * Returns profiling information concerning a specific sample of the dataset, e.g.:
+    *
+    *   Number of samples => 15
+    *   Number of regions => 31209
+    *   Average region length => 123.12
+    *
+    * @param datasetName dataset name as a string
+    * @param sampleId id of the sample (index 1 .. N)
+    * @param usernName the owner of the dataset
+    */
+  def getSampleProfie(datasetName: String, sampleId: Long, usernName: String)
+
+
+  // User Class management
+
+  /**
+    * Returns information about the user disk quota usage
+    * @param userName
+    * @param userClass
+    * @return (occupied, available) in KBs
+    */
+  def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Float, Float)
+
+  /**
+    * Boolean value: true if user quota is exceeded
+    * @param username
+    * @param userClass
+    * @return
+    */
+  def isUserQuotaExceeded(username: String, userClass: GDMSUserClass): Boolean
 }
 
 
