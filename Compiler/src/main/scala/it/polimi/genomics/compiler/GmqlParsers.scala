@@ -354,8 +354,8 @@ trait GmqlParsers extends JavaTokenParsers {
 
   lazy val me_factor:Parser[MENode] =
     decimalNumber ^^ {x => MEFloat(x.toDouble)} |
-    metadata_attribute ^^ {x => MEName(x)} | "(" ~> me_expr <~ ")" |
     SQRT ~> "(" ~> me_expr <~ ")" ^^ {MESQRT(_)} |
+    metadata_attribute ^^ {x => MEName(x)} | "(" ~> me_expr <~ ")" |
     SUB ~> me_expr ^^ {x => MENegate(x)}
 
   val me_term: Parser[MENode] = me_factor ~ rep((MULT|DIV) ~ me_factor) ^^ {
