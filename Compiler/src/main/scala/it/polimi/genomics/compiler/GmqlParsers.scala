@@ -85,6 +85,7 @@ trait GmqlParsers extends JavaTokenParsers {
   val CONTIG:Parser[String] = """[c|C][o|O][n|N][t|T][i|I][g|G]""".r | """[c|C][a|A][t|T]""".r
   val LEFT_DISTINCT:Parser[String] = """[l|L][e|E][f|F][t|T][_][d|D][i|I][s|S][t|T][i|I][n|N][c|C][t|T]""".r
   val RIGHT_DISTINCT:Parser[String] = """[r|R][i|I][g|G][h|H][t|T]_[d|D][i|I][s|S][t|T][i|I][n|N][c|C][t|T]""".r
+  val BOTH:Parser[String] = """[b|B][o|O][t|T][h|H]""".r
   val ANY:Parser[String] = """[a|A][n|N][y|Y]""".r
   val ALL:Parser[String] = """[a|A][l|L][l|L]""".r
   val TOPG:Parser[String] = """[t|T][o|O][p|P][g|G]""".r
@@ -429,7 +430,8 @@ trait GmqlParsers extends JavaTokenParsers {
     LEFT ^^ {x => RegionBuilder.LEFT} |
     RIGHT ^^ {x => RegionBuilder.RIGHT} |
     INTERSECT ^^ {x => RegionBuilder.INTERSECTION} |
-    CONTIG ^^ {x => RegionBuilder.CONTIG}
+    CONTIG ^^ {x => RegionBuilder.CONTIG} |
+    BOTH ^^ {x => RegionBuilder.BOTH}
 
   val extend_aggfun:Parser[RegionsToMetaTemp] =
     ((metadata_attribute <~ AS)  ~ (ident <~ ("(" ~ ")"))) ^^ {
