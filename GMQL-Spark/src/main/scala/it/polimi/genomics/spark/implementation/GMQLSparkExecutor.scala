@@ -1,10 +1,10 @@
 package it.polimi.genomics.spark.implementation
 
 /**
- * Created by Abdulrahman Kaitoua on 27/05/15.
- * Email: abdulrahman.kaitoua@polimi.it
- *
- */
+  * Created by Abdulrahman Kaitoua on 27/05/15.
+  * Email: abdulrahman.kaitoua@polimi.it
+  *
+  */
 
 import java.io.{BufferedWriter, OutputStreamWriter}
 
@@ -21,6 +21,7 @@ import it.polimi.genomics.core.DataTypes._
 import it.polimi.genomics.core.ParsingType._
 import it.polimi.genomics.core._
 import it.polimi.genomics.core.exception.SelectFormatException
+import it.polimi.genomics.profiling.Profilers.Profiler
 import it.polimi.genomics.spark.implementation.MetaOperators.GroupOperator.{MetaGroupMGD, MetaJoinMJD2}
 import it.polimi.genomics.spark.implementation.MetaOperators.SelectMeta._
 import it.polimi.genomics.spark.implementation.MetaOperators._
@@ -29,6 +30,7 @@ import it.polimi.genomics.spark.implementation.RegionsOperators.GenometricMap._
 import it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions.{ReadMEMRD, StoreGTFRD, StoreTABRD, TestingReadRD}
 import it.polimi.genomics.spark.implementation.RegionsOperators._
 import it.polimi.genomics.spark.implementation.loaders._
+import it.polimi.genomics.profiling._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.spark.SparkContext
@@ -59,8 +61,8 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
   }
 
   override def collect(variable: IRVariable): (Array[(GRecordKey, Array[GValue])], Array[(Long, (String, String))], List[(String, PARSING_TYPE)]) = {
-      val metaRDD = implement_md(variable.metaDag, sc).collect()
-      val regionRDD = implement_rd(variable.regionDag, sc).collect
+    val metaRDD = implement_md(variable.metaDag, sc).collect()
+    val regionRDD = implement_rd(variable.regionDag, sc).collect
 
     (regionRDD,metaRDD,variable.schema)
   }
@@ -134,6 +136,31 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
           metaRDD.map(x=>x._1+","+x._2._1 + "," + x._2._2).saveAsTextFile(MetaOutputPath)
           regionRDD.map(x=>x._1+"\t"+x._2.mkString("\t")).saveAsTextFile(RegionOutputPath)
         }
+
+        // Compute Profile and store into xml files (one for web, one for optimization)
+        val profile = Profiler.profile(regionRDD, sc)
+
+        try {
+          val output = fs.create(new Path(variableDir + "/exp/" + "profile.xml"));
+          val output_web = fs.create(new Path(variableDir + "/exp/" + "web_profile.xml"));
+
+          val os = new java.io.BufferedOutputStream(output)
+          val os_web = new java.io.BufferedOutputStream(output_web)
+
+          os.write(Profiler.profileToOptXML(profile).toString().getBytes("UTF-8"))
+          os_web.write(Profiler.profileToWebXML(profile).toString().getBytes("UTF-8"))
+
+          os.close()
+          os_web.close()
+        } catch {
+          case e: Throwable => {
+            logger.error(e.getMessage)
+            e.printStackTrace()
+          }
+        }
+
+        // store schema
+
         storeSchema(GMQLSchema.generateSchemaXML(variable.schema,outputFolderName,outputFormat, outputCoordinateSystem),variableDir)
       }
     } catch {
@@ -213,7 +240,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
             inputDataset match {
               case IRReadRD(path, loader,_) =>
                 if(filteredMeta.isDefined) {
-                    SelectIRD(this, regionCondition, filteredMeta, loader,path,None, sc)
+                  SelectIRD(this, regionCondition, filteredMeta, loader,path,None, sc)
                 }
                 else SelectRD(this, regionCondition, filteredMeta, inputDataset, sc)
               case _ => SelectRD(this, regionCondition, filteredMeta, inputDataset, sc)
@@ -258,12 +285,12 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
           mjo.asInstanceOf[NoMetaJoinOperator].operator match {
             case IRJoinBy(condition :  MetaJoinCondition, left_dataset : MetaOperator, right_dataset : MetaOperator) => MetaJoinMJD2(this, condition, left_dataset, right_dataset,true, sc)
           }
-          mjo.asInstanceOf[NoMetaJoinOperator].operator.intermediateResult = Some(res)
+        mjo.asInstanceOf[NoMetaJoinOperator].operator.intermediateResult = Some(res)
         res
       }
     }else {
       if(mjo.asInstanceOf[SomeMetaJoinOperator].operator.intermediateResult.isDefined)
-          mjo.asInstanceOf[SomeMetaJoinOperator].operator.intermediateResult.get.asInstanceOf[RDD[SparkMetaJoinType]]
+        mjo.asInstanceOf[SomeMetaJoinOperator].operator.intermediateResult.get.asInstanceOf[RDD[SparkMetaJoinType]]
       else {
         val res =
           mjo.asInstanceOf[SomeMetaJoinOperator].operator match {
@@ -286,10 +313,10 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
   }
 
   def storeSchema(schema: String, path : String)= {
-      val schemaPath = path+"/exp/test.schema"
-      val br = new BufferedWriter(new OutputStreamWriter(fs.create(new Path(schemaPath)), "UTF-8"));
-      br.write(schema);
-      br.close();
+    val schemaPath = path+"/exp/test.schema"
+    val br = new BufferedWriter(new OutputStreamWriter(fs.create(new Path(schemaPath)), "UTF-8"));
+    br.write(schema);
+    br.close();
   }
 
 

@@ -141,6 +141,17 @@ class Utilities() {
     */
   def getRegionDir(userName: String = USERNAME): String = RepoDir + userName + "/regions/"
 
+
+  /**
+    *
+    * Constructs the Directory to the regions folder on Local file system
+    *
+    * @param userName
+    * @return
+    */
+  def getProfileDir(userName: String = USERNAME): String = RepoDir + userName + "/profiles/"
+
+
   /**
     *
     * Constract the Directory to the dataset folder

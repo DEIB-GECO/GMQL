@@ -16,6 +16,7 @@
         <module>GMQL-SciDB</module>
         <module>SciDB-ScalaAPI</module>
         <module>GMQL-Repository</module>
+        <module>GMQL-Profiler</module>
         <module>GMQL-SManager</module>
         <!--<module>GMQL-Importer</module>-->
         <module>WSC</module>

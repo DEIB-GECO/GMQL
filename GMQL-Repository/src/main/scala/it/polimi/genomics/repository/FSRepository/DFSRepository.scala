@@ -46,8 +46,23 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
       new GMQLSample(name = x.name,meta = metaFile )
     }.toList.asJava
 
+
+    // Move web_profile.xml in userfolder/profiles/datasetname.profile
+    val dsname = dataSet.position.substring(if(dataSet.position.lastIndexOf("/") < 0) 0 else dataSet.position.lastIndexOf("/")+1)
+    logger.info("Dataset Name: "+dsname)
+    val sourceProfile = General_Utilities().getHDFSRegionDir(userName)+"/"+dataSet.position+"web_profile.xml"
+    logger.info("Source Profile: "+)
+    val destProfile = General_Utilities().getProfileDir(userName)+"/"+dsname+".profile"
+    logger.info("Destination Profile: "+sourceProfile)
+
+    FS_Utilities.copyfiletoLocal(sourceProfile, destProfile)
+
+
+
     //create DS as a set of XML files in the local repository
     super.createDs(dataSet, userName, samples, GMQLScriptPath, schemaType, schemaCoordinateSystem)
+
+
 
     //clean the temp Directory
     tmpFolder.delete()
