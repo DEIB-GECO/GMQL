@@ -266,7 +266,7 @@ object Wrapper {
 
   def take(data_to_take: String, how_many: Int): String = {
     if (vv.get(data_to_take).isEmpty)
-      return "No valid Data to materialize"
+      return "No valid Data to take"
 
     var output: Any = null
     val taken = vv(data_to_take)
@@ -373,20 +373,27 @@ object Wrapper {
   }
 
   /*
-    def PROJECT(projected_meta : Option[List[String]] = None, extended_meta : Option[MetaAggregateStruct] = None,
-              projected_values : Option[List[Int]] = None,all_but : Option[List[String]] = None,
-              extended_values : Option[List[RegionFunction]] = None): IRVariable = {
+    def PROJECT(projected_meta : Option[List[String]] = None,
+                extended_meta : Option[List[MetaExtension]] = None,
+                all_but_meta : Boolean  = false ,
+                projected_values : Option[List[Int]] = None,
+                all_but_reg : Option[List[String]] = None,
+                extended_values : Option[List[RegionFunction]] = None): IRVariable = {
+
 */
 
-  /*
-  def project(projected_meta: Any, projected_region: Any, extended_values: Any, extended_meta: Any, all_but: Boolean, input_dataset: String): String = {
+
+  def project(projected_meta: Array[String], extended_meta: String, all_but_meta: Boolean,
+              projected_region: Array[String], extended_values: Any, all_but_reg:Boolean,
+              input_dataset: String): String = {
+
     if (vv.get(input_dataset).isEmpty)
       return "No valid Data as input"
 
     var regions_index: (String, Option[List[Int]]) = ("", None)
     var regions_in_but: (String, Option[List[String]]) = ("", None)
     var extended_reg: (String, Option[List[RegionFunction]]) = ("", None)
-    var extended_m: Option[MetaExtension] = None
+    var extended_m: (String, Option[List[MetaExtension]]) = ("", None)
     val dataAsTheyAre = vv(input_dataset)
 
     val meta_list: Option[List[String]] = MetadataAttributesList(projected_meta)
@@ -394,7 +401,7 @@ object Wrapper {
     if (projected_region == null)
       regions_index = ("OK", None)
     else {
-      if (!all_but) {
+      if (!all_but_reg) {
         regions_index = regionsList(projected_region, dataAsTheyAre)
         if (regions_index._2.isEmpty)
           return regions_index._1
@@ -416,16 +423,19 @@ object Wrapper {
     if(extended_meta != null) {
       val parser = new Parser(dataAsTheyAre, GMQL_server)
       extended_m = parser.parseProjectMetdata(extended_meta.toString)
+      if (extended_m._2.isEmpty)
+        return extended_m._1
     }
 
-    val project = dataAsTheyAre.PROJECT(meta_list,extended_m, regions_index._2, regions_in_but._2, extended_reg._2)
+    val project = dataAsTheyAre.PROJECT(meta_list, extended_m._2, all_but_meta, regions_index._2,
+      regions_in_but._2, extended_reg._2)
     val index = counter.getAndIncrement()
 
     val out_p = input_dataset + "/project" + index
     vv = vv + (out_p -> project)
 
     out_p
-  }*/
+  }
 
   def extend(metadata: Array[Array[String]], input_dataset: String): String = {
     if (vv.get(input_dataset).isEmpty)
@@ -465,8 +475,10 @@ object Wrapper {
     out_p
   }
 
-  def order(meta_order: Any, meta_topg: Int, meta_top: Int, meta_top_perc: Int,
-            region_order: Any, region_topg: Int, region_top: Int, reg_top_perc: Int, input_dataset: String): String = {
+  def order(meta_order: Array[Array[String]], meta_topg: Int, meta_top: Int, meta_top_perc: Int,
+            region_order: Array[Array[String]], region_topg: Int, region_top: Int, reg_top_perc: Int,
+            input_dataset: String): String = {
+
     if (vv.get(input_dataset).isEmpty)
       return "No valid Data as input"
 
@@ -621,13 +633,13 @@ object Wrapper {
       return (paramMax._1, null)
 
     if (aggregates != null) {
-      println("not null aggregates")
+     // println("not null aggregates")
       aggr_list = RegionToRegionAggregates(aggregates, dataAsTheyAre)
       if (aggr_list._2.isEmpty)
         return (aggr_list._1, null)
     }
-    else
-      println("null aggregates")
+    //else
+     // println("null aggregates")
 
     val groupList: Option[List[AttributeEvaluationStrategy]] = MetaAttributeEvaluationStrategyList(groupBy)
 
@@ -867,19 +879,11 @@ object Wrapper {
     join_by_list
   }
 
-  def regionsList_but(projected_by: Any, data: IRVariable): (String, Option[List[String]]) = {
+  def regionsList_but(projected_by: Array[String], data: IRVariable): (String, Option[List[String]]) = {
     var projectedList: Option[List[String]] = None
     val temp_list = new ListBuffer[String]()
 
     projected_by match {
-      case projected_by: String => {
-        val field = data.get_field_by_name(projected_by)
-        if (field.isEmpty) {
-          val error = "No value " + projected_by + " from this schema"
-          return (error, projectedList) //empty list
-        }
-        projectedList = Some(List(projected_by))
-      }
       case projected_by: Array[String] => {
         for (elem <- projected_by) {
           val field = data.get_field_by_name(elem)
@@ -896,19 +900,11 @@ object Wrapper {
   }
 
 
-  def regionsList(projected_by: Any, data: IRVariable): (String, Option[List[Int]]) = {
+  def regionsList(projected_by: Array[String], data: IRVariable): (String, Option[List[Int]]) = {
     var projectedList: Option[List[Int]] = None
     val temp_list = new ListBuffer[Int]()
 
     projected_by match {
-      case projected_by: String => {
-        val field = data.get_field_by_name(projected_by)
-        if (field.isEmpty) {
-          val error = "No value " + projected_by + " from this schema"
-          return (error, projectedList) //empty list
-        }
-        projectedList = Some(field.toList)
-      }
       case projected_by: Array[String] => {
         for (elem <- projected_by) {
           val field = data.get_field_by_name(elem)
@@ -1019,7 +1015,7 @@ object Wrapper {
   {
     initGMQL("TAB", false)
     var r = readDataset("/Users/simone/Downloads/DATA_SET_VAR_GTF","CUSTOMPARSER",true,null)
-    var c = cover(2,"ANY",null,null,r)
+    val t = take(r,3)
   }
 
 }
