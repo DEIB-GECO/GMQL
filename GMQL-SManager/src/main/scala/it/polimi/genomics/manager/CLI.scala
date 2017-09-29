@@ -158,7 +158,7 @@ object CLI {
     val sc:SparkContext =new SparkContext(conf)
 
     //GMQL context contains all the GMQL job needed information
-    val gmqlContext: GMQLContext = new GMQLContext(ImplementationPlatform.SPARK, repository, outputFormat, outputCoordinateSystem, binSize, username,sc)
+    val gmqlContext: GMQLContext = new GMQLContext(implPlatform = ImplementationPlatform.SPARK, gMQLRepository = repository, outputFormat = outputFormat, outputCoordinateSystem = outputCoordinateSystem, binSize = binSize, username = username, sc = sc)
 
     //create GMQL server manager instance, if it is not created yet.
     val server: GMQLExecute = GMQLExecute()
