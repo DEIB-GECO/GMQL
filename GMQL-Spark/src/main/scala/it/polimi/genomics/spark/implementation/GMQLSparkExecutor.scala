@@ -138,7 +138,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
         }
 
         // Compute Profile and store into xml files (one for web, one for optimization)
-        val profile = Profiler.profile(regionRDD, sc)
+        val profile = Profiler.profile(regions = regionRDD, meta = metaRDD, sc = sc)
 
         try {
           val output = fs.create(new Path(variableDir + "/exp/" + "profile.xml"));

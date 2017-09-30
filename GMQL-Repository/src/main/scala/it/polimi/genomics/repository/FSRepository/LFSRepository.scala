@@ -45,14 +45,6 @@ class LFSRepository extends GMQLRepository with XMLDataSetRepository{
 
 
 
-
-  /**
-    *
-    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
-    * @return
-    */
-  override def getDSStatistics(dataSet: String, userName: String): GMQLStatistics = ???
-
   /**
     * Copy data set from GMQL repository to local folder,
     * dataset includes; Schema file, script file, samples files, and metadata files
@@ -240,10 +232,10 @@ class LFSRepository extends GMQLRepository with XMLDataSetRepository{
     * Average region length => 123.12
     *
     * @param datasetName dataset name as a string
-    * @param sampleId    id of the sample (index 1 .. N)
+    * @param sampleName  name of the sample (no format), e.g. S_00001
     * @param usernName   the owner of the dataset
     */
-  override def getSampleProfie(datasetName: String, sampleId: Long, usernName: String): Unit = {
+  override def getSampleProfie(datasetName: String, sampleName: String, usernName: String): Unit = {
 
     var res = Map[String,String]()
     res += ("Number of samples" -> "15")

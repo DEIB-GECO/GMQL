@@ -14,8 +14,10 @@ import it.polimi.genomics.repository.GMQLExceptions._
 import it.polimi.genomics.repository.{GMQLRepository, GMQLSample, GMQLStatistics, Utilities => General_Utilities}
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.slf4j.LoggerFactory
+import java.nio.file.{Paths, Files}
 
 import scala.collection.JavaConverters._
+import scala.xml.XML
 /**
   * Created by abdulrahman on 12/04/16.
   */
@@ -48,10 +50,13 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
 
 
     // Move web_profile.xml in userfolder/profiles/datasetname.profile
-    val dsname = dataSet.position.substring(if(dataSet.position.lastIndexOf("/") < 0) 0 else dataSet.position.lastIndexOf("/")+1)
+    val dsname = dataSet.position//.substring(if(dataSet.position.lastIndexOf("/") < 0) 0 else dataSet.position.lastIndexOf("/")+1)
     logger.info("Dataset Name: "+dsname)
-    val sourceProfile = General_Utilities().getHDFSRegionDir(userName)+"/"+dataSet.position+"web_profile.xml"
-    logger.info("Source Profile: "+)
+
+    val s1 = Samples.asScala.head.name
+    val dspath = s1.substring(0, s1.lastIndexOf("/")+1)
+    val sourceProfile = General_Utilities().getHDFSRegionDir(userName)+"/"+dspath+"/web_profile.xml"
+    logger.info("Source Profile: "+sourceProfile)
     val destProfile = General_Utilities().getProfileDir(userName)+"/"+dsname+".profile"
     logger.info("Destination Profile: "+sourceProfile)
 
@@ -165,13 +170,6 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     (samples,schema.fields.asJava)
   }
 
-
-  /**
-    *
-    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
-    * @return
-    */
-  override def getDSStatistics(dataSet: String, userName: String): GMQLStatistics = ???
 
   /**
     *  export the dataset from Hadoop Distributed File system to Local File system
@@ -334,12 +332,15 @@ override def setDatasetMeta(datasetName: String, userName: String, key: String, 
     */
 override def getDatasetProfile(datasetName: String, userName: String): Map[String, String] = {
 
-  var res = Map[String,String]()
-  res += ("Number of samples" -> "15")
-  res += ("Number of regions" -> "31209")
-  res += ("Average region length" -> "123.12")
+  val filename = General_Utilities().getProfileDir(userName)+"/"+datasetName+".profile"
 
-  res
+  if (Files.exists(Paths.get("/tmp"))) {
+    val xml = XML.loadFile(filename);
+    (xml \\ "dataset" \ "feature").map(x=>(x.attribute("name").get.text, x.text)).toMap
+  } else {
+    Map("Info" -> "Dataset Profile not available.")
+  }
+
 }
 
   /**
@@ -350,17 +351,21 @@ override def getDatasetProfile(datasetName: String, userName: String): Map[Strin
     * Average region length => 123.12
     *
     * @param datasetName dataset name as a string
-    * @param sampleId    id of the sample (index 1 .. N)
-    * @param usernName   the owner of the dataset
+    * @param sampleName  name of the sample (no format), e.g. S_00001
+    * @param userName   the owner of the dataset
     */
-override def getSampleProfie(datasetName: String, sampleId: Long, usernName: String): Unit = {
+override def getSampleProfie(datasetName: String, sampleName: String, userName: String): Unit = {
 
-  var res = Map[String,String]()
-  res += ("Number of samples" -> "15")
-  res += ("Number of regions" -> "31209")
-  res += ("Average region length" -> "123.12")
+  val filename = General_Utilities().getProfileDir(userName)+"/"+datasetName+".profile"
 
-  res
+  if (Files.exists(Paths.get("/tmp"))) {
+    val xml = XML.loadFile(filename)
+
+    (xml \\ "dataset" \\ "sample").filter(_.attribute("name").get.text == sampleName) \\ "feature" map(x=>(x.attribute("name").get.text,x.text))
+  } else {
+    Map("Info" -> "Sample Profile not available.")
+  }
+
 }
 
   /**

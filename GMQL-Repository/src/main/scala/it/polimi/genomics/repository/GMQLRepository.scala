@@ -174,16 +174,6 @@ trait GMQLRepository {
 
   /**
     *
-    *  return the statistics (profiling ) of the dataset
-    *
-    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
-    * @return
-    */
-  def getDSStatistics(dataSet:String, userName:String):GMQLStatistics
-
-
-  /**
-    *
     *   return the schema of the dataset
     *
     * @param schemaPath [[ String]] of the path to the schema xml
@@ -355,10 +345,10 @@ trait GMQLRepository {
     *   Average region length => 123.12
     *
     * @param datasetName dataset name as a string
-    * @param sampleId id of the sample (index 1 .. N)
+    * @param sampleName  name of the sample (no format), e.g. S_00001
     * @param usernName the owner of the dataset
     */
-  def getSampleProfie(datasetName: String, sampleId: Long, usernName: String)
+  def getSampleProfie(datasetName: String, sampleName: String, usernName: String)
 
 
   // User Class management
