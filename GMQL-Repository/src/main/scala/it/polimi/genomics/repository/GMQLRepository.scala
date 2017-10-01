@@ -296,6 +296,14 @@ trait GMQLRepository {
     */
   def getScriptStream(dataSetName: String, userName: String): InputStream
 
+  /**
+    *  Return a stream of the vocabulary file.
+    *
+    * @param dataSetName dataset name of the requested script
+    * @param userName the owner of the dataset and the script
+    * @return [[InputStream]] as the script string file.
+    */
+  def getVocabularyStream(dataSetName: String, userName: String): InputStream
 
   /**
     * Return a stram of the dataset.xml file

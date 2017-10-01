@@ -374,4 +374,8 @@ trait XMLDataSetRepository extends GMQLRepository{
     val scriptPath = General_Utilities().getScriptsDir( userName ) + dataSetName + ".gmql"
     new FileInputStream(scriptPath)
   }
+
+  override def getVocabularyStream(dataSetName: String, userName: String): InputStream = {
+    new ByteArrayInputStream("N/A".getBytes)
+  }
 }
