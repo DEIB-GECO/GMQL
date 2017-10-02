@@ -201,17 +201,16 @@ object OperatorManager {
   }
 
   def cover(index: Int, coverFlag : CoverFlag, minAcc : CoverParam, maxAcc : CoverParam,
-            groupBy : java.util.List[String], aggregates: java.util.List[RegionsToRegion]): Int = {
-    val groupByPar : Option[List[String]] = {
-      if(groupBy.size() > 0)
-        Option(groupBy.asScala.toList)
+            groupBy : Option[java.util.List[String]], aggregates: java.util.List[RegionsToRegion]): Int = {
+    val aggregatesPar = aggregates.asScala.toList
+    val groupByCondition = {
+      if(groupBy.isDefined)
+        Some(getAttributeEvaluationStrategy(groupBy.get.asScala.toList))
       else
         None
     }
-    val aggregatesPar = aggregates.asScala.toList
-
     val v = PythonManager.getVariable(index)
-    val nv = v COVER(coverFlag,minAcc,maxAcc,aggregatesPar,groupByPar)
+    val nv = v COVER(coverFlag,minAcc,maxAcc,aggregatesPar,groupByCondition)
     // generate new index
     val new_index = PythonManager.putNewVariable(nv)
     new_index
@@ -259,7 +258,7 @@ object OperatorManager {
   }
 
   def getMetaJoinCondition(metadataAttributeList : java.util.List[String]): Option[MetaJoinCondition] = {
-    // for now we consider only DEFAULT AttributeEvaluationStrategy
+    // TODO: enable different evaluation strategies
     var listAttributes = new ListBuffer[AttributeEvaluationStrategy]()
 
     for(m <- metadataAttributeList) {
@@ -270,6 +269,11 @@ object OperatorManager {
       None
     else
       Option(MetaJoinCondition(listAttributes.toList))
+  }
+
+  def getAttributeEvaluationStrategy(metadataAttributeList : List[String]): List[AttributeEvaluationStrategy] = {
+    // TODO: enable different evaluation strategies
+    metadataAttributeList.map(x => Default(x))
   }
 
   def getRegionBuilderJoin(builder: String) : RegionBuilder = {
@@ -415,7 +419,7 @@ object OperatorManager {
   * */
 
   def getMetaGroupByCondition(meta_keys: List[String]): MetaGroupByCondition = {
-    MetaGroupByCondition(meta_keys)
+    MetaGroupByCondition(getAttributeEvaluationStrategy(meta_keys))
   }
 
   def getGroupingParameters(region_keys: List[String], v: IRVariable): List[GroupingParameter] = {
@@ -491,16 +495,16 @@ object OperatorManager {
   /*
   * MERGE
   * */
-  def merge(index: Int, groupBy : java.util.List[String]): Int = {
+  def merge(index: Int, groupBy : Option[java.util.List[String]]): Int = {
     // get the corresponding variable
     val v = PythonManager.getVariable(index)
-    val groupByPar : Option[List[String]] = {
-      if(groupBy.size() > 0)
-        Option(groupBy.asScala.toList)
+    val groupByCondition = {
+      if(groupBy.isDefined)
+        Some(getAttributeEvaluationStrategy(groupBy.get.asScala.toList))
       else
         None
     }
-    val nv = v.MERGE(groupByPar)
+    val nv = v.MERGE(groupByCondition)
     // generate new index
     val new_index = PythonManager.putNewVariable(nv)
     new_index
