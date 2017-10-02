@@ -1,7 +1,6 @@
 package it.polimi.genomics.cli
 
 import java.io._
-import java.nio.file.{Files, Paths}
 import java.text.SimpleDateFormat
 import java.util.Date
 
