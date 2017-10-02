@@ -213,6 +213,14 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     (outDss, core_ut.serializeToBase64(dagVars))
   }
 
+
+  /**
+    * Given a dataset name, it returns its name for the current job.
+    * Used for specifying the output dataset name
+    *
+    * @param x: output dataset name
+    * @return the real output datset name given the current job
+    * */
   def renameOutputDirs(x: String): String = {
     val fsRegDir = FSR_Utilities.gethdfsConfiguration().get("fs.defaultFS")+
       General_Utilities().getHDFSRegionDir(this.username)
@@ -224,6 +232,12 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
 
   /**
     * Recursive search of READ and STORE operations in the DAG.
+    * It searches recursively in all the IROperators of the DAG, the ones related
+    * with READ and STORE operations and changes the names of the dataset to their
+    * actual path.
+    *
+    * @param inp: IROperator representing the dag
+    * @return a list of output dataset names
     * */
   def rec(inp: IROperator): List[String] = {
     val result = inp match {
@@ -249,6 +263,12 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     tempRes ++ List(result).flatten
   }
 
+  /**
+    * Given a dataset name, it returns its path.
+    *
+    * @param inputDs: dataset name
+    * @return path of x
+    * */
   def getInputDsPath(inputDs: String)  = {
     val user = if (repositoryHandle.DSExistsInPublic(inputDs)) "public" else this.username
     val newPath =
