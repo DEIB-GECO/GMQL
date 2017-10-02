@@ -70,13 +70,10 @@ class GMQLSparkSubmit(job:GMQLJob) {
 
     val outDir = job.outputVariablesList.map{x=>
       val dir = job.renameOutputDirs(x)
-//        if (General_Utilities().MODE == General_Utilities().HDFS)
-//        fsRegDir + x + "/"
-//      else General_Utilities().getRegionDir(job.username) + x +"/"
       x.substring(job.jobId.length+1)+":::"+dir }.mkString(",")
 
 //    println(outDir)
-    //println("DAG LEN:\t" + job.script.dag.length)
+
     var d =  new SparkLauncher(env.asJava)
       .setSparkHome(SPARK_HOME)
       .setAppResource(GMQLjar)
@@ -88,7 +85,7 @@ class GMQLSparkSubmit(job:GMQLJob) {
         //"-scriptpath", job.script.scriptPath,
         //"-inputDirs",job.inputDataSets.map{x =>x._1+":::"+x._2+"/"}.mkString(","),
         //TODO: Check how to get the schema path from the repository manager.
-        //        "-schemata",job.inputDataSets.map(x => x._2+":::"+getSchema(job,x._1)).mkString(","),
+//        "-schemata",job.inputDataSets.map(x => x._2+":::"+getSchema(job,x._1)).mkString(","),
         "-jobid", job.jobId,
         "-outputFormat",job.gMQLContext.outputFormat.toString,
         //"-outputDirs", outDir,
@@ -122,7 +119,7 @@ class GMQLSparkSubmit(job:GMQLJob) {
 
 
 
-    //These configurations are now taken from the defaults of Spark system (or spark/conf/Spark-defaults.conf file).
+      //These configurations are now taken from the defaults of Spark system (or spark/conf/Spark-defaults.conf file).
 /*      .setConf("spark.driver.memory", DRIVER_MEM)
       .setConf("spark.akka.frameSize", "200")
       .setConf("spark.executor.memory", EXECUTOR_MEM)
@@ -138,7 +135,6 @@ class GMQLSparkSubmit(job:GMQLJob) {
         .setConf("spark.yarn.am.memoryOverhead","600") // instead of spark.yarn.driver.memoryOverhead when client mode
         .setConf("spark.yarn.executor.memoryOverhead","600")*/
       d.setVerbose(true).startApplication()
-
   }
 
   /**
