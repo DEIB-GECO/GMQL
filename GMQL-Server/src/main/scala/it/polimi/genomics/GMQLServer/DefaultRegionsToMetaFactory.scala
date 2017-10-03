@@ -242,7 +242,7 @@ object DefaultRegionsToMetaFactory extends ExtendFunctionFactory {
 //          GDouble(0)
         val lines = line.flatMap((gvalue) => if (gvalue.isInstanceOf[GDouble]) Some(gvalue.asInstanceOf[GDouble].v) else None)
         if(!lines.isEmpty)
-          GDouble((lines.reduce(_ + _))/lines.size.toDouble)
+          GDouble((lines.reduce(_ + _)))
         else
           GNull()
     }
