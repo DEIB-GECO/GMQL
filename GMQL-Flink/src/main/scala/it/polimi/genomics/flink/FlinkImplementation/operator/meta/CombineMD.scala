@@ -1,6 +1,7 @@
 package it.polimi.genomics.flink.FlinkImplementation.operator.meta
 
-import it.polimi.genomics.core.DataStructures.{SomeMetaJoinOperator, OptionalMetaJoinOperator, MetaJoinOperator, MetaOperator}
+import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
+import it.polimi.genomics.core.DataStructures.{MetaJoinOperator, MetaOperator, OptionalMetaJoinOperator, SomeMetaJoinOperator}
 import it.polimi.genomics.core.DataTypes.{FlinkMetaJoinType, FlinkMetaType}
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
@@ -19,7 +20,7 @@ object  CombineMD{
   final val logger = LoggerFactory.getLogger(this.getClass)
 
   @throws[SelectFormatException]
-  def apply(executor : FlinkImplementation, grouping : OptionalMetaJoinOperator, leftDataset : MetaOperator, rightDataset : MetaOperator, leftNameIn : String = "left", rightNameIn : String = "right", env : ExecutionEnvironment) : DataSet[FlinkMetaType] = {
+  def apply(executor : FlinkImplementation, grouping : OptionalMetaJoinOperator, leftDataset : MetaOperator, rightDataset : MetaOperator, region_builder: Option[RegionBuilder], leftNameIn : String = "left", rightNameIn : String = "right", env : ExecutionEnvironment) : DataSet[FlinkMetaType] = {
 
     //logger.warn("Executing CombineMD")
 

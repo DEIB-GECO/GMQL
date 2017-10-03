@@ -288,7 +288,7 @@ case class IRJoinBy(condition :  MetaJoinCondition, left_dataset : MetaOperator,
  * @param right_dataset the second metadata set
  */
 case class IRCombineMD(grouping : OptionalMetaJoinOperator, left_dataset : MetaOperator, right_dataset : MetaOperator,
-                       left_ds_name : String = "left", right_ds_name : String = "right") extends MetaOperator {
+                       region_builder : Option[RegionBuilder] = None, left_ds_name : String = "left", right_ds_name : String = "right") extends MetaOperator {
 
 }
 

@@ -1,7 +1,9 @@
 package it.polimi.genomics.spark.implementation.MetaOperators
 
 import com.google.common.hash.Hashing
-import it.polimi.genomics.core.DataStructures.{SomeMetaJoinOperator, OptionalMetaJoinOperator, MetaJoinOperator, MetaOperator}
+import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder
+import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
+import it.polimi.genomics.core.DataStructures.{MetaJoinOperator, MetaOperator, OptionalMetaJoinOperator, SomeMetaJoinOperator}
 import it.polimi.genomics.core.DataTypes.MetaType
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
@@ -20,7 +22,7 @@ object CombineMD{
   private final val logger = LoggerFactory.getLogger(CombineMD.getClass);
 
   @throws[SelectFormatException]
-  def apply(executor : GMQLSparkExecutor, grouping : OptionalMetaJoinOperator, leftDataset : MetaOperator, rightDataset : MetaOperator, leftTag:String = "left", rightTag:String = "right", sc : SparkContext) : RDD[MetaType] = {
+  def apply(executor : GMQLSparkExecutor, grouping : OptionalMetaJoinOperator, leftDataset : MetaOperator, rightDataset : MetaOperator,region_builder : Option[RegionBuilder], leftTag:String = "left", rightTag:String = "right", sc : SparkContext) : RDD[MetaType] = {
 
     logger.info("----------------CombineMD executing..")
 
@@ -48,7 +50,14 @@ object CombineMD{
         }
       }
 
-      leftOut.union(rightOut)
+      if(region_builder.isDefined)
+        region_builder.get match {
+          case RegionBuilder.LEFT_DISTINCT => leftOut
+          case RegionBuilder.RIGHT_DISTINCT => rightOut
+          case _ => leftOut.union(rightOut)
+        }
+      else
+        leftOut.union(rightOut)
 
     } else {
       val leftIds = left.keys.distinct().collect()
@@ -66,6 +75,13 @@ object CombineMD{
         }
       }
 
+      if(region_builder.isDefined)
+        region_builder.get match {
+          case RegionBuilder.LEFT_DISTINCT => leftOut
+          case RegionBuilder.RIGHT_DISTINCT => rightOut
+          case _ => leftOut.union(rightOut)
+        }
+      else
       leftOut.union(rightOut)//.sortBy(x=>x._1)
     }
   }
