@@ -149,15 +149,19 @@ class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
     }
   }
 
-  def parseProjectMetdata(input: String): Option[MetaExtension] = {
+  def parseProjectMetdata(input: String):  (String,Option[List[MetaExtension]]) = {
 
-    val extend_meta = parse(single_metadata_modifier, input)
-    var meta_modifier: Option[MetaExtension] = Some(
-      DefaultMetaExtensionFactory.get(
-        extend_meta.get.dag,
-        extend_meta.get.output))
-
-    meta_modifier
+    val extend_meta = parse(metadata_modifier_list, input)
+    var meta_modifier: Option[List[MetaExtension]] = None
+    meta_modifier= Some(
+      extend_meta.get.map(
+        {parsed_modifier =>
+          DefaultMetaExtensionFactory.get(
+            parsed_modifier.dag,
+            parsed_modifier.output)}
+      )
+    )
+    ("OK",meta_modifier)
   }
 
 
@@ -231,10 +235,11 @@ class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
           REPos(p)
         }
       }
-      case READD(a, b) => READD(refineREDag(a), refineREDag(b))
-      case RESUB(a, b) => RESUB(refineREDag(a), refineREDag(b))
-      case REMUL(a, b) => REMUL(refineREDag(a), refineREDag(b))
-      case REDIV(a, b) => REDIV(refineREDag(a), refineREDag(b))
+      case READD(a,b) => READD(refineREDag(a), refineREDag(b))
+      case RESUB(a,b) => RESUB(refineREDag(a), refineREDag(b))
+      case REMUL(a,b) => REMUL(refineREDag(a), refineREDag(b))
+      case REDIV(a,b) => REDIV(refineREDag(a), refineREDag(b))
+      case RESQRT(a) => RESQRT(refineREDag(a))
       case _ => dag
     }
   }

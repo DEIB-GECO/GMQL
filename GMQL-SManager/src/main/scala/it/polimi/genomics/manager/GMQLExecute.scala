@@ -7,7 +7,7 @@ import java.util.concurrent.{ExecutorService, Executors, TimeUnit}
 
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.{BinSize, GMQLSchemaFormat, GMQLScript, ImplementationPlatform}
-import it.polimi.genomics.manager.Exceptions.{InvalidGMQLJobException, NoJobsFoundException}
+import it.polimi.genomics.manager.Exceptions.{InvalidGMQLJobException, NoJobsFoundException, UserQuotaExceeded}
 import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLocalLauncher, GMQLRemoteLauncher, GMQLSparkLauncher}
 import it.polimi.genomics.repository.{Utilities => General_Utilities}
 import org.apache.spark.SparkContext
@@ -122,9 +122,9 @@ class GMQLExecute (){
     JOBID_TO_JOB_INSTANCE = JOBID_TO_JOB_INSTANCE + (jID -> job);
     job
   }
-  
 
-  
+
+
 
     /**
     * Get the job instance from the job name.
@@ -162,14 +162,13 @@ class GMQLExecute (){
   }
 
 
-  /*
-  **
+  /***
   * Try to Execute GMQL Job. The job will be checked for execution of the provided platform
   * and run in case of clear from errors.
   *
-  * @param jobId [[ String]] as the JobID.
-    * @param launcher There is a set of launchers that implements [[ GMQLLauncher]].
+  * @param job
   */
+  @throws(classOf[UserQuotaExceeded])
   def execute(job:GMQLJob):Unit={
     val launcher_mode = Utilities().LAUNCHER_MODE
 

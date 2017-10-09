@@ -7,13 +7,12 @@ import java.util.Date
 import it.polimi.genomics.GMQLServer.{GmqlServer, Implementation}
 import it.polimi.genomics.compiler._
 import it.polimi.genomics.core.DataStructures.IRVariable
-import it.polimi.genomics.core.{GMQLSchemaFormat, ImplementationPlatform, Utilities}
+import it.polimi.genomics.core.{GMQLSchemaCoordinateSystem, GMQLSchemaFormat, ImplementationPlatform, Utilities}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
 import org.apache.log4j.xml.DOMConfigurator
 import org.apache.log4j.{FileAppender, Level, PatternLayout}
-import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd, SparkListenerApplicationStart, SparkListenerStageCompleted}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.slf4j.LoggerFactory
 
@@ -50,6 +49,7 @@ object GMQLExecuteCommand {
 //    "[-inputs DS1:/location/on/HDFS/,DS2:/location/on/HDFS] " +
     "[-verbose true|false] " +
     "[-outputFormat GTF|TAB]" +
+    "[-outputCoordinateSystem 0-based|1-based|default]" +
     "-scriptpath /where/gmql/script/is \n" +
     "\n" +
     "\n" +
@@ -73,6 +73,9 @@ object GMQLExecuteCommand {
     "\t[-outputFormat GTF|TAB]\n" +
     "\t\tThe default output format is TAB: tab delimited files in the format of BED files." +
     "\n" +
+    "\t[-outputCoordinateSystem 0-based|1-based|default]\n" +
+    "\t\tThe default output coordinate system for GTF output format is 1-based, for TAB output format is 0-based." +
+    "\n" +
     "\t-scriptpath /where/gmql/script/is/located\n" +
     "\t\tManditory parameter, select the GMQL script to execute"
 
@@ -93,6 +96,7 @@ object GMQLExecuteCommand {
     var outputPath = ""
     var jobid = ""
     var outputFormat = GMQLSchemaFormat.TAB
+    var outputCoordinateSystem = GMQLSchemaCoordinateSystem.Default
     var schemata = Map[String, String]()
     var inputs = Map[String, String]()
     var outputs = Map[String, String]()
@@ -158,7 +162,22 @@ object GMQLExecuteCommand {
           }
         logger.info(s"Output Format set to: $out" + outputFormat)
 
-      } else if ("-inputDirs".equals(args(i))) {
+      } else if ("-outputcoordinatesystem".equals(args(i).toLowerCase())) {
+        val out = args(i + 1).toLowerCase().trim
+        outputCoordinateSystem =
+          if (out == GMQLSchemaCoordinateSystem.ZeroBased.toString.toLowerCase)
+            GMQLSchemaCoordinateSystem.ZeroBased
+          else if (out == GMQLSchemaCoordinateSystem.OneBased.toString.toLowerCase)
+            GMQLSchemaCoordinateSystem.OneBased
+          else if (out == GMQLSchemaCoordinateSystem.Default.toString.toLowerCase)
+            GMQLSchemaCoordinateSystem.Default
+          else {
+            logger.warn(s"Not knwon coordinate system $out, Setting the output coordinate system for ${GMQLSchemaCoordinateSystem.Default}")
+            GMQLSchemaCoordinateSystem.Default
+          }
+        logger.info(s"Output Coordinate System set to: $out" + outputCoordinateSystem)
+      }
+      else if ("-inputDirs".equals(args(i))) {
         //List of [NAME:::Dir] separated by comma
         //Input Datasets directories.
         // We added this option to GMQL-Submit CLI options because the serialization of DAG Scala code generated
@@ -221,7 +240,7 @@ object GMQLExecuteCommand {
 
     logger.info("Start to execute GMQL Script..")
 
-    val implementation: Implementation = getImplemenation(executionType,jobid,outputFormat)
+    val implementation: Implementation = getImplemenation(executionType,jobid,outputFormat,outputCoordinateSystem)
 
     val server = new GmqlServer(implementation, Some(1000))
     if (dag.isDefined) {
@@ -340,7 +359,7 @@ object GMQLExecuteCommand {
     operators
   }
 
-  def getImplemenation(executionType:String,jobid:String , outputFormat: GMQLSchemaFormat.Value) ={
+  def getImplemenation(executionType:String,jobid:String , outputFormat: GMQLSchemaFormat.Value, outputCoordinateSystem: GMQLSchemaCoordinateSystem.Value) ={
 //    if (executionType.equals(it.polimi.genomics.core.ImplementationPlatform.SPARK.toString.toLowerCase())) {
       val conf = new SparkConf().setAppName("GMQL V2.1 Spark " + jobid)
         .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "128")
@@ -364,7 +383,7 @@ object GMQLExecuteCommand {
 //        }
 //
 //      });
-      new GMQLSparkExecutor(testingIOFormats = false, sc = sc, outputFormat = outputFormat)
+      new GMQLSparkExecutor(testingIOFormats = false, sc = sc, outputFormat = outputFormat, outputCoordinateSystem = outputCoordinateSystem)
 //    }
 //    else /*if(executionType.equals(FLINK)) */ {
 //      new FlinkImplementation()

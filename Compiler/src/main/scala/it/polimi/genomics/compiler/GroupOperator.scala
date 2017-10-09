@@ -117,8 +117,8 @@ case class GroupOperator(op_pos : Position,
                 None
               }
               val field_pos:Int = a.input_field_name match {
-                case Some(FieldPosition(p)) => {right_var_check_num_field(p);p}
-                case Some(FieldName(n)) => {right_var_get_field_name(n).get}
+                case Some(FieldPosition(p)) => {left_var_check_num_field(p);p}
+                case Some(FieldName(n)) => {left_var_get_field_name(n).get}
                 case None => 0
               }
               if(new_field_name.isDefined){

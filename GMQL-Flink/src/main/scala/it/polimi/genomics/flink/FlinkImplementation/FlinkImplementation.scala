@@ -15,7 +15,7 @@ import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.DataTypes._
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core.exception.SelectFormatException
-import it.polimi.genomics.core.{BinSize, GMQLLoader, GMQLLoaderBase, GMQLSchemaFormat}
+import it.polimi.genomics.core._
 import it.polimi.genomics.flink.FlinkImplementation.operator.meta._
 import it.polimi.genomics.flink.FlinkImplementation.operator.metaGroup.MetaGroupMGD
 import it.polimi.genomics.flink.FlinkImplementation.operator.metaJoin.MetaJoinMJD3
@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory
 class FlinkImplementation(var binSize : BinSize = BinSize(),
                           val maxBinDistance : Int = 1000000,
                           testingIOFormats : Boolean = false,
-                          metaFirst : Boolean = false, outputFormat:GMQLSchemaFormat.Value = GMQLSchemaFormat.TAB) extends Implementation with java.io.Serializable{
+                          metaFirst : Boolean = false, outputFormat:GMQLSchemaFormat.Value = GMQLSchemaFormat.TAB, outputCoordinateSystem: GMQLSchemaCoordinateSystem.Value = GMQLSchemaCoordinateSystem.Default) extends Implementation with java.io.Serializable{
 
   val overwrite_option = WriteMode.OVERWRITE  // (or NO_OVERWRITE)
 
@@ -269,7 +269,7 @@ def stop(): Unit ={
           case IRUnionMD(leftDataset: MetaOperator, rightDataset: MetaOperator, leftName : String, rightName : String) => UnionMD(this, leftDataset, rightDataset, leftName, rightName, env)
           case IRUnionAggMD(leftDataset: MetaOperator, rightDataset: MetaOperator, leftName : String, rightName : String) => UnionAggMD(this, leftDataset, rightDataset, leftName, rightName, env)
           case IRAggregateRD(aggregator: List[RegionsToMeta], inputDataset: RegionOperator) => AggregateRD(this, aggregator, inputDataset, env)
-          case IRCombineMD(grouping: OptionalMetaJoinOperator, leftDataset: MetaOperator, rightDataset: MetaOperator, leftName : String, rightName : String) => CombineMD(this, grouping, leftDataset, rightDataset, leftName, rightName, env)
+          case IRCombineMD(grouping: OptionalMetaJoinOperator, leftDataset: MetaOperator, rightDataset: MetaOperator, region_builder,leftName : String, rightName : String) => CombineMD(this, grouping, leftDataset, rightDataset, region_builder, leftName, rightName, env)
           case IRMergeMD(dataset: MetaOperator, groups: Option[MetaGroupOperator]) => MergeMD(this, dataset, groups, env)
           case IROrderMD(ordering: List[(String, Direction)], newAttribute: String, topParameter: TopParameter, inputDataset: MetaOperator) => OrderMD(this, ordering, newAttribute, topParameter, inputDataset, env)
           case IRGroupMD(keys: MetaGroupByCondition, aggregates: List[RegionsToMeta], groupName: String, inputDataset: MetaOperator, region_dataset: RegionOperator) => GroupMD(this, keys, aggregates, groupName, inputDataset, region_dataset, env)

@@ -42,6 +42,7 @@ object GMQLSparkExecutor{
 class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : Int = 100000, REF_PARALLILISM: Int = 20,
                         testingIOFormats:Boolean = false, sc:SparkContext,
                         outputFormat:GMQLSchemaFormat.Value = GMQLSchemaFormat.TAB,
+                        outputCoordinateSystem: GMQLSchemaCoordinateSystem.Value = GMQLSchemaCoordinateSystem.Default,
                         stopContext:Boolean = true)
   extends Implementation with java.io.Serializable{
 
@@ -133,7 +134,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
           metaRDD.map(x=>x._1+","+x._2._1 + "," + x._2._2).saveAsTextFile(MetaOutputPath)
           regionRDD.map(x=>x._1+"\t"+x._2.mkString("\t")).saveAsTextFile(RegionOutputPath)
         }
-        storeSchema(GMQLSchema.generateSchemaXML(variable.schema,outputFolderName,outputFormat),variableDir)
+        storeSchema(GMQLSchema.generateSchemaXML(variable.schema,outputFolderName,outputFormat, outputCoordinateSystem),variableDir)
       }
     } catch {
       case e : SelectFormatException => {
@@ -184,7 +185,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
           case IRUnionMD(leftDataset: MetaOperator, rightDataset: MetaOperator, leftName : String, rightName : String) => UnionMD(this, leftDataset, rightDataset, leftName, rightName, sc)
           case IRUnionAggMD(leftDataset: MetaOperator, rightDataset: MetaOperator, leftName : String, rightName : String) => UnionAggMD(this, leftDataset, rightDataset, leftName, rightName, sc)
           case IRAggregateRD(aggregator: List[RegionsToMeta], inputDataset: RegionOperator) => AggregateRD(this, aggregator, inputDataset, sc)
-          case IRCombineMD(grouping: OptionalMetaJoinOperator, leftDataset: MetaOperator, rightDataset: MetaOperator, leftName : String, rightName : String) => CombineMD(this, grouping, leftDataset, rightDataset, leftName, rightName, sc)
+          case IRCombineMD(grouping: OptionalMetaJoinOperator, leftDataset: MetaOperator, rightDataset: MetaOperator, region_builder, leftName : String, rightName : String) => CombineMD(this, grouping, leftDataset, rightDataset,region_builder, leftName, rightName, sc)
           case IRDiffCombineMD(grouping: OptionalMetaJoinOperator, leftDataset: MetaOperator, rightDataset: MetaOperator, leftName : String, rightName : String) => DiffCombineMD(this, grouping, leftDataset, rightDataset, leftName, rightName, sc)
           case IRMergeMD(dataset: MetaOperator, groups: Option[MetaGroupOperator]) => MergeMD(this, dataset, groups, sc)
           case IROrderMD(ordering: List[(String, Direction)], newAttribute: String, topParameter: TopParameter, inputDataset: MetaOperator) => OrderMD(this, ordering, newAttribute, topParameter, inputDataset, sc)
@@ -205,7 +206,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
     } else {
       val res =
         ro match {
-          case IRStoreRD(path, value,meta,schema,_) => if(outputFormat == GMQLSchemaFormat.GTF) StoreGTFRD(this, path, value,meta,schema,sc) else if(outputFormat == GMQLSchemaFormat.TAB) StoreTABRD(this,path, value,meta,schema,sc) else StoreRD(this, path, value, sc)
+          case IRStoreRD(path, value,meta,schema,_) => if(outputFormat == GMQLSchemaFormat.GTF) StoreGTFRD(this, path, value,meta,schema,outputCoordinateSystem,sc) else if(outputFormat == GMQLSchemaFormat.TAB) StoreTABRD(this,path, value,meta,schema,outputCoordinateSystem,sc) else StoreRD(this, path, value, sc)
           case IRReadRD(path, loader,_) => if (testingIOFormats) TestingReadRD(path, loader, sc) else ReadRD(path, loader, sc)
           case IRReadMEMRD(metaRDD) => ReadMEMRD(metaRDD)
           case IRSelectRD(regionCondition: Option[RegionCondition], filteredMeta: Option[MetaOperator], inputDataset: RegionOperator) =>

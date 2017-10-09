@@ -4,7 +4,7 @@ import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCo
 import it.polimi.genomics.core.DataStructures.RegionAggregate.RegionsToMeta
 import it.polimi.genomics.core.DataStructures.{MetaOperator, RegionOperator}
 import it.polimi.genomics.core.DataTypes._
-import it.polimi.genomics.core.GValue
+import it.polimi.genomics.core.{GNull, GValue}
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
@@ -55,7 +55,10 @@ object GroupMD {
     val newAggregationMetaByGroup : RDD[(Long,( String, String))] =
       cleanedGroupedRegions
         .reduceByKey{(l,r) =>(l.zip(r).map(a=> a._1 ++ a._2))}
-        .flatMap{a => a._2.zip(aggregates).map{n => (a._1, (n._2.newAttributeName, n._2.fun(n._1).toString))}}
+        .flatMap{a => a._2.zip(aggregates).map{n =>
+          val fun = n._2.fun(n._1);
+          val count = (n._1.length, n._1.foldLeft(0)((x,y)=> if (y.isInstanceOf[GNull]) x+0 else x+1));
+          (a._1, (n._2.newAttributeName, n._2.funOut(fun, count).toString))}}
 
     //MetaData : (SampleId, attributeName, Value)
     val aggregationMeta : RDD[(Long, (String, String))] =

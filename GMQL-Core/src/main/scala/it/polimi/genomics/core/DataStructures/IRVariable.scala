@@ -332,6 +332,7 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
     val new_meta_dag = IRCombineMD(new_meta_join_result,
       this.metaDag,
       right_dataset.metaDag,
+      Some(region_builder),
       reference_name.getOrElse("left"),
       experiment_name.getOrElse("right"))
 
@@ -391,6 +392,7 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
     val new_meta_dag = IRCombineMD(new_join_result,
       this.metaDag,
       experiments.metaDag,
+      None,
       reference_name.getOrElse("left"),
       experiment_name.getOrElse("right"))
     val new_region_dag = IRGenometricMap(new_join_result, aggregates, this.regionDag, experiments.regionDag)

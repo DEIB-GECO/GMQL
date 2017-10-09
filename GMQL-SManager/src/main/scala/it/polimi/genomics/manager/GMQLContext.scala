@@ -2,7 +2,8 @@ package it.polimi.genomics.manager
 
 import it.polimi.genomics.GMQLServer.Implementation
 import it.polimi.genomics.core
-import it.polimi.genomics.core.{BinSize, ImplementationPlatform}
+import it.polimi.genomics.core.GDMSUserClass.GDMSUserClass
+import it.polimi.genomics.core.{BinSize, GDMSUserClass, GMQLSchemaCoordinateSystem, ImplementationPlatform}
 import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
 import it.polimi.genomics.repository.FSRepository.LFSRepository
 import it.polimi.genomics.repository.{GMQLRepository, Utilities => repo_Utilities}
@@ -24,7 +25,7 @@ import org.apache.spark.SparkContext
   * @param username { @link String} of the user name.
   * @param sc { @link SparkContext}
   */
-case class GMQLContext(val implPlatform: core.ImplementationPlatform.Value, val gMQLRepository: GMQLRepository, val outputFormat: core.GMQLSchemaFormat.Value, val binSize: BinSize = BinSize(), val username: String = repo_Utilities().USERNAME, sc: SparkContext = null) {
+case class GMQLContext(val implPlatform: core.ImplementationPlatform.Value, val gMQLRepository: GMQLRepository, val outputFormat: core.GMQLSchemaFormat.Value, val outputCoordinateSystem: core.GMQLSchemaCoordinateSystem.Value = GMQLSchemaCoordinateSystem.Default, val binSize: BinSize = BinSize(), val username: String = repo_Utilities().USERNAME, val userClass:GDMSUserClass = GDMSUserClass.BASIC,  sc: SparkContext = null) {
   try {
     sc.setLogLevel("WARN")
   } catch {
@@ -34,7 +35,7 @@ case class GMQLContext(val implPlatform: core.ImplementationPlatform.Value, val 
   /**
     * default constructor
     */
-  def this() = this(core.ImplementationPlatform.SPARK, new LFSRepository(), core.GMQLSchemaFormat.TAB)
+  def this() = this(core.ImplementationPlatform.SPARK, new LFSRepository(), core.GMQLSchemaFormat.TAB, core.GMQLSchemaCoordinateSystem.Default)
 
   /**
     * Construct GMQL Context with the repository type
@@ -42,23 +43,24 @@ case class GMQLContext(val implPlatform: core.ImplementationPlatform.Value, val 
     * @param gMQLRepository  one of [[GMQLRepository]] subclasses
     * @return [[GMQLContext]] instance
     */
-  def this(gMQLRepository: GMQLRepository) = this(core.ImplementationPlatform.SPARK, gMQLRepository, core.GMQLSchemaFormat.TAB)
+  def this(gMQLRepository: GMQLRepository) = this(core.ImplementationPlatform.SPARK, gMQLRepository, core.GMQLSchemaFormat.TAB, core.GMQLSchemaCoordinateSystem.Default)
 
   /**
     * Construct GMQL Context with the repository type, and output format type
     *
     * @param gMQLRepository  one of [[GMQLRepository]] subclasses
     * @param outputFormat one of the [[it.polimi.genomics.core.GMQLSchemaFormat]] values.
+    * @param outputCoordinateSystem one of the [[it.polimi.genomics.core.GMQLSchemaCoordinateSystem]] values
     * @return [[GMQLContext]] instance
     */
-  def this(gMQLRepository: GMQLRepository, outputFormat: core.GMQLSchemaFormat.Value) = this(core.ImplementationPlatform.SPARK, gMQLRepository, outputFormat)
+  def this(gMQLRepository: GMQLRepository, outputFormat: core.GMQLSchemaFormat.Value, outputCoordinateSystem: core.GMQLSchemaCoordinateSystem.Value) = this(core.ImplementationPlatform.SPARK, gMQLRepository, outputFormat, outputCoordinateSystem)
 
 
   /**
     * the implementation instance as the executor that will run GMQL script.
     */
   val implementation: Implementation = if (implPlatform == ImplementationPlatform.SPARK) {
-    new GMQLSparkExecutor(binSize = binSize, sc = sc, outputFormat = outputFormat)
+    new GMQLSparkExecutor(binSize = binSize, sc = sc, outputFormat = outputFormat, outputCoordinateSystem = outputCoordinateSystem)
   } else /*if(implPlatform == ImplementationPlatform.FLINK)*/ {
     new FlinkImplementation(binSize = binSize, outputFormat = outputFormat)
   }

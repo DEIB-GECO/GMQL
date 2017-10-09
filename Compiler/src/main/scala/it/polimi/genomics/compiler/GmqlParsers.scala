@@ -85,6 +85,7 @@ trait GmqlParsers extends JavaTokenParsers {
   val CONTIG:Parser[String] = """[c|C][o|O][n|N][t|T][i|I][g|G]""".r | """[c|C][a|A][t|T]""".r
   val LEFT_DISTINCT:Parser[String] = """[l|L][e|E][f|F][t|T][_][d|D][i|I][s|S][t|T][i|I][n|N][c|C][t|T]""".r
   val RIGHT_DISTINCT:Parser[String] = """[r|R][i|I][g|G][h|H][t|T]_[d|D][i|I][s|S][t|T][i|I][n|N][c|C][t|T]""".r
+  val BOTH:Parser[String] = """[b|B][o|O][t|T][h|H]""".r
   val ANY:Parser[String] = """[a|A][n|N][y|Y]""".r
   val ALL:Parser[String] = """[a|A][l|L][l|L]""".r
   val TOPG:Parser[String] = """[t|T][o|O][p|P][g|G]""".r
@@ -339,9 +340,6 @@ trait GmqlParsers extends JavaTokenParsers {
     ((region_field_name ^^ {FieldName(_)}) <~ AS) <~ NULL <~ "(" <~ DOUBLE <~ ")" ^^ {
         x => RegionModifier(x, RENullConstant(ParsingType.DOUBLE))
       } |
-    ((region_field_name ^^ {FieldName(_)}) <~ AS) <~ NULL <~ "(" <~ STRING <~ ")" ^^ {
-        x => RegionModifier(x, RENullConstant(ParsingType.STRING))
-      } |
     (
       (
         not(RIGHT | LEFT | START | STOP) ~> any_field_identifier |
@@ -357,8 +355,8 @@ trait GmqlParsers extends JavaTokenParsers {
 
   lazy val me_factor:Parser[MENode] =
     decimalNumber ^^ {x => MEFloat(x.toDouble)} |
-    metadata_attribute ^^ {x => MEName(x)} | "(" ~> me_expr <~ ")" |
     SQRT ~> "(" ~> me_expr <~ ")" ^^ {MESQRT(_)} |
+    metadata_attribute ^^ {x => MEName(x)} | "(" ~> me_expr <~ ")" |
     SUB ~> me_expr ^^ {x => MENegate(x)}
 
   val me_term: Parser[MENode] = me_factor ~ rep((MULT|DIV) ~ me_factor) ^^ {
@@ -378,7 +376,7 @@ trait GmqlParsers extends JavaTokenParsers {
 
   val single_metadata_modifier:Parser[MetaModifier] =
     (metadata_attribute <~ AS) ~ stringLiteral ^^ {
-      x => MetaModifier(x._1, MEStringConstant(x._2))
+      x => MetaModifier(x._1, MEStringConstant(x._2.drop(1).dropRight(1)))
     } |
       (
         (
@@ -432,7 +430,8 @@ trait GmqlParsers extends JavaTokenParsers {
     LEFT ^^ {x => RegionBuilder.LEFT} |
     RIGHT ^^ {x => RegionBuilder.RIGHT} |
     INTERSECT ^^ {x => RegionBuilder.INTERSECTION} |
-    CONTIG ^^ {x => RegionBuilder.CONTIG}
+    CONTIG ^^ {x => RegionBuilder.CONTIG} |
+    BOTH ^^ {x => RegionBuilder.BOTH}
 
   val extend_aggfun:Parser[RegionsToMetaTemp] =
     ((metadata_attribute <~ AS)  ~ (ident <~ ("(" ~ ")"))) ^^ {

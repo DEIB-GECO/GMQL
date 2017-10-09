@@ -2,8 +2,7 @@ package it.polimi.genomics.manager.Launchers
 
 import it.polimi.genomics.manager.{GMQLJob, Status}
 import it.polimi.genomics.repository.Utilities
-import it.polimi.genomics.wsc.WSUtilities
-import play.api.libs.json.{JsArray, JsObject, JsString}
+import play.api.libs.json.{JsArray, JsString}
 
 
 /**
@@ -27,6 +26,7 @@ class GMQLRemoteLauncher(job:GMQLJob) extends GMQLLauncher(job){
       JsString("-jobid")       , JsString(job.jobId),
       JsString("-outputDirs")  , JsString(outDir),
       JsString("-outputFormat"),JsString(job.gMQLContext.outputFormat.toString),
+      JsString("-outputCoordinateSystem"), JsString(job.gMQLContext.outputCoordinateSystem.toString),
       JsString("-username")    , JsString(job.username)
     ))
 

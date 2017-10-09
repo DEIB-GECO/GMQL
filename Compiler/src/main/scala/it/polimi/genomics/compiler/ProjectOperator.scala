@@ -217,6 +217,7 @@
         case RESUB(a,b) => RESUB(refineREDag(a), refineREDag(b))
         case REMUL(a,b) => REMUL(refineREDag(a), refineREDag(b))
         case REDIV(a,b) => REDIV(refineREDag(a), refineREDag(b))
+        case RESQRT(a) => RESQRT(refineREDag(a))
         case _ => dag
       }
     }

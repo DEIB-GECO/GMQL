@@ -5,12 +5,12 @@ import java.nio.file.{Files, Paths}
 import java.text.SimpleDateFormat
 import java.util.Date
 
-import it.polimi.genomics.core.{BinSize, GMQLSchemaFormat, GMQLScript, ImplementationPlatform}
-import it.polimi.genomics.manager.Launchers.{GMQLLocalLauncher, GMQLSparkLauncher}
+import it.polimi.genomics.core._
+import it.polimi.genomics.manager.Launchers.GMQLLocalLauncher
 import it.polimi.genomics.repository.FSRepository.{DFSRepository, LFSRepository, XMLDataSetRepository}
 import it.polimi.genomics.repository.{Utilities => repo_Utilities}
 import org.apache.spark.{SparkConf, SparkContext}
-import org.slf4j.{Logger, LoggerFactory}
+import org.slf4j.LoggerFactory
 
 /**
   * Created by abdulrahman on 31/01/2017.
@@ -30,6 +30,7 @@ object CLI {
     "[-exec FLINK|SPARK] [-binsize BIN_SIZE] [-jobid JOB_ID] " +
     "[-verbose true|false] " +
     "[-outputFormat GTF|TAB]" +
+    "[-outputCoordinateSystem 0-based|1-based|default]" +
     "-scriptpath /where/gmql/script/is \n" +
     "\n" +
     "\n" +
@@ -45,6 +46,9 @@ object CLI {
     "\n" +
     "\t[-outputFormat GTF|TAB]\n" +
     "\t\tThe default output format is TAB: tab delimited files in the format of BED files." +
+    "\n" +
+    "\t[-outputCoordinateSystem 0-based|1-based|default]\n" +
+    "\t\tThe default output coordinate system for GTF output format is 1-based, for TAB output format is 0-based." +
     "\n" +
     "\t-scriptpath /where/gmql/script/is/located\n" +
     "\t\tManditory parameter, select the GMQL script to execute"
@@ -66,6 +70,7 @@ object CLI {
     var username: String = System.getProperty("user.name")
     var outputPath: String = ""
     var outputFormat: GMQLSchemaFormat.Value = GMQLSchemaFormat.TAB
+    var outputCoordinateSystem: GMQLSchemaCoordinateSystem.Value = GMQLSchemaCoordinateSystem.Default
     var verbose: Boolean = false
     var i = 0;
 
@@ -102,12 +107,28 @@ object CLI {
           else if(out == GMQLSchemaFormat.GTF.toString)
             GMQLSchemaFormat.GTF
           else {
-            logger.warn(s"Not knwon format $out, Setting the output format for ${GMQLSchemaFormat.TAB}")
+            logger.warn(s"Not known format $out, Setting the output format for ${GMQLSchemaFormat.TAB}")
             GMQLSchemaFormat.TAB
           }
         logger.info(s"Output Format set to: $out" + outputFormat)
 
-      } else
+      } else if ("-outputcoordinatesystem".equals(args(i).toLowerCase())) {
+        val out = args(i + 1).toLowerCase().trim
+        outputCoordinateSystem =
+          if(out == GMQLSchemaCoordinateSystem.ZeroBased.toString.toLowerCase)
+            GMQLSchemaCoordinateSystem.ZeroBased
+          else if(out == GMQLSchemaCoordinateSystem.OneBased.toString.toLowerCase)
+            GMQLSchemaCoordinateSystem.OneBased
+          else if (out == GMQLSchemaCoordinateSystem.Default.toString.toLowerCase)
+            GMQLSchemaCoordinateSystem.Default
+          else {
+            logger.warn(s"Not known coordinate system $out, Setting the output coordinate system for ${GMQLSchemaCoordinateSystem.Default}")
+            GMQLSchemaCoordinateSystem.Default
+          }
+        logger.info(s"Output Coordinate system set to: $out" + outputCoordinateSystem)
+
+      }
+      else
         {
           logger.warn(s"Command option is not found ${args(i)}")
         }
@@ -137,7 +158,7 @@ object CLI {
     val sc:SparkContext =new SparkContext(conf)
 
     //GMQL context contains all the GMQL job needed information
-    val gmqlContext: GMQLContext = new GMQLContext(ImplementationPlatform.SPARK, repository, outputFormat, binSize, username,sc)
+    val gmqlContext: GMQLContext = new GMQLContext(implPlatform = ImplementationPlatform.SPARK, gMQLRepository = repository, outputFormat = outputFormat, outputCoordinateSystem = outputCoordinateSystem, binSize = binSize, username = username, sc = sc)
 
     //create GMQL server manager instance, if it is not created yet.
     val server: GMQLExecute = GMQLExecute()

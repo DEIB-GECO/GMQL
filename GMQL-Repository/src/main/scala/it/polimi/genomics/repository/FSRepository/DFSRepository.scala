@@ -2,13 +2,15 @@ package it.polimi.genomics.repository.FSRepository
 
 import java.io._
 import java.text.SimpleDateFormat
+import java.util
 import java.util.Date
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
-import it.polimi.genomics.core.{GMQLSchemaField, GMQLSchemaFormat}
+import it.polimi.genomics.core.GDMSUserClass.GDMSUserClass
+import it.polimi.genomics.core.{GMQLSchemaCoordinateSystem, GMQLSchemaField, GMQLSchemaFormat}
 import it.polimi.genomics.repository
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
-import it.polimi.genomics.repository.GMQLExceptions.{GMQLDSException, GMQLDSNotFound, GMQLSampleNotFound, GMQLUserNotFound}
+import it.polimi.genomics.repository.GMQLExceptions._
 import it.polimi.genomics.repository.{GMQLRepository, GMQLSample, GMQLStatistics, Utilities => General_Utilities}
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.slf4j.LoggerFactory
@@ -30,7 +32,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     * @param GMQLScriptPath The path to the script text file that generated this data set.
     * @param schemaType One of GMQL schema types as shown in [[ GMQLSchemaFormat]]
     */
-  override def createDs(dataSet:IRDataSet, userName: String, Samples: java.util.List[GMQLSample], GMQLScriptPath: String,schemaType:GMQLSchemaFormat.Value): Unit = {
+  override def createDs(dataSet:IRDataSet, userName: String, Samples: java.util.List[GMQLSample], GMQLScriptPath: String,schemaType:GMQLSchemaFormat.Value, schemaCoordinateSystem:GMQLSchemaCoordinateSystem.Value): Unit = {
     //Create Temp folder to place the meta files temporarly in Local file system
     val tmpFolderName = General_Utilities().getTempDir(userName)+dataSet.position+"_/"
     val tmpFolder = new File(tmpFolderName)
@@ -45,7 +47,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     }.toList.asJava
 
     //create DS as a set of XML files in the local repository
-    super.createDs(dataSet, userName, samples, GMQLScriptPath, schemaType)
+    super.createDs(dataSet, userName, samples, GMQLScriptPath, schemaType, schemaCoordinateSystem)
 
     //clean the temp Directory
     tmpFolder.delete()
@@ -93,7 +95,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
   /**
     * Delete Data Set from the repository, Delete XML files from local File system and delete the samples and meta files from HDFS.
     *
-    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
+    * @param dataSetName Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @throws GMQLDSNotFound
     * @throws GMQLDSException
     * @throws GMQLUserNotFound
@@ -128,7 +130,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
   /**
     *   List of the samples that was generated from a GMQL script execution
     *   and the schema for these samples
-    * @param dataSet
+    * @param dataSetName
     * @throws GMQLDSException
     * @return
     */
@@ -265,5 +267,130 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     serializedDag.map(x => outStream.write(x))
     outStream.close()
     resultPath
+  }
+
+  /**
+    *
+    * Import Dataset into GMQL from Local file system.
+    *
+    * @param dataSetName String of the dataset name.
+    * @param userName    String of the user name.
+    * @param userClass   GDMSUserClass
+    * @param Samples     List of GMQL samples [[ GMQLSample]].
+    * @param schemaPath  String of the path to the xml file of the dataset schema.
+    * @throws GMQLNotValidDatasetNameException
+    * @throws GMQLUserNotFound
+    * @throws java.lang.Exception
+    */
+  override def importDs(dataSetName: String, userName: String, userClass: GDMSUserClass, Samples: util.List[GMQLSample], schemaPath: String): Unit = {
+    importDs(dataSetName, userName, Samples, schemaPath)
+  }
+
+  /**
+    * Return a stram of the dataset.xml file
+    *
+    * @param datasetName
+    * @param userName
+    * @return
+    */
+  override def getDsInfoStream(datasetName: String, userName: String): InputStream = ???
+
+  /**
+    * Returns the metadata associated to a dataset, e.g:
+    * Source => Politecnico di Milano
+    * Type => GDM
+    * Creation Date => 21 Mar 2011
+    * Creation Time => 00:18:56
+    * Size => "50.12 MB"
+    *
+    * @param datasetName dataset name as a string
+    * @param userName    the owner of the dataset
+    * @return a Map[String, String] containing property_name => value
+    */
+override def getDatasetMeta(datasetName: String, userName: String): Map[String, String] = {
+
+  var res = Map[String,String]()
+  res += ("Source" -> "Wellington")
+  res += ("Type" -> "Wellington")
+  res += ("Creation Date" -> "Wellington")
+  res += ("Creation Time" -> "Wellington")
+  res += ("Size" -> "50.12 MB")
+
+  res
+
+}
+
+  /**
+    * Set an entry on dataset metadata
+    *
+    * @param datasetName
+    * @param userName
+    * @param key
+    * @param value
+    */
+override def setDatasetMeta(datasetName: String, userName: String, key: String, value: String): Unit = ???
+
+  /**
+    * Returns profiling information concerning the whole dataset, e.g.:
+    * Number of samples => 15
+    * Number of regions => 31209
+    * Average region length => 123.12
+    *
+    * @param datasetName dataset name as a string
+    * @param userName    the owner of the dataset
+    * @return a Map[String, String] containing property_name => value
+    */
+override def getDatasetProfile(datasetName: String, userName: String): Map[String, String] = {
+
+  var res = Map[String,String]()
+  res += ("Number of samples" -> "15")
+  res += ("Number of regions" -> "31209")
+  res += ("Average region length" -> "123.12")
+
+  res
+}
+
+  /**
+    * Returns profiling information concerning a specific sample of the dataset, e.g.:
+    *
+    * Number of samples => 15
+    * Number of regions => 31209
+    * Average region length => 123.12
+    *
+    * @param datasetName dataset name as a string
+    * @param sampleId    id of the sample (index 1 .. N)
+    * @param usernName   the owner of the dataset
+    */
+override def getSampleProfie(datasetName: String, sampleId: Long, usernName: String): Unit = {
+
+  var res = Map[String,String]()
+  res += ("Number of samples" -> "15")
+  res += ("Number of regions" -> "31209")
+  res += ("Average region length" -> "123.12")
+
+  res
+}
+
+  /**
+    * Returns information about the user disk quota usage
+    *
+    * @param userName
+    * @param userClass
+    * @return (occupied, available) in KBs
+    */
+override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Float, Float) = {
+
+  (500000,1000000)
+}
+
+  /**
+    * Boolean value: true if user quota is exceeded
+    *
+    * @param username
+    * @param userClass
+    * @return
+    */
+  override def isUserQuotaExceeded(username: String, userClass: GDMSUserClass): Boolean = {
+    false
   }
 }

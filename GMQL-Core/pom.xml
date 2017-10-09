@@ -15,19 +15,19 @@
         <sourceDirectory>./src/main/scala</sourceDirectory>
 
 
-        <resources>
-            <!-- resource processsing with a different output directory
-                 for logback.xml -->
+        <!-- <resources>
+            </!- resource processsing with a different output directory
+                 for logback.xml -/>
             <resource>
                 <directory>src/main/resources</directory>
                 <includes>
                     <include>logback.xml</include>
                 </includes>
-                <!-- relative to target/classes
-                     i.e. ${project.build.outputDirectory} -->
+                </!- relative to target/classes
+                     i.e. ${project.build.outputDirectory} -/>
                 <targetPath>${project.build.outputDirectory}</targetPath>
             </resource>
-        </resources>
+        </resources> -->
 
         <plugins>
 

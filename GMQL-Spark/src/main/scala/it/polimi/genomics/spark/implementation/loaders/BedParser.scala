@@ -26,6 +26,7 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
 
   private val logger: Logger = LoggerFactory.getLogger(classOf[BedParser]);
   var parsingType = GMQLSchemaFormat.TAB
+  var coordinateSystem = GMQLSchemaCoordinateSystem.ZeroBased
   final val spaceDelimiter: String = " "
   final val semiCommaDelimiter: String = ";"
 
@@ -104,21 +105,22 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
         }
       }
 
-      val newStart = if (parsingType == GMQLSchemaFormat.GTF || parsingType == GMQLSchemaFormat.VCF) s(startPos).trim.toLong - 1 else s(startPos).trim.toLong
-          Some((new GRecordKey(t._1, s(chrPos).trim, newStart, s(stopPos).trim.toLong,
-            if (strandPos.isDefined) {
-              val c = s(strandPos.get).trim.charAt(0)
-              //          if(c != '*') println(t._2+"\t"+c+"\n"+s.mkString("\t"))
-              if (c.equals('+') || c.equals('-')) {
-                c
-              } else {
-                '*'
-              }
-            } else {
-              '*'
-            }
+      val newStart = if (coordinateSystem == GMQLSchemaCoordinateSystem.OneBased) s(startPos).trim.toLong - 1 else s(startPos).trim.toLong
 
-          ), other))
+      Some((new GRecordKey(t._1, s(chrPos).trim, newStart, s(stopPos).trim.toLong,
+        if (strandPos.isDefined) {
+          val c = s(strandPos.get).trim.charAt(0)
+          //          if(c != '*') println(t._2+"\t"+c+"\n"+s.mkString("\t"))
+          if (c.equals('+') || c.equals('-')) {
+            c
+          } else {
+            '*'
+          }
+        } else {
+          '*'
+        }
+
+      ), other))
     } catch {
       case e: Throwable =>
         logger.warn(e.getMessage)
@@ -288,20 +290,31 @@ class CustomParser extends BedParser("\t", 0, 1, 2, Some(3), Some(Array((4, Pars
     //todo: remove this hard fix used for remote execution
     val XMLfile:InputStream = fs.open(new Path(dataset+ (if(!dataset.endsWith("schema"))"/test.schema" else "")))
     var schematype = GMQLSchemaFormat.TAB
+    var coordinatesystem = GMQLSchemaCoordinateSystem.Default
     var schema: Array[(String, ParsingType.Value)] = null
 
     try {
       val schemaXML = XML.load(XMLfile);
       val cc = (schemaXML \\ "field")
       schematype = GMQLSchemaFormat.getType((schemaXML \\ "gmqlSchema").head.attribute("type").get.head.text.trim.toLowerCase())
+      val coordSysAttr = (schemaXML \\ "gmqlSchema").head.attribute("coordinate_system")
+      coordinatesystem = GMQLSchemaCoordinateSystem.getType(if (coordSysAttr.isDefined) coordSysAttr.get.head.text.trim.toLowerCase() else "default")
       schema = cc.map(x => (x.text.trim, ParsingType.attType(x.attribute("type").get.head.text))).toArray
     } catch {
       case x: Throwable => x.printStackTrace(); logger.error(x.getMessage); throw new RuntimeException(x.getMessage)
     }
 
+    coordinatesystem match {
+      case GMQLSchemaCoordinateSystem.ZeroBased => coordinateSystem = GMQLSchemaCoordinateSystem.ZeroBased
+      case GMQLSchemaCoordinateSystem.OneBased => coordinateSystem = GMQLSchemaCoordinateSystem.OneBased
+      case _ => coordinateSystem = GMQLSchemaCoordinateSystem.Default
+    }
+
     schematype match {
       case  GMQLSchemaFormat.VCF =>{
         parsingType = GMQLSchemaFormat.VCF
+
+        if (coordinateSystem == GMQLSchemaCoordinateSystem.Default) coordinateSystem = GMQLSchemaCoordinateSystem.OneBased
 
         val valuesPositions = schema.zipWithIndex.flatMap { x => val name = x._1._1;
           if (checkCoordinatesName(name)) None
@@ -329,6 +342,8 @@ class CustomParser extends BedParser("\t", 0, 1, 2, Some(3), Some(Array((4, Pars
       case GMQLSchemaFormat.GTF => {
         parsingType = GMQLSchemaFormat.GTF
 
+        if (coordinateSystem == GMQLSchemaCoordinateSystem.Default) coordinateSystem = GMQLSchemaCoordinateSystem.OneBased
+
         val valuesPositions: Array[(Int, ParsingType.Value)] = schema.flatMap { x => val name = x._1.toUpperCase();
           if (name.equals("SEQNAME") || name.equals("SOURCE") ||name.equals("FEATURE") ||name.equals("FRAME") ||name.equals("SCORE") || checkCoordinatesName(name)) None
           else Some(8, x._2)
@@ -354,6 +369,8 @@ class CustomParser extends BedParser("\t", 0, 1, 2, Some(3), Some(Array((4, Pars
       }
 
       case _ => {
+
+        if (coordinateSystem == GMQLSchemaCoordinateSystem.Default) coordinateSystem = GMQLSchemaCoordinateSystem.ZeroBased
 
         val schemaWithIndex = schema.zipWithIndex
         val chrom = schemaWithIndex.filter(x => (x._1._1.toUpperCase().equals("CHROM") || x._1._1.toUpperCase().equals("CHROMOSOME") || x._1._1.toUpperCase().equals("CHR")))

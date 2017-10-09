@@ -2,6 +2,7 @@ package it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions
 
 import it.polimi.genomics.core.DataStructures.{MetaOperator, RegionOperator}
 import it.polimi.genomics.core.DataTypes.GRECORD
+import it.polimi.genomics.core.GMQLSchemaCoordinateSystem
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
@@ -23,7 +24,7 @@ object StoreGTFRD {
   private final val ENCODING = "UTF-8"
 
   @throws[SelectFormatException]
-  def apply(executor: GMQLSparkExecutor, path: String, value: RegionOperator, associatedMeta:MetaOperator, schema : List[(String, PARSING_TYPE)], sc: SparkContext): RDD[GRECORD] = {
+  def apply(executor: GMQLSparkExecutor, path: String, value: RegionOperator, associatedMeta:MetaOperator, schema : List[(String, PARSING_TYPE)], coordinateSystem: GMQLSchemaCoordinateSystem.Value, sc: SparkContext): RDD[GRECORD] = {
     val regions = executor.implement_rd(value, sc)
     val meta = executor.implement_md(associatedMeta,sc)
 
@@ -72,11 +73,13 @@ object StoreGTFRD {
           else Some(s._1._1 + " \"" + s._2 + "\";")
         }.mkString(" ")
 
+        val newStart = if (coordinateSystem == GMQLSchemaCoordinateSystem.ZeroBased) x._1._3 else (x._1._3 + 1)  //start: 0-based -> 1-based
+
         (outSample + "_" + "%05d".format(newIDSbroad.value.get(x._1._1).getOrElse(x._1._1)) + ".gtf",
           x._1._2 //chrom
             + "\t" + {if(sourceIndex >=0) x._2(sourceIndex).toString else "GMQL" }//variable name
             + "\t" + {if (featureIndex >=0) x._2(featureIndex) else  "Region"}
-            + "\t" + (x._1._3 + 1) + "\t" + x._1._4 + "\t" //start (0-based -> 1-based), stop
+            + "\t" + newStart + "\t" + x._1._4 + "\t" //start, stop
             + {
             if (scoreIndex >= 0) x._2(scoreIndex) else "0.0"
           } //score

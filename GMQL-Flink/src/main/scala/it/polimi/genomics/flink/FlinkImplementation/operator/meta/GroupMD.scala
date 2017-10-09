@@ -4,7 +4,7 @@ import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCo
 import it.polimi.genomics.core.DataStructures.RegionAggregate.RegionsToMeta
 import it.polimi.genomics.core.DataStructures.{MetaOperator, RegionOperator}
 import it.polimi.genomics.core.DataTypes.{FlinkMetaGroupType2, FlinkMetaType, FlinkRegionType}
-import it.polimi.genomics.core.GValue
+import it.polimi.genomics.core.{GNull, GValue}
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
 import it.polimi.genomics.flink.FlinkImplementation.operator.metaGroup.MetaGroupMGD
@@ -74,7 +74,9 @@ object GroupMD {
         .flatMap((a : (Long, Array[List[GValue]]), out : Collector[(String, String, String)]) => {
           a._2.zip(aggregates)
             .map((n : (List[GValue], RegionsToMeta)) => {
-              out.collect((a._1.toString, n._2.newAttributeName, n._2.fun(n._1).toString))
+              val fun = n._2.fun(n._1);
+              val count = (n._1.length, n._1.foldLeft(0)((x,y)=> if (y.isInstanceOf[GNull]) x+0 else x+1));
+              out.collect((a._1.toString, n._2.newAttributeName, n._2.funOut(fun,count).toString))
             })
         })
 

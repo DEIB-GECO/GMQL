@@ -13,6 +13,15 @@ class GMQLDSException (message:String) extends RuntimeException{
 }
 
 /**
+  * The dataset size is greater than the available amount of disk space for the user
+  * @param message
+  */
+class GMQLDSExceedsQuota (message:String) extends RuntimeException{
+  def this() = this("The dataset exceeds the user quota")
+}
+
+
+/**
   * GMQL data set is not found is exception that is thrown when the dataset is not found in the dataset manager.
   *
   * @param message

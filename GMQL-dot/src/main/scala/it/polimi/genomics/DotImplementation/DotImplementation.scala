@@ -94,7 +94,7 @@ try{
         case IRRegionCover(_, _, _, _, Some(c), p) => sb append edge(i, all_nodes.indexOf(p)) append edge(i, all_nodes.indexOf(c))
         case IRJoinBy(_, l, r) => sb append edge(i, all_nodes.indexOf(l)) append edge(i, all_nodes.indexOf(r))
         //        case IRCombineMD(None,l,r,_,_) => sb append edge(i, all_nodes.indexOf(l)) append edge(i, all_nodes.indexOf(r))
-        case IRCombineMD(c, l, r, _, _) => if (c.isInstanceOf[SomeMetaJoinOperator]) {
+        case IRCombineMD(c, l, r,_, _, _) => if (c.isInstanceOf[SomeMetaJoinOperator]) {
           sb append edge(i, all_nodes.indexOf(c.asInstanceOf[SomeMetaJoinOperator].operator)) append edge(i, all_nodes.indexOf(l)) append edge(i, all_nodes.indexOf(r))
         } else {
           sb append edge(i, all_nodes.indexOf(c.asInstanceOf[NoMetaJoinOperator].operator)) append edge(i, all_nodes.indexOf(l)) append edge(i, all_nodes.indexOf(r))
@@ -185,7 +185,7 @@ try{
       case IRGroupBy(m, _) => "struct" + pos + " [shape=record,color=\"green\",label=\"{IRGroupBy | by : " + (m.attributes mkString ",") + "}\"];\n"
       case IRRegionCover(t,n,x,a,_,_) => "struct" + pos + " [shape=record,color=\"red\",label=\"{IRregionCover | type=" + t + "|min=" + n + "|max=" +x+ "|aggregates=" + (a mkString ",") + "}\"];\n"
       case IRJoinBy(c,_,_) => "struct" + pos + " [shape=record,color=\"green\",label=\"{IRJoinBy | keys=" + (c.attributes mkString ",") + "}\"];\n"
-      case IRCombineMD(_,_,_,_,_) => "struct" + pos + " [shape=record,color=\"blue\",label=\"IRCombineMD" + "\"];\n"
+      case IRCombineMD(_,_,_,_,_,_) => "struct" + pos + " [shape=record,color=\"blue\",label=\"IRCombineMD" + "\"];\n"
       case IRCollapseMD(_,_) => "struct" + pos + " [shape=record,color=\"blue\",label=\"IRCollapseMD" + "\"];\n"
       case IRGenometricMap(_,a,_,_) => "struct" + pos + " [shape=record,color=\"red\",label=\"{IRGenometricMap |" + (a map {_.getClass.getSimpleName} mkString " | ") + "}\"];\n"
       case IRUnionRD(l,_,_) => "struct" + pos + " [shape=record,color=\"red\",label=\"{IRMergeRD | Schema: " + (l mkString ",") + "}\"];\n"
@@ -223,7 +223,7 @@ try{
       case IRRegionCover(_,_,_,_,Some(c),p) => add_all_nodes(p.asInstanceOf[IROperator]) ++ add_all_nodes(c.asInstanceOf[IROperator]) + node
       case IRJoinBy(_,l,r) => (add_all_nodes(l.asInstanceOf[IROperator]) ++ add_all_nodes(r.asInstanceOf[IROperator])) + node
 //      case IRCombineMD(None,l,r,_,_) =>  (add_all_nodes(l.asInstanceOf[IROperator]) ++ add_all_nodes(r.asInstanceOf[IROperator])) + node
-      case IRCombineMD(c,l,r,_,_) => if(c.isInstanceOf[SomeMetaJoinOperator]) {(add_all_nodes(c.asInstanceOf[SomeMetaJoinOperator].operator.asInstanceOf[IROperator]) ++ add_all_nodes(l.asInstanceOf[IROperator]) ++ add_all_nodes(r.asInstanceOf[IROperator])) + node} else {(add_all_nodes(c.asInstanceOf[NoMetaJoinOperator].operator.asInstanceOf[IROperator]) ++ add_all_nodes(l.asInstanceOf[IROperator]) ++ add_all_nodes(r.asInstanceOf[IROperator])) + node}
+      case IRCombineMD(c,l,r,_,_,_) => if(c.isInstanceOf[SomeMetaJoinOperator]) {(add_all_nodes(c.asInstanceOf[SomeMetaJoinOperator].operator.asInstanceOf[IROperator]) ++ add_all_nodes(l.asInstanceOf[IROperator]) ++ add_all_nodes(r.asInstanceOf[IROperator])) + node} else {(add_all_nodes(c.asInstanceOf[NoMetaJoinOperator].operator.asInstanceOf[IROperator]) ++ add_all_nodes(l.asInstanceOf[IROperator]) ++ add_all_nodes(r.asInstanceOf[IROperator])) + node}
       case IRCollapseMD(None,p) =>  (add_all_nodes(p.asInstanceOf[IROperator])) + node
       case IRCollapseMD(Some(c),p) =>  (add_all_nodes(c.asInstanceOf[IROperator]) ++ add_all_nodes(p.asInstanceOf[IROperator])) + node
 //      case IRGenometricMap(None,_,l,r) => (add_all_nodes(l.asInstanceOf[IROperator]) ++ add_all_nodes(r.asInstanceOf[IROperator])) + node
