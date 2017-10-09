@@ -196,17 +196,17 @@ class GMQLExecute (){
     * This function enables the DAG to be passed to a GMQLJob as a serialized String.
     * It executes directly the DAG.
     * */
-  def executeDAG(username: String, serializedDag : String, outputFormat : String): GMQLJob = {
-    val outputGMQLFormat = GMQLSchemaFormat.getType(outputFormat)
-    val gmqlScript = new GMQLScript("", "", serializedDag, "")
-    val binsize = new BinSize(5000, 5000, 1000)
-    val repository = General_Utilities().getRepository()
-    val gmqlContext = new GMQLContext(repository, outputGMQLFormat)
-    val job = new GMQLJob(gmqlContext, gmqlScript, username)
-    /*The job id is generated with the username, the current date and the suffix "DAG".*/
-    job.runGMQL(job.generateJobId(username, "DAG"), getLauncher(job))
-    job
-  }
+//  def executeDAG(username: String, serializedDag : String, outputFormat : String): GMQLJob = {
+//    val outputGMQLFormat = GMQLSchemaFormat.getType(outputFormat)
+//    val gmqlScript = new GMQLScript("", "", serializedDag, "")
+//    val binsize = new BinSize(5000, 5000, 1000)
+//    val repository = General_Utilities().getRepository()
+//    val gmqlContext = new GMQLContext(repository, outputGMQLFormat)
+//    val job = new GMQLJob(gmqlContext, gmqlScript, username)
+//    /*The job id is generated with the username, the current date and the suffix "DAG".*/
+//    job.runGMQL(job.generateJobId(username, "DAG"), getLauncher(job))
+//    job
+//  }
 
   /**
     *  Gets the launcher given a GMQLJob
