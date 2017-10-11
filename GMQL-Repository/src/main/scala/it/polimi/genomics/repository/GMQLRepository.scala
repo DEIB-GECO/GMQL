@@ -363,10 +363,10 @@ trait GMQLRepository {
     *   Average region length => 123.12
     *
     * @param datasetName dataset name as a string
-    * @param sampleId id of the sample (index 1 .. N)
-    * @param usernName the owner of the dataset
+    * @param sampleName name of the sample (index 1 .. N)
+    * @param userName the owner of the dataset
     */
-  def getSampleProfile(datasetName: String, sampleId: Long, usernName: String)
+  def getSampleProfile(datasetName: String, sampleName: String, userName: String)
 
 
   // User Class management
