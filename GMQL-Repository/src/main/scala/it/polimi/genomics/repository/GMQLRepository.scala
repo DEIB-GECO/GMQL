@@ -366,7 +366,7 @@ trait GMQLRepository {
     * @param sampleId id of the sample (index 1 .. N)
     * @param usernName the owner of the dataset
     */
-  def getSampleProfie(datasetName: String, sampleId: Long, usernName: String)
+  def getSampleProfile(datasetName: String, sampleId: Long, usernName: String)
 
 
   // User Class management

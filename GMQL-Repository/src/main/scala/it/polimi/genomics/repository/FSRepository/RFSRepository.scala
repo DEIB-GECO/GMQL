@@ -306,7 +306,7 @@ override def getDatasetProfile(datasetName: String, userName: String): Map[Strin
     * @param sampleId    id of the sample (index 1 .. N)
     * @param usernName   the owner of the dataset
     */
-override def getSampleProfie(datasetName: String, sampleId: Long, usernName: String): Unit = ???
+override def getSampleProfile(datasetName: String, sampleId: Long, usernName: String): Unit = ???
 
   /**
     * Returns information about the user disk quota usage
