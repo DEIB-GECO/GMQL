@@ -243,7 +243,7 @@ class LFSRepository extends GMQLRepository with XMLDataSetRepository{
     * @param sampleName    name of the sample (index 1 .. N)
     * @param userName   the owner of the dataset
     */
-  override def getSampleProfile(datasetName: String, sampleName: String, userName: String): Unit = {
+  override def getSampleProfile(datasetName: String, sampleName: String, userName: String): Map[String, String] = {
 
     var res = Map[String,String]()
     res += ("Number of samples" -> "15")
