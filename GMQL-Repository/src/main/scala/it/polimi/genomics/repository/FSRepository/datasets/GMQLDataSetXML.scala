@@ -206,7 +206,10 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
         case ex:Exception => logger.debug("Generating script is not found")
       }
       // Loading schema
-      val schemaFields = (XML.loadFile(this.schemaDir) \\ "field")
+      val schemaXML = XML.loadFile(this.schemaDir)
+      val schemaFields = ( schemaXML \\ "field")
+      this.schemaCoordinateSystem = GMQLSchemaCoordinateSystem.getType((schemaXML \\ "gmqlSchema").head.attribute("coordinate_system").get.head.text)
+      this.schemaType = GMQLSchemaFormat.getType((schemaXML \\ "gmqlSchema").head.attribute("type").get.head.text)
       this.schema = schemaFields.map(x => (x.text.trim, ParsingType.attType(x.attribute("type").get.head.text))).toList
       this
     } else throw new GMQLDSNotFound()

@@ -303,10 +303,10 @@ override def getDatasetProfile(datasetName: String, userName: String): Map[Strin
     * Average region length => 123.12
     *
     * @param datasetName dataset name as a string
-    * @param sampleId    id of the sample (index 1 .. N)
-    * @param usernName   the owner of the dataset
+    * @param sampleName    name of the sample (index 1 .. N)
+    * @param userName   the owner of the dataset
     */
-override def getSampleProfie(datasetName: String, sampleId: Long, usernName: String): Unit = ???
+  override def getSampleProfile(datasetName: String, sampleName: String, userName: String): Map[String, String] = ???
 
   /**
     * Returns information about the user disk quota usage

@@ -66,7 +66,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
       val date = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
       val samples = Samples.asScala.map(x=> GMQLSample(ID = x.ID, name = dataSetName+"_"+date+ "/"+new File(x.name).getName,meta = x.meta) ).asJava
       // Import the dataset schema and Script files to the local folder
-      super.importDs(dataSetName: String, userName: String, samples ,schemaPath)
+
 
       // Copy sample and Meta data from HDFS to the local folder
       Samples.asScala.map{x =>
@@ -77,6 +77,8 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
       FS_Utilities.copyfiletoHDFS(General_Utilities().getSchemaDir(userName)+dataSetName+".schema",
         General_Utilities().getHDFSRegionDir(userName)+ new Path(samples.get(0).name).getParent.toString+ "/test.schema"
       )
+
+      super.importDs(dataSetName: String, userName: String, samples ,schemaPath)
     } else {
       logger.info("The dataset schema does not confirm the schema style (XSD)")
     }
@@ -358,10 +360,10 @@ override def getDatasetProfile(datasetName: String, userName: String): Map[Strin
     * Average region length => 123.12
     *
     * @param datasetName dataset name as a string
-    * @param sampleId    id of the sample (index 1 .. N)
-    * @param usernName   the owner of the dataset
+    * @param sampleName    name of the sample (index 1 .. N)
+    * @param userName   the owner of the dataset
     */
-override def getSampleProfie(datasetName: String, sampleId: Long, usernName: String): Unit = {
+override def getSampleProfile(datasetName: String, sampleName: String, userName: String): Map[String, String] = {
 
   var res = Map[String,String]()
   res += ("Number of samples" -> "15")
