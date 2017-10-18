@@ -27,6 +27,13 @@
             <groupId>it.polimi.genomics</groupId>
             <artifactId>GMQL-Core</artifactId>
             <version>2.0</version>
+
+            <!--<exclusions>-->
+                <!--<exclusion>-->
+                    <!--<groupId>com.google.guava</groupId>-->
+                    <!--<artifactId>guava</artifactId>-->
+                <!--</exclusion>-->
+            <!--</exclusions>-->
         </dependency>
 
         <!--<dependency>-->
@@ -39,6 +46,12 @@
             <groupId>it.polimi.genomics</groupId>
             <artifactId>GMQL-Spark</artifactId>
             <version>4.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.google.guava</groupId>
+                    <artifactId>guava</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -47,9 +60,26 @@
             <version>3.0</version>
         </dependency>
 
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.17</version>
+        </dependency>
+
+
     </dependencies>
 
     <build>
+
+        <resources>
+            <resource>
+                <directory>../GMQL-Core</directory>
+                <includes>
+                    <include>log4j.dtd</include>
+                </includes>
+            </resource>
+        </resources>
+
         <sourceDirectory>./src/main/scala</sourceDirectory>
         <plugins>
             <plugin>
