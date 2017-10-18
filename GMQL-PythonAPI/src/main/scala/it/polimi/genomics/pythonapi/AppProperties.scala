@@ -12,23 +12,6 @@ object AppProperties {
   var driverMemory = "8g"
   var kryobuffer = "1g"
   var maxResultSize = "5g"
-
-  /*
- * Utility functions to set the parameters of Spark
- * */
-  def setApplicationName(applicationName : String): Unit =
-  {
-    this.applicationName = applicationName
-  }
-
-  def setSerializer(serializer : String): Unit =
-  {
-    this.serializer = serializer
-  }
-
-  def setMaster(master : String): Unit =
-  {
-    this.master = master
-  }
-
+  var driverHost = "localhost"
+  var sparkLocalDir = "/tmp"
 }
