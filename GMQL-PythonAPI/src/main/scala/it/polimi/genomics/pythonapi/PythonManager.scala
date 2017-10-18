@@ -308,4 +308,8 @@ object PythonManager {
     this.sparkContext.get.stop()
     this.sparkContext = None
   }
+
+  def setSparkLocalDir(dir: String): Unit = {
+    EntryPoint.properties.sparkLocalDir = dir
+  }
 }

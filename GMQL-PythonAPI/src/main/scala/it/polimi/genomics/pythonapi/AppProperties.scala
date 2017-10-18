@@ -13,5 +13,5 @@ object AppProperties {
   var kryobuffer = "1g"
   var maxResultSize = "5g"
   var driverHost = "localhost"
-
+  var sparkLocalDir = "/tmp"
 }

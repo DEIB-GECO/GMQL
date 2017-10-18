@@ -60,6 +60,7 @@ object EntryPoint {
         .set("spark.kryoserializer.buffer.max", properties.kryobuffer)
         .set("spark.driver.maxResultSize", properties.maxResultSize)
         .set("spark.driver.host", properties.driverHost)
+        .set("spark.local.dir", properties.sparkLocalDir)
 
     val sc = SparkContext.getOrCreate(conf)
     logger.info("Spark Context initiated")
