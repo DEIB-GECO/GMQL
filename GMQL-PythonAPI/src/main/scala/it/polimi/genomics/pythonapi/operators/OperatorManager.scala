@@ -220,10 +220,12 @@ object OperatorManager {
     conditionName match {
       case "DLE" =>
         logger.info("DLE("+argument.toLong+")")
-        DistLess(argument.toLong)
+        DistLess(argument.toLong + 1)
       case "DGE" =>
         logger.info("DGE("+argument.toLong+")")
-        DistGreater(argument.toLong)
+        DistGreater(argument.toLong - 1)
+      case "DL" => DistLess(argument.toLong)
+      case "DG" => DistGreater(argument.toLong)
       case "MD" =>
         logger.info("MD("+argument.toInt+")")
         MinDistance(argument.toInt)
