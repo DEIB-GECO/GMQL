@@ -6,7 +6,7 @@ import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParamet
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction._
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.{NoTop, TopParameter}
 import it.polimi.genomics.core.DataStructures.GroupRDParameters.GroupingParameter
-import it.polimi.genomics.core.DataStructures.JoinParametersRD.JoinQuadruple
+import it.polimi.genomics.core.DataStructures.JoinParametersRD.{JoinQuadruple, RegionBuilder}
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
 import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaExtension
 import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
@@ -346,8 +346,13 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
 
     new_region_dag.binSize = binS.size
 
-    val new_schema = this.schema.map(x => (reference_name.getOrElse("left")+"."+x._1,x._2)) ++
-      right_dataset.schema.map(x => (experiment_name.getOrElse("right")+"."+x._1,x._2))
+    val new_schema = region_builder match {
+      case RegionBuilder.LEFT_DISTINCT => this.schema
+      case RegionBuilder.RIGHT_DISTINCT => right_dataset.schema
+      case _ => this.schema.map(x => (reference_name.getOrElse("left")+"."+x._1,x._2)) ++
+        right_dataset.schema.map(x => (experiment_name.getOrElse("right")+"."+x._1,x._2))
+    }
+
     new IRVariable(new_meta_dag, new_region_dag, new_schema)
   }
 
