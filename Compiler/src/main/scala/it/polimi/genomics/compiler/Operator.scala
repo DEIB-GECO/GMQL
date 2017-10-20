@@ -6,7 +6,7 @@ import it.polimi.genomics.core.DataStructures.GroupMDParameters.TopParameter
 import it.polimi.genomics.core.DataStructures.IRVariable
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.AtomicCondition
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
-import it.polimi.genomics.core.DataStructures.MetaAggregate.MENode
+import it.polimi.genomics.core.DataStructures.MetaAggregate.{MENode, MetaAggregateFunction}
 import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition.AttributeEvaluationStrategy
 import it.polimi.genomics.core.DataStructures.RegionAggregate.RENode
@@ -15,7 +15,7 @@ import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import org.slf4j.LoggerFactory
 
-import scala.util.parsing.input.{CharSequenceReader, Positional, Position}
+import scala.util.parsing.input.{CharSequenceReader, Position, Positional}
 
 /**
  * Created by pietro on 12/09/15.
@@ -323,7 +323,9 @@ case class RegionOrderParameters(ordering : List[(FieldPositionOrName, Direction
 
 case class OrderParameters(meta_order : Option[MetaOrderParameters], region_order : Option[RegionOrderParameters])
 
-case class GroupMetaParameters(grouping : Option[MetaGroupByCondition], aggregates : Option[List[RegionsToMetaTemp]])
+case class TemporaryMetaAggregateFunction(fun_name:String, input:String, output:String)
+
+case class GroupMetaParameters(grouping : Option[MetaGroupByCondition], aggregates : Option[List[MetaAggregateFunction]])
 
 case class GroupRegionParameters(grouping : Option[List[FieldPositionOrName]], aggregates : Option[List[RegionsToRegionTemp]])
 
