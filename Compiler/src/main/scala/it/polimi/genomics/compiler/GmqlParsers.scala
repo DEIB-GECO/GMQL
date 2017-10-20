@@ -376,7 +376,15 @@ trait GmqlParsers extends JavaTokenParsers {
 
   val single_metadata_modifier:Parser[MetaModifier] =
     (metadata_attribute <~ AS) ~ stringLiteral ^^ {
-      x => MetaModifier(x._1, MEStringConstant(x._2.drop(1).dropRight(1)))
+      x => {
+        val string:String = x._2.drop(1).dropRight(1)
+        if (!string.isEmpty())
+          MetaModifier(x._1, MEStringConstant(x._2.drop(1).dropRight(1)))
+        else {
+          val msg = "Empty strings are not allowed to be passed as constant value"
+          throw new CompilerException(msg)
+        }
+      }
     } |
       (
         (
