@@ -507,4 +507,15 @@ trait GmqlParsers extends JavaTokenParsers {
       x.map(y => FieldName(y))
   }
 
+
+  val group_meta_aggfun:Parser[TemporaryMetaAggregateFunction] =
+      (((metadata_attribute ) <~ AS) ~ ((ident <~ "(") ~ (metadata_attribute <~ ")")) ^^ {
+        x => TemporaryMetaAggregateFunction(
+          x._2._1,
+          x._2._2,
+          x._1)
+      })
+
+  val group_meta_aggfun_list:Parser[List[TemporaryMetaAggregateFunction]] = repsep(group_meta_aggfun, ",")
+
 }

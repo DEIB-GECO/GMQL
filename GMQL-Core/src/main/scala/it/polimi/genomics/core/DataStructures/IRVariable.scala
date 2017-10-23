@@ -8,7 +8,7 @@ import it.polimi.genomics.core.DataStructures.GroupMDParameters.{NoTop, TopParam
 import it.polimi.genomics.core.DataStructures.GroupRDParameters.GroupingParameter
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.{JoinQuadruple, RegionBuilder}
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
-import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaExtension
+import it.polimi.genomics.core.DataStructures.MetaAggregate.{MetaAggregateFunction, MetaExtension}
 import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition.{AttributeEvaluationStrategy, MetaJoinCondition}
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
@@ -183,7 +183,7 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
   /** Group by with both meta grouping and region grouping
     */
   def GROUP(meta_keys : Option[MetaGroupByCondition] = None,
-            meta_aggregates : Option[List[RegionsToMeta]] = None,
+            meta_aggregates : Option[List[MetaAggregateFunction]] = None,
             meta_group_name : String = "_group",
             region_keys : Option[List[GroupingParameter]],
             region_aggregates : Option[List[RegionsToRegion]]): IRVariable ={
