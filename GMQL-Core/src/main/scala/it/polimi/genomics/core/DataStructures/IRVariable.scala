@@ -349,6 +349,13 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
     val new_schema = region_builder match {
       case RegionBuilder.LEFT_DISTINCT => this.schema
       case RegionBuilder.RIGHT_DISTINCT => right_dataset.schema
+      case RegionBuilder.BOTH => this.schema.map(x => (reference_name.getOrElse("left")+"."+x._1,x._2)) ++
+        List(
+          ("chr", ParsingType.STRING),
+          ("start", ParsingType.LONG),
+          ("stop", ParsingType.LONG),
+          ("strand", ParsingType.CHAR)).map(x => (experiment_name.getOrElse("right")+"."+x._1,x._2)) ++
+        right_dataset.schema.map(x => (experiment_name.getOrElse("right")+"."+x._1,x._2))
       case _ => this.schema.map(x => (reference_name.getOrElse("left")+"."+x._1,x._2)) ++
         right_dataset.schema.map(x => (experiment_name.getOrElse("right")+"."+x._1,x._2))
     }
