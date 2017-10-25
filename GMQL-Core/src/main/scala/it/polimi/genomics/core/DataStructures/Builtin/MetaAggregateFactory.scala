@@ -4,5 +4,7 @@ import it.polimi.genomics.core.DataStructures.MetaAggregate.{MetaAggregateFuncti
 
 trait MetaAggregateFactory {
 
-  def get(name : String, input:String, output : String) : MetaAggregateFunction
+  def get(name:String, output : Option[String]):MetaAggregateFunction
+
+  def get(name : String, input:String, output : Option[String]) : MetaAggregateFunction
 }

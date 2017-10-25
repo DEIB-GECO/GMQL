@@ -4,7 +4,7 @@ import it.polimi.genomics.core.DataStructures.GroupRDParameters.{FIELD, Grouping
 import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaAggregateFunction
 import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition.Default
-import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionsToMeta, RegionsToRegion}
+import it.polimi.genomics.core.DataStructures.RegionAggregate.RegionsToRegion
 
 import scala.util.parsing.input.Position
 
@@ -64,7 +64,7 @@ case class GroupOperator(op_pos : Position,
 
               try {
 
-                status.get_server.implementation.metaAggregateFunctionFactory.get(a.fun_name,a.input,a.output)
+                status.get_server.implementation.metaAggregateFunctionFactory.get(a.fun_name,a.input,Some(a.output))
 
               } catch {
                 case e:Exception =>
