@@ -6,7 +6,7 @@ import java.nio.file.{Files, Paths}
 import it.polimi.genomics.core.DataStructures.IRDataSet
 import it.polimi.genomics.core.GDMSUserClass._
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
-import it.polimi.genomics.core._
+import it.polimi.genomics.core.{GDMSUserClass, _}
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
 import it.polimi.genomics.repository.GMQLExceptions._
 import it.polimi.genomics.repository.{DatasetOrigin, GMQLRepository, GMQLSample, GMQLStatistics, RepositoryType, Utilities => General_Utilities}
@@ -93,10 +93,22 @@ trait XMLDataSetRepository extends GMQLRepository{
     * @throws GMQLSampleNotFound
     */
   @throws(classOf[GMQLDSException])
-  override def addSampleToDS(dataSet: String, userName: String = General_Utilities().USERNAME, Sample: GMQLSample) ={
+  @deprecated
+  override def addSampleToDS(dataSet: String, userName: String = General_Utilities().USERNAME, Sample: GMQLSample, userClass: GDMSUserClass = GDMSUserClass.PUBLIC) ={
+
+    val exceeded  = General_Utilities().getRepository().isUserQuotaExceeded(userName, userClass)
+
+    if( exceeded ) {
+      throw new GMQLDSExceedsQuota()
+    }
+
+
     val ds = new GMQLDataSetXML(dataSet,userName).loadDS()
     ds.addSample(Sample)
   }
+
+
+
 
   /**
     *

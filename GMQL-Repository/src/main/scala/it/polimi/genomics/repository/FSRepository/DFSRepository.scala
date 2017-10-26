@@ -7,14 +7,14 @@ import java.util.Date
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
 import it.polimi.genomics.core.GDMSUserClass.GDMSUserClass
-import it.polimi.genomics.core.{GMQLSchemaCoordinateSystem, GMQLSchemaField, GMQLSchemaFormat}
+import it.polimi.genomics.core.{GDMSUserClass, GMQLSchemaCoordinateSystem, GMQLSchemaField, GMQLSchemaFormat}
 import it.polimi.genomics.repository
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
 import it.polimi.genomics.repository.GMQLExceptions._
 import it.polimi.genomics.repository.{GMQLRepository, GMQLSample, GMQLStatistics, Utilities => General_Utilities}
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.slf4j.LoggerFactory
-import java.nio.file.{Paths, Files}
+import java.nio.file.{Files, Paths}
 
 import scala.collection.JavaConverters._
 import scala.xml.XML
@@ -110,7 +110,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     * @param Sample GMQL sample [[ GMQLSample]].
     * @param userName String of the user name.
     */
-  override def addSampleToDS(dataSet: String, userName: String, Sample: GMQLSample): Unit = ???
+  override def addSampleToDS(dataSet: String, userName: String, Sample: GMQLSample,  userClass: GDMSUserClass = GDMSUserClass.PUBLIC): Unit = ???
 
   /**
     * Delete Data Set from the repository, Delete XML files from local File system and delete the samples and meta files from HDFS.

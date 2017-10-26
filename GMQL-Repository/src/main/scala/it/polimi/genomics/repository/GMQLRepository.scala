@@ -4,7 +4,7 @@ import java.io.InputStream
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
 import it.polimi.genomics.core.GDMSUserClass.GDMSUserClass
-import it.polimi.genomics.core.{GMQLSchema, GMQLSchemaCoordinateSystem, GMQLSchemaField, GMQLSchemaFormat}
+import it.polimi.genomics.core._
 import it.polimi.genomics.repository.GMQLExceptions._
 
 /**
@@ -89,7 +89,7 @@ trait GMQLRepository {
     * @throws GMQLSampleNotFound
     */
   @throws(classOf[GMQLDSException])
-  def addSampleToDS(dataSet:String, userName:String, Sample:GMQLSample)
+  def addSampleToDS(dataSet:String, userName:String, Sample:GMQLSample, userClass: GDMSUserClass = GDMSUserClass.PUBLIC)
 
   /**
     *

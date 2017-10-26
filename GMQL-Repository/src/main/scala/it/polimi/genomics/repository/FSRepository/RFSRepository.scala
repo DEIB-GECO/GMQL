@@ -5,7 +5,7 @@ import java.util
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
 import it.polimi.genomics.core.GDMSUserClass.GDMSUserClass
-import it.polimi.genomics.core.{GMQLSchemaCoordinateSystem, GMQLSchemaField, GMQLSchemaFormat}
+import it.polimi.genomics.core.{GDMSUserClass, GMQLSchemaCoordinateSystem, GMQLSchemaField, GMQLSchemaFormat}
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
 import it.polimi.genomics.repository.GMQLExceptions._
 import it.polimi.genomics.repository.{Utilities => General_Utilities, _}
@@ -100,7 +100,7 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
     * @throws GMQLSampleNotFound
     */
   @throws(classOf[GMQLDSException])
-  override def addSampleToDS(dataSet: String, userName: String, Sample: GMQLSample) = ???
+  override def addSampleToDS(dataSet: String, userName: String, Sample: GMQLSample, userClass: GDMSUserClass = GDMSUserClass.PUBLIC) = ???
 
   /**
     *
