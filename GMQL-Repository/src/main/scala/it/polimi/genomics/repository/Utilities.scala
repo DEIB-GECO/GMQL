@@ -241,7 +241,14 @@ class Utilities() {
     * @param userClass [[GDMSUserClass]]
     * @return Quota in KB
     */
-  def getUserQuota(userClass: GDMSUserClass): Long = USER_QUOTA(userClass)
+  def getUserQuota(userClass: GDMSUserClass): Long = {
+    if( USER_QUOTA.isDefinedAt(userClass) ) {
+      USER_QUOTA(userClass)
+    } else {
+      logger.warn("Disk quota not defined for userClass "+userClass+" , assigning unlimited quota.")
+      Long.MaxValue
+    }
+  }
 
   /**
     *
