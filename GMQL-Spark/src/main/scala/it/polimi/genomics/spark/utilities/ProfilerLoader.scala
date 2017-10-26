@@ -39,7 +39,9 @@ object ProfilerLoader {
     val samples  =
     selectedURIs.map(
       x => { val name  = new Path(x) getName
-        val next = name.substring(0, name.lastIndexOf("."))
+        val next =
+          if(name.lastIndexOf(".") == -1) name
+          else name.substring(0, name.lastIndexOf("."))
         (getSampleID(name), name) }
     ).toMap[Long, String]
 

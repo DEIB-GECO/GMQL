@@ -6,9 +6,10 @@ package it.polimi.genomics.core
 object GDMSUserClass extends Enumeration {
 
     type GDMSUserClass = Value
-    val GUEST: GDMSUserClass.Value      = Value("GUEST")
-    val BASIC: GDMSUserClass.Value      = Value("BASIC")
-    val PRO:   GDMSUserClass.Value      = Value("PRO")
-    val ADMIN: GDMSUserClass.Value      = Value("ADMIN")
+    val GUEST:  GDMSUserClass.Value     = Value("GUEST")
+    val BASIC:  GDMSUserClass.Value     = Value("BASIC")
+    val PRO:    GDMSUserClass.Value     = Value("PRO")
+    val ADMIN:  GDMSUserClass.Value     = Value("ADMIN")
+    val PUBLIC: GDMSUserClass.Value     = Value("PUBLIC")
 
 }

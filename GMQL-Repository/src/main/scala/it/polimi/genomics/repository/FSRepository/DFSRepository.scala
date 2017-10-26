@@ -23,7 +23,7 @@ import scala.xml.XML
   */
 class DFSRepository extends GMQLRepository with XMLDataSetRepository{
   private final val logger = LoggerFactory.getLogger(this.getClass)
-    repository.Utilities()
+  repository.Utilities()
 
   /**
     * Add a new dataset to GMQL repository, this dataset is usually a result of a script execution.
@@ -159,12 +159,12 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     val fs = FileSystem.get(conf);
     val dsPath = conf.get("fs.defaultFS") +repository.Utilities().getHDFSRegionDir(userName) + dataSetName
     val samples = fs.listStatus(new Path(dsPath))
-        .flatMap(x => {
-          if (fs.exists(new Path(x.getPath.toString+".meta")) ) {
-            Some(new GMQLSample(dataSetName+x.getPath.getName))
-          } else
-            None
-        }).toList.asJava;
+      .flatMap(x => {
+        if (fs.exists(new Path(x.getPath.toString+".meta")) ) {
+          Some(new GMQLSample(dataSetName+x.getPath.getName))
+        } else
+          None
+      }).toList.asJava;
     val schema =
       readSchemaFile(dsPath + "/test.schema")
     (samples,schema.fields.asJava)
@@ -285,109 +285,4 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     */
   override def getDsInfoStream(datasetName: String, userName: String): InputStream = ???
 
-  /**
-    * Returns the metadata associated to a dataset, e.g:
-    * Source => Politecnico di Milano
-    * Type => GDM
-    * Creation Date => 21 Mar 2011
-    * Creation Time => 00:18:56
-    * Size => "50.12 MB"
-    *
-    * @param datasetName dataset name as a string
-    * @param userName    the owner of the dataset
-    * @return a Map[String, String] containing property_name => value
-    */
-override def getDatasetMeta(datasetName: String, userName: String): Map[String, String] = {
-
-  var res = Map[String,String]()
-  res += ("Source" -> "Wellington")
-  res += ("Type" -> "Wellington")
-  res += ("Creation Date" -> "Wellington")
-  res += ("Creation Time" -> "Wellington")
-  res += ("Size" -> "50.12 MB")
-
-  res
-
-}
-
-  /**
-    * Set an entry on dataset metadata
-    *
-    * @param datasetName
-    * @param userName
-    * @param key
-    * @param value
-    */
-override def setDatasetMeta(datasetName: String, userName: String, key: String, value: String): Unit = ???
-
-  /**
-    * Returns profiling information concerning the whole dataset, e.g.:
-    * Number of samples => 15
-    * Number of regions => 31209
-    * Average region length => 123.12
-    *
-    * @param datasetName dataset name as a string
-    * @param userName    the owner of the dataset
-    * @return a Map[String, String] containing property_name => value
-    */
-override def getDatasetProfile(datasetName: String, userName: String): Map[String, String] = {
-
-  val filename = General_Utilities().getProfileDir(userName)+"/"+datasetName+".profile"
-
-  if (Files.exists(Paths.get("/tmp"))) {
-    val xml = XML.loadFile(filename);
-    (xml \\ "dataset" \ "feature").map(x=>(x.attribute("name").get.text, x.text)).toMap
-  } else {
-    Map("Info" -> "Dataset Profile not available.")
-  }
-
-}
-
-  /**
-    * Returns profiling information concerning a specific sample of the dataset, e.g.:
-    *
-    * Number of samples => 15
-    * Number of regions => 31209
-    * Average region length => 123.12
-    *
-    * @param datasetName dataset name as a string
-    * @param sampleName  name of the sample (no format), e.g. S_00001
-    * @param userName   the owner of the dataset
-    */
-override def getSampleProfie(datasetName: String, sampleName: String, userName: String): Unit = {
-
-  val filename = General_Utilities().getProfileDir(userName)+"/"+datasetName+".profile"
-
-  if (Files.exists(Paths.get("/tmp"))) {
-    val xml = XML.loadFile(filename)
-
-    (xml \\ "dataset" \\ "sample").filter(_.attribute("name").get.text == sampleName) \\ "feature" map(x=>(x.attribute("name").get.text,x.text))
-  } else {
-    Map("Info" -> "Sample Profile not available.")
-  }
-
-}
-
-  /**
-    * Returns information about the user disk quota usage
-    *
-    * @param userName
-    * @param userClass
-    * @return (occupied, available) in KBs
-    */
-override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Float, Float) = {
-
-  (500000,1000000)
-}
-
-  /**
-    * Boolean value: true if user quota is exceeded
-    *
-    * @param username
-    * @param userClass
-    * @return
-    */
-  override def isUserQuotaExceeded(username: String, userClass: GDMSUserClass): Boolean = {
-    false
-  }
 }

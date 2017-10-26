@@ -37,6 +37,15 @@ class Utilities() {
   var GMQL_CONF_DIR:String = null
   var REMOTE_HDFS_NAMESPACE:String = null
 
+  // User Quota in KB
+  var GUEST_QUOTA:Long = 500000         // 500 MB
+  var BASIC_QUOTA:Long = 5000000       // 5   GB
+  var PRO_QUOTA:Long   = 20000000      // 20  GB
+  var ADMIN_QUOTA:Long = 50000000      // 50  GB
+  var PUBLIC_QUOTA:Long = 50000000000L // 50  GB
+
+
+
 
   /**
     *  Read Configurations from the system environment variables.
@@ -46,7 +55,10 @@ class Utilities() {
     try {
       var file = new File(confDir+"/repository.xml")
       val xmlFile =  if(file.exists()) XML.loadFile(file)
-      else XML.loadFile(new File("GMQL-Repository/src/main/resources/repository.xml"))
+      else {
+        logger.warn("Config file '"+confDir+"/repository.xml' does not exists, using default")
+        XML.loadFile(new File("GMQL-Repository/src/main/resources/repository.xml"))
+      }
       val properties = (xmlFile \\ "property")
       //      val schemaType = (xmlFile \\ "gmqlSchema").head.attribute("type").get.head.text
 
@@ -99,11 +111,11 @@ class Utilities() {
     //    HDFSConfigurationFiles = if (HDFSConfigurationFiles == null) "/usr/local/Cellar/hadoop/2.7.2/libexec/etc/hadoop/hdfs-site.xml" else HDFSConfigurationFiles
     logger.debug(CoreConfigurationFiles)
     logger.debug(HDFSConfigurationFiles)
-    logger.debug("GMQL_LOCAL_HOME is set to = " +  this.GMQLHOME)
-    logger.debug("GMQL_DFS_HOME, HDFS Repository is set to = " +  this.HDFSRepoDir)
-    logger.debug("MODE is set to = " +  this.MODE)
-    logger.debug("GMQL_REPO_TYPE is set to = " +  this.GMQL_REPO_TYPE)
-    logger.debug("User is set to = " +  this.USERNAME)
+    logger.info("GMQL_LOCAL_HOME is set to = " +  this.GMQLHOME)
+    logger.info("GMQL_DFS_HOME, HDFS Repository is set to = " +  this.HDFSRepoDir)
+    logger.info("MODE is set to = " +  this.MODE)
+    logger.info("GMQL_REPO_TYPE is set to = " +  this.GMQL_REPO_TYPE)
+    logger.info("User is set to = " +  this.USERNAME)
   }
 
   /**
@@ -289,6 +301,10 @@ object Conf {
   val HADOOP_CONF_DIR = "HADOOP_CONF_DIR"
   val GMQL_CONF_DIR = "GMQL_CONF_DIR"
   val REMOTE_HDFS_NAMESPACE = "REMOTE_HDFS_NAMESPACE"
+  val GUEST_QUOTA = "GUEST_QUOTA"
+  val BASIC_QUOTA = "BASIC_QUOTA"
+  val PRO_QUOTA   = "PRO_QUOTA"
+  val ADMIN_QUOTA = "ADMIN_QUOTA"
 }
 
 

@@ -5,4 +5,8 @@
     <property name = "GMQL_REPO_TYPE">HDFS</property>
    ﻿<property name = "HADOOP_HOME">/usr/local/Cellar/hadoop/2.7.2/libexec/etc/hadoop/</property>
     <property name="REMOTE_HDFS_NAMESPACE">hdfs://your-host:8020/</property>
+    <property name="GUEST_QUOTA">500000</property>
+    <property name="BASIC_QUOTA">5000000</property>
+    <property name="PRO_QUOTA">20000000</property>
+    <property name="ADMIN_QUOTA">500000</property>
 </gmqlProperties>

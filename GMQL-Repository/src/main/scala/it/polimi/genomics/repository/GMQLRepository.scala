@@ -174,6 +174,16 @@ trait GMQLRepository {
 
   /**
     *
+    *  return the statistics (profiling ) of the dataset
+    *
+    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
+    * @return
+    */
+  def getDSStatistics(dataSet:String, userName:String):GMQLStatistics
+
+
+  /**
+    *
     *   return the schema of the dataset
     *
     * @param schemaPath [[ String]] of the path to the schema xml
@@ -286,6 +296,14 @@ trait GMQLRepository {
     */
   def getScriptStream(dataSetName: String, userName: String): InputStream
 
+  /**
+    *  Return a stream of the vocabulary file.
+    *
+    * @param dataSetName dataset name of the requested script
+    * @param userName the owner of the dataset and the script
+    * @return [[InputStream]] as the script string file.
+    */
+  def getVocabularyStream(dataSetName: String, userName: String): InputStream
 
   /**
     * Return a stram of the dataset.xml file
@@ -333,7 +351,7 @@ trait GMQLRepository {
     * @param datasetName dataset name as a string
     * @param userName   the owner of the dataset
     * @return a Map[String, String] containing property_name => value
-   */
+    */
   def getDatasetProfile(datasetName: String, userName: String): Map[String, String]
 
 
@@ -345,10 +363,10 @@ trait GMQLRepository {
     *   Average region length => 123.12
     *
     * @param datasetName dataset name as a string
-    * @param sampleName  name of the sample (no format), e.g. S_00001
-    * @param usernName the owner of the dataset
+    * @param sampleName name of the sample (index 1 .. N)
+    * @param userName the owner of the dataset
     */
-  def getSampleProfie(datasetName: String, sampleName: String, usernName: String)
+  def getSampleProfile(datasetName: String, sampleName: String, userName: String): Map[String, String]
 
 
   // User Class management
@@ -369,5 +387,4 @@ trait GMQLRepository {
     */
   def isUserQuotaExceeded(username: String, userClass: GDMSUserClass): Boolean
 }
-
 

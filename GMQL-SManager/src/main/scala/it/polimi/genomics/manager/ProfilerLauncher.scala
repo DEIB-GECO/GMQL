@@ -1,7 +1,7 @@
 package it.polimi.genomics.manager
+import java.io.File
+
 import scala.collection.JavaConversions._
-
-
 import it.polimi.genomics.profiling.Profilers.Profiler
 import it.polimi.genomics.repository.FSRepository.{DFSRepository, FS_Utilities}
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
@@ -11,6 +11,7 @@ import it.polimi.genomics.repository.{Utilities => RepoUtilities}
 import it.polimi.genomics.spark.utilities.ProfilerLoader
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.log4j.xml.DOMConfigurator
 
 /**
   * Created by andreagulino on 30/09/17.
@@ -18,6 +19,7 @@ import org.apache.hadoop.fs.{FileSystem, Path}
 object ProfilerLauncher {
 
   private final val logger = LoggerFactory.getLogger(this.getClass)
+  private var repo: DFSRepository = null
 
   private final val usage: String = "ProfileLauncher " +
     " -username USER " +
@@ -27,61 +29,65 @@ object ProfilerLauncher {
 
   def main(args: Array[String]): Unit = {
 
-    try {
-      val root: ch.qos.logback.classic.Logger = org.slf4j.LoggerFactory.getLogger("org.apache.spark").asInstanceOf[ch.qos.logback.classic.Logger];
-      root.setLevel(ch.qos.logback.classic.Level.WARN);
-    } catch {
-      case _: Throwable => logger.warn("log4j.xml is not found in conf")
+    try{
+      if(new File("GMQL-Core/src/main/resources/logback.xml").exists())
+      {
+        DOMConfigurator.configure("../conf/logback.xml")
+        val root:ch.qos.logback.classic.Logger = org.slf4j.LoggerFactory.getLogger("org").asInstanceOf[ch.qos.logback.classic.Logger];
+        root.setLevel(ch.qos.logback.classic.Level.WARN);
+        org.slf4j.LoggerFactory.getLogger("it.polimi.genomics.manager").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.WARN)
+      }
+    }catch{
+      case _:Throwable => logger.warn("log4j.xml is not found in conf")
     }
 
-    var username: Option[String] = None
+    var username: Option[String] = Some("agulino")
     var dataset: Option[String] = None
     var configFolder = "./config/"
 
     for (i <- 0 until args.length if (i % 2 == 0)) {
       if ("-h".equals(args(i)) || "-help".equals(args(i))) {
         println(usage)
+        System.exit(0)
 
       } else if ("-username".equals(args(i))) {
-        username = Some(args(i + 1).toLowerCase())
+        username = Some(args(i + 1))
         logger.info("Username: " + username.get)
 
       } else if ("-dataset".equals(args(i))) {
-        dataset = Some(args(i + 1).toLowerCase())
+        dataset = Some(args(i + 1))
         logger.info("Dataset set to: " + dataset.get)
 
       } else if ("-configFolder".equals(args(i))) {
-        configFolder = args(i + 1).toLowerCase()
+        configFolder = args(i + 1)
         logger.info("ConfigFolder set to: " + configFolder)
-
-      } else if ("-help".equals(args(i))) {
-        logger.info(usage)
 
       } else {
         logger.warn(s"Command option is not found ${args(i)}")
+        System.exit(0)
       }
     }
 
 
     if (username.isEmpty || dataset.isEmpty) {
-      logger.error("Username or Dataset non specified.")
+      logger.error("Username or Dataset not provided.")
       logger.info(usage)
       System.exit(-1)
     }
 
 
-    RepoUtilities.confFolder = configFolder
 
-    val repo: DFSRepository = new DFSRepository()
+    RepoUtilities.confFolder = configFolder
+    repo = new DFSRepository()
 
     var datasets: List[String] = List[String]()
 
-
-    if (dataset.get.equals("ALL")) {
+    if (dataset.get.toUpperCase.equals("ALL")) {
       datasets = repo.listAllDSs(username.get).map(_.position).toList
     } else {
       try {
-        repo.listDSSamples(dataset.get)
+        logger.info("Calling listDSSamples with username '"+username.get+"' and dsname '"+dataset.get+"'")
+         repo.listDSSamples(dataSetName = dataset.get, userName =  username.get)
       } catch {
         case _: GMQLDSNotFound => {
           logger.error("Dataset not found."); System.exit(-1)
@@ -96,43 +102,54 @@ object ProfilerLauncher {
   }
 
 
-    def profileDS(username: String, dsname: String): Unit = {
+  def profileDS(username: String, dsname: String): Unit = {
 
-      val conf = new Configuration();
+    val conf = new Configuration();
 
-      val profilesFolder  = RepoUtilities().getProfileDir(username)
+    val profilesFolder  = RepoUtilities().getProfileDir(username)
 
-      val dssamplepath = (new GMQLDataSetXML(dsname, username).loadDS()).samples.head.name
-      val dspath   = dssamplepath.substring(0, dssamplepath.lastIndexOf("/")+1)
+//    val dssamplepath = (new GMQLDataSetXML(dsname, username).loadDS()).dataSet.position
 
-      val profile = ProfilerLoader.profile(dspath)
+    val sample_path   = repo.listDSSamples(dsname, username)(0).name
+    val sample_folder = if(sample_path.lastIndexOf("/") >= 0) sample_path.substring(0, sample_path.lastIndexOf("/")+1) else sample_path
 
-      try {
 
-        val path = new org.apache.hadoop.fs.Path(dspath);
-        val fs = FileSystem.get(path.toUri(), conf);
-        val output = fs.create(new Path(dspath +  "/profile.xml"));
-        val output_web = fs.create(new Path(dspath + "/web_profile.xml"));
+    logger.info("\n\n Sample path: "+sample_path+"\n\n")
+    var dspath       = RepoUtilities().getHDFSRegionDir(username)+"/"+sample_folder
 
-        val os = new java.io.BufferedOutputStream(output)
-        val os_web = new java.io.BufferedOutputStream(output_web)
+    logger.info("\n\n Profiling path: "+dspath+"\n\n")
 
-        os.write(Profiler.profileToOptXML(profile).toString().getBytes("UTF-8"))
-        os_web.write(Profiler.profileToWebXML(profile).toString().getBytes("UTF-8"))
+    // dssamplepath.substring(0, dssamplepath.lastIndexOf("/")+1)
 
-        os.close()
-        os_web.close()
-      } catch {
-        case e: Throwable => {
-          logger.error(e.getMessage)
-          e.printStackTrace()
-        }
+
+    val profile = ProfilerLoader.profile(dspath)
+
+    try {
+
+      val path = new org.apache.hadoop.fs.Path(dspath);
+      val fs = FileSystem.get(path.toUri(), conf);
+      val output = fs.create(new Path(dspath +  "/profile.xml"));
+      val output_web = fs.create(new Path(dspath + "/web_profile.xml"));
+
+      val os = new java.io.BufferedOutputStream(output)
+      val os_web = new java.io.BufferedOutputStream(output_web)
+
+      os.write(Profiler.profileToOptXML(profile).toString().getBytes("UTF-8"))
+      os_web.write(Profiler.profileToWebXML(profile).toString().getBytes("UTF-8"))
+
+      os.close()
+      os_web.close()
+    } catch {
+      case e: Throwable => {
+        logger.error(e.getMessage)
+        e.printStackTrace()
       }
-
-      // Copy from remote to local
-      FS_Utilities.copyfiletoLocal(dspath+"/web_profile.xml", profilesFolder+"/"+dsname+".profile")
-
     }
+
+    // Copy from remote to local
+    FS_Utilities.copyfiletoLocal(dspath+"/web_profile.xml", profilesFolder+"/"+dsname+".profile")
+
+  }
 
 
 
