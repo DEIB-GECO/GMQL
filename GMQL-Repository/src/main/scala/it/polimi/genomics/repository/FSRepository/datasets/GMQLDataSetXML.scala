@@ -208,7 +208,11 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
       // Loading schema
       val schemaXML = XML.loadFile(this.schemaDir)
       val schemaFields = ( schemaXML \\ "field")
-      this.schemaCoordinateSystem = GMQLSchemaCoordinateSystem.getType((schemaXML \\ "gmqlSchema").head.attribute("coordinate_system").get.head.text)
+      this.schemaCoordinateSystem = try {
+        GMQLSchemaCoordinateSystem.getType((schemaXML \\ "gmqlSchema").head.attribute("coordinate_system").get.head.text)
+      }catch{
+        case _ => GMQLSchemaCoordinateSystem.ZeroBased
+      }
       this.schemaType = GMQLSchemaFormat.getType((schemaXML \\ "gmqlSchema").head.attribute("type").get.head.text)
       this.schema = schemaFields.map(x => (x.text.trim, ParsingType.attType(x.attribute("type").get.head.text))).toList
       this
