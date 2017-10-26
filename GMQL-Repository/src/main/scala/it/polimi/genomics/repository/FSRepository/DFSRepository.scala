@@ -217,7 +217,8 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     logger.info(s"HDFS Folders Deletion for user $userName...")
 
     logger.info( General_Utilities().getHDFSRegionDir( userName )+"\t Status:" +
-      (if (FS_Utilities.deleteDFSDir(General_Utilities().getHDFSRegionDir( userName ))) "Deleted." else "Error"))
+      (if (   FS_Utilities.deleteDFSDir(General_Utilities().getHDFSRegionDir( userName ) )
+           && FS_Utilities.deleteDFSDir(General_Utilities().getHDFSUserDir( userName) )) "Deleted." else "Error"))
 
     super.unregisterUser(userName)
   }
