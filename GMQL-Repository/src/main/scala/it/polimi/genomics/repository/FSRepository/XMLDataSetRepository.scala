@@ -394,7 +394,8 @@ trait XMLDataSetRepository extends GMQLRepository{
     * @param userName the owner of the dataset and the script
     * @return [[InputStream]] as the script string file.
     */
-  def getVocabularyStream(dataSetName: String, userName: String): InputStream = ???
+   override def getVocabularyStream(dataSetName: String, userName: String): InputStream = {
+    new ByteArrayInputStream("N/A".getBytes)
 
 
 

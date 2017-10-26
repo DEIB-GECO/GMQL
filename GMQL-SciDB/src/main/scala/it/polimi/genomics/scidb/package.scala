@@ -36,7 +36,7 @@ package object scidb
 
         // Meta Operators -------------------------------
 
-        case IRCombineMD(metajoin, anchor, experiment, leftName, rightName) =>
+        case IRCombineMD(metajoin, anchor, experiment, _,leftName, rightName) =>
           "IRCombineMD ( " +
             "\n\tintermediate: " + (if(dag.intermediateResult.isDefined) dag.intermediateResult.get.toString else "None") +
             "\n\n\tmetajoin: " + (metajoin match {

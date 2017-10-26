@@ -177,7 +177,7 @@ class GmqlSciImplementation
         case IRCollapseMD(Some(groupby), source) => new GmqlMergeMD(prepare(source).asInstanceOf[GmqlMetaOperator],
                                                                     Some(prepare(groupby).asInstanceOf[GmqlMetaGroupOperator]))
 
-        case IRCombineMD(mj, anchor, experiment, aname, ename) => new GmqlCombineMD(prepare(mj.getOperator).asInstanceOf[GmqlMetaJoinOperator],
+        case IRCombineMD(mj, anchor, experiment, _,aname, ename) => new GmqlCombineMD(prepare(mj.getOperator).asInstanceOf[GmqlMetaJoinOperator],
                                                                                     prepare(anchor).asInstanceOf[GmqlMetaOperator], aname,
                                                                                     prepare(experiment).asInstanceOf[GmqlMetaOperator], ename )
 

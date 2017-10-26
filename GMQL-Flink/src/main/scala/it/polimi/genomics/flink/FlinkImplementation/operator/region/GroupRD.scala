@@ -3,7 +3,7 @@ package it.polimi.genomics.flink.FlinkImplementation.operator.region
 import it.polimi.genomics.core.DataStructures.GroupRDParameters.{FIELD, GroupingParameter}
 import it.polimi.genomics.core.DataStructures.{GroupRDParameters, RegionAggregate, RegionOperator}
 import it.polimi.genomics.core.DataTypes.FlinkRegionType
-import it.polimi.genomics.core.GValue
+import it.polimi.genomics.core.{GNull, GValue}
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.flink.FlinkImplementation.FlinkImplementation
 import org.apache.flink.api.scala._
@@ -53,7 +53,10 @@ object GroupRD {
         .map((a : (Long, String, Long, Long, Char, Array[List[GValue]])) => {
           val aggregated : Array[GValue] =
             if(aggregates.isDefined){
-              aggregates.get.foldLeft(new Array[GValue](0))((z, agg) => z :+ agg.fun(a._6(agg.index)))
+              aggregates.get.foldLeft(new Array[GValue](0)){(z, agg) =>
+                val fun = agg.fun(a._6(agg.index))
+                val count = (a._6(agg.index).length, a._6(agg.index).foldLeft(0)((x,y)=> if (y.isInstanceOf[GNull]) x+0 else x+1))
+                z :+ agg.funOut(fun, count)}
             } else {
               new Array[GValue](0)
             }

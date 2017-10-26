@@ -199,6 +199,7 @@ class ExpressionBuilder(index : Int) {
   def getUnaryMetaExpression(node: MENode, operator: String) : MENode = {
     operator match {
       case "NEG" => MENegate(node)
+      case "SQRT" => MESQRT(node)
       case _ => throw new IllegalArgumentException("There is no metadata operator called "+ operator)
     }
   }
@@ -264,6 +265,7 @@ class ExpressionBuilder(index : Int) {
   def getUnaryRegionExpression(node: RENode, operator: String) : RENode = {
     operator match {
       case "NEG" => RENegate(node)
+      case "SQRT" => RESQRT(node)
       case _ => throw new IllegalArgumentException("There is no metadata operator called "+ operator)
     }
   }

@@ -20,7 +20,7 @@
         <module>GMQL-SManager</module>
         <!--<module>GMQL-Importer</module>-->
         <module>WSC</module>
-        <!--<module>GMQL-PythonAPI</module>-->
+        <module>GMQL-PythonAPI</module>
         <module>GMQL-Flink</module>
     </modules>
     <name>${project.artifactId}</name>

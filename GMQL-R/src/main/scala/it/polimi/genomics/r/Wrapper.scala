@@ -797,10 +797,10 @@ object Wrapper {
     val temp_list = new ListBuffer[String]()
 
     if(group_by==null) {
-      println("null")
+     // println("null")
       return group_list
     }
-    println("not null")
+    //println("not null")
     for (elem <- group_by)
       temp_list += elem
     if (temp_list.nonEmpty)
@@ -1002,8 +1002,10 @@ object Wrapper {
 
   def atomic_cond(cond: String, value: String): Option[AtomicCondition] = {
     cond match {
-      case "DGE" => Some(DistGreater(value.toInt))
-      case "DLE" => Some(DistLess(value.toInt))
+      case "DGE" => Some(DistGreater(value.toInt - 1))
+      case "DLE" => Some(DistLess(value.toInt + 1))
+      case "DG" => Some(DistGreater(value.toInt))
+      case "DL" => Some(DistLess(value.toLong))
       case "UP" => Some(Upstream())
       case "DOWN" => Some(DownStream())
       case "MD" => Some(MinDistance(value.toInt))

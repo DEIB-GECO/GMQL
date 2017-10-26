@@ -53,6 +53,13 @@ case class ExtendOperator(op_pos : Position,
       }
       fun
     }
+
+    if (refined_aggregate_function_list.isEmpty) {
+      val msg = "At operator " + operator_name + " at line " + op_pos.line +
+        " : empty parameter list is not allowed. Please specify some."
+      throw new CompilerException(msg)
+
+    }
     true
   }
 

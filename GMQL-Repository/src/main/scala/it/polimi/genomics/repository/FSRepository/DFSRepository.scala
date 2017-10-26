@@ -86,7 +86,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
       val date = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
       val samples = Samples.asScala.map(x=> GMQLSample(ID = x.ID, name = dataSetName+"_"+date+ "/"+new File(x.name).getName,meta = x.meta) ).asJava
       // Import the dataset schema and Script files to the local folder
-      super.importDs(dataSetName: String, userName: String, samples ,schemaPath)
+
 
       // Copy sample and Meta data from HDFS to the local folder
       Samples.asScala.map{x =>
@@ -97,6 +97,8 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
       FS_Utilities.copyfiletoHDFS(General_Utilities().getSchemaDir(userName)+dataSetName+".schema",
         General_Utilities().getHDFSRegionDir(userName)+ new Path(samples.get(0).name).getParent.toString+ "/test.schema"
       )
+
+      super.importDs(dataSetName: String, userName: String, samples ,schemaPath)
     } else {
       logger.info("The dataset schema does not confirm the schema style (XSD)")
     }
@@ -285,8 +287,6 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     * @return
     */
   override def getDsInfoStream(datasetName: String, userName: String): InputStream = ???
-
-
 
   /**
     * Returns information about the user disk quota usage
