@@ -6,6 +6,8 @@ package it.polimi.genomics.repository
 
 import java.io.File
 
+import it.polimi.genomics.core.GDMSUserClass
+import it.polimi.genomics.core.GDMSUserClass.GDMSUserClass
 import it.polimi.genomics.repository.FSRepository.{DFSRepository, FS_Utilities, LFSRepository, RFSRepository}
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -38,13 +40,7 @@ class Utilities() {
   var REMOTE_HDFS_NAMESPACE:String = null
 
   // User Quota in KB
-  var GUEST_QUOTA:Long = 500000         // 500 MB
-  var BASIC_QUOTA:Long = 5000000       // 5   GB
-  var PRO_QUOTA:Long   = 20000000      // 20  GB
-  var ADMIN_QUOTA:Long = 50000000      // 50  GB
-  var PUBLIC_QUOTA:Long = 50000000000L // 50  GB
-
-
+  var USER_QUOTA: Map[GDMSUserClass, Long] = Map()
 
 
   /**
@@ -80,6 +76,13 @@ class Utilities() {
           case Conf.HADOOP_HOME =>  HADOOP_HOME = value
           case Conf.GMQL_CONF_DIR => GMQL_CONF_DIR = value
           case Conf.REMOTE_HDFS_NAMESPACE => REMOTE_HDFS_NAMESPACE = value
+
+          case Conf.GUEST_QUOTA  => USER_QUOTA += (GDMSUserClass.GUEST  -> value.toLong)
+          case Conf.BASIC_QUOTA  => USER_QUOTA += (GDMSUserClass.BASIC  -> value.toLong)
+          case Conf.PRO_QUOTA    => USER_QUOTA += (GDMSUserClass.PRO    -> value.toLong)
+          case Conf.ADMIN_QUOTA  => USER_QUOTA += (GDMSUserClass.ADMIN  -> value.toLong)
+          case Conf.PUBLIC_QUOTA => USER_QUOTA += (GDMSUserClass.PUBLIC -> value.toLong)
+
           case _ => logger.error(s"Not known configuration property: $x, $value")
         }
         logger.debug(s"XML config override environment variables. $att = $value ")
@@ -116,6 +119,8 @@ class Utilities() {
     logger.info("MODE is set to = " +  this.MODE)
     logger.info("GMQL_REPO_TYPE is set to = " +  this.GMQL_REPO_TYPE)
     logger.info("User is set to = " +  this.USERNAME)
+
+    USER_QUOTA.foreach(x => logger.info("User Quota for "+x._1+" set to "+x._2))
   }
 
   /**
@@ -135,6 +140,8 @@ class Utilities() {
     * @return Directory location of the regions folder in HDFS
     */
   def getHDFSRegionDir(userName: String = USERNAME): String = HDFSRepoDir + userName + "/regions/"
+
+
 
   /**
     *
@@ -229,6 +236,15 @@ class Utilities() {
 
   /**
     *
+    * Get user quota in KB
+    *
+    * @param userClass [[GDMSUserClass]]
+    * @return Quota in KB
+    */
+  def getUserQuota(userClass: GDMSUserClass): Long = USER_QUOTA(userClass)
+
+  /**
+    *
     * Constract the Directory to the Log folder
     *
     * @param userName [[ String]] of the user name
@@ -310,10 +326,12 @@ object Conf {
   val HADOOP_CONF_DIR = "HADOOP_CONF_DIR"
   val GMQL_CONF_DIR = "GMQL_CONF_DIR"
   val REMOTE_HDFS_NAMESPACE = "REMOTE_HDFS_NAMESPACE"
+
   val GUEST_QUOTA = "GUEST_QUOTA"
   val BASIC_QUOTA = "BASIC_QUOTA"
   val PRO_QUOTA   = "PRO_QUOTA"
   val ADMIN_QUOTA = "ADMIN_QUOTA"
+  val PUBLIC_QUOTA = "PUBLIC_QUOTA"
 }
 
 

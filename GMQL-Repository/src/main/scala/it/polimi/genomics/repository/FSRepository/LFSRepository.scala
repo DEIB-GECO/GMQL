@@ -8,6 +8,7 @@ import it.polimi.genomics.core.GMQLSchemaField
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
 import it.polimi.genomics.repository.GMQLExceptions.{GMQLDSException, GMQLNotValidDatasetNameException, GMQLSampleNotFound, GMQLUserNotFound}
 import it.polimi.genomics.repository.{Utilities => General_Utilities, _}
+import org.apache.commons.io.FileUtils
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
@@ -168,5 +169,26 @@ class LFSRepository extends GMQLRepository with XMLDataSetRepository{
     * @return
     */
   override def getDsInfoStream(datasetName: String, userName: String): InputStream = ???
+
+
+  /**
+    * Returns information about the user disk quota usage
+    *
+    * @param userName
+    * @param userClass
+    * @return (occupied, available) in KBs
+    */
+  override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Float, Float) = {
+
+    var occupied = 0L
+
+    val userDir = new File(General_Utilities().getRegionDir(userName))
+    if( userDir.exists() ) {
+      occupied= FileUtils.sizeOfDirectory(userDir) / 1000
+    }
+    val available = General_Utilities().getUserQuota(userClass)
+
+    (occupied,available)
+  }
 
 }

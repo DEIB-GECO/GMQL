@@ -252,4 +252,7 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
     */
   override def getDsInfoStream(datasetName: String, userName: String): InputStream = ???
 
+
+  override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Float, Float) = ???
+
 }

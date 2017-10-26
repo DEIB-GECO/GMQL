@@ -493,19 +493,6 @@ trait XMLDataSetRepository extends GMQLRepository{
 
   }
 
-
-  /**
-    * Returns information about the user disk quota usage
-    *
-    * @param userName
-    * @param userClass
-    * @return (occupied, available) in KBs
-    */
-  override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Float, Float) = {
-
-    (500000,1000000)
-  }
-
   /**
     * Boolean value: true if user quota is exceeded
     *
@@ -514,6 +501,7 @@ trait XMLDataSetRepository extends GMQLRepository{
     * @return
     */
   override def isUserQuotaExceeded(username: String, userClass: GDMSUserClass): Boolean = {
-    false
+    val info = getUserQuotaInfo(username, userClass)
+    return info._1 > info._2
   }
 }
