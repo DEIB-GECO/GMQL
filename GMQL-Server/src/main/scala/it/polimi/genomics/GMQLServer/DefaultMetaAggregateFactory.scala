@@ -7,6 +7,7 @@ object DefaultMetaAggregateFactory extends  MetaAggregateFactory{
 
   val castExc = "GMQL Casting Exception – Could not parse"
 
+/*
   def get(name : String, output : Option[String]) = {
     name match {
       case "COUNT" => getCount("",output)
@@ -24,15 +25,19 @@ object DefaultMetaAggregateFactory extends  MetaAggregateFactory{
       }
     }
   }
+*/
 
-  def get(name : String, position : String, output_name : Option[String]) = {
+  def get(name : String, input_name : String, output_name : Option[String]) = {
     name.toUpperCase() match {
-      case "SUM" => getSum(position,output_name)
-      case "MIN" => getMin(position,output_name)
-      case "MAX" => getMax(position,output_name)
-      case "AVG" => getAvg(position,output_name)
-      case "BAG" => getBAG(position,output_name)
-      case "BAGD" => getBAGD(position,output_name)
+      case "COUNT" => getCount(input_name,output_name)
+      case "SUM" => getSum(input_name,output_name)
+      case "MIN" => getMin(input_name,output_name)
+      case "MAX" => getMax(input_name,output_name)
+      case "AVG" => getAvg(input_name,output_name)
+      case "BAG" => getBAG(input_name,output_name)
+      case "BAGD" => getBAGD(input_name,output_name)
+      case "STD" => getSTD(input_name,output_name)
+      case "MEDIAN" => getMEDIAN(input_name,output_name)
       case _ => throw new Exception("No aggregate function with the given name (" + name + ") found.")
     }
   }
@@ -64,9 +69,74 @@ object DefaultMetaAggregateFactory extends  MetaAggregateFactory{
     }
   }*/
 
-  private def getSum(position:String,new_name:Option[String]) = new MetaAggregateFunction {
+  private def getSTD(input_name:String,new_name:Option[String]) = new MetaAggregateFunction {
+
+    override val newAttributeName = if(new_name.isDefined) new_name.get else "STD"
+    override val inputName: String = input_name
+    override val fun: (Array[Traversable[String]]) => String = {
+      (line) =>{
+        val doubleVals = line.head.flatMap((value) => {
+          val v1 = castDoubleOrString(value);
+          if (v1.isInstanceOf[Double]) Some(v1.asInstanceOf[Double]) else None
+        }).toArray
+        if (!doubleVals.isEmpty) {
+          val std = stdev(doubleVals)
+          std.toString
+        }
+        else castExc
+      }
+    }
+  }
+
+  def avg(data: Array[Double]): Double = {
+    if (data.length < 1)
+      return Double.NaN
+    data.sum / data.length
+  }
+
+  def stdev(data: Array[Double]): Double = {
+    if (data.length < 2)
+      return Double.NaN
+    // average
+    val mean: Double = avg(data)
+
+    val sum = data.foldLeft(0.0)((sum, tail) => {
+      val dif = tail - mean
+      sum + dif * dif
+    })
+
+    Math.sqrt(sum / (data.length - 1))
+  }
+
+  private def getMEDIAN(input_name:String,new_name:Option[String]) = new MetaAggregateFunction {
+    override val newAttributeName: String = if(new_name.isDefined) new_name.get else "MEDIAN"
+    override val inputName: String = input_name
+    override val fun: (Array[Traversable[String]]) => String = {
+      (line) => {
+        val values: List[Double] = line.head.flatMap{(value) =>
+          val v1=castDoubleOrString(value);
+          if (v1.isInstanceOf[Double]) Some(v1.asInstanceOf[Double]) else None
+        }.toList.sorted
+        if (!values.isEmpty) {
+          if (values.length % 2 == 0) {
+            val right = values.length / 2
+            val left = (values.length / 2) - 1
+            val res = (values(left) + values(left)) / 2
+            res.toString
+          }
+          else {
+            val res = values(values.length / 2)
+            res.toString
+          }
+        }
+        else castExc
+      }
+    }
+  }
+
+  private def getSum(input_name:String,new_name:Option[String]) = new MetaAggregateFunction {
     override val newAttributeName = if(new_name.isDefined) new_name.get else "SUM"
-    override val inputName: String = position
+    override val inputName: String = input_name
     override val fun: (Array[Traversable[String]]) => String = {
       (line) =>{
         val ss = line.head.flatMap{(value) =>
@@ -81,18 +151,18 @@ object DefaultMetaAggregateFactory extends  MetaAggregateFactory{
     }
   }
 
-  private def getCount(position:String,new_name:Option[String]) = new MetaAggregateFunction {
+  private def getCount(input_name:String,new_name:Option[String]) = new MetaAggregateFunction {
 
     override val newAttributeName = if(new_name.isDefined) new_name.get else "COUNT"
-    override val inputName: String = position
+    override val inputName: String = input_name
     override val fun: (Array[Traversable[String]]) => String = {
       (line) =>{line.head.size.toString}
     }
   }
 
-  private def getMin(position:String, new_name:Option[String]) = new MetaAggregateFunction {
+  private def getMin(input_name:String, new_name:Option[String]) = new MetaAggregateFunction {
     override val newAttributeName = if(new_name.isDefined) new_name.get else "MIN"
-    override val inputName: String = position
+    override val inputName: String = input_name
     override val fun: (Array[Traversable[String]]) => String = {
       (line) =>
         val lines = line.head.flatMap{(value) =>
@@ -104,9 +174,9 @@ object DefaultMetaAggregateFactory extends  MetaAggregateFactory{
     }
   }
 
-  private def getMax(position:String, new_name:Option[String]) = new MetaAggregateFunction {
+  private def getMax(input_name:String, new_name:Option[String]) = new MetaAggregateFunction {
     override val newAttributeName = if(new_name.isDefined) new_name.get else "MAX"
-    override val inputName: String = position
+    override val inputName: String = input_name
     override val fun: (Array[Traversable[String]]) => String = {
       (line) =>
         val lines = line.head.flatMap{(value) =>
@@ -118,10 +188,10 @@ object DefaultMetaAggregateFactory extends  MetaAggregateFactory{
     }
   }
 
-  private def getAvg(position:String, new_name:Option[String]) = new MetaAggregateFunction {
+  private def getAvg(input_name:String, new_name:Option[String]) = new MetaAggregateFunction {
 
     override val newAttributeName = if(new_name.isDefined) new_name.get else "AVG"
-    override val inputName: String = position
+    override val inputName: String = input_name
     override val fun: (Array[Traversable[String]]) => String = {
       (line) =>
         val lines = line.head.flatMap{(value) =>
@@ -134,10 +204,10 @@ object DefaultMetaAggregateFactory extends  MetaAggregateFactory{
     }
   }
 
-  private def getBAG(position:String, new_name:Option[String]) = new MetaAggregateFunction {
+  private def getBAG(input_name:String, new_name:Option[String]) = new MetaAggregateFunction {
 
     override val newAttributeName = if(new_name.isDefined) new_name.get else "Bag"
-    override val inputName: String = position
+    override val inputName: String = input_name
     override val fun: (Array[Traversable[String]]) => String = {
       (list) => {
         if (list.nonEmpty) {
@@ -150,10 +220,10 @@ object DefaultMetaAggregateFactory extends  MetaAggregateFactory{
     }
   }
 
-  private def getBAGD(position:String, new_name:Option[String]) = new MetaAggregateFunction {
+  private def getBAGD(input_name:String, new_name:Option[String]) = new MetaAggregateFunction {
 
     override val newAttributeName = if(new_name.isDefined) new_name.get else "BagD"
-    override val inputName: String = position
+    override val inputName: String = input_name
     override val fun: (Array[Traversable[String]]) => String = {
       (list) =>{
         if (list.nonEmpty)
