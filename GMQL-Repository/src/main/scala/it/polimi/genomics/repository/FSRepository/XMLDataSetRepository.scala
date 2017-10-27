@@ -476,8 +476,7 @@ trait XMLDataSetRepository extends GMQLRepository{
 
     if (Files.exists(Paths.get(filename))) {
       val xml = XML.loadFile(filename)
-
-      val sampleNode: NodeSeq = (xml \\ "dataset" \\ "sample").filter(_.attribute("name").get.text == sampleName)
+      val sampleNode: NodeSeq = (xml \\ "dataset" \\ "sample").filter(_.attribute("name").get.text.split("\\.").head == sampleName)
       val profile = (sampleNode \\ "feature").map(x=> {
         ( x.attribute("name").get.text , x.text)
       }).toMap
