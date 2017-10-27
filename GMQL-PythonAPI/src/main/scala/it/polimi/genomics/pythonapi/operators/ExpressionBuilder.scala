@@ -1,6 +1,7 @@
 package it.polimi.genomics.pythonapi.operators
 import it.polimi.genomics.core.DataStructures.MetaAggregate._
 import it.polimi.genomics.core.DataStructures.RegionAggregate._
+import it.polimi.genomics.core.DataStructures.RegionCondition.MetaAccessor
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.ParsingType
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
@@ -73,35 +74,50 @@ class ExpressionBuilder(index : Int) {
     * REGION CONDITIONS
     * */
 
-  def createRegionPredicate(name: String, operation: String, value : String) =
+  def createRegionPredicate(name: String, operation: String, otherValue : Any) : RegionCondition.RegionCondition =
   {
     val regOp = getRegionOperation(operation)
     // get the Variable
     val variable = PythonManager.getVariable(this.index)
 
-    name match {
-      case "chr" => RegionCondition.ChrCondition(value)
-      case "right" => RegionCondition.RightEndCondition(regOp,value.toLong)
-      case "left" => RegionCondition.LeftEndCondition(regOp, value.toLong)
-      case "strand" => RegionCondition.StrandCondition(value)
-      case "start" => RegionCondition.StartCondition(regOp, value.toLong)
-      case "stop" => RegionCondition.StopCondition(regOp, value.toLong)
-      case _ =>
-        val field = variable.get_field_by_name(name)
+    otherValue match {
+      case value : String =>
+        name match {
+          case "chr" => RegionCondition.ChrCondition(value)
+          case "right" => RegionCondition.RightEndCondition(regOp,value.toLong)
+          case "left" => RegionCondition.LeftEndCondition(regOp, value.toLong)
+          case "strand" => RegionCondition.StrandCondition(value)
+          case "start" => RegionCondition.StartCondition(regOp, value.toLong)
+          case "stop" => RegionCondition.StopCondition(regOp, value.toLong)
+          case _ =>
+            val field = variable.get_field_by_name(name)
 
-        //casting
-        val type_field = variable.get_type_by_name(name)
+            //casting
+            val type_field = variable.get_type_by_name(name)
 
 
-        if(field.isDefined & type_field.isDefined) {
-          val parsed_value = parseValueByType(value, type_field.get)
-          RegionCondition.Predicate(field.get,regOp, parsed_value)
+            if(field.isDefined & type_field.isDefined) {
+              val parsed_value = parseValueByType(value, type_field.get)
+              RegionCondition.Predicate(field.get,regOp, parsed_value)
+            }
+            else {
+              throw new IllegalArgumentException("The region field " + name + " is not defined " +
+                "or its type is wrong")
+            }
         }
+      case value : MetaAccessor =>
+        if(List("chr", "right", "left", "strand", "start", "stop").contains(name))
+          throw new IllegalArgumentException("You cannot compare coordinates of regions" +
+            "with Metadata attributes")
         else {
-          throw new IllegalArgumentException("The region field " + name + " is not defined " +
-            "or its type is wrong")
+          val field = variable.get_field_by_name(name)
+          RegionCondition.Predicate(field.get,regOp, value)
         }
+      case _ => throw new IllegalArgumentException("Type of the value" +
+        "is not allowed")
     }
+
+
   }
 
   def getRegionOperation(symbol : String) =
@@ -178,6 +194,8 @@ class ExpressionBuilder(index : Int) {
   def getMENode(name: String) : MENode = {
     MEName(name)
   }
+
+  def getMetaAccessor(name: String): MetaAccessor = MetaAccessor(name)
 
   def getMEType(typename: String, value: String) : MENode = {
     typename.toLowerCase match {
