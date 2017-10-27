@@ -310,8 +310,10 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
       occupied = (summary.getSpaceConsumed() / 1000) / replication
     }
 
+    val delta = user_quota-occupied
+    val available = if( delta >= 0) delta else 0
 
-    (occupied,user_quota-occupied)
+    (occupied,available)
   }
 
 }

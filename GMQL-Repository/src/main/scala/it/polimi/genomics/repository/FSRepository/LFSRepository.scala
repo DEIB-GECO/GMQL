@@ -188,7 +188,10 @@ class LFSRepository extends GMQLRepository with XMLDataSetRepository{
     }
     val user_quota = General_Utilities().getUserQuota(userClass)
 
-    (occupied,user_quota-occupied)
+    val delta = user_quota-occupied
+    val available = if( delta >= 0) delta else 0
+
+    (occupied,available)
   }
 
 }
