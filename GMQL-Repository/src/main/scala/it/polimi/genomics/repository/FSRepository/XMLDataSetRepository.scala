@@ -54,7 +54,8 @@ trait XMLDataSetRepository extends GMQLRepository{
     *
     * @param dataSetName Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @param Samples
-    * @param GMQLScriptPath
+    * @param schemaPath
+    *
     * @throws GMQLDSNotFound
     * @throws GMQLUserNotFound
     * @throws GMQLSampleNotFound
@@ -395,20 +396,8 @@ trait XMLDataSetRepository extends GMQLRepository{
     * @return [[InputStream]] as the script string file.
     */
    override def getVocabularyStream(dataSetName: String, userName: String): InputStream = {
-    new ByteArrayInputStream("N/A".getBytes)
-
-
-
-  //todo: remove
-
-  /**
-    *
-    *  return the statistics (profiling ) of the dataset
-    *
-    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
-    * @return
-    */
-  def getDSStatistics(dataSet:String, userName:String):GMQLStatistics = ???
+     new ByteArrayInputStream("N/A".getBytes)
+   }
 
 
   // Dataset Meta and Profiles

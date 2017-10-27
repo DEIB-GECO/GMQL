@@ -174,16 +174,6 @@ trait GMQLRepository {
 
   /**
     *
-    *  return the statistics (profiling ) of the dataset
-    *
-    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
-    * @return
-    */
-  def getDSStatistics(dataSet:String, userName:String):GMQLStatistics
-
-
-  /**
-    *
     *   return the schema of the dataset
     *
     * @param schemaPath [[ String]] of the path to the schema xml
