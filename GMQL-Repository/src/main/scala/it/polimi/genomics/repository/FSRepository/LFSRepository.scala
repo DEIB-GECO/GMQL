@@ -186,9 +186,9 @@ class LFSRepository extends GMQLRepository with XMLDataSetRepository{
     if( userDir.exists() ) {
       occupied= FileUtils.sizeOfDirectory(userDir) / 1000
     }
-    val available = General_Utilities().getUserQuota(userClass)
+    val user_quota = General_Utilities().getUserQuota(userClass)
 
-    (occupied,available)
+    (occupied,user_quota-occupied)
   }
 
 }

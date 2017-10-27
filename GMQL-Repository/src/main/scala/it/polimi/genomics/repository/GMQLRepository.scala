@@ -365,7 +365,7 @@ trait GMQLRepository {
     * Returns information about the user disk quota usage
     * @param userName
     * @param userClass
-    * @return (occupied, available) in KBs
+    * @return (occupied, available) in KBs , available = remaining
     */
   def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Float, Float)
 

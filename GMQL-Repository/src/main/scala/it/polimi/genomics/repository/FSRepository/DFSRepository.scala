@@ -298,7 +298,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
   override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Float, Float) = {
 
 
-    val available = General_Utilities().getUserQuota(userClass)
+    val user_quota = General_Utilities().getUserQuota(userClass)
     var occupied = 0L
 
     val conf = FS_Utilities.gethdfsConfiguration()
@@ -311,7 +311,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     }
 
 
-    (occupied,available)
+    (occupied,user_quota-occupied)
   }
 
 }
