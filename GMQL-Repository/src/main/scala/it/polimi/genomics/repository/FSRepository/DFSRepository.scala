@@ -7,21 +7,23 @@ import java.util.Date
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
 import it.polimi.genomics.core.GDMSUserClass.GDMSUserClass
-import it.polimi.genomics.core.{GMQLSchemaCoordinateSystem, GMQLSchemaField, GMQLSchemaFormat}
+import it.polimi.genomics.core.{GDMSUserClass, GMQLSchemaCoordinateSystem, GMQLSchemaField, GMQLSchemaFormat}
 import it.polimi.genomics.repository
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
 import it.polimi.genomics.repository.GMQLExceptions._
 import it.polimi.genomics.repository.{GMQLRepository, GMQLSample, GMQLStatistics, Utilities => General_Utilities}
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.slf4j.LoggerFactory
+import java.nio.file.{Files, Paths}
 
 import scala.collection.JavaConverters._
+import scala.xml.XML
 /**
   * Created by abdulrahman on 12/04/16.
   */
 class DFSRepository extends GMQLRepository with XMLDataSetRepository{
   private final val logger = LoggerFactory.getLogger(this.getClass)
-    repository.Utilities()
+  repository.Utilities()
 
   /**
     * Add a new dataset to GMQL repository, this dataset is usually a result of a script execution.
@@ -46,8 +48,26 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
       new GMQLSample(name = x.name,meta = metaFile )
     }.toList.asJava
 
+
+    // Move web_profile.xml in userfolder/profiles/datasetname.profile
+    val dsname = dataSet.position//.substring(if(dataSet.position.lastIndexOf("/") < 0) 0 else dataSet.position.lastIndexOf("/")+1)
+    logger.info("Dataset Name: "+dsname)
+
+    val s1 = Samples.asScala.head.name
+    val dspath = s1.substring(0, s1.lastIndexOf("/")+1)
+    val sourceProfile = General_Utilities().getHDFSRegionDir(userName)+"/"+dspath+"/web_profile.xml"
+    logger.info("Source Profile: "+sourceProfile)
+    val destProfile = General_Utilities().getProfileDir(userName)+"/"+dsname+".profile"
+    logger.info("Destination Profile: "+sourceProfile)
+
+    FS_Utilities.copyfiletoLocal(sourceProfile, destProfile)
+
+
+
     //create DS as a set of XML files in the local repository
     super.createDs(dataSet, userName, samples, GMQLScriptPath, schemaType, schemaCoordinateSystem)
+
+
 
     //clean the temp Directory
     tmpFolder.delete()
@@ -92,7 +112,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     * @param Sample GMQL sample [[ GMQLSample]].
     * @param userName String of the user name.
     */
-  override def addSampleToDS(dataSet: String, userName: String, Sample: GMQLSample): Unit = ???
+  override def addSampleToDS(dataSet: String, userName: String, Sample: GMQLSample,  userClass: GDMSUserClass = GDMSUserClass.PUBLIC): Unit = ???
 
   /**
     * Delete Data Set from the repository, Delete XML files from local File system and delete the samples and meta files from HDFS.
@@ -141,24 +161,17 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     val fs = FileSystem.get(conf);
     val dsPath = conf.get("fs.defaultFS") +repository.Utilities().getHDFSRegionDir(userName) + dataSetName
     val samples = fs.listStatus(new Path(dsPath))
-        .flatMap(x => {
-          if (fs.exists(new Path(x.getPath.toString+".meta")) ) {
-            Some(new GMQLSample(dataSetName+x.getPath.getName))
-          } else
-            None
-        }).toList.asJava;
+      .flatMap(x => {
+        if (fs.exists(new Path(x.getPath.toString+".meta")) ) {
+          Some(new GMQLSample(dataSetName+x.getPath.getName))
+        } else
+          None
+      }).toList.asJava;
     val schema =
       readSchemaFile(dsPath + "/test.schema")
     (samples,schema.fields.asJava)
   }
 
-
-  /**
-    *
-    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
-    * @return
-    */
-  override def getDSStatistics(dataSet: String, userName: String): GMQLStatistics = ???
 
   /**
     *  export the dataset from Hadoop Distributed File system to Local File system
@@ -206,7 +219,8 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     logger.info(s"HDFS Folders Deletion for user $userName...")
 
     logger.info( General_Utilities().getHDFSRegionDir( userName )+"\t Status:" +
-      (if (FS_Utilities.deleteDFSDir(General_Utilities().getHDFSRegionDir( userName ))) "Deleted." else "Error"))
+      (if (   FS_Utilities.deleteDFSDir(General_Utilities().getHDFSRegionDir( userName ) )
+           && FS_Utilities.deleteDFSDir(General_Utilities().getHDFSUserDir( userName) )) "Deleted." else "Error"))
 
     super.unregisterUser(userName)
   }
@@ -275,101 +289,29 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
   override def getDsInfoStream(datasetName: String, userName: String): InputStream = ???
 
   /**
-    * Returns the metadata associated to a dataset, e.g:
-    * Source => Politecnico di Milano
-    * Type => GDM
-    * Creation Date => 21 Mar 2011
-    * Creation Time => 00:18:56
-    * Size => "50.12 MB"
-    *
-    * @param datasetName dataset name as a string
-    * @param userName    the owner of the dataset
-    * @return a Map[String, String] containing property_name => value
-    */
-override def getDatasetMeta(datasetName: String, userName: String): Map[String, String] = {
-
-  var res = Map[String,String]()
-  res += ("Source" -> "Wellington")
-  res += ("Type" -> "Wellington")
-  res += ("Creation Date" -> "Wellington")
-  res += ("Creation Time" -> "Wellington")
-  res += ("Size" -> "50.12 MB")
-
-  res
-
-}
-
-  /**
-    * Set an entry on dataset metadata
-    *
-    * @param datasetName
-    * @param userName
-    * @param key
-    * @param value
-    */
-override def setDatasetMeta(datasetName: String, userName: String, key: String, value: String): Unit = ???
-
-  /**
-    * Returns profiling information concerning the whole dataset, e.g.:
-    * Number of samples => 15
-    * Number of regions => 31209
-    * Average region length => 123.12
-    *
-    * @param datasetName dataset name as a string
-    * @param userName    the owner of the dataset
-    * @return a Map[String, String] containing property_name => value
-    */
-override def getDatasetProfile(datasetName: String, userName: String): Map[String, String] = {
-
-  var res = Map[String,String]()
-  res += ("Number of samples" -> "15")
-  res += ("Number of regions" -> "31209")
-  res += ("Average region length" -> "123.12")
-
-  res
-}
-
-  /**
-    * Returns profiling information concerning a specific sample of the dataset, e.g.:
-    *
-    * Number of samples => 15
-    * Number of regions => 31209
-    * Average region length => 123.12
-    *
-    * @param datasetName dataset name as a string
-    * @param sampleName    name of the sample (index 1 .. N)
-    * @param userName   the owner of the dataset
-    */
-override def getSampleProfile(datasetName: String, sampleName: String, userName: String): Map[String, String] = {
-
-  var res = Map[String,String]()
-  res += ("Number of samples" -> "15")
-  res += ("Number of regions" -> "31209")
-  res += ("Average region length" -> "123.12")
-
-  res
-}
-
-  /**
     * Returns information about the user disk quota usage
     *
     * @param userName
     * @param userClass
     * @return (occupied, available) in KBs
     */
-override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Float, Float) = {
+  override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Float, Float) = {
 
-  (500000,1000000)
-}
 
-  /**
-    * Boolean value: true if user quota is exceeded
-    *
-    * @param username
-    * @param userClass
-    * @return
-    */
-  override def isUserQuotaExceeded(username: String, userClass: GDMSUserClass): Boolean = {
-    false
+    val available = General_Utilities().getUserQuota(userClass)
+    var occupied = 0L
+
+    val conf = FS_Utilities.gethdfsConfiguration()
+    val fs = FileSystem.get(conf)
+    val userDir = new Path(General_Utilities().getHDFSUserDir(userName))
+    if (fs.exists(userDir)) {
+      val summary = fs.getContentSummary(userDir)
+      val replication = fs.getDefaultReplication(userDir)
+      occupied = (summary.getSpaceConsumed() / 1000) / replication
+    }
+
+
+    (occupied,available)
   }
+
 }

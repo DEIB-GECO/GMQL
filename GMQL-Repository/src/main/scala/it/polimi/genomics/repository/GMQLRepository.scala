@@ -4,7 +4,7 @@ import java.io.InputStream
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
 import it.polimi.genomics.core.GDMSUserClass.GDMSUserClass
-import it.polimi.genomics.core.{GMQLSchema, GMQLSchemaCoordinateSystem, GMQLSchemaField, GMQLSchemaFormat}
+import it.polimi.genomics.core._
 import it.polimi.genomics.repository.GMQLExceptions._
 
 /**
@@ -89,7 +89,7 @@ trait GMQLRepository {
     * @throws GMQLSampleNotFound
     */
   @throws(classOf[GMQLDSException])
-  def addSampleToDS(dataSet:String, userName:String, Sample:GMQLSample)
+  def addSampleToDS(dataSet:String, userName:String, Sample:GMQLSample, userClass: GDMSUserClass = GDMSUserClass.PUBLIC)
 
   /**
     *
@@ -351,7 +351,7 @@ trait GMQLRepository {
     * @param datasetName dataset name as a string
     * @param userName   the owner of the dataset
     * @return a Map[String, String] containing property_name => value
-   */
+    */
   def getDatasetProfile(datasetName: String, userName: String): Map[String, String]
 
 
@@ -387,5 +387,4 @@ trait GMQLRepository {
     */
   def isUserQuotaExceeded(username: String, userClass: GDMSUserClass): Boolean
 }
-
 

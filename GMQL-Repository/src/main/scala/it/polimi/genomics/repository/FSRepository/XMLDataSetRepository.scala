@@ -1,19 +1,21 @@
 package it.polimi.genomics.repository.FSRepository
 
 import java.io._
+import java.nio.file.{Files, Paths}
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
+import it.polimi.genomics.core.GDMSUserClass._
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
-import it.polimi.genomics.core._
+import it.polimi.genomics.core.{GDMSUserClass, _}
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
 import it.polimi.genomics.repository.GMQLExceptions._
-import it.polimi.genomics.repository.{DatasetOrigin, GMQLRepository, GMQLSample, RepositoryType, Utilities => General_Utilities}
+import it.polimi.genomics.repository.{DatasetOrigin, GMQLRepository, GMQLSample, GMQLStatistics, RepositoryType, Utilities => General_Utilities}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
-import scala.xml.XML
+import scala.xml.{NodeSeq, XML}
 
 /**
   * Created by abdulrahman on 16/01/2017.
@@ -26,9 +28,8 @@ trait XMLDataSetRepository extends GMQLRepository{
     *
     *
     * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
-    * @param Schema
     * @param Samples
-    * @param GMQLScriptPaht
+    * @param GMQLScriptPath
     * @throws GMQLDSNotFound
     * @throws GMQLUserNotFound
     * @throws GMQLSampleNotFound
@@ -51,10 +52,9 @@ trait XMLDataSetRepository extends GMQLRepository{
     *
     *
     *
-    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
-    * @param Schema
+    * @param dataSetName Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @param Samples
-    * @param GMQLScriptPaht
+    * @param GMQLScriptPath
     * @throws GMQLDSNotFound
     * @throws GMQLUserNotFound
     * @throws GMQLSampleNotFound
@@ -93,10 +93,22 @@ trait XMLDataSetRepository extends GMQLRepository{
     * @throws GMQLSampleNotFound
     */
   @throws(classOf[GMQLDSException])
-  override def addSampleToDS(dataSet: String, userName: String = General_Utilities().USERNAME, Sample: GMQLSample) ={
+  @deprecated
+  override def addSampleToDS(dataSet: String, userName: String = General_Utilities().USERNAME, Sample: GMQLSample, userClass: GDMSUserClass = GDMSUserClass.PUBLIC) ={
+
+    val exceeded  = General_Utilities().getRepository().isUserQuotaExceeded(userName, userClass)
+
+    if( exceeded ) {
+      throw new GMQLDSExceedsQuota()
+    }
+
+
     val ds = new GMQLDataSetXML(dataSet,userName).loadDS()
     ds.addSample(Sample)
   }
+
+
+
 
   /**
     *
@@ -158,7 +170,7 @@ trait XMLDataSetRepository extends GMQLRepository{
     *
     *  Delete data set from the repository
     *
-    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
+    * @param dataSetName Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @throws GMQLDSNotFound
     * @throws GMQLDSException
     * @throws GMQLUserNotFound
@@ -171,7 +183,7 @@ trait XMLDataSetRepository extends GMQLRepository{
   /**
     *
     * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
-    * @param Sample
+    * @param sample
     * @throws GMQLDSNotFound
     * @throws GMQLDSException
     * @throws GMQLUserNotFound
@@ -183,7 +195,7 @@ trait XMLDataSetRepository extends GMQLRepository{
 
   /**
     *
-    * @param dataSet
+    * @param dataSetName
     * @throws GMQLDSException
     * @return
     */
@@ -194,7 +206,7 @@ trait XMLDataSetRepository extends GMQLRepository{
   /**
     * DO NOT Forget to check the existance ot the dataset name before copying the dataset
     *
-    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
+    * @param dataSetName Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @throws GMQLDSException
     */
   @throws(classOf[GMQLNotValidDatasetNameException])
@@ -375,7 +387,134 @@ trait XMLDataSetRepository extends GMQLRepository{
     new FileInputStream(scriptPath)
   }
 
-  override def getVocabularyStream(dataSetName: String, userName: String): InputStream = {
+  /**
+    *  Return a stream of the vocabulary file.
+    *
+    * @param dataSetName dataset name of the requested script
+    * @param userName the owner of the dataset and the script
+    * @return [[InputStream]] as the script string file.
+    */
+   override def getVocabularyStream(dataSetName: String, userName: String): InputStream = {
     new ByteArrayInputStream("N/A".getBytes)
+
+
+
+  //todo: remove
+
+  /**
+    *
+    *  return the statistics (profiling ) of the dataset
+    *
+    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
+    * @return
+    */
+  def getDSStatistics(dataSet:String, userName:String):GMQLStatistics = ???
+
+
+  // Dataset Meta and Profiles
+  /**
+    * Returns the metadata associated to a dataset, e.g:
+    * Source => Politecnico di Milano
+    * Type => GDM
+    * Creation Date => 21 Mar 2011
+    * Creation Time => 00:18:56
+    * Size => "50.12 MB"
+    *
+    * @param datasetName dataset name as a string
+    * @param userName    the owner of the dataset
+    * @return a Map[String, String] containing property_name => value
+    */
+  override def getDatasetMeta(datasetName: String, userName: String): Map[String, String] = {
+
+    var res = Map[String,String]()
+//    res += ("Source" -> "Wellington")
+//    res += ("Type" -> "Wellington")
+//    res += ("Creation Date" -> "Wellington")
+//    res += ("Creation Time" -> "Wellington")
+//    res += ("Size" -> "50.12 MB")
+
+    res
+
+  }
+
+  /**
+    * Set an entry on dataset metadata
+    *
+    * @param datasetName
+    * @param userName
+    * @param key
+    * @param value
+    */
+  override def setDatasetMeta(datasetName: String, userName: String, key: String, value: String): Unit = ???
+
+  /**
+    * Returns profiling information concerning the whole dataset, e.g.:
+    * Number of samples => 15
+    * Number of regions => 31209
+    * Average region length => 123.12
+    *
+    * @param datasetName dataset name as a string
+    * @param userName    the owner of the dataset
+    * @return a Map[String, String] containing property_name => value
+    */
+  override def getDatasetProfile(datasetName: String, userName: String): Map[String, String] = {
+
+    val filename = General_Utilities().getProfileDir(userName)+"/"+datasetName+".profile"
+
+    if (Files.exists(Paths.get(filename))) {
+      val xml = XML.loadFile(filename);
+      (xml \\ "dataset" \ "feature").map(x=>(x.attribute("name").get.text, x.text)).toMap
+    } else {
+      Map("Info" -> "Dataset Profile not available.")
+    }
+
+  }
+
+  /**
+    * Returns profiling information concerning a specific sample of the dataset, e.g.:
+    *
+    * Number of samples => 15
+    * Number of regions => 31209
+    * Average region length => 123.12
+    *
+    * @param datasetName dataset name as a string
+    * @param sampleName  name of the sample (no format), e.g. S_00001
+    * @param userName   the owner of the dataset
+    */
+  override def getSampleProfile(datasetName: String, sampleName: String, userName: String): Map[String, String] = {
+
+    val filename = General_Utilities().getProfileDir(userName)+"/"+datasetName+".profile"
+
+    if (Files.exists(Paths.get(filename))) {
+      val xml = XML.loadFile(filename)
+
+      val sampleNode: NodeSeq = (xml \\ "dataset" \\ "sample").filter(_.attribute("name").get.text == sampleName)
+      val profile = (sampleNode \\ "feature").map(x=> {
+        ( x.attribute("name").get.text , x.text)
+      }).toMap
+
+      if(profile.isEmpty) {
+        Map("Info" -> "Sample Profile not available.")
+      } else {
+        profile
+      }
+
+
+    } else {
+      Map("Info" -> "Sample Profile not available.")
+    }
+
+  }
+
+  /**
+    * Boolean value: true if user quota is exceeded
+    *
+    * @param username
+    * @param userClass
+    * @return
+    */
+  override def isUserQuotaExceeded(username: String, userClass: GDMSUserClass): Boolean = {
+    val info = getUserQuotaInfo(username, userClass)
+    return info._1 > info._2
   }
 }
