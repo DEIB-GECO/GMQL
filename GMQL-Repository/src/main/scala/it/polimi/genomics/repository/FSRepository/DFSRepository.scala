@@ -74,7 +74,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
         FS_Utilities.copyfiletoHDFS(x.name, HDFSfile)
       }
 
-      FS_Utilities.copyfiletoHDFS(General_Utilities().getSchemaDir(userName)+dataSetName+".schema",
+      FS_Utilities.copyfiletoHDFS(schemaPath,
         General_Utilities().getHDFSRegionDir(userName)+ new Path(samples.get(0).name).getParent.toString+ "/test.schema"
       )
 
