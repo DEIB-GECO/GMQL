@@ -503,6 +503,6 @@ trait XMLDataSetRepository extends GMQLRepository{
     */
   override def isUserQuotaExceeded(username: String, userClass: GDMSUserClass): Boolean = {
     val info = getUserQuotaInfo(username, userClass)
-    return info._1 <= 0
+    return info._2 <= 0
   }
 }
