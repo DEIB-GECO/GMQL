@@ -18,10 +18,10 @@ import scala.collection.immutable.HashMap
 
 
 /**
- * Created by Abdulrahman Kaitoua on 10/09/15.
- * Email: abdulrahman.kaitoua@polimi.it
- *
- */
+  * Created by Abdulrahman Kaitoua on 10/09/15.
+  * Email: abdulrahman.kaitoua@polimi.it
+  *
+  */
 class GMQLExecute (){
 
   private final val logger: Logger = LoggerFactory.getLogger(this.getClass);
@@ -163,32 +163,43 @@ class GMQLExecute (){
 
 
   /***
-  * Try to Execute GMQL Job. The job will be checked for execution of the provided platform
-  * and run in case of clear from errors.
-  *
-  * @param job
-  */
+    * Try to Execute GMQL Job. The job will be checked for execution of the provided platform
+    * and run in case of clear from errors.
+    *
+    * @param job
+    */
   @throws(classOf[UserQuotaExceeded])
   def execute(job:GMQLJob):Unit={
+
+    if( job.gMQLContext.checkQuota ) {
+      val userClass = job.gMQLContext.userClass
+      val userName  = job.gMQLContext.username
+      val exceeded  = General_Utilities().getRepository().isUserQuotaExceeded(userName, userClass)
+
+      if( exceeded ) {
+        throw new UserQuotaExceeded()
+      }
+
+    }
+
     val launcher_mode = Utilities().LAUNCHER_MODE
 
     val launcher: GMQLLauncher =
 
-      if ( launcher_mode equals Utilities().CLUSTER_LAUNCHER ) {
+      if (launcher_mode equals Utilities().CLUSTER_LAUNCHER) {
         logger.info("Using Spark Launcher")
         new GMQLSparkLauncher(job)
-      } else
-      if ( launcher_mode equals Utilities().REMOTE_CLUSTER_LAUNCHER ) {
+      } else if (launcher_mode equals Utilities().REMOTE_CLUSTER_LAUNCHER) {
         logger.info("Using Remote Launcher")
         new GMQLRemoteLauncher(job)
-      } else
-      if ( launcher_mode equals Utilities().LOCAL_LAUNCHER ) {
+      } else if (launcher_mode equals Utilities().LOCAL_LAUNCHER) {
         logger.info("Using Local Launcher")
         new GMQLLocalLauncher(job)
-        } else {
+      } else {
         throw new Exception("Unknown launcher mode.")
       }
-    execute(job.jobId,launcher)
+
+    execute(job.jobId, launcher)
 
   }
 
@@ -313,7 +324,7 @@ class GMQLExecute (){
       execService.awaitTermination(Long.MaxValue, TimeUnit.SECONDS);
     }catch{
       case ex:InterruptedException => println (ex.getMessage)
-      }
+    }
   }
 
 
