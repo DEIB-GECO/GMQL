@@ -63,7 +63,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     FS_Utilities.copyfiletoLocal(sourceProfile, destFilePath)
 
     // Create .dsmeta file
-    val dssize = getFileSize(fulldspath) / 1000
+    val dssize = getFileSize(fulldspath).toFloat / 1000
     val dssize_str= "%.2f".format(dssize) + " MB"
     val date = Calendar.getInstance.getTime.toString
 
