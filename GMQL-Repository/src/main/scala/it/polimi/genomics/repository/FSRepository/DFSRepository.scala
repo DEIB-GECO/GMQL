@@ -68,9 +68,9 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     val date = Calendar.getInstance.getTime.toString
 
     val meta = <dataset>
-      <property name="Size" value={dssize_str}></property>
-      <property name="Creation Date" value={date}></property>
-      <property name="Created By " value={userName}></property>
+      <property name="Size">{dssize_str}</property>
+      <property name="Creation Date">{date}</property>
+      <property name="Created By">{userName}></property>
     </dataset>
 
     storeDsMeta(meta.toString, userName, dsname)
