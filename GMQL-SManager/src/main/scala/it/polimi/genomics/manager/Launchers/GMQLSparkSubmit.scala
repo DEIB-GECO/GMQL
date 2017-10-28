@@ -1,7 +1,7 @@
 package it.polimi.genomics.manager.Launchers
 
 /**
-  * @AUTHOR ABDULRAHMAN KAITOUA
+  * @author ABDULRAHMAN KAITOUA
   */
 
 import java.io.{ByteArrayOutputStream, IOException, ObjectOutputStream}
@@ -28,6 +28,7 @@ class GMQLSparkSubmit(job:GMQLJob) {
   val HADOOP_CONF_DIR = General_Utilities().HADOOP_CONF_DIR
   val YARN_CONF_DIR =  General_Utilities().HADOOP_CONF_DIR
   val GMQL_HOME = General_Utilities().GMQLHOME
+  val SPARK_UI_PORT = Utilities().SPARK_UI_PORT
 
 
   final val GMQLjar:String = Utilities().CLI_JAR_local()
@@ -80,10 +81,11 @@ class GMQLSparkSubmit(job:GMQLJob) {
 
 //    println(outDir)
 
-   val d =  new SparkLauncher(env.asJava)
+   var d =  new SparkLauncher(env.asJava)
       .setSparkHome(SPARK_HOME)
       .setAppResource(GMQLjar)
       .setMainClass(MASTER_CLASS)
+      .setConf("spark.ui.port", SPARK_UI_PORT.toString)
       .addAppArgs("-username", job.username,
         "-script", job.script.script/*serializeDAG(job.operators)*/,
         "-scriptpath", job.script.scriptPath,
@@ -97,24 +99,15 @@ class GMQLSparkSubmit(job:GMQLJob) {
         "-logDir",General_Utilities().getLogDir(job.username))
       .setConf("spark.app.id", APPID)
 
-      //These configurations are now taken from the defaults of Spark system (or spark/conf/Spark-defaults.conf file).
-/*      .setConf("spark.driver.memory", DRIVER_MEM)
-      .setConf("spark.akka.frameSize", "200")
-      .setConf("spark.executor.memory", EXECUTOR_MEM)
-      .setConf("spark.executor.instances", NUM_EXECUTORS)
-      .setConf("spark.executor.cores", CORES)
-      .setConf("spark.default.parallelism", DEFAULT_PARALLELISM)
-      .setConf("spark.driver.allowMultipleContexts", "true")
-      .setConf("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-      .setConf("spark.kryoserializer.buffer", "64")
-      .setConf("spark.rdd.compress","true")
-      .setConf("spark.akka.threads","8")
-        .setConf("spark.yarn.am.memory","4g") // instead of driver.mem when yarn client mode
-        .setConf("spark.yarn.am.memoryOverhead","600") // instead of spark.yarn.driver.memoryOverhead when client mode
-        .setConf("spark.yarn.executor.memoryOverhead","600")*/
-      .setVerbose(true)
-      .startApplication()
-    d
+
+    // Assign maximum number of executors according to the user category
+    if( Utilities().USER_EXECUTORS.contains(job.gMQLContext.userClass) ) {
+      d = d.setConf("spark.cores.max", Utilities().USER_EXECUTORS(job.gMQLContext.userClass).toString)
+    }
+
+    val b = d.setVerbose(true).startApplication()
+
+    b
   }
 
   /**

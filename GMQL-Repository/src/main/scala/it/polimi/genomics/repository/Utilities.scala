@@ -115,7 +115,7 @@ class Utilities() {
     logger.debug(CoreConfigurationFiles)
     logger.debug(HDFSConfigurationFiles)
 
-    USER_QUOTA.foreach(x => logger.info("User Quota for "+x._1+" set to "+x._2))
+    if (USER_QUOTA.size == 0) logger.warn("Disk quota is not defined for any user category.")
   }
 
   /**
