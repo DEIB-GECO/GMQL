@@ -177,6 +177,17 @@ class Utilities() {
 
   /**
     *
+    * Constructs the Directory to the regions folder on Local file system
+    *
+    * @param userName
+    * @return
+    */
+  def getDSMetaDir(userName: String = USERNAME): String = RepoDir + userName + "/dsmeta/"
+
+
+
+  /**
+    *
     * Constract the Directory to the dataset folder
     *
     * @param userName [[ String]] of the user name

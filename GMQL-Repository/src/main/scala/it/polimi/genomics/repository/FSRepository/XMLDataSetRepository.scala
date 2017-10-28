@@ -71,15 +71,15 @@ trait XMLDataSetRepository extends GMQLRepository{
       throw new GMQLNotValidDatasetNameException(s"The dataset name ($dataSetName) is already registered")
     }
 
-      val xmlFile = XML.load(schemaPath)
-      val schemaFields = (xmlFile \\ "field")
-      val schemaType = (xmlFile \\ "gmqlSchema").head.attribute("type").get.head.text
-      val coordinateSystemAttribute = (xmlFile \\ "gmqlSchema").head.attribute("coordinate_system")
-      val schemaCoordinateSystem = if (coordinateSystemAttribute.isDefined) coordinateSystemAttribute.get.head.text else "none"
-      val schema = schemaFields.map { x => (x.text.trim, ParsingType.attType(x.attribute("type").get.head.text)) }.toList.asJava
-      val dataSet = new IRDataSet(dataSetName, schema)
-      val gMQLDataSetXML = new GMQLDataSetXML(dataSet, userName, Samples.asScala.toList, GMQLSchemaFormat.getType(schemaType), GMQLSchemaCoordinateSystem.getType(schemaCoordinateSystem), "IMPORTED_"+General_Utilities().MODE  )
-      gMQLDataSetXML.Create()
+    val xmlFile = XML.load(schemaPath)
+    val schemaFields = (xmlFile \\ "field")
+    val schemaType = (xmlFile \\ "gmqlSchema").head.attribute("type").get.head.text
+    val coordinateSystemAttribute = (xmlFile \\ "gmqlSchema").head.attribute("coordinate_system")
+    val schemaCoordinateSystem = if (coordinateSystemAttribute.isDefined) coordinateSystemAttribute.get.head.text else "none"
+    val schema = schemaFields.map { x => (x.text.trim, ParsingType.attType(x.attribute("type").get.head.text)) }.toList.asJava
+    val dataSet = new IRDataSet(dataSetName, schema)
+    val gMQLDataSetXML = new GMQLDataSetXML(dataSet, userName, Samples.asScala.toList, GMQLSchemaFormat.getType(schemaType), GMQLSchemaCoordinateSystem.getType(schemaCoordinateSystem), "IMPORTED_"+General_Utilities().MODE  )
+    gMQLDataSetXML.Create()
   }
 
   /**
@@ -250,19 +250,19 @@ trait XMLDataSetRepository extends GMQLRepository{
   override def searchMeta(dataSet: String, userName: String = General_Utilities().USERNAME, query: String): java.util.List[GMQLSample] = ???
 
   override def registerUser(userName:String): Boolean ={
-        val indexes = new File(General_Utilities().getIndexDir( userName ))
-        val datasets = new File(General_Utilities().getDataSetsDir( userName ))
-        val metadata = new File(General_Utilities().getMetaDir( userName ))
-        val schema = new File(General_Utilities().getSchemaDir( userName ))
-        val queries = new File(General_Utilities().getScriptsDir( userName ))
-        try{
-          logger.info( General_Utilities().getIndexDir( userName ) + (if (indexes.mkdirs) "\tCreated" else "\tfailed"))
-          logger.info( General_Utilities().getDataSetsDir( userName ) + (if (datasets.mkdir) "\tCreated" else "\tfailed"))
-          logger.info( General_Utilities().getMetaDir( userName ) + (if (metadata.mkdir) "\tCreated" else "\tfailed"))
-          logger.info( General_Utilities().getSchemaDir( userName ) + (if (schema.mkdir) "\tCreated" else "\tfailed"))
-          logger.info( General_Utilities().getScriptsDir( userName ) + (if (queries.mkdir) "\tCreated" else "\tfailed"))
-          true
-        }
+    val indexes = new File(General_Utilities().getIndexDir( userName ))
+    val datasets = new File(General_Utilities().getDataSetsDir( userName ))
+    val metadata = new File(General_Utilities().getMetaDir( userName ))
+    val schema = new File(General_Utilities().getSchemaDir( userName ))
+    val queries = new File(General_Utilities().getScriptsDir( userName ))
+    try{
+      logger.info( General_Utilities().getIndexDir( userName ) + (if (indexes.mkdirs) "\tCreated" else "\tfailed"))
+      logger.info( General_Utilities().getDataSetsDir( userName ) + (if (datasets.mkdir) "\tCreated" else "\tfailed"))
+      logger.info( General_Utilities().getMetaDir( userName ) + (if (metadata.mkdir) "\tCreated" else "\tfailed"))
+      logger.info( General_Utilities().getSchemaDir( userName ) + (if (schema.mkdir) "\tCreated" else "\tfailed"))
+      logger.info( General_Utilities().getScriptsDir( userName ) + (if (queries.mkdir) "\tCreated" else "\tfailed"))
+      true
+    }
     catch {
       case ex:Throwable => false
     }
@@ -395,9 +395,9 @@ trait XMLDataSetRepository extends GMQLRepository{
     * @param userName the owner of the dataset and the script
     * @return [[InputStream]] as the script string file.
     */
-   override def getVocabularyStream(dataSetName: String, userName: String): InputStream = {
-     new ByteArrayInputStream("N/A".getBytes)
-   }
+  override def getVocabularyStream(dataSetName: String, userName: String): InputStream = {
+    new ByteArrayInputStream("N/A".getBytes)
+  }
 
 
   // Dataset Meta and Profiles
@@ -415,14 +415,14 @@ trait XMLDataSetRepository extends GMQLRepository{
     */
   override def getDatasetMeta(datasetName: String, userName: String): Map[String, String] = {
 
-    var res = Map[String,String]()
-//    res += ("Source" -> "Wellington")
-//    res += ("Type" -> "Wellington")
-//    res += ("Creation Date" -> "Wellington")
-//    res += ("Creation Time" -> "Wellington")
-//    res += ("Size" -> "50.12 MB")
+    val filename = General_Utilities().getDSMetaDir(userName)+"/"+datasetName+".dsmeta"
 
-    res
+    if (Files.exists(Paths.get(filename))) {
+      val xml = XML.loadFile(filename);
+      (xml \\ "dataset" \ "feature").map(x=>(x.attribute("name").get.text, x.text)).toMap
+    } else {
+      Map()
+    }
 
   }
 
@@ -504,5 +504,16 @@ trait XMLDataSetRepository extends GMQLRepository{
   override def isUserQuotaExceeded(username: String, userClass: GDMSUserClass): Boolean = {
     val info = getUserQuotaInfo(username, userClass)
     return info._2 <= 0
+  }
+
+  def storeDsMeta(meta:String, userName:String, dsname:String) = {
+
+    val dSMetaFilePath = General_Utilities().getDSMetaDir(userName)+"/"+dsname+".dsmeta"
+
+    val file = new File(dSMetaFilePath)
+    val bw = new BufferedWriter(new FileWriter(file))
+    bw.write(meta.getBytes("UTF-8").toString)
+    bw.close()
+
   }
 }
