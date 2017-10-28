@@ -70,7 +70,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     val meta = <dataset>
       <property name="Size">{dssize_str}</property>
       <property name="Creation Date">{date}</property>
-      <property name="Created By">{userName}></property>
+      <property name="Created By">{userName}</property>
     </dataset>
 
     storeDsMeta(meta.toString, userName, dsname)
