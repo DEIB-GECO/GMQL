@@ -97,8 +97,12 @@ object Profiler extends java.io.Serializable {
     var sampleProfiles: ListBuffer[GMQLSampleStats] = ListBuffer[GMQLSampleStats]()
 
 
-    def longToString(x:Double): String = {
-      return "%.2f".format(x)
+    def numToString(x:Double): String = {
+      if(x%1==0) {
+        return "%.0f".format(x)
+      } else {
+        return "%.2f".format(x)
+      }
     }
 
     samples.foreach( x => {
@@ -114,7 +118,7 @@ object Profiler extends java.io.Serializable {
       sample.stats_num   += Feature.MIN_COORD.toString    -> minmax(x)._1
       sample.stats_num   += Feature.MAX_COORD.toString    -> minmax(x)._2
 
-      sample.stats = sample.stats_num.map(x => (x._1, longToString(x._2)))
+      sample.stats = sample.stats_num.map(x => (x._1, numToString(x._2)))
 
       sampleProfiles += sample
 
@@ -129,9 +133,9 @@ object Profiler extends java.io.Serializable {
     val totAvg = sumAvg/samples.size
 
 
-    dsprofile.stats += Feature.NUM_SAMP.toString         -> samples.size.toString
-    dsprofile.stats += Feature.NUM_REG.toString      -> longToString(totReg)
-    dsprofile.stats += Feature.AVG_REG_LEN.toString  -> longToString(totAvg)
+    dsprofile.stats += Feature.NUM_SAMP.toString     -> samples.size.toString
+    dsprofile.stats += Feature.NUM_REG.toString      -> numToString(totReg)
+    dsprofile.stats += Feature.AVG_REG_LEN.toString  -> numToString(totAvg)
 
     dsprofile
 
