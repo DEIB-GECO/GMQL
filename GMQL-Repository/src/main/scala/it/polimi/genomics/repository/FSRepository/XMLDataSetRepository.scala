@@ -456,7 +456,7 @@ trait XMLDataSetRepository extends GMQLRepository{
 
     if (Files.exists(Paths.get(filename))) {
       val xml = XML.loadFile(filename);
-      (xml \\ "dataset" \ "feature").map(x=>(x.attribute("name").get.text, x.text)).toMap
+      (xml \\ "dataset" \ "property").map(x=>(x.attribute("name").get.text, x.text)).toMap
     } else {
       Map("Info" -> "Dataset Profile not available.")
     }
