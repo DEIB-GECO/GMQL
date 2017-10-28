@@ -255,12 +255,16 @@ trait XMLDataSetRepository extends GMQLRepository{
     val metadata = new File(General_Utilities().getMetaDir( userName ))
     val schema = new File(General_Utilities().getSchemaDir( userName ))
     val queries = new File(General_Utilities().getScriptsDir( userName ))
+    val profiles = new File(General_Utilities().getProfileDir( userName ))
+    val dsmeta = new File(General_Utilities().getDSMetaDir( userName ))
     try{
       logger.info( General_Utilities().getIndexDir( userName ) + (if (indexes.mkdirs) "\tCreated" else "\tfailed"))
       logger.info( General_Utilities().getDataSetsDir( userName ) + (if (datasets.mkdir) "\tCreated" else "\tfailed"))
       logger.info( General_Utilities().getMetaDir( userName ) + (if (metadata.mkdir) "\tCreated" else "\tfailed"))
       logger.info( General_Utilities().getSchemaDir( userName ) + (if (schema.mkdir) "\tCreated" else "\tfailed"))
       logger.info( General_Utilities().getScriptsDir( userName ) + (if (queries.mkdir) "\tCreated" else "\tfailed"))
+      logger.info( General_Utilities().getScriptsDir( userName ) + (if (profiles.mkdir) "\tCreated" else "\tfailed"))
+      logger.info( General_Utilities().getScriptsDir( userName ) + (if (dsmeta.mkdir) "\tCreated" else "\tfailed"))
       true
     }
     catch {
@@ -508,12 +512,21 @@ trait XMLDataSetRepository extends GMQLRepository{
 
   def storeDsMeta(meta:String, userName:String, dsname:String) = {
 
-    val dSMetaFilePath = General_Utilities().getDSMetaDir(userName)+"/"+dsname+".dsmeta"
+    val conf = new Configuration()
+    val fs = FileSystem.get(conf)
 
-    val file = new File(dSMetaFilePath)
-    val bw = new BufferedWriter(new FileWriter(file))
-    bw.write(meta.getBytes("UTF-8").toString)
-    bw.close()
+    try {
+      val output = fs.create(new Path( General_Utilities().getDSMetaDir(userName)+"/"+dsname+".dsmeta"))
+      val os = new java.io.BufferedOutputStream(output)
+      os.write(meta.getBytes("UTF-8"))
+      os.close()
+
+    } catch {
+      case e: Throwable => {
+        logger.error(e.getMessage)
+        e.printStackTrace()
+      }
+    }
 
   }
 }
