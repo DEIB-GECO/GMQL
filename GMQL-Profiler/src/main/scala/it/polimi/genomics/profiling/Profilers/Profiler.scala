@@ -109,7 +109,7 @@ object Profiler extends java.io.Serializable {
 
       val sample = GMQLSampleStats(ID = x.toString)
       if( !names.isDefined ) {
-        sample.name = "S" + "%05d".format(newIDSbroad.value.get(x).getOrElse(x))
+        sample.name = "S_" + "%05d".format(newIDSbroad.value.get(x).getOrElse(x))
       } else {
         sample.name = names.get.get(x).get
       }
