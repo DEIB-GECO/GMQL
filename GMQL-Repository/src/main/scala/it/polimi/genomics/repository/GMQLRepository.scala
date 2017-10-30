@@ -326,10 +326,9 @@ trait GMQLRepository {
     *
     * @param datasetName
     * @param userName
-    * @param key
-    * @param value
+    * @param metaEntries , a map of key => values entries
     */
-  def setDatasetMeta(datasetName: String, userName: String, key: String, value: String)
+  def setDatasetMeta(datasetName: String, userName: String, metaEntries:Map[String,String])
 
 
   /**

@@ -15,7 +15,7 @@ import org.apache.hadoop.fs.{FileSystem, Path}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
-import scala.xml.{NodeSeq, XML}
+import scala.xml.{Elem, Node, NodeSeq, XML}
 
 /**
   * Created by abdulrahman on 16/01/2017.
@@ -435,10 +435,36 @@ trait XMLDataSetRepository extends GMQLRepository{
     *
     * @param datasetName
     * @param userName
-    * @param key
-    * @param value
+    * @param metaEntries , a map of key => values entries
     */
-  override def setDatasetMeta(datasetName: String, userName: String, key: String, value: String): Unit = ???
+  override def setDatasetMeta(datasetName: String, userName: String, metaEntries:Map[String,String]): Unit = {
+
+    val conf = new Configuration()
+    val fs = FileSystem.get(conf)
+
+    val xmlFile = General_Utilities().getDSMetaDir(userName)+"/"+datasetName+".dsmeta"
+
+    // Append Child to XML element
+    def addChild(n: Node, newChild: Node) = n match {
+      case Elem(prefix, label, attribs, scope, child @ _*) =>
+        Elem(prefix, label, attribs, scope, child ++ newChild : _*)
+    }
+
+    var meta = <dataset></dataset>
+
+    // If the meta file already exists, update that one
+    if (fs.exists(new Path(xmlFile))) {
+      meta = XML.loadFile(xmlFile)
+    }
+
+    for( entry <- metaEntries ) {
+      val property = <property name={entry._1}>{entry._2}</property>
+      meta = addChild(meta, property)
+    }
+
+    storeDsMeta(meta.toString, userName,datasetName)
+
+  }
 
   /**
     * Returns profiling information concerning the whole dataset, e.g.:
@@ -458,7 +484,7 @@ trait XMLDataSetRepository extends GMQLRepository{
       val xml = XML.loadFile(filename);
       (xml \\ "dataset" \ "feature").map(x=>(x.attribute("name").get.text, x.text)).toMap
     } else {
-      Map("Info" -> "Dataset Profile not available.")
+      Map("Info" -> "Dataset profile not available.")
     }
 
   }
@@ -486,14 +512,14 @@ trait XMLDataSetRepository extends GMQLRepository{
       }).toMap
 
       if(profile.isEmpty) {
-        Map("Info" -> "Sample Profile not available.")
+        Map("Info" -> "Sample profile not available.")
       } else {
         profile
       }
 
 
     } else {
-      Map("Info" -> "Sample Profile not available.")
+      Map("Info" -> "Sample profile not available.")
     }
 
   }
