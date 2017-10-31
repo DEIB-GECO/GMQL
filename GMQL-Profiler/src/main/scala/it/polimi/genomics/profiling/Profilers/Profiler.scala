@@ -2,8 +2,9 @@ package it.polimi.genomics.profiling.Profilers
 
 import it.polimi.genomics.core.DataTypes._
 import org.apache.spark.rdd.RDD
-import org.apache.spark.{SparkContext}
+import org.apache.spark.SparkContext
 import it.polimi.genomics.profiling.Profiles.{GMQLDatasetProfile, GMQLSampleStats}
+import org.slf4j.LoggerFactory
 
 import scala.collection.Map
 import scala.collection.mutable.ListBuffer
@@ -14,6 +15,8 @@ import scala.xml.Elem
   */
 
 object Profiler extends java.io.Serializable {
+
+  final val logger = LoggerFactory.getLogger(this.getClass)
 
   /**
     * Get an XML representation of the profile for the web interface (partial features)
@@ -105,6 +108,9 @@ object Profiler extends java.io.Serializable {
       }
     }
 
+
+    logger.debug("Profiling "+samples.length+" samples.")
+
     samples.foreach( x => {
 
       val sample = GMQLSampleStats(ID = x.toString)
@@ -113,10 +119,12 @@ object Profiler extends java.io.Serializable {
       } else {
         sample.name = names.get.get(x).get
       }
+
+      val minmax_ = minmax(x)
       sample.stats_num   += Feature.NUM_REG.toString      -> counts(x)
       sample.stats_num   += Feature.AVG_REG_LEN.toString  -> avg(x)
-      sample.stats_num   += Feature.MIN_COORD.toString    -> minmax(x)._1
-      sample.stats_num   += Feature.MAX_COORD.toString    -> minmax(x)._2
+      sample.stats_num   += Feature.MIN_COORD.toString    -> minmax_._1
+      sample.stats_num   += Feature.MAX_COORD.toString    -> minmax_._2
 
       sample.stats = sample.stats_num.map(x => (x._1, numToString(x._2)))
 
@@ -127,9 +135,15 @@ object Profiler extends java.io.Serializable {
     val dsprofile    = new GMQLDatasetProfile(samples = sampleProfiles.toList)
 
 
-
     val totReg = sampleProfiles.map(x=>x.stats_num.get(Feature.NUM_REG.toString).get).reduce((x,y)=>x+y)
-    val sumAvg = sampleProfiles.map(x=>x.stats_num.get(Feature.AVG_REG_LEN.toString).get).reduce((x,y)=>x+y)
+    val sumAvg = 0
+
+    if( !sampleProfiles.map(x=>x.stats_num.get(Feature.AVG_REG_LEN.toString).get).isEmpty ) {
+      val sumAvg = sampleProfiles.map(x=>x.stats_num.get(Feature.AVG_REG_LEN.toString).get).reduce((x,y)=>x+y)
+    } else {
+      logger.warn("Missing average region length")
+    }
+
     val totAvg = sumAvg/samples.size
 
 
