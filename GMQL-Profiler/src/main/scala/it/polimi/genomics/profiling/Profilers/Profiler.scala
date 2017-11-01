@@ -83,6 +83,12 @@ object Profiler extends java.io.Serializable {
 
     val samples:List[Long] = data.keys.distinct().collect().toList
 
+
+    if( samples.isEmpty ) {
+      logger.warn("Samples set is empty")
+      new GMQLDatasetProfile(List())
+    }
+
     val Ids = meta.keys.distinct()
     val newIDS: Map[Long, Long] = Ids.zipWithIndex().collectAsMap()
     val newIDSbroad = sc.broadcast(newIDS)
@@ -108,8 +114,7 @@ object Profiler extends java.io.Serializable {
       }
     }
 
-
-    logger.debug("Profiling "+samples.length+" samples.")
+    logger.info("Profiling "+samples.length+" samples.")
 
     samples.foreach( x => {
 
@@ -136,13 +141,8 @@ object Profiler extends java.io.Serializable {
 
 
     val totReg = sampleProfiles.map(x=>x.stats_num.get(Feature.NUM_REG.toString).get).reduce((x,y)=>x+y)
-    val sumAvg = 0
+    val sumAvg = sampleProfiles.map(x=>x.stats_num.get(Feature.AVG_REG_LEN.toString).get).reduce((x,y)=>x+y)
 
-    if( !sampleProfiles.map(x=>x.stats_num.get(Feature.AVG_REG_LEN.toString).get).isEmpty ) {
-      val sumAvg = sampleProfiles.map(x=>x.stats_num.get(Feature.AVG_REG_LEN.toString).get).reduce((x,y)=>x+y)
-    } else {
-      logger.warn("Missing average region length")
-    }
 
     val totAvg = sumAvg/samples.size
 
