@@ -85,8 +85,8 @@ object Profiler extends java.io.Serializable {
 
 
     if( samples.isEmpty ) {
-      logger.warn("Samples set is empty")
-      new GMQLDatasetProfile(List())
+      logger.warn("Samples set is empty, returning.")
+      return new GMQLDatasetProfile(List())
     }
 
     val Ids = meta.keys.distinct()
