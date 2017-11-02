@@ -263,9 +263,13 @@ class ExpressionBuilder(index : Int) {
     }
   }
 
+  def getREMetaAccessor(name: String, value_type: PARSING_TYPE) = REMetaAccessor(name, value_type)
+
+
   def getREType(typename : String, value : String) : RENode = {
     typename.toLowerCase match {
       case "string" => REStringConstant(value)
+      case "int" => REInt(value.toInt)
       case _ => REFloat(value.toDouble)
     }
   }
