@@ -158,7 +158,7 @@ object DefaultRegionsToMetaFactory extends ExtendFunctionFactory {
           val right = /*line*/values.length / 2
           val left = (/*line*/values.length / 2) - 1
           val down = right / 2
-          if (/*line*/values.length % 2 == 0)
+          if (/*line*/values.length % 2 == 0 && down > 0)
             GDouble((values(down) + values(down - 1)) / 2)
           else {
             GDouble(values(down))
