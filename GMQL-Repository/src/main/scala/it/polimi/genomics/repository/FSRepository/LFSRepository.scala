@@ -198,15 +198,24 @@ class LFSRepository extends GMQLRepository with XMLDataSetRepository{
     */
   override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Float, Float) = {
 
-    var occupied = 0L
+    var occupied   = getFileSize(General_Utilities().getRegionDir(userName))
+    val user_quota = General_Utilities().getUserQuota(userClass)
 
-    val userDir = new File(General_Utilities().getRegionDir(userName))
-    if( userDir.exists() ) {
-      occupied= FileUtils.sizeOfDirectory(userDir) / 1000
-    }
-    val available = General_Utilities().getUserQuota(userClass)
+    val delta = user_quota-occupied
+    val available = if( delta >= 0) delta else 0
 
     (occupied,available)
+  }
+
+  def getFileSize(path:String): Long = {
+
+    val filepath = new File(path)
+    if( filepath.exists() ) {
+      FileUtils.sizeOfDirectory(filepath) / 1000
+    } else {
+      -1
+    }
+
   }
 
 }

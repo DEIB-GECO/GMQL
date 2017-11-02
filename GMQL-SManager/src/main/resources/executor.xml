@@ -6,4 +6,11 @@
     <property name = "LAUNCHER_MODE">LOCAL</property>
     <property name = "LIB_DIR_LOCAL">../lib/</property>
     <property name = "LIB_DIR_HDFS">/user/repo/lib/</property>
+    <property name = "SPARK_UI_PORT">4050</property>
+
+    <property name="GUEST_EXECUTORS">6</property>
+    <property name="BASIC_EXECUTORS">10</property>
+    <property name="PRO_EXECUTORS">15</property>
+    <property name="ADMIN_EXECUTORS">20</property>
+    <property name="PUBLIC_EXECUTORS">20</property>
 </gmqlProperties>

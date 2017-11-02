@@ -2,8 +2,9 @@ package it.polimi.genomics.profiling.Profilers
 
 import it.polimi.genomics.core.DataTypes._
 import org.apache.spark.rdd.RDD
-import org.apache.spark.{SparkContext}
+import org.apache.spark.SparkContext
 import it.polimi.genomics.profiling.Profiles.{GMQLDatasetProfile, GMQLSampleStats}
+import org.slf4j.LoggerFactory
 
 import scala.collection.Map
 import scala.collection.mutable.ListBuffer
@@ -14,6 +15,8 @@ import scala.xml.Elem
   */
 
 object Profiler extends java.io.Serializable {
+
+  final val logger = LoggerFactory.getLogger(this.getClass)
 
   /**
     * Get an XML representation of the profile for the web interface (partial features)
@@ -80,6 +83,12 @@ object Profiler extends java.io.Serializable {
 
     val samples:List[Long] = data.keys.distinct().collect().toList
 
+
+    if( samples.isEmpty ) {
+      logger.warn("Samples set is empty, returning.")
+      return new GMQLDatasetProfile(List())
+    }
+
     val Ids = meta.keys.distinct()
     val newIDS: Map[Long, Long] = Ids.zipWithIndex().collectAsMap()
     val newIDSbroad = sc.broadcast(newIDS)
@@ -97,24 +106,32 @@ object Profiler extends java.io.Serializable {
     var sampleProfiles: ListBuffer[GMQLSampleStats] = ListBuffer[GMQLSampleStats]()
 
 
-    def longToString(x:Double): String = {
-      return "%.2f".format(x)
+    def numToString(x:Double): String = {
+      if(x%1==0) {
+        return "%.0f".format(x)
+      } else {
+        return "%.2f".format(x)
+      }
     }
+
+    logger.info("Profiling "+samples.length+" samples.")
 
     samples.foreach( x => {
 
       val sample = GMQLSampleStats(ID = x.toString)
       if( !names.isDefined ) {
-        sample.name = "S" + "%05d".format(newIDSbroad.value.get(x).getOrElse(x))
+        sample.name = "S_" + "%05d".format(newIDSbroad.value.get(x).getOrElse(x))
       } else {
         sample.name = names.get.get(x).get
       }
+
+      val minmax_ = minmax(x)
       sample.stats_num   += Feature.NUM_REG.toString      -> counts(x)
       sample.stats_num   += Feature.AVG_REG_LEN.toString  -> avg(x)
-      sample.stats_num   += Feature.MIN_COORD.toString    -> minmax(x)._1
-      sample.stats_num   += Feature.MAX_COORD.toString    -> minmax(x)._2
+      sample.stats_num   += Feature.MIN_COORD.toString    -> minmax_._1
+      sample.stats_num   += Feature.MAX_COORD.toString    -> minmax_._2
 
-      sample.stats = sample.stats_num.map(x => (x._1, longToString(x._2)))
+      sample.stats = sample.stats_num.map(x => (x._1, numToString(x._2)))
 
       sampleProfiles += sample
 
@@ -123,15 +140,16 @@ object Profiler extends java.io.Serializable {
     val dsprofile    = new GMQLDatasetProfile(samples = sampleProfiles.toList)
 
 
-
     val totReg = sampleProfiles.map(x=>x.stats_num.get(Feature.NUM_REG.toString).get).reduce((x,y)=>x+y)
     val sumAvg = sampleProfiles.map(x=>x.stats_num.get(Feature.AVG_REG_LEN.toString).get).reduce((x,y)=>x+y)
+
+
     val totAvg = sumAvg/samples.size
 
 
-    dsprofile.stats += Feature.NUM_SAMP.toString         -> samples.size.toString
-    dsprofile.stats += Feature.NUM_REG.toString      -> longToString(totReg)
-    dsprofile.stats += Feature.AVG_REG_LEN.toString  -> longToString(totAvg)
+    dsprofile.stats += Feature.NUM_SAMP.toString     -> samples.size.toString
+    dsprofile.stats += Feature.NUM_REG.toString      -> numToString(totReg)
+    dsprofile.stats += Feature.AVG_REG_LEN.toString  -> numToString(totAvg)
 
     dsprofile
 

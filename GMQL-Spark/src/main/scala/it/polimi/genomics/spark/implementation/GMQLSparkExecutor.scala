@@ -137,6 +137,10 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
           regionRDD.map(x=>x._1+"\t"+x._2.mkString("\t")).saveAsTextFile(RegionOutputPath)
         }
 
+
+        // store schema
+        storeSchema(GMQLSchema.generateSchemaXML(variable.schema,outputFolderName,outputFormat, outputCoordinateSystem),variableDir)
+
         // Compute Profile and store into xml files (one for web, one for optimization)
         val profile = Profiler.profile(regions = regionRDD, meta = metaRDD, sc = sc)
 
@@ -159,9 +163,6 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
           }
         }
 
-        // store schema
-
-        storeSchema(GMQLSchema.generateSchemaXML(variable.schema,outputFolderName,outputFormat, outputCoordinateSystem),variableDir)
       }
     } catch {
       case e : SelectFormatException => {
