@@ -114,13 +114,8 @@ class Utilities() {
     //    HDFSConfigurationFiles = if (HDFSConfigurationFiles == null) "/usr/local/Cellar/hadoop/2.7.2/libexec/etc/hadoop/hdfs-site.xml" else HDFSConfigurationFiles
     logger.debug(CoreConfigurationFiles)
     logger.debug(HDFSConfigurationFiles)
-    logger.info("GMQL_LOCAL_HOME is set to = " +  this.GMQLHOME)
-    logger.info("GMQL_DFS_HOME, HDFS Repository is set to = " +  this.HDFSRepoDir)
-    logger.info("MODE is set to = " +  this.MODE)
-    logger.info("GMQL_REPO_TYPE is set to = " +  this.GMQL_REPO_TYPE)
-    logger.info("User is set to = " +  this.USERNAME)
 
-    USER_QUOTA.foreach(x => logger.info("User Quota for "+x._1+" set to "+x._2))
+    if (USER_QUOTA.size == 0) logger.warn("Disk quota is not defined for any user category.")
   }
 
   /**
@@ -178,6 +173,17 @@ class Utilities() {
     * @return
     */
   def getProfileDir(userName: String = USERNAME): String = RepoDir + userName + "/profiles/"
+
+
+  /**
+    *
+    * Constructs the Directory to the regions folder on Local file system
+    *
+    * @param userName
+    * @return
+    */
+  def getDSMetaDir(userName: String = USERNAME): String = RepoDir + userName + "/dsmeta/"
+
 
 
   /**

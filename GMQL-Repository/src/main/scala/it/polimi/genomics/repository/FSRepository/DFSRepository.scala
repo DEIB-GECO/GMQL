@@ -3,7 +3,7 @@ package it.polimi.genomics.repository.FSRepository
 import java.io._
 import java.text.SimpleDateFormat
 import java.util
-import java.util.Date
+import java.util.{Calendar, Date}
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
 import it.polimi.genomics.core.GDMSUserClass.GDMSUserClass
@@ -14,10 +14,10 @@ import it.polimi.genomics.repository.GMQLExceptions._
 import it.polimi.genomics.repository.{GMQLRepository, GMQLSample, GMQLStatistics, Utilities => General_Utilities}
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.slf4j.LoggerFactory
-import java.nio.file.{Files, Paths}
+
 
 import scala.collection.JavaConverters._
-import scala.xml.XML
+
 /**
   * Created by abdulrahman on 12/04/16.
   */
@@ -35,6 +35,9 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     * @param schemaType One of GMQL schema types as shown in [[ GMQLSchemaFormat]]
     */
   override def createDs(dataSet:IRDataSet, userName: String, Samples: java.util.List[GMQLSample], GMQLScriptPath: String,schemaType:GMQLSchemaFormat.Value, schemaCoordinateSystem:GMQLSchemaCoordinateSystem.Value): Unit = {
+
+    val dsname = dataSet.position
+
     //Create Temp folder to place the meta files temporarly in Local file system
     val tmpFolderName = General_Utilities().getTempDir(userName)+dataSet.position+"_/"
     val tmpFolder = new File(tmpFolderName)
@@ -49,29 +52,38 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     }.toList.asJava
 
 
-    // Move web_profile.xml in userfolder/profiles/datasetname.profile
-    val dsname = dataSet.position//.substring(if(dataSet.position.lastIndexOf("/") < 0) 0 else dataSet.position.lastIndexOf("/")+1)
-    logger.info("Dataset Name: "+dsname)
+    // Copy web_profile.xml from HDFS to local
 
     val s1 = Samples.asScala.head.name
-    val dspath = s1.substring(0, s1.lastIndexOf("/")+1)
-    val sourceProfile = General_Utilities().getHDFSRegionDir(userName)+"/"+dspath+"/web_profile.xml"
-    logger.info("Source Profile: "+sourceProfile)
-    val destProfile = General_Utilities().getProfileDir(userName)+"/"+dsname+".profile"
-    logger.info("Destination Profile: "+sourceProfile)
+    val dspath        = s1.substring(0, s1.lastIndexOf("/")+1)
+    val fulldspath    = General_Utilities().getHDFSRegionDir(userName)+"/"+dspath
+    val sourceProfile = fulldspath+"/web_profile.xml"
+    val destFilePath  = General_Utilities().getProfileDir(userName)+"/"+dsname+".profile"
 
-    FS_Utilities.copyfiletoLocal(sourceProfile, destProfile)
+    FS_Utilities.copyfiletoLocal(sourceProfile, destFilePath)
 
+    // Create .dsmeta file
+    val dssize = getFileSize(fulldspath).toFloat / 1000
+    val dssize_str= "%.2f".format(dssize) + " MB"
+    val date = Calendar.getInstance.getTime.toString
 
+    val meta = <dataset>
+      <property name="Size">{dssize_str}</property>
+      <property name="Creation date">{date}</property>
+      <property name="Created by">{userName}</property>
+    </dataset>
+
+    storeDsMeta(meta.toString, userName, dsname)
 
     //create DS as a set of XML files in the local repository
     super.createDs(dataSet, userName, samples, GMQLScriptPath, schemaType, schemaCoordinateSystem)
 
-
-
     //clean the temp Directory
     tmpFolder.delete()
   }
+
+
+
 
   /**
     *     * Import Dataset into GMQL from Local file system.
@@ -297,21 +309,36 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     */
   override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Float, Float) = {
 
-
-    val available = General_Utilities().getUserQuota(userClass)
-    var occupied = 0L
-
-    val conf = FS_Utilities.gethdfsConfiguration()
-    val fs = FileSystem.get(conf)
-    val userDir = new Path(General_Utilities().getHDFSUserDir(userName))
-    if (fs.exists(userDir)) {
-      val summary = fs.getContentSummary(userDir)
-      val replication = fs.getDefaultReplication(userDir)
-      occupied = (summary.getSpaceConsumed() / 1000) / replication
-    }
-
+    val user_quota = General_Utilities().getUserQuota(userClass)
+    val userDir    = General_Utilities().getHDFSUserDir(userName)
+    val occupied   = getFileSize(userDir)
+    val delta      = user_quota-occupied
+    val available  = if( delta >= 0) delta else 0
 
     (occupied,available)
+  }
+
+
+  /**
+    *
+    * @param path path of a folder or file
+    * @return size in KBs dived by replication factor, -1 if path not found
+    */
+   def getFileSize(path: String): Long = {
+
+    val conf = FS_Utilities.gethdfsConfiguration()
+    val fs   = FileSystem.get(conf)
+    val filePath = new Path(path)
+
+    if ( fs.exists(filePath) ) {
+      val summary     = fs.getContentSummary(filePath)
+      val replication = fs.getDefaultReplication(filePath)
+
+      summary.getSpaceConsumed() / 1000
+    } else {
+      -1
+    }
+
   }
 
 }

@@ -326,10 +326,9 @@ trait GMQLRepository {
     *
     * @param datasetName
     * @param userName
-    * @param key
-    * @param value
+    * @param metaEntries , a map of key => values entries
     */
-  def setDatasetMeta(datasetName: String, userName: String, key: String, value: String)
+  def setDatasetMeta(datasetName: String, userName: String, metaEntries:Map[String,String])
 
 
   /**
@@ -365,7 +364,7 @@ trait GMQLRepository {
     * Returns information about the user disk quota usage
     * @param userName
     * @param userClass
-    * @return (occupied, available) in KBs
+    * @return (occupied, available) in KBs , available = remaining
     */
   def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Float, Float)
 

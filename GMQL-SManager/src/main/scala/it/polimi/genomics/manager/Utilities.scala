@@ -2,6 +2,8 @@ package it.polimi.genomics.manager
 
 import java.io.File
 
+import it.polimi.genomics.core.GDMSUserClass
+import it.polimi.genomics.core.GDMSUserClass._
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.xml.{Elem, NodeSeq, XML}
@@ -15,6 +17,10 @@ class Utilities {
   var CLI_CLASS: String = "it.polimi.genomics.cli.GMQLExecuteCommand"
   var lib_dir_local: String = it.polimi.genomics.repository.Utilities().GMQLHOME + "/lib/"
   var lib_dir_hdfs: String = it.polimi.genomics.repository.Utilities().HDFSRepoDir + "/lib/"
+  var SPARK_UI_PORT:Int = 4040
+
+  // Maximum number of executors for each user class
+  var USER_EXECUTORS: Map[GDMSUserClass, Long] = Map()
 
   private val logger: Logger = LoggerFactory.getLogger(Utilities.getClass)
 
@@ -44,6 +50,14 @@ class Utilities {
           case Conf.CLI_CLASS => CLI_CLASS = value
           case Conf.LAUNCHER_MODE => LAUNCHER_MODE = value
 
+          case Conf.SPARK_UI_PORT => SPARK_UI_PORT = value.toInt
+
+          case Conf.GUEST_EXECUTORS  => USER_EXECUTORS += ( GDMSUserClass.GUEST  -> value.toLong)
+          case Conf.BASIC_EXECUTORS  => USER_EXECUTORS += ( GDMSUserClass.BASIC  -> value.toLong)
+          case Conf.PRO_EXECUTORS    => USER_EXECUTORS += ( GDMSUserClass.PRO    -> value.toLong)
+          case Conf.ADMIN_EXECUTORS  => USER_EXECUTORS += ( GDMSUserClass.ADMIN  -> value.toLong)
+          case Conf.PUBLIC_EXECUTORS => USER_EXECUTORS += ( GDMSUserClass.PUBLIC -> value.toLong)
+
           case _ => logger.error(s"Not known configuration property: $x, $value")
         }
         logger.debug(s"XML config override environment variables. $att = $value ")
@@ -53,6 +67,8 @@ class Utilities {
     }
 
     if (SPARK_HOME == null) logger.warn("SPARK_HOME is not set .. To use Spark on Yarn platform, you should set Spark Home in the configuration file or as Environment varialble")
+
+    if (USER_EXECUTORS.size == 0) logger.warn("Max executors not defined for any user category.")
   }
 
   /**
@@ -92,5 +108,13 @@ object Conf {
   val LIB_DIR_LOCAL = "LIB_DIR_LOCAL"
   val LIB_DIR_HDFS = "LIB_DIR_HDFS"
   val CLI_CLASS = "CLI_CLASS"
+
+  val SPARK_UI_PORT = "SPARK_UI_PORT"
+
+  val GUEST_EXECUTORS = "GUEST_EXECUTORS"
+  val BASIC_EXECUTORS = "BASIC_EXECUTORS"
+  val PRO_EXECUTORS   = "PRO_EXECUTORS"
+  val ADMIN_EXECUTORS = "ADMIN_EXECUTORS"
+  val PUBLIC_EXECUTORS = "PUBLIC_EXECUTORS"
 
 }
