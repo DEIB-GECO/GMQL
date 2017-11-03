@@ -2,10 +2,12 @@ package it.polimi.genomics.repository.FSRepository
 
 import java.io._
 import java.nio.file.{Files, Paths}
+import java.util
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
 import it.polimi.genomics.core.GDMSUserClass._
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
+import it.polimi.genomics.core.exception.UserExceedsQuota
 import it.polimi.genomics.core.{GDMSUserClass, _}
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
 import it.polimi.genomics.repository.GMQLExceptions._
@@ -61,7 +63,7 @@ trait XMLDataSetRepository extends GMQLRepository{
     * @throws GMQLSampleNotFound
     */
   @throws(classOf[GMQLNotValidDatasetNameException])
-  override def importDs(dataSetName:String, userName: String = General_Utilities().USERNAME, Samples: java.util.List[GMQLSample], schemaPath:String): Unit = {
+  def importDs2(dataSetName:String, userName: String = General_Utilities().USERNAME, Samples: java.util.List[GMQLSample], schemaPath:String): Unit = {
     //    Files.copy((new File(schemaPath)),(new File(GMQLRepository.FS_Utilities.RepoDir + userName + "/schema/" + dataSetName + ".schema")))
 
     // Check the dataset name, return if the dataset is already used in
@@ -82,6 +84,30 @@ trait XMLDataSetRepository extends GMQLRepository{
     gMQLDataSetXML.Create()
   }
 
+
+  /**
+    *
+    * Import Dataset into GMQL from Local file system.
+    *
+    * @param dataSetName String of the dataset name.
+    * @param userName    String of the user name.
+    * @param userClass   GDMSUserClass
+    * @param Samples     List of GMQL samples [[ GMQLSample]].
+    * @param schemaPath  String of the path to the xml file of the dataset schema.
+    * @throws GMQLNotValidDatasetNameException
+    * @throws GMQLUserNotFound
+    * @throws UserExceedsQuota
+    * @throws java.lang.Exception
+    */
+  override def importDs(dataSetName: String, userName: String, userClass: GDMSUserClass = GDMSUserClass.PUBLIC, Samples: java.util.List[GMQLSample], schemaPath: String): Unit = {
+
+    if( isUserQuotaExceeded(userName, userClass) ) {
+      throw new UserExceedsQuota()
+    }
+
+    importDs2(dataSetName, userName, Samples, schemaPath)
+  }
+
   /**
     *
     *   Add sample to dataset in the repository
@@ -100,7 +126,7 @@ trait XMLDataSetRepository extends GMQLRepository{
     val exceeded  = General_Utilities().getRepository().isUserQuotaExceeded(userName, userClass)
 
     if( exceeded ) {
-      throw new GMQLDSExceedsQuota()
+      throw new UserExceedsQuota()
     }
 
 
@@ -533,7 +559,7 @@ trait XMLDataSetRepository extends GMQLRepository{
     */
   override def isUserQuotaExceeded(username: String, userClass: GDMSUserClass): Boolean = {
     val info = getUserQuotaInfo(username, userClass)
-    return info._2 <= 0
+    return info._1  > info._2
   }
 
   def storeDsMeta(meta:String, userName:String, dsname:String) = {
@@ -555,4 +581,13 @@ trait XMLDataSetRepository extends GMQLRepository{
     }
 
   }
+
+  override def getInfoStream(dataSetName: String, userName: String): InputStream = {
+    val list = (getDatasetMeta(dataSetName, userName) ++ getDatasetProfile(dataSetName, userName)).toList.sorted
+    val resultString = list.map(x => x._1+ "\t" + x._2 ).mkString("\n")
+    new ByteArrayInputStream(resultString.getBytes)
+  }
+
+
+
 }
