@@ -52,18 +52,23 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     }.toList.asJava
 
 
+    var dssize = 0F
+
     // Copy web_profile.xml from HDFS to local
 
-    val s1 = Samples.asScala.head.name
-    val dspath        = s1.substring(0, s1.lastIndexOf("/")+1)
-    val fulldspath    = General_Utilities().getHDFSRegionDir(userName)+"/"+dspath
-    val sourceProfile = fulldspath+"/web_profile.xml"
-    val destFilePath  = General_Utilities().getProfileDir(userName)+"/"+dsname+".profile"
+    if( !Samples.asScala.isEmpty ) {
+      val s1 = Samples.asScala.head.name
+      val dspath = s1.substring(0, s1.lastIndexOf("/") + 1)
+      val fulldspath = General_Utilities().getHDFSRegionDir(userName) + "/" + dspath
+      val sourceProfile = fulldspath + "/web_profile.xml"
+      val destFilePath = General_Utilities().getProfileDir(userName) + "/" + dsname + ".profile"
 
-    FS_Utilities.copyfiletoLocal(sourceProfile, destFilePath)
+      FS_Utilities.copyfiletoLocal(sourceProfile, destFilePath)
+
+      dssize = getFileSize(fulldspath).toFloat / 1000
+    }
 
     // Create .dsmeta file
-    val dssize = getFileSize(fulldspath).toFloat / 1000
     val dssize_str= "%.2f".format(dssize) + " MB"
     val date = Calendar.getInstance.getTime.toString
 
