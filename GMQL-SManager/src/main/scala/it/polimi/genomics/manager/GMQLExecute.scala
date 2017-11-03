@@ -6,7 +6,8 @@ import java.util
 import java.util.concurrent.{ExecutorService, Executors, TimeUnit}
 
 import it.polimi.genomics.core.GMQLScript
-import it.polimi.genomics.manager.Exceptions.{InvalidGMQLJobException, NoJobsFoundException, UserQuotaExceeded}
+import it.polimi.genomics.core.exception.UserExceedsQuota
+import it.polimi.genomics.manager.Exceptions.{InvalidGMQLJobException, NoJobsFoundException}
 import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLocalLauncher, GMQLRemoteLauncher, GMQLSparkLauncher}
 import it.polimi.genomics.repository.{Utilities => General_Utilities}
 import org.slf4j.{Logger, LoggerFactory}
@@ -120,7 +121,7 @@ class GMQLExecute (){
     *
     * @param job
     */
-  @throws(classOf[UserQuotaExceeded])
+  @throws(classOf[UserExceedsQuota])
   def execute(job:GMQLJob):Unit={
 
     if( job.gMQLContext.checkQuota ) {
@@ -129,7 +130,7 @@ class GMQLExecute (){
       val exceeded  = General_Utilities().getRepository().isUserQuotaExceeded(userName, userClass)
 
       if( exceeded ) {
-        throw new UserQuotaExceeded()
+        throw new UserExceedsQuota()
       }
 
     }

@@ -93,7 +93,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     * @param userName String of the user name to add this dataset to.
     * @param schemaPath String of the path to the xml file of the dataset's schema.
     */
-  override def importDs(dataSetName: String, userName: String, Samples: java.util.List[GMQLSample], schemaPath: String): Unit = {
+  override def importDs(dataSetName: String, userName: String, userClass: GDMSUserClass, Samples: java.util.List[GMQLSample], schemaPath: String): Unit = {
     if (FS_Utilities.validate(schemaPath)) {
       val date = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
       val samples = Samples.asScala.map(x=> GMQLSample(ID = x.ID, name = dataSetName+"_"+date+ "/"+new File(x.name).getName,meta = x.meta) ).asJava
@@ -110,7 +110,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
         General_Utilities().getHDFSRegionDir(userName)+ new Path(samples.get(0).name).getParent.toString+ "/test.schema"
       )
 
-      super.importDs(dataSetName: String, userName: String, samples ,schemaPath)
+      super.importDs(dataSetName, userName, userClass, samples ,schemaPath)
     } else {
       logger.info("The dataset schema does not confirm the schema style (XSD)")
     }
@@ -275,23 +275,6 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
   }
 
   /**
-    *
-    * Import Dataset into GMQL from Local file system.
-    *
-    * @param dataSetName String of the dataset name.
-    * @param userName    String of the user name.
-    * @param userClass   GDMSUserClass
-    * @param Samples     List of GMQL samples [[ GMQLSample]].
-    * @param schemaPath  String of the path to the xml file of the dataset schema.
-    * @throws GMQLNotValidDatasetNameException
-    * @throws GMQLUserNotFound
-    * @throws java.lang.Exception
-    */
-  override def importDs(dataSetName: String, userName: String, userClass: GDMSUserClass, Samples: util.List[GMQLSample], schemaPath: String): Unit = {
-    importDs(dataSetName, userName, Samples, schemaPath)
-  }
-
-  /**
     * Return a stram of the dataset.xml file
     *
     * @param datasetName
@@ -305,17 +288,15 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     *
     * @param userName
     * @param userClass
-    * @return (occupied, available) in KBs
+    * @return (occupied, user_quota) in KBs
     */
-  override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Float, Float) = {
+  override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Long, Long) = {
 
     val user_quota = General_Utilities().getUserQuota(userClass)
     val userDir    = General_Utilities().getHDFSUserDir(userName)
     val occupied   = getFileSize(userDir)
-    val delta      = user_quota-occupied
-    val available  = if( delta >= 0) delta else 0
 
-    (occupied,available)
+    (occupied,user_quota)
   }
 
 
