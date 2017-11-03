@@ -149,6 +149,14 @@ case class GroupOperator(op_pos : Position,
 
 
     //check parameters validity
+    if (!meta_keys.isDefined &&
+        !refined_meta_aggregate_function_list.isDefined &&
+        !region_keys.isDefined &&
+        !refined_region_aggregate_function_list.isDefined) {
+      val msg = operator_name + " operator at line " + op_pos.line + ": " +
+        "empy parameters are not allowed for this operator."
+      throw new CompilerException(msg)
+    }
 
     if (!meta_keys.isDefined && refined_meta_aggregate_function_list.isDefined) {
       val msg = operator_name + " operator at line " + op_pos.line + ": " +
