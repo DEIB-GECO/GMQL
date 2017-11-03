@@ -49,10 +49,16 @@ case class GroupOperator(op_pos : Position,
     )
 
     if (parameters.unamed.isDefined) {
-      meta_keys = Some (
-        MetaGroupByCondition(
-          parser_unnamed(metadata_attribute_list, None).get.map(Default(_)))
-      )
+      val key_list = parser_unnamed(metadata_attribute_list, None).get.map(Default(_))
+      if (key_list.length <= 1)
+        meta_keys = Some (
+          MetaGroupByCondition(key_list)
+        )
+      else{
+        val msg = "At operator " + operator_name + " at line " + op_pos.line +
+          " : at most one metadata key can be specified."
+        throw new CompilerException(msg)
+      }
     }
 
     for (p <- parameters.named) {
