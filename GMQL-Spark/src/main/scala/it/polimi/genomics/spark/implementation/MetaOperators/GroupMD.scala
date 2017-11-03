@@ -86,6 +86,6 @@ object GroupMD {
 
     //CLOSING
     //merge the 3 meta data sets and output
-    aggregationMeta.union(groupingMeta.map(x=> (x._2._1,(x._2._2,x._1.toString)))).union(dsWithoutGroupName)
+    aggregationMeta.union(groupingMeta.groupByKey.zipWithIndex.flatMap{ case (sample, groupShortID) => sample._2.map{ ix => (groupShortID,(ix))} }.map(x=> (x._2._1,(x._2._2,x._1.toString)))).union(dsWithoutGroupName)
   }
 }
