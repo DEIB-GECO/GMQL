@@ -70,7 +70,14 @@ case class GroupOperator(op_pos : Position,
 
               try {
 
-                status.get_server.implementation.metaAggregateFunctionFactory.get(a.fun_name,a.input,Some(a.output))
+                a match {
+                  case TemporaryMetaUnaryAggregateFunction(fun_name,input,output) => {
+                    status.get_server.implementation.metaAggregateFunctionFactory.get(fun_name,input,Some(output))
+                  }
+                  case TemporaryMetaNullaryAggregateFunction(fun_name,output) => {
+                    status.get_server.implementation.metaAggregateFunctionFactory.get(fun_name,Some(output))
+                  }
+                }
 
               } catch {
                 case e:Exception =>

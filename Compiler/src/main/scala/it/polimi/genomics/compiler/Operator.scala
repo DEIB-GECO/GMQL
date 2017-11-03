@@ -323,7 +323,13 @@ case class RegionOrderParameters(ordering : List[(FieldPositionOrName, Direction
 
 case class OrderParameters(meta_order : Option[MetaOrderParameters], region_order : Option[RegionOrderParameters])
 
-case class TemporaryMetaAggregateFunction(fun_name:String, input:String, output:String)
+trait TemporaryMetaAggregateFunction
+
+case class TemporaryMetaUnaryAggregateFunction(fun_name:String, input:String, output:String)
+  extends TemporaryMetaAggregateFunction
+
+case class TemporaryMetaNullaryAggregateFunction(fun_name:String, output:String)
+  extends TemporaryMetaAggregateFunction
 
 case class GroupMetaParameters(grouping : Option[MetaGroupByCondition], aggregates : Option[List[MetaAggregateFunction]])
 
