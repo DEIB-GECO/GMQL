@@ -108,7 +108,7 @@ object ProfilerLauncher {
       repo = RepoUtilities().getRepository()
     }
 
-    val conf = new Configuration();
+    val conf = FS_Utilities.gethdfsConfiguration
 
     val profilesFolder  = RepoUtilities().getProfileDir(username)
 
