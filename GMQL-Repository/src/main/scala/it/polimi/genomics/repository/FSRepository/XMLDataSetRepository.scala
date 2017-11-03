@@ -126,7 +126,7 @@ trait XMLDataSetRepository extends GMQLRepository{
     val exceeded  = General_Utilities().getRepository().isUserQuotaExceeded(userName, userClass)
 
     if( exceeded ) {
-      throw new GMQLDSExceedsQuota()
+      throw new UserExceedsQuota()
     }
 
 
