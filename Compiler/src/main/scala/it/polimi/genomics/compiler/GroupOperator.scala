@@ -32,7 +32,7 @@ case class GroupOperator(op_pos : Position,
   override def check_input_number = one_input
 
   var meta_keys:Option[MetaGroupByCondition] = None
-  var refined_meta_aggregate_function_list: Option[List[MetaAggregateFunction]] = None
+  var refined_meta_aggregate_function_list: Option[List[MetaAggregateFunction]] = Some(List.empty)
   var meta_group_name:Option[String] = None
   var refined_region_aggregate_function_list : Option[List[RegionsToRegion]] = None
   var region_keys : Option[List[GroupingParameter]] = None
