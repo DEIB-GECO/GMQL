@@ -4,7 +4,7 @@ import java.io.InputStream
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
 import it.polimi.genomics.core.GDMSUserClass.GDMSUserClass
-import it.polimi.genomics.core.{GMQLSchema, GMQLSchemaCoordinateSystem, GMQLSchemaField, GMQLSchemaFormat}
+import it.polimi.genomics.core._
 import it.polimi.genomics.repository.GMQLExceptions._
 
 /**
@@ -89,7 +89,7 @@ trait GMQLRepository {
     * @throws GMQLSampleNotFound
     */
   @throws(classOf[GMQLDSException])
-  def addSampleToDS(dataSet:String, userName:String, Sample:GMQLSample)
+  def addSampleToDS(dataSet:String, userName:String, Sample:GMQLSample, userClass: GDMSUserClass = GDMSUserClass.PUBLIC)
 
   /**
     *
@@ -171,16 +171,6 @@ trait GMQLRepository {
     */
   @throws(classOf[GMQLDSException])
   def DSExistsInPublic( dataSet:String): Boolean
-
-  /**
-    *
-    *  return the statistics (profiling ) of the dataset
-    *
-    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
-    * @return
-    */
-  def getDSStatistics(dataSet:String, userName:String):GMQLStatistics
-
 
   /**
     *
@@ -336,10 +326,9 @@ trait GMQLRepository {
     *
     * @param datasetName
     * @param userName
-    * @param key
-    * @param value
+    * @param metaEntries , a map of key => values entries
     */
-  def setDatasetMeta(datasetName: String, userName: String, key: String, value: String)
+  def setDatasetMeta(datasetName: String, userName: String, metaEntries:Map[String,String])
 
 
   /**
@@ -351,7 +340,7 @@ trait GMQLRepository {
     * @param datasetName dataset name as a string
     * @param userName   the owner of the dataset
     * @return a Map[String, String] containing property_name => value
-   */
+    */
   def getDatasetProfile(datasetName: String, userName: String): Map[String, String]
 
 
@@ -375,7 +364,7 @@ trait GMQLRepository {
     * Returns information about the user disk quota usage
     * @param userName
     * @param userClass
-    * @return (occupied, available) in KBs
+    * @return (occupied, available) in KBs , available = remaining
     */
   def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Float, Float)
 
@@ -387,5 +376,4 @@ trait GMQLRepository {
     */
   def isUserQuotaExceeded(username: String, userClass: GDMSUserClass): Boolean
 }
-
 

@@ -5,7 +5,7 @@ import java.util
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
 import it.polimi.genomics.core.GDMSUserClass.GDMSUserClass
-import it.polimi.genomics.core.{GMQLSchemaCoordinateSystem, GMQLSchemaField, GMQLSchemaFormat}
+import it.polimi.genomics.core.{GDMSUserClass, GMQLSchemaCoordinateSystem, GMQLSchemaField, GMQLSchemaFormat}
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
 import it.polimi.genomics.repository.GMQLExceptions._
 import it.polimi.genomics.repository.{Utilities => General_Utilities, _}
@@ -100,7 +100,7 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
     * @throws GMQLSampleNotFound
     */
   @throws(classOf[GMQLDSException])
-  override def addSampleToDS(dataSet: String, userName: String, Sample: GMQLSample) = ???
+  override def addSampleToDS(dataSet: String, userName: String, Sample: GMQLSample, userClass: GDMSUserClass = GDMSUserClass.PUBLIC) = ???
 
   /**
     *
@@ -170,13 +170,6 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
     (samples,schema.fields.asJava)
   }
 
-
-  /**
-    *
-    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
-    * @return
-    */
-  override def getDSStatistics(dataSet: String, userName: String): GMQLStatistics = ???
 
 
   /**
@@ -259,70 +252,6 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
     */
   override def getDsInfoStream(datasetName: String, userName: String): InputStream = ???
 
-  /**
-    * Returns the metadata associated to a dataset, e.g:
-    * Source => Politecnico di Milano
-    * Type => GDM
-    * Creation Date => 21 Mar 2011
-    * Creation Time => 00:18:56
-    * Size => "50.12 MB"
-    *
-    * @param datasetName dataset name as a string
-    * @param userName    the owner of the dataset
-    * @return a Map[String, String] containing property_name => value
-    */
-override def getDatasetMeta(datasetName: String, userName: String): Map[String, String] = ???
+  override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Float, Float) = ???
 
-  /**
-    * Set an entry on dataset metadata
-    *
-    * @param datasetName
-    * @param userName
-    * @param key
-    * @param value
-    */
-override def setDatasetMeta(datasetName: String, userName: String, key: String, value: String): Unit = ???
-
-  /**
-    * Returns profiling information concerning the whole dataset, e.g.:
-    * Number of samples => 15
-    * Number of regions => 31209
-    * Average region length => 123.12
-    *
-    * @param datasetName dataset name as a string
-    * @param userName    the owner of the dataset
-    * @return a Map[String, String] containing property_name => value
-    */
-override def getDatasetProfile(datasetName: String, userName: String): Map[String, String] = ???
-
-  /**
-    * Returns profiling information concerning a specific sample of the dataset, e.g.:
-    *
-    * Number of samples => 15
-    * Number of regions => 31209
-    * Average region length => 123.12
-    *
-    * @param datasetName dataset name as a string
-    * @param sampleName    name of the sample (index 1 .. N)
-    * @param userName   the owner of the dataset
-    */
-  override def getSampleProfile(datasetName: String, sampleName: String, userName: String): Map[String, String] = ???
-
-  /**
-    * Returns information about the user disk quota usage
-    *
-    * @param userName
-    * @param userClass
-    * @return (occupied, available) in KBs
-    */
-override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Float, Float) = ???
-
-  /**
-    * Boolean value: true if user quota is exceeded
-    *
-    * @param username
-    * @param userClass
-    * @return
-    */
-  override def isUserQuotaExceeded(username: String, userClass: GDMSUserClass): Boolean = ???
 }
