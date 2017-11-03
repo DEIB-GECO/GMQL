@@ -7,7 +7,7 @@ import it.polimi.genomics.repository.FSRepository.{DFSRepository, FS_Utilities}
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
 import it.polimi.genomics.repository.GMQLExceptions.GMQLDSNotFound
 import org.slf4j.LoggerFactory
-import it.polimi.genomics.repository.{Utilities => RepoUtilities}
+import it.polimi.genomics.repository.{GMQLRepository, Utilities => RepoUtilities}
 import it.polimi.genomics.spark.utilities.ProfilerLoader
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
@@ -19,7 +19,7 @@ import org.apache.log4j.xml.DOMConfigurator
 object ProfilerLauncher {
 
   private final val logger = LoggerFactory.getLogger(this.getClass)
-  private var repo: DFSRepository = null
+  private var repo: GMQLRepository = null
 
   private final val usage: String = "ProfileLauncher " +
     " -username USER " +
@@ -103,6 +103,10 @@ object ProfilerLauncher {
 
 
   def profileDS(username: String, dsname: String): Unit = {
+
+    if( repo == null ) {
+      repo = RepoUtilities().getRepository()
+    }
 
     val conf = new Configuration();
 
