@@ -555,4 +555,13 @@ trait XMLDataSetRepository extends GMQLRepository{
     }
 
   }
+
+  override def getInfoStream(dataSetName: String, userName: String): InputStream = {
+    val list = (getDatasetMeta(dataSetName, userName) ++ getDatasetProfile(dataSetName, userName)).toList.sorted
+    val resultString = list.map(x => x._1+ "\t" + x._2 ).mkString("\n")
+    new ByteArrayInputStream(resultString.getBytes)
+  }
+
+
+
 }

@@ -375,5 +375,8 @@ trait GMQLRepository {
     * @return
     */
   def isUserQuotaExceeded(username: String, userClass: GDMSUserClass): Boolean
-}
+
+  def getInfoStream(dataSetName: String, userName: String): InputStream
+
+  }
 
