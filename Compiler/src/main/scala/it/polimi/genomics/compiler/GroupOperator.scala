@@ -32,7 +32,7 @@ case class GroupOperator(op_pos : Position,
   override def check_input_number = one_input
 
   var meta_keys:Option[MetaGroupByCondition] = None
-  var refined_meta_aggregate_function_list: Option[List[MetaAggregateFunction]] = None
+  var refined_meta_aggregate_function_list: Option[List[MetaAggregateFunction]] = Some(List.empty)
   var meta_group_name:Option[String] = None
   var refined_region_aggregate_function_list : Option[List[RegionsToRegion]] = None
   var region_keys : Option[List[GroupingParameter]] = None
@@ -49,10 +49,16 @@ case class GroupOperator(op_pos : Position,
     )
 
     if (parameters.unamed.isDefined) {
-      meta_keys = Some (
-        MetaGroupByCondition(
-          parser_unnamed(metadata_attribute_list, None).get.map(Default(_)))
-      )
+      val key_list = parser_unnamed(metadata_attribute_list, None).get.map(Default(_))
+      if (key_list.length <= 1)
+        meta_keys = Some (
+          MetaGroupByCondition(key_list)
+        )
+      else{
+        val msg = "At operator " + operator_name + " at line " + op_pos.line +
+          " : at most one metadata key can be specified."
+        throw new CompilerException(msg)
+      }
     }
 
     for (p <- parameters.named) {
@@ -64,7 +70,14 @@ case class GroupOperator(op_pos : Position,
 
               try {
 
-                status.get_server.implementation.metaAggregateFunctionFactory.get(a.fun_name,a.input,Some(a.output))
+                a match {
+                  case TemporaryMetaUnaryAggregateFunction(fun_name,input,output) => {
+                    status.get_server.implementation.metaAggregateFunctionFactory.get(fun_name,input,Some(output))
+                  }
+                  case TemporaryMetaNullaryAggregateFunction(fun_name,output) => {
+                    status.get_server.implementation.metaAggregateFunctionFactory.get(fun_name,Some(output))
+                  }
+                }
 
               } catch {
                 case e:Exception =>
@@ -143,6 +156,14 @@ case class GroupOperator(op_pos : Position,
 
 
     //check parameters validity
+    if (!meta_keys.isDefined &&
+        !refined_meta_aggregate_function_list.isDefined &&
+        !region_keys.isDefined &&
+        !refined_region_aggregate_function_list.isDefined) {
+      val msg = operator_name + " operator at line " + op_pos.line + ": " +
+        "empy parameters are not allowed for this operator."
+      throw new CompilerException(msg)
+    }
 
     if (!meta_keys.isDefined && refined_meta_aggregate_function_list.isDefined) {
       val msg = operator_name + " operator at line " + op_pos.line + ": " +

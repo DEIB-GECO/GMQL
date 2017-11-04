@@ -7,29 +7,15 @@ object DefaultMetaAggregateFactory extends  MetaAggregateFactory{
 
   val castExc = "GMQL Casting Exception – Could not parse"
 
-/*
-  def get(name : String, output : Option[String]) = {
-    name match {
-      case "COUNT" => getCount("",output)
-      case _ => {
-        var msg = "No nullary aggregate function with the given name (" + name + ") found."
-        try {
-          get(name, "", output)
-          msg = msg.concat(
-            List(" Hint: an unary function named", name,
-              "exists; try to use", name, "( <field-identifier> )").mkString(" "))
-        } catch {
-          case e:Exception =>
-        }
-        throw new Exception(msg)
-      }
+  def get(name : String, output_name : Option[String]) = {
+    name.toUpperCase() match {
+      case "COUNT" => getCount("", output_name)
+      case _ => throw new Exception("No aggregate function with the given name (" + name + ") found.")
     }
   }
-*/
 
   def get(name : String, input_name : String, output_name : Option[String]) = {
     name.toUpperCase() match {
-      case "COUNT" => getCount(input_name,output_name)
       case "SUM" => getSum(input_name,output_name)
       case "MIN" => getMin(input_name,output_name)
       case "MAX" => getMax(input_name,output_name)
