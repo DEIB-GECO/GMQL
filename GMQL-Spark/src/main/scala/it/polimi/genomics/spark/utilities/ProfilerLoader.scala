@@ -7,7 +7,7 @@ import it.polimi.genomics.profiling.Profilers.Profiler
 import it.polimi.genomics.profiling.Profiles.GMQLDatasetProfile
 import it.polimi.genomics.repository.FSRepository.FS_Utilities
 import it.polimi.genomics.spark.implementation.loaders.Loaders.Context
-import it.polimi.genomics.spark.implementation.loaders.{BasicParser, Loaders}
+import it.polimi.genomics.spark.implementation.loaders.{BasicParser, CustomParser, Loaders}
 import org.apache.hadoop.fs.{FileSystem, Path, PathFilter}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.hadoop.conf.Configuration
@@ -47,14 +47,16 @@ object ProfilerLoader {
         (getSampleID(name), name) }
     ).toMap[Long, String]
 
+    val schemaFile = datasetpath+"/test.schema"
+    val parser = (new CustomParser).setSchema(schemaFile)
 
     // Parser functions
     def region_parser(x: (Long, String)) = {
-      BasicParser.asInstanceOf[GMQLLoader[(Long, String), Option[GRECORD], (Long, String), Option[MetaType]]].region_parser(x)
+      parser.asInstanceOf[GMQLLoader[(Long, String), Option[GRECORD], (Long, String), Option[MetaType]]].region_parser(x)
     }
 
     def meta_parser(x: (Long, String)) = BasicParser.asInstanceOf[GMQLLoader[(Long, String), Option[DataTypes.GRECORD], (Long, String), Option[DataTypes.MetaType]]].meta_parser(x)
-
+    
     // Get RDDs for regions and meta
     val regions = sc forPath selectedURIs.mkString(",") LoadRegionsCombineFiles(region_parser)
     val meta    = sc forPath(selectedURIs.map(x=>x+".meta").mkString(",")) LoadMetaCombineFiles (meta_parser)
@@ -105,7 +107,10 @@ object ProfilerLoader {
 
   def main (args: Array[String] ): Unit = {
 
-    val datasetPath = "/Users/andreagulino/GMQL/GMQL/GMQL-Flink/src/test/datasets/map/ref/"
+
+    var datasetPath = "/Users/andreagulino/Desktop/files/"
+
+    if(args.length>0) datasetPath = args(0)
 
     val dsprofile = profile(datasetPath)
 
