@@ -2,7 +2,9 @@ package it.polimi.genomics.repository.FSRepository
 
 import java.io._
 import java.nio.file.{Files, Paths}
+import java.text.SimpleDateFormat
 import java.util
+import java.util.Date
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
 import it.polimi.genomics.core.GDMSUserClass._
@@ -50,21 +52,29 @@ trait XMLDataSetRepository extends GMQLRepository{
     gMQLDataSetXML.Create()
   }
 
+
   /**
     *
+    * Import Dataset into GMQL from Local file system.
     *
-    *
-    * @param dataSetName Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
-    * @param Samples
-    * @param schemaPath
-    *
-    * @throws GMQLDSNotFound
+    * @param dataSetName String of the dataset name.
+    * @param userName    String of the user name.
+    * @param userClass   GDMSUserClass
+    * @param Samples     List of GMQL samples [[ GMQLSample]].
+    * @param schemaPath  String of the path to the xml file of the dataset schema.
+    * @throws GMQLNotValidDatasetNameException
     * @throws GMQLUserNotFound
-    * @throws GMQLSampleNotFound
+    * @throws UserExceedsQuota
+    * @throws java.lang.Exception
     */
   @throws(classOf[GMQLNotValidDatasetNameException])
-  def importDs2(dataSetName:String, userName: String = General_Utilities().USERNAME, Samples: java.util.List[GMQLSample], schemaPath:String): Unit = {
-    //    Files.copy((new File(schemaPath)),(new File(GMQLRepository.FS_Utilities.RepoDir + userName + "/schema/" + dataSetName + ".schema")))
+  override def importDs(dataSetName: String, userName: String, userClass: GDMSUserClass = GDMSUserClass.PUBLIC, Samples: java.util.List[GMQLSample], schemaPath: String): Unit = {
+
+    if( isUserQuotaExceeded(userName, userClass) ) {
+      throw new UserExceedsQuota()
+    }
+
+    // Files.copy((new File(schemaPath)),(new File(GMQLRepository.FS_Utilities.RepoDir + userName + "/schema/" + dataSetName + ".schema")))
 
     // Check the dataset name, return if the dataset is already used in
     // the repository of the this user or the public repository.
@@ -82,30 +92,11 @@ trait XMLDataSetRepository extends GMQLRepository{
     val dataSet = new IRDataSet(dataSetName, schema)
     val gMQLDataSetXML = new GMQLDataSetXML(dataSet, userName, Samples.asScala.toList, GMQLSchemaFormat.getType(schemaType), GMQLSchemaCoordinateSystem.getType(schemaCoordinateSystem), "IMPORTED_"+General_Utilities().MODE  )
     gMQLDataSetXML.Create()
-  }
 
 
-  /**
-    *
-    * Import Dataset into GMQL from Local file system.
-    *
-    * @param dataSetName String of the dataset name.
-    * @param userName    String of the user name.
-    * @param userClass   GDMSUserClass
-    * @param Samples     List of GMQL samples [[ GMQLSample]].
-    * @param schemaPath  String of the path to the xml file of the dataset schema.
-    * @throws GMQLNotValidDatasetNameException
-    * @throws GMQLUserNotFound
-    * @throws UserExceedsQuota
-    * @throws java.lang.Exception
-    */
-  override def importDs(dataSetName: String, userName: String, userClass: GDMSUserClass = GDMSUserClass.PUBLIC, Samples: java.util.List[GMQLSample], schemaPath: String): Unit = {
-
-    if( isUserQuotaExceeded(userName, userClass) ) {
-      throw new UserExceedsQuota()
-    }
-
-    importDs2(dataSetName, userName, Samples, schemaPath)
+    // Set upload date in dataset meta
+    val date =  new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date());
+    setDatasetMeta(dataSetName, userName, Map("Upload date", date))
   }
 
   /**

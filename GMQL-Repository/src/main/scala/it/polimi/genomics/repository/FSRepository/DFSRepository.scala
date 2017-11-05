@@ -68,19 +68,14 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
       dssize = getFileSize(fulldspath).toFloat / 1000
     }
 
-    // Create .dsmeta file
+    // Add dataset meta
     val dssize_str= "%.2f".format(dssize) + " MB"
-    val date = Calendar.getInstance.getTime.toString
+    val date = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date());
+    val meta = Map("Creation date" -> date, "Created by" -> userName, "Size" -> dssize_str)
 
-    val meta = <dataset>
-      <property name="Size">{dssize_str}</property>
-      <property name="Creation date">{date}</property>
-      <property name="Created by">{userName}</property>
-    </dataset>
+    setDatasetMeta(dsname, userName, meta)
 
-    storeDsMeta(meta.toString, userName, dsname)
-
-    //create DS as a set of XML files in the local repository
+    // Create DS as a set of XML files in the local repository
     super.createDs(dataSet, userName, samples, GMQLScriptPath, schemaType, schemaCoordinateSystem)
 
     //clean the temp Directory
@@ -114,6 +109,10 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
       FS_Utilities.copyfiletoHDFS(schemaPath,
         General_Utilities().getHDFSRegionDir(userName)+ new Path(samples.get(0).name).getParent.toString+ "/test.schema"
       )
+
+      // Set File size
+      val size = getFileSize(General_Utilities().getHDFSDSRegionDir(userName,dataSetName+"_"+date))
+      setDatasetMeta(dataSetName, userName, Map("Size" -> size.toString))
 
       super.importDs(dataSetName, userName, userClass, samples ,schemaPath)
     } else {
