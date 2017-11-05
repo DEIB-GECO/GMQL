@@ -96,7 +96,7 @@ trait XMLDataSetRepository extends GMQLRepository{
 
     // Set upload date in dataset meta
     val date =  new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date());
-    setDatasetMeta(dataSetName, userName, Map("Upload date", date))
+    setDatasetMeta(dataSetName, userName, Map("Upload date" -> date))
   }
 
   /**
