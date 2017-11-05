@@ -80,7 +80,7 @@ class GMQLSparkSubmit(job:GMQLJob) {
       .setAppResource(GMQLjar)
       .setMainClass(MASTER_CLASS)
       .setConf("spark.ui.port", SPARK_UI_PORT.toString)
-      .setConf("spark.driver.extraClassPath", Utilities().lib_dir_local + "/*")
+      .setConf("spark.driver.extraClassPath", Utilities().lib_dir_local + "/libs/*")
       //.setConf("spark.executor.extraClassPath", Utilities().lib_dir_local + "/*")
       .addAppArgs("-username", job.username,
         //"-script", job.script.script/*serializeDAG(job.operators)*/,

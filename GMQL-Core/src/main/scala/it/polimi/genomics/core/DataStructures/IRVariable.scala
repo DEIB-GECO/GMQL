@@ -24,7 +24,7 @@ import it.polimi.genomics.core.ParsingType.PARSING_TYPE
   * @param regionDag Dag (series of operations) to build the region data of the variable
   * @param schema the schema of the new generate variable
   */
-@SerialVersionUID(0L)
+@SerialVersionUID(1000L)
 case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
                       schema : List[(String, PARSING_TYPE)] = List.empty) (implicit binS : BinningParameter) extends Serializable{
 

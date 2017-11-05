@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.core.DataStructures._
-import it.polimi.genomics.core.{ParsingType, Utilities}
+import it.polimi.genomics.core.{DAGSerializer, DAGWrapper, ParsingType, Utilities}
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
@@ -236,7 +236,7 @@ object PythonManager {
 
   def get_serialized_materialization_list(): String = {
     val materializationList = this.server.materializationList.toList
-    Utilities.serializeToBase64(materializationList)
+    DAGSerializer.serializeToBase64(DAGWrapper(materializationList))
   }
 
   def execute(): Unit = {
@@ -265,7 +265,7 @@ object PythonManager {
 
   def serializeVariable(index: Int): String = {
     val variableToSerialize = this.getVariable(index)
-    Utilities.serializeToBase64(List(variableToSerialize))
+    DAGSerializer.serializeToBase64(DAGWrapper(List(variableToSerialize)))
   }
 
   def modify_dag_source(index: Int, source: String, dest: String) : Unit = {

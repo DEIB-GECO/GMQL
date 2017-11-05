@@ -6,8 +6,9 @@ import java.util.Date
 
 import it.polimi.genomics.GMQLServer.{GmqlServer, Implementation}
 import it.polimi.genomics.compiler._
-import it.polimi.genomics.core.DataStructures.IRVariable
-import it.polimi.genomics.core.{GMQLSchemaCoordinateSystem, GMQLSchemaFormat, ImplementationPlatform, Utilities}
+import it.polimi.genomics.core.{DAGSerializer, DAGWrapper}
+//import it.polimi.genomics.core.DataStructures.IRVariable
+import it.polimi.genomics.core.{GMQLSchemaCoordinateSystem, GMQLSchemaFormat, ImplementationPlatform}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
@@ -105,7 +106,7 @@ object GMQLExecuteCommand {
     var i = 0;
 
     // DAG OPTIONS
-    var dag : Option[List[IRVariable]] = None
+    var dag : Option[DAGWrapper] = None
     var dagPath : String = null
 
     //Check the CLI options
@@ -197,13 +198,13 @@ object GMQLExecuteCommand {
         val serializedDag = args(i+1)
         if (!serializedDag.isEmpty) {
           // Deserialization of the DAG string to List[IRVariable]
-          dag = Some(Utilities.deserializeDAG(serializedDag))
+          dag = Some(DAGSerializer.deserializeDAG(serializedDag))
           logger.info("A DAG was received SUCCESSFULLY")
         }
       } else if ("-dagpath".equals(args(i).toLowerCase())) {
         dagPath = args(i + 1)
         val serializedDag = readFile(dagPath)
-        dag = Some(Utilities.deserializeDAG(serializedDag))
+        dag = Some(DAGSerializer.deserializeDAG(serializedDag))
         logger.info("DAG path set to: " + dagPath)
       } else {
         logger.warn("( "+ args(i) + " ) NOT A VALID COMMAND ... ")
@@ -246,7 +247,7 @@ object GMQLExecuteCommand {
     if (dag.isDefined) {
       // If we are executing a DAG we simply add the List[IRVariable] to the
       // materialization list and execute
-      server.materializationList ++= dag.get
+      server.materializationList ++= dag.get.dag
       server.run()
     }
     else {

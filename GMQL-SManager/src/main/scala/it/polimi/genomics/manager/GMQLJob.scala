@@ -5,10 +5,11 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 import it.polimi.genomics.GMQLServer.GmqlServer
+import it.polimi.genomics.core.DAGWrapper
 import it.polimi.genomics.compiler._
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLocalLauncher}
-import it.polimi.genomics.core.{GMQLSchemaCoordinateSystem, GMQLSchemaFormat, GMQLScript, Utilities => core_ut}
+import it.polimi.genomics.core.{DAGSerializer, DAGWrapper, GMQLSchemaCoordinateSystem, GMQLSchemaFormat, GMQLScript, Utilities => core_ut}
 import it.polimi.genomics.manager.Status._
 import it.polimi.genomics.repository.FSRepository.{FS_Utilities => FSR_Utilities}
 import it.polimi.genomics.repository.GMQLExceptions.GMQLNotValidDatasetNameException
@@ -205,12 +206,12 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     * @return A list of the output directories and the serialized DAG with the paths renamed
     * */
   def renameDAGPaths(dagString:String) = {
-    val dagVars: List[IRVariable] = core_ut.deserializeDAG(dagString)
+    val dagVars: List[IRVariable] = DAGSerializer.deserializeDAG(dagString).dag
     val outDss = dagVars.flatMap ( dagVar => rec(dagVar.metaDag) ++ rec(dagVar.regionDag)).distinct
     //Get the output Datasets names.
     outputVariablesList = outDss
 
-    (outDss, core_ut.serializeToBase64(dagVars))
+    (outDss, DAGSerializer.serializeToBase64(DAGWrapper(dagVars)))
   }
 
 
