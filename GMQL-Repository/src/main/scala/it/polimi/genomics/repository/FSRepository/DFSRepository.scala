@@ -65,7 +65,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
 
       FS_Utilities.copyfiletoLocal(sourceProfile, destFilePath)
 
-      dssize = getFileSize(fulldspath).toFloat / 1000
+      dssize = getFileSize(fulldspath) / 1000
     }
 
     // Add dataset meta
@@ -112,7 +112,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
 
       // Set File size
       val size = getFileSize(General_Utilities().getHDFSDSRegionDir(userName,dataSetName+"_"+date))
-      val dssize_str= "%.2f".format(size.toFloat/1000) + " MB"
+      val dssize_str= "%.2f".format(size/1000) + " MB"
       setDatasetMeta(dataSetName, userName, Map("Size" -> dssize_str))
 
       super.importDs(dataSetName, userName, userClass, samples ,schemaPath)
@@ -299,7 +299,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
 
     val user_quota = General_Utilities().getUserQuota(userClass)
     val userDir    = General_Utilities().getHDFSUserDir(userName)
-    val occupied   = getFileSize(userDir)
+    val occupied   = getFileSize(userDir).toLong
 
     (occupied,user_quota)
   }
@@ -310,7 +310,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     * @param path path of a folder or file
     * @return size in KBs dived by replication factor, -1 if path not found
     */
-   def getFileSize(path: String): Long = {
+   def getFileSize(path: String): Float = {
 
     val conf = FS_Utilities.gethdfsConfiguration()
     val fs   = FileSystem.get(conf)
