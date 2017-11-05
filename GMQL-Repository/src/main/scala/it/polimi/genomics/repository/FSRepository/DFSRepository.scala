@@ -112,7 +112,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
 
       // Set File size
       val size = getFileSize(General_Utilities().getHDFSDSRegionDir(userName,dataSetName+"_"+date))
-      val dssize_str= "%.2f".format(size/1000) + " MB"
+      val dssize_str= "%.2f".format(size.toFloat/1000) + " MB"
       setDatasetMeta(dataSetName, userName, Map("Size" -> dssize_str))
 
       super.importDs(dataSetName, userName, userClass, samples ,schemaPath)
