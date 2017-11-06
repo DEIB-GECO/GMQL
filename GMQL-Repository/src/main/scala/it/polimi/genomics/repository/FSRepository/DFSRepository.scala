@@ -303,23 +303,6 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
   }
 
   /**
-    *
-    * Import Dataset into GMQL from Local file system.
-    *
-    * @param dataSetName String of the dataset name.
-    * @param userName    String of the user name.
-    * @param userClass   GDMSUserClass
-    * @param Samples     List of GMQL samples [[ GMQLSample]].
-    * @param schemaPath  String of the path to the xml file of the dataset schema.
-    * @throws GMQLNotValidDatasetNameException
-    * @throws GMQLUserNotFound
-    * @throws java.lang.Exception
-    */
-  override def importDs(dataSetName: String, userName: String, userClass: GDMSUserClass, Samples: util.List[GMQLSample], schemaPath: String): Unit = {
-    importDs(dataSetName, userName, Samples, schemaPath)
-  }
-
-  /**
     * Return a stram of the dataset.xml file
     *
     * @param datasetName

@@ -7,7 +7,8 @@ import java.util.concurrent.{ExecutorService, Executors, TimeUnit}
 
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.{BinSize, GMQLSchemaFormat, GMQLScript, ImplementationPlatform}
-import it.polimi.genomics.manager.Exceptions.{InvalidGMQLJobException, NoJobsFoundException, UserQuotaExceeded}
+import it.polimi.genomics.core.exception.UserExceedsQuota
+import it.polimi.genomics.manager.Exceptions.{InvalidGMQLJobException, NoJobsFoundException}
 import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLocalLauncher, GMQLRemoteLauncher, GMQLSparkLauncher}
 import it.polimi.genomics.repository.{Utilities => General_Utilities}
 import org.apache.spark.SparkContext
