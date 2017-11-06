@@ -168,7 +168,7 @@ class GMQLExecute (){
     *
     * @param job
     */
-  @throws(classOf[UserQuotaExceeded])
+  @throws(classOf[UserExceedsQuota])
   def execute(job:GMQLJob):Unit={
 
     if( job.gMQLContext.checkQuota ) {
@@ -177,7 +177,7 @@ class GMQLExecute (){
       val exceeded  = General_Utilities().getRepository().isUserQuotaExceeded(userName, userClass)
 
       if( exceeded ) {
-        throw new UserQuotaExceeded()
+        throw new UserExceedsQuota()
       }
 
     }

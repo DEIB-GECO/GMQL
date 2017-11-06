@@ -4,7 +4,7 @@ import java.io._
 import java.util
 
 import it.polimi.genomics.core.GDMSUserClass.GDMSUserClass
-import it.polimi.genomics.core.GMQLSchemaField
+import it.polimi.genomics.core.{GDMSUserClass, GMQLSchemaField}
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
 import it.polimi.genomics.repository.GMQLExceptions.{GMQLDSException, GMQLNotValidDatasetNameException, GMQLSampleNotFound, GMQLUserNotFound}
 import it.polimi.genomics.repository.{Utilities => General_Utilities, _}
@@ -33,11 +33,11 @@ class LFSRepository extends GMQLRepository with XMLDataSetRepository{
   @throws(classOf[GMQLNotValidDatasetNameException])
   @throws(classOf[GMQLUserNotFound])
   @throws(classOf[Exception])
-  override def importDs(dataSetName: String, userName: String, Samples: java.util.List[GMQLSample], schemaPath: String): Unit = {
+  override def importDs(dataSetName: String, userName: String, userClass: GDMSUserClass = GDMSUserClass.PUBLIC, Samples: java.util.List[GMQLSample], schemaPath: String): Unit = {
 
     //Check if the dataset schema is valid otherwise return an exception
     if (FS_Utilities.validate(schemaPath)) {
-      super.importDs(dataSetName: String, userName: String, Samples: java.util.List[GMQLSample], schemaPath: String)
+      super.importDs(dataSetName, userName,  userClass, Samples: java.util.List[GMQLSample], schemaPath)
     } else {
       logger.warn("The dataset schema does not confirm the schema style (XSD)")
       throw new Exception("Schema error")
@@ -144,22 +144,6 @@ class LFSRepository extends GMQLRepository with XMLDataSetRepository{
     }
   }
 
-  /**
-    *
-    * Import Dataset into GMQL from Local file system.
-    *
-    * @param dataSetName String of the dataset name.
-    * @param userName    String of the user name.
-    * @param userClass   GDMSUserClass
-    * @param Samples     List of GMQL samples [[ GMQLSample]].
-    * @param schemaPath  String of the path to the xml file of the dataset schema.
-    * @throws GMQLNotValidDatasetNameException
-    * @throws GMQLUserNotFound
-    * @throws java.lang.Exception
-    */
-  override def importDs(dataSetName: String, userName: String, userClass: GDMSUserClass, Samples: util.List[GMQLSample], schemaPath: String): Unit = {
-    importDs(dataSetName, userName, Samples, schemaPath)
-  }
 
   /**
     * Save a serialized dag to the dag folder for the specified user
@@ -194,20 +178,17 @@ class LFSRepository extends GMQLRepository with XMLDataSetRepository{
     *
     * @param userName
     * @param userClass
-    * @return (occupied, available) in KBs
+    * @return (occupied, user_quota) in KBs
     */
-  override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Float, Float) = {
+  override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Long, Long) = {
 
-    var occupied   = getFileSize(General_Utilities().getRegionDir(userName))
+    var occupied   = getFileSize(General_Utilities().getRegionDir(userName)).toLong
     val user_quota = General_Utilities().getUserQuota(userClass)
 
-    val delta = user_quota-occupied
-    val available = if( delta >= 0) delta else 0
-
-    (occupied,available)
+    (occupied,user_quota)
   }
 
-  def getFileSize(path:String): Long = {
+  def getFileSize(path:String): Float = {
 
     val filepath = new File(path)
     if( filepath.exists() ) {

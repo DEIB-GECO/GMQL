@@ -71,10 +71,10 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
     */
   @throws(classOf[GMQLNotValidDatasetNameException])
   @throws(classOf[GMQLUserNotFound])
-  override def importDs(dataSetName: String, userName: String, Samples: java.util.List[GMQLSample], schemaPath: String): Unit = {
+  override def importDs(dataSetName: String, userName: String, userClass: GDMSUserClass, Samples: java.util.List[GMQLSample], schemaPath: String): Unit = {
     if (FS_Utilities.validate(schemaPath)) {
       // Import the dataset schema and Script files to the local folder
-      super.importDs(dataSetName: String, userName: String, Samples: java.util.List[GMQLSample], schemaPath: String)
+      super.importDs(dataSetName, userName, userClass,  Samples: java.util.List[GMQLSample], schemaPath: String)
 
       //move data and schema using KNOX to the remote Cluster.
       Samples.asScala.map { x =>
@@ -229,21 +229,6 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
   }
 
   /**
-    *
-    * Import Dataset into GMQL from Local file system.
-    *
-    * @param dataSetName String of the dataset name.
-    * @param userName    String of the user name.
-    * @param userClass   GDMSUserClass
-    * @param Samples     List of GMQL samples [[ GMQLSample]].
-    * @param schemaPath  String of the path to the xml file of the dataset schema.
-    * @throws GMQLNotValidDatasetNameException
-    * @throws GMQLUserNotFound
-    * @throws java.lang.Exception
-    */
-  override def importDs(dataSetName: String, userName: String, userClass: GDMSUserClass, Samples: util.List[GMQLSample], schemaPath: String): Unit = ???
-
-  /**
     * Return a stram of the dataset.xml file
     *
     * @param datasetName
@@ -252,7 +237,7 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
     */
   override def getDsInfoStream(datasetName: String, userName: String): InputStream = ???
 
-  override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Float, Float) = ???
+  override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Long, Long) = ???
 
   override def saveDagQuery(userName: String, serializedDag: String, fileName: String): String = ???
 }

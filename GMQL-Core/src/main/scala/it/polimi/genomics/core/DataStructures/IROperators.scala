@@ -6,7 +6,7 @@ import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.Direct
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.TopParameter
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.JoinQuadruple
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
-import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaExtension
+import it.polimi.genomics.core.DataStructures.MetaAggregate.{MetaAggregateFunction, MetaExtension}
 import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinCondition
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
@@ -163,13 +163,13 @@ case class IRAggregateRD(aggregates : List[RegionsToMeta], input_dataset : Regio
  * Partition the dataset into groups and creates a new metadata for each sample indicating the belonging group.
  * Calculates aggregate function for each group separately.
  * @param keys the keys to be used for creating the groups
- * @param aggregates the list of [[RegionsToMeta]] to be applied to each group
+ * @param aggregates the list of [[MetaAggregateFunction]] to be applied to each group
  * @param input_dataset the dataset to be grouped
  * @param group_name it indicates the name for the new grouping attribute
  * @param region_dataset region dataset on which aggregate functions will be evaluated
  */
 case class IRGroupMD(keys : MetaGroupByCondition,
-                     aggregates : List[RegionsToMeta],
+                     aggregates : List[MetaAggregateFunction],
                      group_name : String,
                      input_dataset : MetaOperator,
                      region_dataset : RegionOperator) extends MetaOperator{
