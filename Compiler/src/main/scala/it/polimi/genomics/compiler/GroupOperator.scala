@@ -1,9 +1,10 @@
 package it.polimi.genomics.compiler
 
 import it.polimi.genomics.core.DataStructures.GroupRDParameters.{FIELD, GroupingParameter}
+import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaAggregateFunction
 import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition.Default
-import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionsToMeta, RegionsToRegion}
+import it.polimi.genomics.core.DataStructures.RegionAggregate.RegionsToRegion
 
 import scala.util.parsing.input.Position
 
@@ -31,7 +32,7 @@ case class GroupOperator(op_pos : Position,
   override def check_input_number = one_input
 
   var meta_keys:Option[MetaGroupByCondition] = None
-  var refined_meta_aggregate_function_list: Option[List[RegionsToMeta]] = None
+  var refined_meta_aggregate_function_list: Option[List[MetaAggregateFunction]] = Some(List.empty)
   var meta_group_name:Option[String] = None
   var refined_region_aggregate_function_list : Option[List[RegionsToRegion]] = None
   var region_keys : Option[List[GroupingParameter]] = None
@@ -48,10 +49,16 @@ case class GroupOperator(op_pos : Position,
     )
 
     if (parameters.unamed.isDefined) {
-      meta_keys = Some (
-        MetaGroupByCondition(
-          parser_unnamed(metadata_attribute_list, None).get.map(Default(_)))
-      )
+      val key_list = parser_unnamed(metadata_attribute_list, None).get.map(Default(_))
+      if (key_list.length <= 1)
+        meta_keys = Some (
+          MetaGroupByCondition(key_list)
+        )
+      else{
+        val msg = "At operator " + operator_name + " at line " + op_pos.line +
+          " : at most one metadata key can be specified."
+        throw new CompilerException(msg)
+      }
     }
 
     for (p <- parameters.named) {
@@ -59,34 +66,27 @@ case class GroupOperator(op_pos : Position,
 
         case "meta_aggregates" => {
           refined_meta_aggregate_function_list = Some(
-            for (a <- parser_named(extend_aggfun_list, p.param_name.trim, p.param_value.trim).get) yield {
-              val position:Option[Int] = a.input_field_name match {
-                case Some(FieldPosition(p)) => {left_var_check_num_field(p); Some(p)}
-                case Some(FieldName(n)) => {left_var_get_field_name(n)}
-                case None => None
-              }
-              var fun : RegionsToMeta = null
+            for (a <- parser_named(group_meta_aggfun_list, p.param_name.trim, p.param_value.trim).get) yield {
+
               try {
-                fun = if (position.isDefined) {
-                  status.get_server.implementation.extendFunctionFactory.get(a.function_name,position.get,a.output_attribute_name)
-                } else {
-                  status.get_server.implementation.extendFunctionFactory.get(a.function_name,a.output_attribute_name)
+
+                a match {
+                  case TemporaryMetaUnaryAggregateFunction(fun_name,input,output) => {
+                    status.get_server.implementation.metaAggregateFunctionFactory.get(fun_name,input,Some(output))
+                  }
+                  case TemporaryMetaNullaryAggregateFunction(fun_name,output) => {
+                    status.get_server.implementation.metaAggregateFunctionFactory.get(fun_name,Some(output))
+                  }
                 }
-                if (position.isDefined) {
-                  fun.input_index = position.get
-                }
-                fun.function_identifier = a.function_name
-                fun.output_attribute_name = a.output_attribute_name.getOrElse("default_aggregate")
+
               } catch {
                 case e:Exception =>
                   val msg = "At operator " + operator_name + " at line " + op_pos.line +
                     " : " + e.getMessage
                   throw new CompilerException(msg)
               }
-              fun
             }
           )
-
         }
         case "meta_group_name" => {
           meta_group_name = parser_named(metadata_attribute, p.param_name.trim, p.param_value.trim)
@@ -156,21 +156,18 @@ case class GroupOperator(op_pos : Position,
 
 
     //check parameters validity
-    if (meta_keys.isDefined && !refined_meta_aggregate_function_list.isDefined) {
+    if (!meta_keys.isDefined &&
+        !refined_meta_aggregate_function_list.isDefined &&
+        !region_keys.isDefined &&
+        !refined_region_aggregate_function_list.isDefined) {
       val msg = operator_name + " operator at line " + op_pos.line + ": " +
-        "if metadata keys are provided, then metadata aggregate functions are required."
+        "empy parameters are not allowed for this operator."
       throw new CompilerException(msg)
     }
 
     if (!meta_keys.isDefined && refined_meta_aggregate_function_list.isDefined) {
       val msg = operator_name + " operator at line " + op_pos.line + ": " +
         "if metadata aggregate functions are provided, then metadata keys are required."
-      throw new CompilerException(msg)
-    }
-
-    if (region_keys.isDefined && !refined_region_aggregate_function_list.isDefined) {
-      val msg = operator_name + " operator at line " + op_pos.line + ": " +
-        "if region keys are provided, then region aggregate functions are required."
       throw new CompilerException(msg)
     }
 

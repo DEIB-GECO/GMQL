@@ -3,6 +3,7 @@ package it.polimi.genomics.spark.implementation.loaders
 import java.io.InputStream
 
 import it.polimi.genomics.core._
+import it.polimi.genomics.repository.FSRepository.FS_Utilities
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.slf4j.{Logger, LoggerFactory}
@@ -283,7 +284,7 @@ class CustomParser extends BedParser("\t", 0, 1, 2, Some(3), Some(Array((4, Pars
 
   def setSchema(dataset: String): BedParser = {
 
-    val conf: Configuration = new Configuration();
+    val conf: Configuration = FS_Utilities.gethdfsConfiguration()
     val path: Path = new Path(dataset);
     val fs: FileSystem = FileSystem.get(path.toUri(), conf);
 
