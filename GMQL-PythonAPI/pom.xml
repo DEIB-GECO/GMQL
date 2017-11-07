@@ -163,6 +163,11 @@
                     </execution>
                 </executions>
                 <configuration>
+                    <!--This is needed because GMQL-Repository and GMQL-Spark both use Hadoop configurations
+                    therefore we need to merge the sources of Hadoop code-->
+                    <transformers>
+                        <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                    </transformers>
                     <filters>
                         <filter>
                             <artifact>*:*</artifact>
