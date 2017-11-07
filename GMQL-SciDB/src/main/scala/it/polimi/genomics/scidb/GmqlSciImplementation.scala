@@ -2,19 +2,18 @@ package it.polimi.genomics.scidb
 
 import it.polimi.genomics.GMQLServer.Implementation
 import it.polimi.genomics.core.DataStructures.GroupRDParameters.FIELD
-import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.GMQLLoaderBase
 import it.polimi.genomics.scidb.exception.InternalErrorGmqlSciException
+import it.polimi.genomics.scidb.operators._
+import it.polimi.genomics.scidb.operators.meta._
 import it.polimi.genomics.scidb.operators.metagroup.GmqlMetaGroupByMGD
 import it.polimi.genomics.scidb.operators.metajoin.GmqlMetaJoinMJD
 import it.polimi.genomics.scidb.operators.region._
-import it.polimi.genomics.scidb.operators._
-import it.polimi.genomics.scidb.operators.meta._
 import it.polimi.genomics.scidb.repository.GmqlSciRepositoryManager
-import it.polimi.genomics.scidb.utility.{JoinPredUtils, StringUtils}
-import it.polimi.genomics.scidbapi.script.{SciCommand, SciScript}
+import it.polimi.genomics.scidb.utility.JoinPredUtils
 import it.polimi.genomics.scidbapi.script.SciCommandType._
+import it.polimi.genomics.scidbapi.script.{SciCommand, SciScript}
 
 
 class GmqlSciImplementation
@@ -185,9 +184,9 @@ class GmqlSciImplementation
                                                                           prepare(right).asInstanceOf[GmqlMetaOperator],
                                                                           lname, rname)
 
-        case IRGroupMD(conditions, aggrs, gname, md, rd) => new GmqlGroupMD(prepare(md).asInstanceOf[GmqlMetaOperator],
+        /*case IRGroupMD(conditions, aggrs, gname, md, rd) => new GmqlGroupMD(prepare(md).asInstanceOf[GmqlMetaOperator],
                                                                             prepare(rd).asInstanceOf[GmqlRegionOperator],
-                                                                            conditions.attributes, gname, aggrs)
+                                                                            conditions.attributes, gname, aggrs)*/
 
         case IRMergeMD(source, None) => new GmqlMergeMD(prepare(source).asInstanceOf[GmqlMetaOperator], None)
         case IRMergeMD(source, Some(groupby)) => new GmqlMergeMD( prepare(source).asInstanceOf[GmqlMetaOperator],
