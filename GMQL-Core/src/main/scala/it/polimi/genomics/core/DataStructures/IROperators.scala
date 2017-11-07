@@ -169,7 +169,7 @@ case class IRAggregateRD(aggregates : List[RegionsToMeta], input_dataset : Regio
  * @param region_dataset region dataset on which aggregate functions will be evaluated
  */
 case class IRGroupMD(keys : MetaGroupByCondition,
-                     aggregates : List[MetaAggregateFunction],
+                     aggregates : Option[List[MetaAggregateFunction]],
                      group_name : String,
                      input_dataset : MetaOperator,
                      region_dataset : RegionOperator) extends MetaOperator{

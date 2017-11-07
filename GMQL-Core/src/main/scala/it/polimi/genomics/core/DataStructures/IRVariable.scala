@@ -199,7 +199,7 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
       new IRVariable(
         IRGroupMD(
           meta_keys.get,
-          meta_aggregates.get,
+          meta_aggregates,
           meta_group_name,
           this.metaDag,
           this.regionDag),
@@ -207,7 +207,7 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
     }
     else{
       val new_region_dag = IRGroupRD(region_keys, region_aggregates, this.regionDag)
-      val new_meta_dag = IRGroupMD(meta_keys.get,meta_aggregates.get, meta_group_name, this.metaDag, new_region_dag)
+      val new_meta_dag = IRGroupMD(meta_keys.get,meta_aggregates, meta_group_name, this.metaDag, new_region_dag)
       new IRVariable (new_meta_dag, new_region_dag)
 
     }

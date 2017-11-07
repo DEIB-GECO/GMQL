@@ -18,7 +18,7 @@ object GroupMD {
   private final val logger = LoggerFactory.getLogger(GroupMD.getClass);
 
   @throws[SelectFormatException]
-  def apply(executor: GMQLSparkExecutor, groupingKeys : MetaGroupByCondition, aggregates : List[MetaAggregateFunction], newGroupNameInMeta : String, inputDataset : MetaOperator, regionDataset : RegionOperator, sc: SparkContext): RDD[MetaType] = {
+  def apply(executor: GMQLSparkExecutor, groupingKeys : MetaGroupByCondition, aggregates : Option[List[MetaAggregateFunction]], newGroupNameInMeta : String, inputDataset : MetaOperator, regionDataset : RegionOperator, sc: SparkContext): RDD[MetaType] = {
     logger.info("----------------GroupMD executing..")
     //INPUT
     val ds : RDD[MetaType] =
@@ -42,10 +42,14 @@ object GroupMD {
     val preGroups : RDD[(Long, Long)] =
       dsWithoutGroupName.MetaWithGroups(groupingKeys.attributes)
 
+    //Group that does NOT have groupingKey, groupId = 0
+    //(sampleId, groupId)
+    val zeroGroup: RDD[(Long, Long)] = ds.map(_._1).distinct().subtract(preGroups.map(_._1).distinct()).map((_,0l))
+
     //All groups
     //(sampleId, groupId)
     val groups: RDD[(Long, Long)] =
-      preGroups.union( ds.map(_._1).distinct().subtract(preGroups.map(_._1).distinct()).map((_,0l)) )
+      preGroups.map(x=> (x._2,x._1)).groupByKey.zipWithIndex.flatMap{ case (group, id) => group._2.map( sample=> (id+1, sample)) }.map(x=> (x._2,x._1)).union(zeroGroup)
 
 
     //EXECUTION
@@ -73,19 +77,25 @@ object GroupMD {
           val fun = n._2.fun(n._1);
           val count = (n._1.length, n._1.foldLeft(0)((x,y)=> if (y.isInstanceOf[GNull]) x+0 else x+1));
           (a._1, (n._2.newAttributeName, n._2.funOut(fun, count).toString))}}*/
-    val newAggregationMetaByGroup: RDD[(Long, (String, String))] =
-      aggregates.map { a =>
-        dsWithoutGroupName.join(groups).filter(in=> in._2._1._1.equals(a.inputName)).map { x => (x._2._2, x._2._1._2)}
-          .groupBy(_._1)
-          .map{n => (n._1, (a.newAttributeName, a.fun(n._2.groupBy(_._1).map(s=> s._2.map(_._2).toTraversable).toArray)))}
-      }.reduce(_ union _)
 
-    //MetaData : (SampleId, attributeName, Value)
-    val aggregationMeta : RDD[(Long, (String, String))] =
-      groupingMeta.join(newAggregationMetaByGroup).map{x=> (x._2._1._1, (x._2._2._1, x._2._2._2))}
+    if (aggregates.isDefined && !aggregates.get.isEmpty) {
+      val newAggregationMetaByGroup: RDD[(Long, (String, String))] =
+        aggregates.get.map { a =>
+          dsWithoutGroupName.join(groups).filter(in => in._2._1._1.equals(a.inputName)).map { x => (x._2._2, x._2._1._2) }
+            .groupBy(_._1)
+            .map { n => (n._1, (a.newAttributeName, a.fun(n._2.groupBy(_._1).map(s => s._2.map(_._2).toTraversable).toArray))) }
+        }.reduce(_ union _)
 
-    //CLOSING
-    //merge the 3 meta data sets and output
-    aggregationMeta.union(groupingMeta.groupByKey.zipWithIndex.flatMap{ case (sample, groupShortID) => sample._2.map{ ix => (groupShortID,(ix))} }.map(x=> (x._2._1,(x._2._2,x._1.toString)))).union(dsWithoutGroupName)
+      //MetaData : (SampleId, attributeName, Value)
+      val aggregationMeta: RDD[(Long, (String, String))] =
+        groupingMeta.join(newAggregationMetaByGroup).map { x => (x._2._1._1, (x._2._2._1, x._2._2._2)) }
+
+      //CLOSING
+      //merge the 3 meta data sets and output
+      aggregationMeta.union(groupingMeta.map(x => (x._2._1, (x._2._2, x._1.toString)))).union(dsWithoutGroupName)
+    }
+    else {
+      groupingMeta.map(x => (x._2._1, (x._2._2, x._1.toString))).union(dsWithoutGroupName)
+    }
   }
 }
