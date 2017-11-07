@@ -78,7 +78,7 @@ object GroupMD {
           val count = (n._1.length, n._1.foldLeft(0)((x,y)=> if (y.isInstanceOf[GNull]) x+0 else x+1));
           (a._1, (n._2.newAttributeName, n._2.funOut(fun, count).toString))}}*/
 
-    if (aggregates.isDefined) {
+    if (aggregates.isDefined && !aggregates.get.isEmpty) {
       val newAggregationMetaByGroup: RDD[(Long, (String, String))] =
         aggregates.get.map { a =>
           dsWithoutGroupName.join(groups).filter(in => in._2._1._1.equals(a.inputName)).map { x => (x._2._2, x._2._1._2) }
