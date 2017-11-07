@@ -320,7 +320,8 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
       val summary     = fs.getContentSummary(filePath)
       val replication = fs.getDefaultReplication(filePath)
 
-      summary.getSpaceConsumed() / 1000
+      (summary.getSpaceConsumed() / 1000)/replication
+
     } else {
       -1
     }
