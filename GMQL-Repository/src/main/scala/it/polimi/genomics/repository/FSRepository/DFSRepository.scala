@@ -146,9 +146,13 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     val conf = FS_Utilities.gethdfsConfiguration()
     val fs = FileSystem.get(conf)
     val hdfspath = conf.get("fs.defaultFS") + General_Utilities().getHDFSRegionDir(userName)
-    dataset.samples.map{x=>
-      fs.delete(new Path(hdfspath+x.name),true);
-      fs.delete(new Path(hdfspath+x.meta),true)
+
+    if (dataset.samples.length > 0) {
+      val regex       = "(/+)(exp(/+))?([^/]+)$".r
+      val ds_folder   =  regex.replaceFirstIn(hdfspath+dataset.samples(0).name, "")
+      fs.delete(new Path(ds_folder), true)
+    } else {
+      logger.warn("Trying to delete a dataset with no samples.")
     }
 
     //Delete dataset XML files
