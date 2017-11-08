@@ -126,7 +126,7 @@ object ProfilerLauncher {
     // dssamplepath.substring(0, dssamplepath.lastIndexOf("/")+1)
 
 
-    val profile = ProfilerLoader.profile(dspath)
+    val profile = ProfilerLoader.profile(dspath, conf)
 
     try {
 
