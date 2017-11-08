@@ -21,6 +21,7 @@ object ProfilerLoader {
 
   def profile(datasetpath: String, conf: Configuration) : GMQLDatasetProfile = {
 
+    FSConfig.setConf(conf)
     val fs: FileSystem = FileSystem.get(conf)
 
     val sc = Spark.sc
