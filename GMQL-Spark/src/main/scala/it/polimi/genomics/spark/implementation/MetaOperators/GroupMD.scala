@@ -81,6 +81,11 @@ object GroupMD {
     if (aggregates.isDefined && !aggregates.get.isEmpty) {
       val newAggregationMetaByGroup: RDD[(Long, (String, String))] =
         aggregates.get.map { a =>
+          if (a.inputName.isEmpty)
+            dsWithoutGroupName.join(groups).map(x=> (x._2._2, x._1.toString))
+              .groupByKey
+              .map{x=>(x._1, (a.newAttributeName, x._2.toArray.distinct.length.toString))}
+          else
           dsWithoutGroupName.join(groups).filter(in => in._2._1._1.equals(a.inputName)).map { x => (x._2._2, x._2._1._2) }
             .groupBy(_._1)
             .map { n => (n._1, (a.newAttributeName, a.fun(n._2.groupBy(_._1).map(s => s._2.map(_._2).toTraversable).toArray))) }

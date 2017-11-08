@@ -9,7 +9,7 @@ object DefaultMetaAggregateFactory extends  MetaAggregateFactory{
 
   def get(name : String, output_name : Option[String]) = {
     name.toUpperCase() match {
-      case "COUNT" => getCount("", output_name)
+      case "COUNTSAMP" => getCount("", output_name)
       case _ => throw new Exception("No aggregate function with the given name (" + name + ") found.")
     }
   }
@@ -139,7 +139,7 @@ object DefaultMetaAggregateFactory extends  MetaAggregateFactory{
 
   private def getCount(input_name:String,new_name:Option[String]) = new MetaAggregateFunction {
 
-    override val newAttributeName = if(new_name.isDefined) new_name.get else "COUNT"
+    override val newAttributeName = if(new_name.isDefined) new_name.get else "COUNTSAMP"
     override val inputName: String = input_name
     override val fun: (Array[Traversable[String]]) => String = {
       (line) =>{line.head.size.toString}
