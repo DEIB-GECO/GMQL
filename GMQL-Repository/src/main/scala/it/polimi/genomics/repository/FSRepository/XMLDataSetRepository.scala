@@ -282,8 +282,8 @@ trait XMLDataSetRepository extends GMQLRepository{
       logger.info( General_Utilities().getMetaDir( userName ) + (if (metadata.mkdir) "\tCreated" else "\tfailed"))
       logger.info( General_Utilities().getSchemaDir( userName ) + (if (schema.mkdir) "\tCreated" else "\tfailed"))
       logger.info( General_Utilities().getScriptsDir( userName ) + (if (queries.mkdir) "\tCreated" else "\tfailed"))
-      logger.info( General_Utilities().getScriptsDir( userName ) + (if (profiles.mkdir) "\tCreated" else "\tfailed"))
-      logger.info( General_Utilities().getScriptsDir( userName ) + (if (dsmeta.mkdir) "\tCreated" else "\tfailed"))
+      logger.info( General_Utilities().getProfileDir( userName ) + (if (profiles.mkdir) "\tCreated" else "\tfailed"))
+      logger.info( General_Utilities().getDSMetaDir( userName ) + (if (dsmeta.mkdir) "\tCreated" else "\tfailed"))
       // logging for the cration of dags folder
       logger.info( General_Utilities().getDagQueryDir( userName, create = false ) + (if (dags.mkdir) "\tCreated" else "\tfailed"))
       true

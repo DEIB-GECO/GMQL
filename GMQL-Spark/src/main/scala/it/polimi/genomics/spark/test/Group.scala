@@ -39,7 +39,7 @@ object Group {
       what match{
         case 0 => {
           //GROUP MD
-          optionalDS.GROUP(Some(MetaGroupByCondition(List(Default("bla")))), Some(List(DefaultMetaAggregateFactory.get("COUNT", "ID", Some("Count")),DefaultMetaAggregateFactory.get("BAG", "ID", Some("BAG_ID")))), "_group", None, None)
+          optionalDS.GROUP(Some(MetaGroupByCondition(List(Default("bla")))), Some(List(DefaultMetaAggregateFactory.get("COUNTSAMP", Some("Count")),DefaultMetaAggregateFactory.get("BAG", "ID", Some("BAG_ID")))), "_group", None, None)
         }
 
         case 1 => {

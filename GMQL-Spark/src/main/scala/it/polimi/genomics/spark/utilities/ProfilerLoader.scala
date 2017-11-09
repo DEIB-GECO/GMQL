@@ -5,7 +5,6 @@ import it.polimi.genomics.core.DataTypes.{GRECORD, MetaType}
 import it.polimi.genomics.core.{DataTypes, GMQLLoader}
 import it.polimi.genomics.profiling.Profilers.Profiler
 import it.polimi.genomics.profiling.Profiles.GMQLDatasetProfile
-import it.polimi.genomics.repository.FSRepository.FS_Utilities
 import it.polimi.genomics.spark.implementation.loaders.Loaders.Context
 import it.polimi.genomics.spark.implementation.loaders.{BasicParser, CustomParser, Loaders}
 import org.apache.hadoop.fs.{FileSystem, Path, PathFilter}
@@ -20,9 +19,9 @@ object ProfilerLoader {
 
   private final val logger = LoggerFactory.getLogger(this.getClass)
 
-  def profile(datasetpath: String) : GMQLDatasetProfile = {
+  def profile(datasetpath: String, conf: Configuration) : GMQLDatasetProfile = {
 
-    val conf = FS_Utilities.gethdfsConfiguration()
+    FSConfig.setConf(conf)
     val fs: FileSystem = FileSystem.get(conf)
 
     val sc = Spark.sc
@@ -112,7 +111,7 @@ object ProfilerLoader {
 
     if(args.length>0) datasetPath = args(0)
 
-    val dsprofile = profile(datasetPath)
+    val dsprofile = profile(datasetPath, new Configuration())
 
     val conf = new Configuration()
     val path = new org.apache.hadoop.fs.Path(datasetPath)
