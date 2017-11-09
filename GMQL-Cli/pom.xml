@@ -45,12 +45,12 @@
             <groupId>it.polimi.genomics</groupId>
             <artifactId>GMQL-Spark</artifactId>
             <version>4.0</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.google.guava</groupId>
-                    <artifactId>guava</artifactId>
-                </exclusion>
-            </exclusions>
+            <!--<exclusions>-->
+                <!--<exclusion>-->
+                    <!--<groupId>com.google.guava</groupId>-->
+                    <!--<artifactId>guava</artifactId>-->
+                <!--</exclusion>-->
+            <!--</exclusions>-->
         </dependency>
 
         <dependency>
@@ -79,61 +79,60 @@
             </resource>
         </resources>
 
-        <!--Builds the directory ./lib in which all the dependencies of CLI are put-->
-
         <sourceDirectory>./src/main/scala</sourceDirectory>
         <plugins>
-            <plugin>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <phase>install</phase>
-                        <goals>
-                            <goal>copy-dependencies</goal>
-                        </goals>
-                        <configuration>
-                            <outputDirectory>${project.build.directory}/lib</outputDirectory>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
+            <!--&lt;!&ndash;Builds the directory ./lib in which all the dependencies of CLI are put&ndash;&gt;-->
+            <!--<plugin>-->
+                <!--<artifactId>maven-dependency-plugin</artifactId>-->
+                <!--<executions>-->
+                    <!--<execution>-->
+                        <!--<phase>install</phase>-->
+                        <!--<goals>-->
+                            <!--<goal>copy-dependencies</goal>-->
+                        <!--</goals>-->
+                        <!--<configuration>-->
+                            <!--<outputDirectory>${project.build.directory}/lib</outputDirectory>-->
+                        <!--</configuration>-->
+                    <!--</execution>-->
+                <!--</executions>-->
+            <!--</plugin>-->
 
-            <!--Creates the UBER-JAR-->
+            <!--&lt;!&ndash;Creates the UBER-JAR&ndash;&gt;-->
 
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>2.3</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <!--<transformers>-->
-                        <!--<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">-->
-                            <!--<manifestEntries>-->
-                                <!--<Main-Class>it.polimi.genomics.cli.GMQLExecuteCommand</Main-Class>-->
-                                <!--<addClasspath>true</addClasspath>-->
-                            <!--</manifestEntries>-->
-                        <!--</transformer>-->
-                    <!--</transformers>-->
-                    <filters>
-                        <filter>
-                            <artifact>*:*</artifact>
-                            <excludes>
-                                <exclude>META-INF/*.SF</exclude>
-                                <exclude>META-INF/*.DSA</exclude>
-                                <exclude>META-INF/*.RSA</exclude>
-                            </excludes>
-                        </filter>
-                    </filters>
-                    <finalName>uber-${project.artifactId}-${project.version}</finalName>
-                </configuration>
-            </plugin>
+            <!--<plugin>-->
+                <!--<groupId>org.apache.maven.plugins</groupId>-->
+                <!--<artifactId>maven-shade-plugin</artifactId>-->
+                <!--<version>2.3</version>-->
+                <!--<executions>-->
+                    <!--<execution>-->
+                        <!--<phase>package</phase>-->
+                        <!--<goals>-->
+                            <!--<goal>shade</goal>-->
+                        <!--</goals>-->
+                    <!--</execution>-->
+                <!--</executions>-->
+                <!--<configuration>-->
+                    <!--&lt;!&ndash;<transformers>&ndash;&gt;-->
+                        <!--&lt;!&ndash;<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">&ndash;&gt;-->
+                            <!--&lt;!&ndash;<manifestEntries>&ndash;&gt;-->
+                                <!--&lt;!&ndash;<Main-Class>it.polimi.genomics.cli.GMQLExecuteCommand</Main-Class>&ndash;&gt;-->
+                                <!--&lt;!&ndash;<addClasspath>true</addClasspath>&ndash;&gt;-->
+                            <!--&lt;!&ndash;</manifestEntries>&ndash;&gt;-->
+                        <!--&lt;!&ndash;</transformer>&ndash;&gt;-->
+                    <!--&lt;!&ndash;</transformers>&ndash;&gt;-->
+                    <!--<filters>-->
+                        <!--<filter>-->
+                            <!--<artifact>*:*</artifact>-->
+                            <!--<excludes>-->
+                                <!--<exclude>META-INF/*.SF</exclude>-->
+                                <!--<exclude>META-INF/*.DSA</exclude>-->
+                                <!--<exclude>META-INF/*.RSA</exclude>-->
+                            <!--</excludes>-->
+                        <!--</filter>-->
+                    <!--</filters>-->
+                    <!--<finalName>uber-${project.artifactId}-${project.version}</finalName>-->
+                <!--</configuration>-->
+            <!--</plugin>-->
 
 
             <plugin>
