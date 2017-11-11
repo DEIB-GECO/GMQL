@@ -11,7 +11,7 @@ import it.polimi.genomics.core.DataStructures.GroupMDParameters._
 import it.polimi.genomics.core.DataStructures.JoinParametersRD._
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
 import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaExtension
-import it.polimi.genomics.core.DataStructures.{IRVariable, MetaOperator}
+import it.polimi.genomics.core.DataStructures.{IRDataSet, IROperator, IRReadMD, IRReadRD, IRVariable, MetaOperator, RegionOperator}
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition._
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
 import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionFunction, RegionsToMeta, RegionsToRegion}
@@ -23,7 +23,6 @@ import it.polimi.genomics.spark.implementation.loaders._
 import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
 
-import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 /**
@@ -32,16 +31,19 @@ import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 
 object Wrapper {
+
   var GMQL_server: GmqlServer = _
   var Spark_context: SparkContext = _
-
+  var change_processing_possible= true
   var remote_processing: Boolean = false
-  //var data_to_send_to_repo: ListBuffer[String] = _
   var outputformat: GMQLSchemaFormat.Value = _
-  var executing_query: Boolean = true
   //thread safe counter for unique string pointer to dataset
   //'cause we could have two pointer at the same dataset and we
   //can not distinguish them
+  var rest_manager = RESTManager
+  var materialize_list: ListBuffer[IRVariable] = new ListBuffer[IRVariable]
+
+
 
   //example:
   // R shell
@@ -49,6 +51,7 @@ object Wrapper {
   //r1 = readDataset("/Users/simone/Downloads/job_filename_guest_new14_20170316_162715_DATA_SET_VAR")
   //are mapped in vv with the same key
   var counter: AtomicLong = new AtomicLong(0)
+  var dataset_index: AtomicLong = new AtomicLong(0)
 
   var materialize_count: AtomicLong = new AtomicLong(0)
 
@@ -57,17 +60,21 @@ object Wrapper {
   var mem_schema: Array[Array[String]] = _
 
   var vv: Map[String, IRVariable] = Map[String, IRVariable]()
-
+  var datasetQueue:ArrayBuffer[Array[String]] = new ArrayBuffer[Array[String]]()
 
   def getGvalueArray(value: Array[String]): Array[GValue] = {
     val temp: ArrayBuffer[GValue] = new ArrayBuffer[GValue]()
     for (elem <- value) {
       if (elem.equalsIgnoreCase("."))
         temp += GString(".")
-
+      else if(elem.equalsIgnoreCase("+"))
+        temp += GString("+")
+      else if(elem.equalsIgnoreCase("-"))
+        temp += GString("-")
       else if (elem matches "[\\+\\-0-9.e]+")
         temp += GDouble(elem.toDouble)
-      else {
+      else
+      {
         if (elem.equalsIgnoreCase("NA"))
           temp += GString(".")
         else
@@ -95,22 +102,23 @@ object Wrapper {
       println("GMQL Server is down")
       return
     }
-
+    change_processing_possible=true
     remote_processing = remote_proc
     println("GMQL Server is up")
   }
 
   def remote_processing(remote: Boolean): String = {
-    if( executing_query) {
-      remote_processing = remote
 
-      if(!remote_processing)
+    if(change_processing_possible)
+    {
+      remote_processing = remote
+      if (!remote_processing)
         "Remote processing off"
       else
         "Remote processing On"
     }
     else
-      "You cannot modify processing mode"
+      "Cannot change processing mode"
   }
 
   def is_remote_processing(): Boolean = {
@@ -126,14 +134,24 @@ object Wrapper {
     }
   }
 
-  def readDataset(data_input_path: String, parser_name: String, is_local: Boolean,
-                  schema: Array[Array[String]]): String =
+  def readDataset(data_input_path: String, parser_name: String, is_local: Boolean, is_GMQL:Boolean,
+                  schema: Array[Array[String]]): Array[String] =
   {
     var parser: BedParser = null
     var out_p = ""
+    var loc_path=""
+    var remote_path=""
     var data_path = data_input_path
-    if (is_local)
-      data_path = data_path + "/files"
+    //println(data_path)
+
+    if (is_local && is_GMQL)
+    {
+      var name_local:Array[String] = data_path.split("/")
+      var last_name = name_local(name_local.length-1)
+      if(last_name != "files")
+        data_path = data_path + "/files"
+    }
+    //println(data_path)
 
     parser_name match {
       case "BEDPARSER" => parser = BedParser
@@ -143,32 +161,44 @@ object Wrapper {
       case "NARROWPEAKPARSER" => parser = NarrowPeakParser
       case "RNASEQPARSER" => parser = RnaSeqParser
       case "CUSTOMPARSER" => {
-        if (is_local) {
+        if (is_local)
+        {
           parser = new CustomParser()
           try {
             parser.asInstanceOf[CustomParser].setSchema(data_path)
           }
           catch {
-            case fe: FileNotFoundException => return fe.getMessage
+            case fe: FileNotFoundException => return Array("1",fe.getMessage)
           }
         }
         else {
           if (schema != null)
             parser = createParser(schema)
           else
-            return "No schema defined"
+            return Array("1","No schema defined")
         }
       }
-      case _ => return "No parser defined"
+      case _ => return Array("1","No parser defined")
     }
 
-    executing_query = false
+    if(is_local) {
+      loc_path = data_path
+      remote_path = null
+    }
+    else {
+      loc_path=null
+      remote_path=data_path
+    }
+
     val dataAsTheyAre = GMQL_server.READ(data_path).USING(parser)
     val index = counter.getAndIncrement()
     out_p = "dataset" + index
     vv = vv + (out_p -> dataAsTheyAre)
+    val elem_map =  Array(loc_path,remote_path,parser_name,is_GMQL.toString)
 
-    out_p
+    this.datasetQueue += elem_map
+
+    Array("0",out_p)
 
   }
 
@@ -219,6 +249,7 @@ object Wrapper {
   def read(meta: Array[Array[String]], regions: Array[Array[String]], schema: Array[Array[String]]): String = {
 
     val metaDS = Spark_context.parallelize(meta.map { x => (x(0).toLong, (x(1), x(2))) })
+
     val regionDS = Spark_context.parallelize(regions.map {
       x => (new GRecordKey(x(0).toLong, x(1), x(2).toLong, x(3).toLong, x(4).toCharArray.head), getGvalueArray(x.drop(4)))
     })
@@ -234,39 +265,104 @@ object Wrapper {
     out_p
   }
 
-
-  def materialize(data_to_materialize: String, data_output_path: String): String = {
+  def materialize(data_to_materialize: String, data_output_path: String): Array[String] = {
 
     if (vv.get(data_to_materialize).isEmpty)
-      return "No valid Data to materialize"
+      return Array("1","No valid Data to materialize")
 
     val materialize = vv(data_to_materialize)
+    var metaDAG = materialize.metaDag
+    var regDAG = materialize.regionDag
+    if(remote_processing)
+    {
+      for (elem <- datasetQueue)
+      {
+        var remote = elem(1)
+        var local = elem(0)
+        if(local!=null)
+        {
+          var name_local:Array[String] = local.split("/")
+          var last_name = name_local(name_local.length-2)
+          //upload
+          modify_DAG(metaDAG,local,last_name)
+          modify_DAG(regDAG,local,last_name)
+          elem(1) = last_name
+        }
+      }
+    }
+    else
+    {
+      for (elem <- datasetQueue)
+      {
+        var remote = elem(1)
+        var local = elem(0)
+        if(remote!=null)
+        {
+          val dir_out = data_output_path + "/" + remote +"/files"
+          //download
+          elem(0) = data_output_path
+          modify_DAG(metaDAG, remote, dir_out)
+          modify_DAG(regDAG, remote, dir_out)
+        }
+      }
+    }
+    materialize_list += materialize
     GMQL_server setOutputPath data_output_path MATERIALIZE materialize
     materialize_count.getAndIncrement()
+    change_processing_possible=false
 
-    "Materialized"
+    Array("0","Materialized")
   }
 
-  def execute(): String =
+
+  def modify_DAG(dag: IROperator, source: String, dest: String): Unit = {
+    dag match {
+      case x: IRReadMD[_,_,_,_] =>
+        if(x.dataset.position == source) {
+          val newDataset = IRDataSet(dest, x.dataset.schema)
+          x.dataset = newDataset
+          x.paths = List(dest)
+        }
+      case x: IRReadRD[_,_,_,_] =>
+        if(x.dataset.position == source) {
+          val newDataset = IRDataSet(dest, x.dataset.schema)
+          x.dataset = newDataset
+          x.paths = List(dest)
+        }
+      case _ =>
+    }
+    dag.getOperatorList.map(operator => modify_DAG(operator, source, dest))
+  }
+
+  def execute(): Array[String] =
   {
     if(outputformat == GMQLSchemaFormat.COLLECT)
-      return "No execute() available, you choose memory as output," +
-        " use take() function instead"
+      return Array("1","No execute() available, you choose memory as output," +
+        " use take() function instead")
 
     if (materialize_count.get() <= 0)
-      "You must materialize before"
-    else {
-      GMQL_server.run()
-      materialize_count.set(0)
-      executing_query = true
-      vv = vv.empty
-      "Executed"
+      Array("1","You have to materialize before")
+    else
+    {
+      if(remote_processing)
+      {
+        val base64DAG:String  = Utilities.serializeToBase64(materialize_list.toList)
+        return Array("0",base64DAG)
+      }
+      else
+      {
+        GMQL_server.run()
+        materialize_count.set(0)
+      }
+      change_processing_possible = true
+      materialize_list.clear()
+      Array("0","Executed")
     }
   }
 
-  def take(data_to_take: String, how_many: Int): String = {
+  def take(data_to_take: String, how_many: Int): Array[String] = {
     if (vv.get(data_to_take).isEmpty)
-      return "No valid Data to take"
+      return Array("1","No valid Data to take")
 
     var output: Any = null
     val taken = vv(data_to_take)
@@ -286,26 +382,20 @@ object Wrapper {
     mem_schema = output.asInstanceOf[GMQL_DATASET]._3.
       map(x => Array[String](x._1)).toArray
 
-    executing_query = true
-    vv = vv.empty
-    "Executed"
+    //vv = vv.empty
+    change_processing_possible = true
+    Array("0","Executed")
   }
 
   def get_reg(): Array[Array[String]] = {
-    if (mem_regions == null)
-      return Array(Array("NO regions in memory"))
     mem_regions
   }
 
   def get_meta(): Array[Array[String]] = {
-    if (mem_meta == null)
-      return Array(Array("NO metadata in memory"))
     mem_meta
   }
 
   def get_schema(): Array[Array[String]] = {
-    if (mem_schema == null)
-      return Array(Array("NO schema in memory"))
     mem_schema
   }
 
@@ -322,12 +412,16 @@ object Wrapper {
   /*GMQL OPERATION*/
 
   def select(predicate: String, region_predicate: String, semi_join: Array[Array[String]],
-             semi_join_dataset: String, semi_join_neg:Boolean, input_dataset: String): String = {
+             semi_join_dataset: String, semi_join_neg:Boolean, input_dataset: String): Array[String] = {
 
     if (vv.get(input_dataset).isEmpty)
-      return "No valid Data as input"
+      return Array("1","No valid Data as input")
 
     val dataAsTheyAre = vv(input_dataset)
+
+
+    println(region_predicate)
+    println(predicate)
 
     var semiJoinDataAsTheyAre: IRVariable = null
     var semi_join_metaDag: Option[MetaOperator] = None
@@ -337,25 +431,27 @@ object Wrapper {
     var semi_join_list:Option[MetaJoinCondition]=None
 
     if (predicate != null) {
-      selected_meta = parser.parseSelectMetadata(predicate.toString)
+      val str_predicate = parser.findAndChange(predicate)
+      selected_meta = parser.parseSelectMetadata(str_predicate)
       if (selected_meta._2.isEmpty)
-        return selected_meta._1
+        return Array("1",selected_meta._1)
     }
 
     if (region_predicate != null) {
-      selected_regions = parser.parseSelectRegions(region_predicate.toString)
+      val str_predicate = parser.findAndChange(region_predicate)
+      selected_regions = parser.parseSelectRegions(str_predicate)
       if (selected_regions._2.isEmpty)
-        return selected_regions._1
+        return Array("1",selected_regions._1)
     }
 
     if(semi_join!=null){
       semi_join_list= MetaJoinConditionList_with_neg(semi_join,semi_join_neg)
       if (semi_join_list.isEmpty)
-        return "No valid condition in semi join"
+        return Array("1","No valid condition in semi join")
 
       if (semi_join_list.isDefined) {
         if (vv.get(semi_join_dataset.toString).isEmpty)
-          return "No valid Data as semi join input"
+          return Array("1","No valid Data as semi join input")
     }
 
       semiJoinDataAsTheyAre = vv(semi_join_dataset.toString)
@@ -368,63 +464,55 @@ object Wrapper {
     val out_p = input_dataset + "/select" + index
     vv = vv + (out_p -> select)
 
-    out_p
+    Array("0",out_p)
 
   }
 
-  /*
-    def PROJECT(projected_meta : Option[List[String]] = None,
-                extended_meta : Option[List[MetaExtension]] = None,
-                all_but_meta : Boolean  = false ,
-                projected_values : Option[List[Int]] = None,
-                all_but_reg : Option[List[String]] = None,
-                extended_values : Option[List[RegionFunction]] = None): IRVariable = {
-
-*/
-
-
   def project(projected_meta: Array[String], extended_meta: String, all_but_meta: Boolean,
-              projected_region: Array[String], extended_values: Any, all_but_reg:Boolean,
-              input_dataset: String): String = {
+              projected_region: Array[String], extended_values: String, all_but_reg:Boolean,
+              input_dataset: String): Array[String] = {
 
     if (vv.get(input_dataset).isEmpty)
-      return "No valid Data as input"
+      return Array("1","No valid Data as input")
 
     var regions_index: (String, Option[List[Int]]) = ("", None)
     var regions_in_but: (String, Option[List[String]]) = ("", None)
     var extended_reg: (String, Option[List[RegionFunction]]) = ("", None)
     var extended_m: (String, Option[List[MetaExtension]]) = ("", None)
     val dataAsTheyAre = vv(input_dataset)
+    val parser = new Parser(dataAsTheyAre, GMQL_server)
+
+    /*
+    println(extended_meta)
+    println(extended_values)
+*/
 
     val meta_list: Option[List[String]] = MetadataAttributesList(projected_meta)
 
-    if (projected_region == null)
-      regions_index = ("OK", None)
-    else {
+    if (projected_region != null)
+    {
       if (!all_but_reg) {
         regions_index = regionsList(projected_region, dataAsTheyAre)
         if (regions_index._2.isEmpty)
-          return regions_index._1
+          return Array("1",regions_index._1)
       }
       else {
         regions_in_but = regionsList_but(projected_region, dataAsTheyAre)
         if (regions_in_but._2.isEmpty)
-          return regions_in_but._1
+          return Array("1",regions_in_but._1)
       }
     }
 
     if (extended_values != null) {
-      val parser = new Parser(dataAsTheyAre, GMQL_server)
       extended_reg = parser.parseProjectRegion(extended_values.toString)
       if (extended_reg._2.isEmpty)
-        return extended_reg._1
+        return Array("1",extended_reg._1)
     }
 
     if(extended_meta != null) {
-      val parser = new Parser(dataAsTheyAre, GMQL_server)
       extended_m = parser.parseProjectMetdata(extended_meta.toString)
       if (extended_m._2.isEmpty)
-        return extended_m._1
+        return Array("1",extended_m._1)
     }
 
     val project = dataAsTheyAre.PROJECT(meta_list, extended_m._2, all_but_meta, regions_index._2,
@@ -434,12 +522,12 @@ object Wrapper {
     val out_p = input_dataset + "/project" + index
     vv = vv + (out_p -> project)
 
-    out_p
+    Array("0",out_p)
   }
 
-  def extend(metadata: Array[Array[String]], input_dataset: String): String = {
+  def extend(metadata: Array[Array[String]], input_dataset: String): Array[String] = {
     if (vv.get(input_dataset).isEmpty)
-      return "No valid Data as input"
+      return Array("1","No valid Data as input")
 
     val dataAsTheyAre = vv(input_dataset)
     var meta_list: (String, List[RegionsToMeta]) = ("", List())
@@ -447,7 +535,7 @@ object Wrapper {
     if (metadata != null) {
       meta_list = RegionsToMetaFactory(metadata, dataAsTheyAre)
       if (meta_list._2.isEmpty)
-        return meta_list._1
+        return Array("1",meta_list._1)
     }
 
     val extend = dataAsTheyAre.EXTEND(meta_list._2)
@@ -456,12 +544,12 @@ object Wrapper {
     val out_p = input_dataset + "/extend" + index
     vv = vv + (out_p -> extend)
 
-    out_p
+    Array("0",out_p)
   }
 
-  def merge(group_by:Array[Array[String]], input_dataset: String): String = {
+  def merge(group_by:Array[Array[String]], input_dataset: String): Array[String] = {
     if (vv.get(input_dataset).isEmpty)
-      return "No valid Data as input"
+      return Array("1","No valid Data as input")
 
     val dataAsTheyAre = vv(input_dataset)
 
@@ -472,15 +560,15 @@ object Wrapper {
     val out_p = input_dataset + "/merge" + index
     vv = vv + (out_p -> merge)
 
-    out_p
+    Array("0",out_p)
   }
 
   def order(meta_order: Array[Array[String]], meta_topg: Int, meta_top: Int, meta_top_perc: Int,
             region_order: Array[Array[String]], region_topg: Int, region_top: Int, reg_top_perc: Int,
-            input_dataset: String): String = {
+            input_dataset: String): Array[String] = {
 
     if (vv.get(input_dataset).isEmpty)
-      return "No valid Data as input"
+      return Array("1","No valid Data as input")
 
     val dataAsTheyAre = vv(input_dataset)
 
@@ -511,7 +599,7 @@ object Wrapper {
     if (region_order != null) {
       reg_ordering = region_order_list(region_order, dataAsTheyAre)
       if (reg_ordering._2.isEmpty)
-        return reg_ordering._1
+        return Array("1",reg_ordering._1)
     }
     val order = dataAsTheyAre.ORDER(meta_list, "_group", m_top, reg_ordering._2, r_top)
 
@@ -519,16 +607,16 @@ object Wrapper {
     val out_p = input_dataset + "/order" + index
     vv = vv + (out_p -> order)
 
-    out_p
+    Array("0",out_p)
   }
 
   //we use "right" and "left" as prefixes
-  def union(right_dataset: String, left_dataset: String): String = {
+  def union(right_dataset: String, left_dataset: String): Array[String] = {
     if (vv.get(right_dataset).isEmpty)
-      return "No valid right Data as input"
+      return Array("1","No valid right Data as input")
 
     if (vv.get(left_dataset).isEmpty)
-      return "No valid left Data as input"
+      return Array("1","No valid left Data as input")
 
     val leftDataAsTheyAre = vv(left_dataset)
     val rightDataAsTheyAre = vv(right_dataset)
@@ -540,16 +628,17 @@ object Wrapper {
     //val out_p = left_dataset+right_dataset+"/union"+index
     vv = vv + (out_p -> union)
 
-    out_p
+    Array("0",out_p)
   }
 
-  def difference(join_by: Array[Array[String]], left_dataset: String, right_dataset: String, is_exact: Boolean): String = {
+  def difference(join_by: Array[Array[String]], left_dataset: String,
+                 right_dataset: String, is_exact: Boolean): Array[String] = {
 
     if (vv.get(right_dataset).isEmpty)
-      return "No valid right Data as input"
+      return Array("1","No valid right Data as input")
 
     if (vv.get(left_dataset).isEmpty)
-      return "No valid left Data as input"
+      return Array("1","No valid left Data as input")
 
     val leftDataAsTheyAre = vv(left_dataset)
     val rightDataAsTheyAre = vv(right_dataset)
@@ -563,64 +652,69 @@ object Wrapper {
     val out_p = left_dataset + "/difference" + index
     vv = vv + (out_p -> difference)
 
-    out_p
+    Array("0",out_p)
   }
 
   /* COVER, FLAT, SUMMIT, HISTOGRAM */
 
-  def flat(min: Any, max: Any, groupBy: Array[Array[String]], aggregates: Array[Array[String]], input_dataset: String): String = {
+  def flat(min: String, max: String, groupBy: Array[Array[String]], aggregates: Array[Array[String]],
+           input_dataset: String): Array[String] = {
     val (error, flat) = doVariant(CoverFlag.FLAT, min, max, groupBy, aggregates, input_dataset)
     if (flat == null)
-      return error
+      return Array("1",error)
 
     val index = counter.getAndIncrement()
     val out_p = input_dataset + "/flat" + index
     vv = vv + (out_p -> flat)
 
-    out_p
+    Array("0",out_p)
   }
 
-  def histogram(min: Any, max: Any, groupBy: Array[Array[String]], aggregates: Array[Array[String]], input_dataset: String): String = {
+  def histogram(min: String, max: String, groupBy: Array[Array[String]], aggregates: Array[Array[String]],
+                input_dataset: String): Array[String] = {
     val (error, histogram) = doVariant(CoverFlag.FLAT, min, max, groupBy, aggregates, input_dataset)
     if (histogram == null)
-      return error
+      return Array("1",error)
 
     val index = counter.getAndIncrement()
     val out_p = input_dataset + "/histogram" + index
     vv = vv + (out_p -> histogram)
 
-    out_p
+    Array("0",out_p)
   }
 
-  def summit(min: Any, max: Any, groupBy: Array[Array[String]], aggregates: Array[Array[String]], input_dataset: String): String = {
+  def summit(min: String, max: String, groupBy: Array[Array[String]], aggregates: Array[Array[String]],
+             input_dataset: String): Array[String] = {
     val (error, summit) = doVariant(CoverFlag.SUMMIT, min, max, groupBy, aggregates, input_dataset)
     if (summit == null)
-      return error
-
+      return Array("1",error)
 
     val index = counter.getAndIncrement()
     val out_p = input_dataset + "/summit" + index
     vv = vv + (out_p -> summit)
 
-    out_p
+    Array("0",out_p)
   }
 
-  def cover(min: Any, max: Any, groupBy: Array[Array[String]], aggregates: Array[Array[String]], input_dataset: String): String = {
+  def cover(min: String, max: String, groupBy: Array[Array[String]], aggregates: Array[Array[String]],
+            input_dataset: String): Array[String] = {
     val (error, cover) = doVariant(CoverFlag.COVER, min, max, groupBy, aggregates, input_dataset)
     if (cover == null)
-      return error
+      return Array("1",error)
 
     val index = counter.getAndIncrement()
     val out_p = input_dataset + "/cover" + index
     vv = vv + (out_p -> cover)
 
-    out_p
+    Array("0",out_p)
   }
 
-  def doVariant(flag: CoverFlag.CoverFlag, min: Any, max: Any, groupBy: Array[Array[String]],
+
+  def doVariant(flag: CoverFlag.CoverFlag, min: String, max: String, groupBy: Array[Array[String]],
                 aggregates: Array[Array[String]], input_dataset: String): (String, IRVariable) = {
     if (vv.get(input_dataset).isEmpty)
       return ("No valid dataset as input", null)
+
 
     val dataAsTheyAre = vv(input_dataset)
     var aggr_list: (String, List[RegionsToRegion]) = ("", List())
@@ -633,13 +727,10 @@ object Wrapper {
       return (paramMax._1, null)
 
     if (aggregates != null) {
-     // println("not null aggregates")
       aggr_list = RegionToRegionAggregates(aggregates, dataAsTheyAre)
       if (aggr_list._2.isEmpty)
         return (aggr_list._1, null)
     }
-    //else
-     // println("null aggregates")
 
     val groupList: Option[List[AttributeEvaluationStrategy]] = MetaAttributeEvaluationStrategyList(groupBy)
 
@@ -650,12 +741,13 @@ object Wrapper {
 
 
   // we do not add left, right and count name: we set to None
-  def map(condition: Array[Array[String]], aggregates: Array[Array[String]], right_dataset: String, left_dataset: String): String = {
+  def map(condition: Array[Array[String]], aggregates: Array[Array[String]],
+          right_dataset: String, left_dataset: String): Array[String] = {
     if (vv.get(right_dataset).isEmpty)
-      return "No valid right Data as input"
+      return Array("1","No valid right Data as input")
 
     if (vv.get(left_dataset).isEmpty)
-      return "No valid left Data as input"
+      return Array("1","No valid left Data as input")
 
     val leftDataAsTheyAre = vv(left_dataset)
     val rightDataAsTheyAre = vv(right_dataset)
@@ -665,7 +757,7 @@ object Wrapper {
     if (aggregates != null) {
       aggr_list = RegionToRegionAggregates(aggregates, leftDataAsTheyAre)
       if (aggr_list._2.isEmpty)
-        return aggr_list._1
+        return Array("1",aggr_list._1)
     }
 
     val condition_list: Option[MetaJoinCondition] = MetaJoinConditionList(condition)
@@ -673,20 +765,21 @@ object Wrapper {
     val map = leftDataAsTheyAre.MAP(condition_list, aggr_list._2, rightDataAsTheyAre, None, None, None)
 
     val index = counter.getAndIncrement()
-    val out_p = left_dataset + right_dataset + "/map" + index
+    val out_p = left_dataset + "/map" + index
     vv = vv + (out_p -> map)
 
-    out_p
+    Array("0",out_p)
   }
 
 
   // we do not add ref and exp name: we set to None
-  def join(region_join: Array[Array[String]], meta_join: Array[Array[String]], output: String, right_dataset: String, left_dataset: String): String = {
+  def join(region_join: Array[Array[String]], meta_join: Array[Array[String]], output: String,
+           right_dataset: String, left_dataset: String): Array[String] = {
     if (vv.get(right_dataset).isEmpty)
-      return "No valid right Data as input"
+      return Array("1","No valid right Data as input")
 
     if (vv.get(left_dataset).isEmpty)
-      return "No valid left Data as input"
+      return Array("1","No valid left Data as input")
 
     val leftDataAsTheyAre = vv(left_dataset)
     val rightDataAsTheyAre = vv(right_dataset)
@@ -703,22 +796,31 @@ object Wrapper {
     val out_p = left_dataset + "/join" + index
     vv = vv + (out_p -> join)
 
-    out_p
+    Array("0",out_p)
   }
 
 
   /*UTILS FUNCTION*/
 
-  def get_param(param: Any): (String, CoverParam) = {
+  def get_param(param: String): (String, CoverParam) = {
     var covParam: CoverParam = null
     var parser_res: (String, CoverParam)=null
-    param match {
-      case param: Int => covParam = new N {
-          override val n: Int = param
+
+    var parameter = try {
+        param.toInt
+      }
+    catch {
+        case n: NumberFormatException => param
+      }
+
+    parameter match {
+      case parameter: Int => covParam = new N {
+          override val n: Int = parameter
         }
-      case param: String => {
+      case parameter: String => {
         val parser = new Parser()
-        parser_res = parser.parseCoverParam(param)
+        val p = parser.findAndChangeCover(parameter)
+        parser_res = parser.parseCoverParam(p)
         if (parser_res._2 == null)
           return ("No valid min or max input", parser_res._2)
 
@@ -860,10 +962,8 @@ object Wrapper {
     val joinList = new ListBuffer[AttributeEvaluationStrategy]()
 
     if (join_by == null  ) {
-      //println("null")
       return join_by_list
     }
-    //println("not null")
 
     for (elem <- join_by) {
       val attribute = elem(0)
@@ -1013,11 +1113,32 @@ object Wrapper {
     }
   }
 
+  def save_tokenAndUrl(token:String,url:String): Unit =
+  {
+    rest_manager.save_tokenAndUrl(token,url )
+  }
+
+  def delete_token(): Unit =
+  {
+    rest_manager.delete_token()
+  }
+
+  def get_dataset_list: Array[Array[String]] =
+  {
+    this.datasetQueue.toArray
+  }
+
+  def get_url: String =
+  {
+    rest_manager.service_url
+  }
+
   def main(args: Array[String]): Unit =
   {
-    initGMQL("TAB", false)
-    var r = readDataset("/Users/simone/Downloads/DATA_SET_VAR_GTF","CUSTOMPARSER",true,null)
-    val t = take(r,3)
+
+    Utilities.deserializeDAG("rO0ABXNyADJzY2FsYS5jb2xsZWN0aW9uLmltbXV0YWJsZS5MaXN0JFNlcmlhbGl6YXRpb25Qcm94eQAAAAAAAAABAwAAeHBzcgAxaXQucG9saW1pLmdlbm9taWNzLmNvcmUuRGF0YVN0cnVjdHVyZXMuSVJWYXJpYWJsZQAAAAAAAAAAAgAETAAEYmluU3QATUxpdC9wb2xpbWkvZ2Vub21pY3MvY29yZS9EYXRhU3RydWN0dXJlcy9FeGVjdXRpb25QYXJhbWV0ZXJzL0Jpbm5pbmdQYXJhbWV0ZXI7TAAHbWV0YURhZ3QANUxpdC9wb2xpbWkvZ2Vub21pY3MvY29yZS9EYXRhU3RydWN0dXJlcy9NZXRhT3BlcmF0b3I7TAAJcmVnaW9uRGFndAA3TGl0L3BvbGltaS9nZW5vbWljcy9jb3JlL0RhdGFTdHJ1Y3R1cmVzL1JlZ2lvbk9wZXJhdG9yO0wABnNjaGVtYXQAIUxzY2FsYS9jb2xsZWN0aW9uL2ltbXV0YWJsZS9MaXN0O3hwc3IAS2l0LnBvbGltaS5nZW5vbWljcy5jb3JlLkRhdGFTdHJ1Y3R1cmVzLkV4ZWN1dGlvblBhcmFtZXRlcnMuQmlubmluZ1BhcmFtZXRlcoHDZsE8mnhvAgABTAAEc2l6ZXQADkxzY2FsYS9PcHRpb247eHBzcgALc2NhbGEuTm9uZSRGUCT2U8qUrAIAAHhyAAxzY2FsYS5PcHRpb27+aTf92w5mdAIAAHhwc3IAMWl0LnBvbGltaS5nZW5vbWljcy5jb3JlLkRhdGFTdHJ1Y3R1cmVzLklSU2VsZWN0TUSR+WGIGuz2TwIAAkwADWlucHV0X2RhdGFzZXRxAH4ABEwACW1ldGFfY29uZHQATExpdC9wb2xpbWkvZ2Vub21pY3MvY29yZS9EYXRhU3RydWN0dXJlcy9NZXRhZGF0YUNvbmRpdGlvbi9NZXRhZGF0YUNvbmRpdGlvbjt4cHNyAC9pdC5wb2xpbWkuZ2Vub21pY3MuY29yZS5EYXRhU3RydWN0dXJlcy5JUlJlYWRNRDCZtpgSM1V5AgADTAAHZGF0YXNldHQAMkxpdC9wb2xpbWkvZ2Vub21pY3MvY29yZS9EYXRhU3RydWN0dXJlcy9JUkRhdGFTZXQ7TAAGbG9hZGVydAAkTGl0L3BvbGltaS9nZW5vbWljcy9jb3JlL0dNUUxMb2FkZXI7TAAFcGF0aHNxAH4ABnhwc3IAMGl0LnBvbGltaS5nZW5vbWljcy5jb3JlLkRhdGFTdHJ1Y3R1cmVzLklSRGF0YVNldPhmGMzmJRxfAgACTAAIcG9zaXRpb250ABJMamF2YS9sYW5nL1N0cmluZztMAAZzY2hlbWF0ABBMamF2YS91dGlsL0xpc3Q7eHB0AAdEQVRBU0VUc3IALHNjYWxhLmNvbGxlY3Rpb24uY29udmVydC5XcmFwcGVycyRTZXFXcmFwcGVy41PJHQIukDECAAJMAAYkb3V0ZXJ0ACNMc2NhbGEvY29sbGVjdGlvbi9jb252ZXJ0L1dyYXBwZXJzO0wACnVuZGVybHlpbmd0ABZMc2NhbGEvY29sbGVjdGlvbi9TZXE7eHBzcgAic2NhbGEuY29sbGVjdGlvbi5jb252ZXJ0LldyYXBwZXJzJK60s4os2ryBAgASTAAYRGljdGlvbmFyeVdyYXBwZXIkbW9kdWxldAA2THNjYWxhL2NvbGxlY3Rpb24vY29udmVydC9XcmFwcGVycyREaWN0aW9uYXJ5V3JhcHBlciQ7TAAWSXRlcmFibGVXcmFwcGVyJG1vZHVsZXQANExzY2FsYS9jb2xsZWN0aW9uL2NvbnZlcnQvV3JhcHBlcnMkSXRlcmFibGVXcmFwcGVyJDtMABZJdGVyYXRvcldyYXBwZXIkbW9kdWxldAA0THNjYWxhL2NvbGxlY3Rpb24vY29udmVydC9XcmFwcGVycyRJdGVyYXRvcldyYXBwZXIkO0wAGUpDb2xsZWN0aW9uV3JhcHBlciRtb2R1bGV0ADdMc2NhbGEvY29sbGVjdGlvbi9jb252ZXJ0L1dyYXBwZXJzJEpDb2xsZWN0aW9uV3JhcHBlciQ7TAAcSkNvbmN1cnJlbnRNYXBXcmFwcGVyJG1vZHVsZXQAOkxzY2FsYS9jb2xsZWN0aW9uL2NvbnZlcnQvV3JhcHBlcnMkSkNvbmN1cnJlbnRNYXBXcmFwcGVyJDtMABlKRGljdGlvbmFyeVdyYXBwZXIkbW9kdWxldAA3THNjYWxhL2NvbGxlY3Rpb24vY29udmVydC9XcmFwcGVycyRKRGljdGlvbmFyeVdyYXBwZXIkO0wAGkpFbnVtZXJhdGlvbldyYXBwZXIkbW9kdWxldAA4THNjYWxhL2NvbGxlY3Rpb24vY29udmVydC9XcmFwcGVycyRKRW51bWVyYXRpb25XcmFwcGVyJDtMABdKSXRlcmFibGVXcmFwcGVyJG1vZHVsZXQANUxzY2FsYS9jb2xsZWN0aW9uL2NvbnZlcnQvV3JhcHBlcnMkSkl0ZXJhYmxlV3JhcHBlciQ7TAAXSkl0ZXJhdG9yV3JhcHBlciRtb2R1bGV0ADVMc2NhbGEvY29sbGVjdGlvbi9jb252ZXJ0L1dyYXBwZXJzJEpJdGVyYXRvcldyYXBwZXIkO0wAE0pMaXN0V3JhcHBlciRtb2R1bGV0ADFMc2NhbGEvY29sbGVjdGlvbi9jb252ZXJ0L1dyYXBwZXJzJEpMaXN0V3JhcHBlciQ7TAASSk1hcFdyYXBwZXIkbW9kdWxldAAwTHNjYWxhL2NvbGxlY3Rpb24vY29udmVydC9XcmFwcGVycyRKTWFwV3JhcHBlciQ7TAAZSlByb3BlcnRpZXNXcmFwcGVyJG1vZHVsZXQAN0xzY2FsYS9jb2xsZWN0aW9uL2NvbnZlcnQvV3JhcHBlcnMkSlByb3BlcnRpZXNXcmFwcGVyJDtMABJKU2V0V3JhcHBlciRtb2R1bGV0ADBMc2NhbGEvY29sbGVjdGlvbi9jb252ZXJ0L1dyYXBwZXJzJEpTZXRXcmFwcGVyJDtMABtNdXRhYmxlQnVmZmVyV3JhcHBlciRtb2R1bGV0ADlMc2NhbGEvY29sbGVjdGlvbi9jb252ZXJ0L1dyYXBwZXJzJE11dGFibGVCdWZmZXJXcmFwcGVyJDtMABhNdXRhYmxlTWFwV3JhcHBlciRtb2R1bGV0ADZMc2NhbGEvY29sbGVjdGlvbi9jb252ZXJ0L1dyYXBwZXJzJE11dGFibGVNYXBXcmFwcGVyJDtMABhNdXRhYmxlU2VxV3JhcHBlciRtb2R1bGV0ADZMc2NhbGEvY29sbGVjdGlvbi9jb252ZXJ0L1dyYXBwZXJzJE11dGFibGVTZXFXcmFwcGVyJDtMABhNdXRhYmxlU2V0V3JhcHBlciRtb2R1bGV0ADZMc2NhbGEvY29sbGVjdGlvbi9jb252ZXJ0L1dyYXBwZXJzJE11dGFibGVTZXRXcmFwcGVyJDtMABFTZXFXcmFwcGVyJG1vZHVsZXQAL0xzY2FsYS9jb2xsZWN0aW9uL2NvbnZlcnQvV3JhcHBlcnMkU2VxV3JhcHBlciQ7eHBwcHBwcHBwcHBwcHBwcHBwcHBzcQB+AABzcgAsc2NhbGEuY29sbGVjdGlvbi5pbW11dGFibGUuTGlzdFNlcmlhbGl6ZUVuZCSKXGNb91MLbQIAAHhweHNyADxpdC5wb2xpbWkuZ2Vub21pY3Muc3BhcmsuaW1wbGVtZW50YXRpb24ubG9hZGVycy5DdXN0b21QYXJzZXL4aUcHwz4FWAIAAUwABmxvZ2dlcnQAEkxvcmcvc2xmNGovTG9nZ2VyO3hyADlpdC5wb2xpbWkuZ2Vub21pY3Muc3BhcmsuaW1wbGVtZW50YXRpb24ubG9hZGVycy5CZWRQYXJzZXLQVwF7i2DUQAIADEkABmNoclBvc0kACHN0YXJ0UG9zSQAHc3RvcFBvc0wAEGNvb3JkaW5hdGVTeXN0ZW10ABlMc2NhbGEvRW51bWVyYXRpb24kVmFsdWU7TAAJZGVsaW1pdGVycQB+ABZMAAZsb2dnZXJxAH4ANkwACG90aGVyUG9zcQB+AAlMAAtwYXJzaW5nVHlwZXEAfgA4TAAGc2NoZW1hcQB+AAZMABJzZW1pQ29tbWFEZWxpbWl0ZXJxAH4AFkwADnNwYWNlRGVsaW1pdGVycQB+ABZMAAlzdHJhbmRQb3NxAH4ACXhwAAAAAAAAAAMAAAAEc3IAFXNjYWxhLkVudW1lcmF0aW9uJFZhbM9pZ6/J/O1PAgACSQAYc2NhbGEkRW51bWVyYXRpb24kVmFsJCRpTAAEbmFtZXEAfgAWeHIAF3NjYWxhLkVudW1lcmF0aW9uJFZhbHVlYml8L+0hHVECAAJMAAYkb3V0ZXJ0ABNMc2NhbGEvRW51bWVyYXRpb247TAAcc2NhbGEkRW51bWVyYXRpb24kJG91dGVyRW51bXEAfgA8eHBzcgAzaXQucG9saW1pLmdlbm9taWNzLmNvcmUuR01RTFNjaGVtYUNvb3JkaW5hdGVTeXN0ZW0keBNWtwagJnsCAANMAAdEZWZhdWx0cQB+ADhMAAhPbmVCYXNlZHEAfgA4TAAJWmVyb0Jhc2VkcQB+ADh4cgARc2NhbGEuRW51bWVyYXRpb251oM3dmA5ZjgIACEkABm5leHRJZEkAG3NjYWxhJEVudW1lcmF0aW9uJCRib3R0b21JZEkAGHNjYWxhJEVudW1lcmF0aW9uJCR0b3BJZEwAFFZhbHVlT3JkZXJpbmckbW9kdWxldAAiTHNjYWxhL0VudW1lcmF0aW9uJFZhbHVlT3JkZXJpbmckO0wAD1ZhbHVlU2V0JG1vZHVsZXQAHUxzY2FsYS9FbnVtZXJhdGlvbiRWYWx1ZVNldCQ7TAAIbmV4dE5hbWV0ABtMc2NhbGEvY29sbGVjdGlvbi9JdGVyYXRvcjtMABdzY2FsYSRFbnVtZXJhdGlvbiQkbm1hcHQAHkxzY2FsYS9jb2xsZWN0aW9uL211dGFibGUvTWFwO0wAF3NjYWxhJEVudW1lcmF0aW9uJCR2bWFwcQB+AEN4cAAAAAMAAAAAAAAAA3BwcHNyACBzY2FsYS5jb2xsZWN0aW9uLm11dGFibGUuSGFzaE1hcAAAAAAAAAABAwAAeHB3DQAAAu4AAAAAAAAABAB4c3EAfgBFdw0AAALuAAAAAwAAAAQAc3IAEWphdmEubGFuZy5JbnRlZ2VyEuKgpPeBhzgCAAFJAAV2YWx1ZXhyABBqYXZhLmxhbmcuTnVtYmVyhqyVHQuU4IsCAAB4cAAAAAJzcQB+ADpxAH4ARHEAfgBEAAAAAnQAB2RlZmF1bHRzcQB+AEgAAAABcQB+AD1zcQB+AEgAAAAAc3EAfgA6cQB+AERxAH4ARAAAAAB0AAcwLWJhc2VkeHEAfgBLcQB+AD1xAH4AT3EAfgBEAAAAAXQABzEtYmFzZWR0AAEJc3IAIW9yZy5zbGY0ai5pbXBsLkxvZzRqTG9nZ2VyQWRhcHRlclXN1za94/XRAgABWgAMdHJhY2VDYXBhYmxleHIAJG9yZy5zbGY0ai5oZWxwZXJzLk1hcmtlcklnbm9yaW5nQmFzZX2DsVVOXSebAgAAeHIAIW9yZy5zbGY0ai5oZWxwZXJzLk5hbWVkTG9nZ2VyQmFzZWiSncgcTlV9AgABTAAEbmFtZXEAfgAWeHB0ADlpdC5wb2xpbWkuZ2Vub21pY3Muc3BhcmsuaW1wbGVtZW50YXRpb24ubG9hZGVycy5CZWRQYXJzZXIBc3IACnNjYWxhLlNvbWURIvJpXqGLdAIAAUwAAXh0ABJMamF2YS9sYW5nL09iamVjdDt4cQB+AAx1cgAPW0xzY2FsYS5UdXBsZTI7LswA39FP18ACAAB4cAAAAAlzcgAMc2NhbGEuVHVwbGUyLpRmfVuS+fUCAAJMAAJfMXEAfgBZTAACXzJxAH4AWXhwcQB+AE1zcQB+ADpzcgAkaXQucG9saW1pLmdlbm9taWNzLmNvcmUuUGFyc2luZ1R5cGUkQl8HzDHCBCQCAAZMAARDSEFScQB+ADhMAAZET1VCTEVxAH4AOEwAB0lOVEVHRVJxAH4AOEwABExPTkdxAH4AOEwABE5VTExxAH4AOEwABlNUUklOR3EAfgA4eHEAfgA/AAAABgAAAAAAAAAGcHBwc3EAfgBFdw0AAALuAAAAAAAAAAQAeHNxAH4ARXcNAAAC7gAAAAYAAAAEAHEAfgBKcQB+AF9zcQB+AEgAAAAFc3EAfgA6cQB+AGFxAH4AYQAAAAVwc3EAfgBIAAAABHNxAH4AOnEAfgBhcQB+AGEAAAAEcHEAfgBNc3EAfgA6cQB+AGFxAH4AYQAAAAFwc3EAfgBIAAAAA3NxAH4AOnEAfgBhcQB+AGEAAAADcHEAfgBOc3EAfgA6cQB+AGFxAH4AYQAAAABweHEAfgBqcQB+AGhxAH4Aa3EAfgBncQB+AGVxAH4AX3EAfgBhAAAAAnBzcQB+AF1xAH4ASnEAfgBfc3EAfgBdcQB+AGRxAH4AaHNxAH4AXXNxAH4ASAAAAAdxAH4AX3NxAH4AXXNxAH4ASAAAAAhxAH4AX3NxAH4AXXEAfgBxcQB+AGhzcQB+AF1xAH4AcXEAfgBoc3EAfgBdcQB+AHFxAH4AaHNxAH4AXXEAfgBxcQB+AGhzcQB+ADpzcgApaXQucG9saW1pLmdlbm9taWNzLmNvcmUuR01RTFNjaGVtYUZvcm1hdCRIiJ9S5ssgDgIABEwAB0NPTExFQ1RxAH4AOEwAA0dURnEAfgA4TAADVEFCcQB+ADhMAANWQ0ZxAH4AOHhxAH4APwAAAAQAAAAAAAAABHBwcHNxAH4ARXcNAAAC7gAAAAAAAAAEAHhzcQB+AEV3DQAAAu4AAAAEAAAABABxAH4ASnNxAH4AOnEAfgB4cQB+AHgAAAACdAADdmNmcQB+AE1xAH4AdnEAfgBpc3EAfgA6cQB+AHhxAH4AeAAAAAN0AAdjb2xsZWN0cQB+AE5zcQB+ADpxAH4AeHEAfgB4AAAAAHQAA3RhYnhxAH4AfXEAfgB2cQB+AH9xAH4Ae3EAfgB4AAAAAXQAA2d0ZnNxAH4AAHNxAH4AXXQABnNvdXJjZXEAfgBfc3EAfgBddAAHZmVhdHVyZXEAfgBfc3EAfgBddAAFc2NvcmVxAH4AaHNxAH4AXXQABWZyYW1lcQB+AF9zcQB+AF10AARuYW1lcQB+AF9zcQB+AF10AAZzaWduYWxxAH4AaHNxAH4AXXQABnB2YWx1ZXEAfgBoc3EAfgBddAAGcXZhbHVlcQB+AGhzcQB+AF10AARwZWFrcQB+AGhxAH4ANHh0AAE7dAABIHNxAH4AWHNxAH4ASAAAAAZzcQB+AFN0ADxpdC5wb2xpbWkuZ2Vub21pY3Muc3BhcmsuaW1wbGVtZW50YXRpb24ubG9hZGVycy5DdXN0b21QYXJzZXIBc3EAfgAAcQB+ABlxAH4ANHhzcgBCaXQucG9saW1pLmdlbm9taWNzLmNvcmUuRGF0YVN0cnVjdHVyZXMuTWV0YWRhdGFDb25kaXRpb24uUHJlZGljYXRlCJiVl8GouosCAANMAA5hdHRyaWJ1dGVfbmFtZXEAfgAWTAAIb3BlcmF0b3JxAH4AOEwABXZhbHVlcQB+AFl4cHQAC1BhdGllbnRfYWdlc3EAfgA6c3IAQWl0LnBvbGltaS5nZW5vbWljcy5jb3JlLkRhdGFTdHJ1Y3R1cmVzLk1ldGFkYXRhQ29uZGl0aW9uLk1FVEFfT1Ak4vrO+qm6KLgCAAZMAAJFUXEAfgA4TAACR1RxAH4AOEwAA0dURXEAfgA4TAACTFRxAH4AOEwAA0xURXEAfgA4TAAFTk9URVFxAH4AOHhxAH4APwAAAAYAAAAAAAAABnBwcHNxAH4ARXcNAAAC7gAAAAAAAAAEAHhzcQB+AEV3DQAAAu4AAAAGAAAABABxAH4ASnEAfgCfcQB+AGRzcQB+ADpxAH4AoXEAfgChAAAABXBxAH4AZnNxAH4AOnEAfgChcQB+AKEAAAAEcHEAfgBNc3EAfgA6cQB+AKFxAH4AoQAAAAFwcQB+AGlzcQB+ADpxAH4AoXEAfgChAAAAA3BxAH4ATnNxAH4AOnEAfgChcQB+AKEAAAAAcHhxAH4AqHEAfgCncQB+AKRxAH4An3EAfgClcQB+AKZxAH4AoQAAAAJwdAACNzBzcgAxaXQucG9saW1pLmdlbm9taWNzLmNvcmUuRGF0YVN0cnVjdHVyZXMuSVJTZWxlY3RSRGKslN119CzQAgADTAANZmlsdGVyZWRfbWV0YXEAfgAJTAANaW5wdXRfZGF0YXNldHEAfgAFTAAIcmVnX2NvbmRxAH4ACXhwc3EAfgBYcQB+ABBzcgAvaXQucG9saW1pLmdlbm9taWNzLmNvcmUuRGF0YVN0cnVjdHVyZXMuSVJSZWFkUkS1MFBDj+QfGQIAA0wAB2RhdGFzZXRxAH4AEkwABmxvYWRlcnEAfgATTAAFcGF0aHNxAH4ABnhwc3EAfgAVcQB+ABlxAH4AHXEAfgA5c3EAfgAAcQB+ABlxAH4ANHhxAH4ADXEAfgCCcQB+ADR4")
+
   }
+
 
 }

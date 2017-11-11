@@ -2,7 +2,7 @@ package it.polimi.genomics.r
 
 
 import it.polimi.genomics.GMQLServer.{DefaultMetaExtensionFactory, GmqlServer}
-import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
+import it.polimi.genomics.core.DataStructures.MetadataCondition.{META_OP, MetadataCondition}
 import it.polimi.genomics.compiler._
 import it.polimi.genomics.core.DataStructures.CoverParameters.CoverParam
 import it.polimi.genomics.core.DataStructures.IRVariable
@@ -11,6 +11,7 @@ import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
 import it.polimi.genomics.core.ParsingType
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaExtension
+import it.polimi.genomics.core.DataStructures.MetadataCondition.META_OP.META_OP
 
 
 
@@ -25,6 +26,74 @@ class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
   def this()
   {
     this(null,null)
+  }
+  val value:Parser[String] = floatingPointNumber |
+    (stringLiteral ^^ {
+      x=> x
+        /*
+        if (x.startsWith("'")){
+          x.drop(1).dropRight(1).replace("\\'","'")
+        }
+        else{
+          x.drop(1).dropRight(1).replace("\\\"","\"")
+        }*/
+    })
+
+  val meta_attribute:Parser[String] = rep1sep(ident, ".") ^^ {_.mkString(".")}
+
+  val meta:Parser[String] = "META(" ~>  value <~ ")" ^^ { x => "META(" + x.drop(1).dropRight(1)+ ")"  }
+  val operator:Parser[String] = "==" | "!="  | ">=" | "<=" | ">" | "<"
+  val attribute:Parser[String] = rep1sep(ident, ".") ^^ {_.mkString(".")}
+  val cond:Parser[String] = (attribute ~ operator ~ (value|meta)) ^^ {x => x._1._1 + x._1._2 + x._2}
+
+  val factor: Parser[String] = "(" ~> expr <~ ")" ^^ {x=> "(" + x + ")"} |
+    (("!" ~ "(" )~> expr <~ ")") ^^ { x => "NOT(" +x+ ")"  }  |
+    ("!" ~> cond ) ^^ { x => "NOT(" +x+ ")"  } | cond
+
+
+  val term:Parser[String] = factor ~ (("AND" ~> factor)*) ^^ { x=>
+    if (x._2.isEmpty)
+      x._1
+    else
+      x._1 + " AND " + x._2.mkString}
+  val expr:Parser[String] = term ~ (("OR" ~> term)*) ^^ { x =>
+    if (x._2.isEmpty)
+      x._1
+    else
+      x._1 + " OR " + x._2.mkString
+  }
+
+  val cover_exp:Parser[String] = "ALL" ~> "+" ~> wholeNumber ~ ( "/" ~> wholeNumber) ^^ {
+    x => "(ALL + " + x._1.toInt + ")" +"/" + x._2.toInt } |
+    wholeNumber ^^ { x => x} |
+    "ALL" ~ "/" ~> wholeNumber ^^ {x => "ALL / "+x} |
+    "ALL" ^^ {x => x} | "ANY" ^^ {x=> x}
+
+
+
+  def findAndChange(input:String): String =
+  {
+    val metadata = parse(expr, input)
+
+    metadata match {
+      case Success(result, next) => result
+      case NoSuccess(result, next) => "Invalid Syntax"
+      case Error(result, next) => "Invalid Syntax"
+      case Failure(result, next) => "Failure"
+    }
+  }
+
+  def findAndChangeCover(input:String): String =
+  {
+
+    val param = parse(cover_exp, input)
+
+    param match {
+      case Success(result, next) => result
+      case NoSuccess(result, next) => "Invalid Syntax"
+      case Error(result, next) => "Invalid Syntax"
+      case Failure(result, next) => "Failure"
+    }
   }
 
   def parseSelectMetadata(input: String): (String, Option[MetadataCondition]) = {
