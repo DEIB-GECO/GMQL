@@ -5,10 +5,11 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 import it.polimi.genomics.GMQLServer.GmqlServer
+import it.polimi.genomics.core.DAGWrapper
 import it.polimi.genomics.compiler._
-import it.polimi.genomics.core.DataStructures.{IRDataSet, IRVariable}
-import it.polimi.genomics.core.{GMQLSchemaCoordinateSystem, GMQLSchemaFormat, GMQLScript}
+import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLocalLauncher}
+import it.polimi.genomics.core.{DAGSerializer, DAGWrapper, GMQLSchemaCoordinateSystem, GMQLSchemaFormat, GMQLScript, Utilities => core_ut}
 import it.polimi.genomics.manager.Status._
 import it.polimi.genomics.repository.FSRepository.{FS_Utilities => FSR_Utilities}
 import it.polimi.genomics.repository.GMQLExceptions.GMQLNotValidDatasetNameException
@@ -18,6 +19,7 @@ import org.slf4j.{Logger, LoggerFactory}
 import scala.collection.JavaConverters._
 import scala.collection.immutable.HashMap
 import scala.collection.mutable
+
 
 /**
   * Created by Abdulrahman Kaitoua on 10/09/15.
@@ -192,6 +194,89 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     elapsedTime.compileTime = System.currentTimeMillis() - compileTimestamp
 
     (id, outputVariablesList)
+  }
+
+
+
+  /**
+    * It renames the paths specified in the serialized DAG to HDFS paths and
+    * builds a new serialized DAG with the modifications
+    *
+    * @param dagString: string of the serialized DAG
+    * @return A list of the output directories and the serialized DAG with the paths renamed
+    * */
+  def renameDAGPaths(dagString:String) = {
+    val dagVars: List[IRVariable] = DAGSerializer.deserializeDAG(dagString).dag
+    val outDss = dagVars.flatMap ( dagVar => rec(dagVar.metaDag) ++ rec(dagVar.regionDag)).distinct
+    //Get the output Datasets names.
+    outputVariablesList = outDss
+
+    (outDss, DAGSerializer.serializeToBase64(DAGWrapper(dagVars)))
+  }
+
+
+  /**
+    * Given a dataset name, it returns its name for the current job.
+    * Used for specifying the output dataset name
+    *
+    * @param x: output dataset name
+    * @return the real output datset name given the current job
+    * */
+  def renameOutputDirs(x: String): String = {
+    val fsRegDir = FSR_Utilities.gethdfsConfiguration().get("fs.defaultFS")+
+      General_Utilities().getHDFSRegionDir(this.username)
+    val dir = if (General_Utilities().MODE == General_Utilities().HDFS)
+      fsRegDir + x + "/"
+    else General_Utilities().getRegionDir(this.username) + x +"/"
+    dir
+  }
+
+  /**
+    * Recursive search of READ and STORE operations in the DAG.
+    * It searches recursively in all the IROperators of the DAG, the ones related
+    * with READ and STORE operations and changes the names of the dataset to their
+    * actual path.
+    *
+    * @param inp: IROperator representing the dag
+    * @return a list of output dataset names
+    * */
+  def rec(inp: IROperator): List[String] = {
+    val result = inp match {
+      case x: IRReadRD[_,_,_,_] =>
+        x.paths = List(getInputDsPath(x.dataset.position))
+        None
+      case x: IRReadMD[_,_,_,_] =>
+        x.paths = List(getInputDsPath(x.dataset.position))
+        None
+      case x: IRStoreRD =>
+        val outDsName = jobId + "_" + x.dataSet.position
+        x.path = renameOutputDirs(outDsName)
+        Some(outDsName)
+      case x: IRStoreMD =>
+        val outDsName = jobId + "_" + x.dataSet.position
+        x.path = renameOutputDirs(outDsName)
+        Some(outDsName)
+      case _ =>
+        None
+    }
+    val tempRes = inp.getOperatorList.flatMap(operator => rec(operator))
+
+    tempRes ++ List(result).flatten
+  }
+
+  /**
+    * Given a dataset name, it returns its path.
+    *
+    * @param inputDs: dataset name
+    * @return path of x
+    * */
+  def getInputDsPath(inputDs: String)  = {
+    val user = if (repositoryHandle.DSExistsInPublic(inputDs)) "public" else this.username
+    val newPath =
+      if(Utilities().LAUNCHER_MODE equals Utilities().REMOTE_CLUSTER_LAUNCHER)
+        General_Utilities().getSchemaDir(user) + inputDs + ".schema"
+      else  getRegionFolder(inputDs, user)
+    newPath
   }
 
 

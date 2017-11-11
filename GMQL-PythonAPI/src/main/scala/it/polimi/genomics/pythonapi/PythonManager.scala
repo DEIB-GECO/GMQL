@@ -4,8 +4,8 @@ import java.io.{File, FileFilter}
 import java.util.concurrent.atomic.AtomicInteger
 
 import it.polimi.genomics.GMQLServer.GmqlServer
-import it.polimi.genomics.core.DataStructures.IRVariable
-import it.polimi.genomics.core.ParsingType
+import it.polimi.genomics.core.DataStructures._
+import it.polimi.genomics.core.{DAGSerializer, DAGWrapper, ParsingType, Utilities}
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
@@ -87,12 +87,23 @@ object PythonManager {
     index
   }
 
+  def cloneVariable(index: Int): Int = {
+    val variable = this.getVariable(index)
+    val binning_parameter = this.server.binning_parameter
+    val new_variable = IRVariable(metaDag = variable.metaDag,
+      regionDag = variable.regionDag, schema = variable.schema)(binning_parameter)
+    this.putNewVariable(new_variable)
+  }
+
   def getVariableSchemaNames(index: Int): java.util.List[String] = {
     val variable = this.getVariable(index)
     val result = variable.schema.map({case (a,b) => a})
     result.asJava
   }
 
+  /*
+  * MANAGEMENT
+  * */
   def getServer : GmqlServer = {
     this.server
   }
@@ -112,12 +123,14 @@ object PythonManager {
   * Parsing of datasets
   * */
 
+  @deprecated
   def read_dataset(dataset_path: String): Int = {
     val parser : CustomParser = new CustomParser()
     parser.setSchema(findSchemaFile(dataset_path))
     read_dataset(dataset_path, parser)
   }
 
+  @deprecated
   def findSchemaFile(dataset_path: String) : String = {
     val dir = new File(dataset_path)
     if (dir.isDirectory) {
@@ -216,20 +229,22 @@ object PythonManager {
 
   def materialize(index : Int, outputPath : String): Unit =
   {
-    this.checkSparkContext()
-    /*If we are in REMOTE MODE:
-    *   1) Encode the IRVariable into a Base64 string
-    *   2) send to python the string
-    * */
-
     // get the variable from the map
     val variableToMaterialize = this.variables.get(index)
     this.server setOutputPath outputPath MATERIALIZE variableToMaterialize.get
+  }
+
+  def get_serialized_materialization_list(): String = {
+    val materializationList = this.server.materializationList.toList
+    DAGSerializer.serializeToBase64(DAGWrapper(materializationList))
+  }
+
+  def execute(): Unit = {
+    this.checkSparkContext()
     //starting the server execution
     this.server.run()
     //clear the materialization list
     this.server.clearMaterializationList()
-    // this.stopSparkContext()
   }
 
   def collect(index : Int) : CollectedResult = {
@@ -241,10 +256,41 @@ object PythonManager {
     new CollectedResult(result)
   }
 
+  def take(index: Int, n: Int): CollectedResult = {
+    this.checkSparkContext()
+    val variableToTake = this.getVariable(index)
+    val result = this.server.TAKE(variableToTake, n)
+    new CollectedResult(result)
+  }
+
   def serializeVariable(index: Int): String = {
     val variableToSerialize = this.getVariable(index)
-    throw new NotImplementedError()
-    // TODO: complete...
+    DAGSerializer.serializeToBase64(DAGWrapper(List(variableToSerialize)))
+  }
+
+  def modify_dag_source(index: Int, source: String, dest: String) : Unit = {
+    val variable = this.getVariable(index)
+    modify_dag_source(variable.metaDag, source, dest)
+    modify_dag_source(variable.regionDag, source, dest)
+  }
+
+  def modify_dag_source(dag: IROperator, source: String, dest: String): Unit = {
+    dag match {
+      case x: IRReadMD[_,_,_,_] =>
+        if(x.dataset.position == source) {
+          val newDataset = IRDataSet(dest, x.dataset.schema)
+          x.dataset = newDataset
+          x.paths = List(dest)
+        }
+      case x: IRReadRD[_,_,_,_] =>
+        if(x.dataset.position == source) {
+          val newDataset = IRDataSet(dest, x.dataset.schema)
+          x.dataset = newDataset
+          x.paths = List(dest)
+        }
+      case _ =>
+    }
+    dag.getOperatorList.map(operator => modify_dag_source(operator, source, dest))
   }
 
   /*Spark context related*/
@@ -261,5 +307,9 @@ object PythonManager {
   def stopSparkContext(): Unit = {
     this.sparkContext.get.stop()
     this.sparkContext = None
+  }
+
+  def setSparkLocalDir(dir: String): Unit = {
+    EntryPoint.properties.sparkLocalDir = dir
   }
 }

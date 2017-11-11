@@ -206,7 +206,14 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
         case ex:Exception => logger.debug("Generating script is not found")
       }
       // Loading schema
-      val schemaFields = (XML.loadFile(this.schemaDir) \\ "field")
+      val schemaXML = XML.loadFile(this.schemaDir)
+      val schemaFields = ( schemaXML \\ "field")
+      this.schemaCoordinateSystem = try {
+        GMQLSchemaCoordinateSystem.getType((schemaXML \\ "gmqlSchema").head.attribute("coordinate_system").get.head.text)
+      }catch{
+        case _ => GMQLSchemaCoordinateSystem.ZeroBased
+      }
+      this.schemaType = GMQLSchemaFormat.getType((schemaXML \\ "gmqlSchema").head.attribute("type").get.head.text)
       this.schema = schemaFields.map(x => (x.text.trim, ParsingType.attType(x.attribute("type").get.head.text))).toList
       this
     } else throw new GMQLDSNotFound()
@@ -344,6 +351,8 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
     val dataset: File = new File(Utilities().getDataSetsDir( this.userName) + this.DSname + ".xml")
     val schema: File = new File(Utilities().getSchemaDir( this.userName ) + this.DSname + ".schema")
     val regions: File = new File(Utilities().getRegionDir( this.userName ) + this.DSname)
+    val profile: File = new File(Utilities().getProfileDir( this.userName ) + this.DSname+".profile")
+    val dsmeta: File = new File(Utilities().getDSMetaDir( this.userName ) + this.DSname+".dsmeta")
     var result: File = null
 
     if (dataset.exists) {
@@ -376,6 +385,20 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
       logger.info(this.DSname + " index is also deleted ..")
     }
     else logger.warn(this.DSname + ", index is not found..\n")
+
+    if (profile.exists) {
+      FS_Utilities.deleteFromLocalFSRecursive(profile)
+      profile.delete
+      logger.info(this.DSname + " profile is also deleted ..")
+    }
+    else logger.warn(this.DSname + ", profile is not found..\n")
+
+    if (dsmeta.exists) {
+      FS_Utilities.deleteFromLocalFSRecursive(dsmeta)
+      dsmeta.delete
+      logger.info(this.DSname + " dsmeta is also deleted ..")
+    }
+    else logger.warn(this.DSname + ", dsmeta is not found..\n")
 
     logger.info("All files and folders related to " + this.DSname + " are now deleted\n" + "\t except the user local original files..")
   }
@@ -446,12 +469,31 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
     new File(Utilities().getMetaDir( this.userName )+  DSname + ".meta")
       .renameTo(new File(Utilities().getMetaDir( this.userName )+newDSName+".meta"))
 
+    // Rename query file
     try{
       new File(Utilities().getScriptsDir( this.userName )+  DSname + ".gmql")
         .renameTo(new File(Utilities().getScriptsDir( this.userName )+newDSName+".gmql"))
       this.GMQLScriptUrl = Utilities().getScriptsDir( this.userName )+newDSName+".gmql"
     }catch{
       case ex:Throwable => logger.warn(s"Query file is not found for this dataset ${DSname}");ex.printStackTrace()
+    }
+
+    // Rename profile file
+    try{
+      new File(Utilities().getProfileDir( this.userName )+  DSname + ".profile")
+        .renameTo(new File(Utilities().getProfileDir( this.userName )+newDSName+".profile"))
+      this.GMQLScriptUrl = Utilities().getProfileDir( this.userName )+newDSName+".profile"
+    }catch{
+      case ex:Throwable => logger.warn(s"Profile file is not found for this dataset ${DSname}");ex.printStackTrace()
+    }
+
+    // Rename dsmeta file
+    try{
+      new File(Utilities().getDSMetaDir( this.userName )+  DSname + ".dsmeta")
+        .renameTo(new File(Utilities().getDSMetaDir( this.userName )+newDSName+".dsmeta"))
+      this.GMQLScriptUrl = Utilities().getDSMetaDir( this.userName )+newDSName+".dsmeta"
+    }catch{
+      case ex:Throwable => logger.warn(s"Dataset info file is not found for this dataset ${DSname}");ex.printStackTrace()
     }
 
     setDSName(newDSName)

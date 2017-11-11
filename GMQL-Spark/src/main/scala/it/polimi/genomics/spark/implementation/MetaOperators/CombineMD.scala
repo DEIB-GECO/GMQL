@@ -26,11 +26,17 @@ object CombineMD{
 
     logger.info("----------------CombineMD executing..")
 
+    val distinct = if(region_builder.isDefined)region_builder.get match {
+      case RegionBuilder.LEFT_DISTINCT => true
+      case RegionBuilder.RIGHT_DISTINCT => true
+      case _ => false
+    }else false
+
     val left = executor.implement_md(leftDataset, sc)
     val right = executor.implement_md(rightDataset, sc)
 
-    val ltag = if (!leftTag.isEmpty()){leftTag +"." } else ""
-    val rtag = if (!rightTag.isEmpty()){rightTag +"." } else ""
+    val ltag = if (!leftTag.isEmpty()&& !distinct){leftTag +"." } else ""
+    val rtag = if (!rightTag.isEmpty() && !distinct){rightTag +"." } else ""
 
     if (grouping.isInstanceOf[SomeMetaJoinOperator]) {
       val pairs = executor.implement_mjd(grouping, sc).collectAsMap()
@@ -49,6 +55,8 @@ object CombineMD{
           }else None
         }
       }
+
+
 
       if(region_builder.isDefined)
         region_builder.get match {

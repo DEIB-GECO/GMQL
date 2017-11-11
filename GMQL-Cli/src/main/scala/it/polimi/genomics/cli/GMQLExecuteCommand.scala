@@ -4,10 +4,10 @@ import java.io._
 import java.text.SimpleDateFormat
 import java.util.Date
 
-import com.sun.org.apache.xml.internal.security.utils.Base64
 import it.polimi.genomics.GMQLServer.{GmqlServer, Implementation}
 import it.polimi.genomics.compiler._
-import it.polimi.genomics.core.DataStructures.IRVariable
+import it.polimi.genomics.core.{DAGSerializer, DAGWrapper}
+//import it.polimi.genomics.core.DataStructures.IRVariable
 import it.polimi.genomics.core.{GMQLSchemaCoordinateSystem, GMQLSchemaFormat, ImplementationPlatform}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.hadoop.conf.Configuration
@@ -23,16 +23,6 @@ import org.slf4j.LoggerFactory
   *
   */
 
-/**
-  * TODO: DAG SERIALIZATION
-  *
-  * 1) add the -dagPath option to the CLI
-  * 2) when -dagPath is active:
-  *   2.1) Instantiate a GMQLServer
-  *   2.2) Deserialize the dag file into a List[IRVariable]
-  *   2.3) Add every variable to the materializationList of the GMQLServer
-  *   2.4) Execute the server
-  * */
 object GMQLExecuteCommand {
   private final val logger = LoggerFactory.getLogger(/*Logger.ROOT_LOGGER_NAME)*/ GMQLExecuteCommand.getClass);
   try{
@@ -114,6 +104,10 @@ object GMQLExecuteCommand {
     var logDir:String = null
     var verbose = false
     var i = 0;
+
+    // DAG OPTIONS
+    var dag : Option[DAGWrapper] = None
+    var dagPath : String = null
 
     //Check the CLI options
     for (i <- 0 until args.length if (i % 2 == 0)) {
@@ -199,28 +193,44 @@ object GMQLExecuteCommand {
         //Input datasets Schemata can be sent from the Server Manager a string separated by :::
         schemata = extractInDSsSchema( args(i + 1))
         logger.info("Schema set to: " + args(i + 1))
-
-      }else {
+      } else if ("-dag".equals(args(i).toLowerCase())) {
+        // GMQLSubmit sent directly the DAG encoded as a string
+        val serializedDag = args(i+1)
+        if (!serializedDag.isEmpty) {
+          // Deserialization of the DAG string to List[IRVariable]
+          dag = Some(DAGSerializer.deserializeDAG(serializedDag))
+          logger.info("A DAG was received SUCCESSFULLY")
+        }
+      } else if ("-dagpath".equals(args(i).toLowerCase())) {
+        dagPath = args(i + 1)
+        val serializedDag = readFile(dagPath)
+        dag = Some(DAGSerializer.deserializeDAG(serializedDag))
+        logger.info("DAG path set to: " + dagPath)
+      } else {
         logger.warn("( "+ args(i) + " ) NOT A VALID COMMAND ... ")
 
       }
     }
-
-    //If the Script path is not set and the script is not loaded in the options, close execution.
-    if (scriptPath == null && script == null) {
-
+//    if(dagPath != null) {
+//      // Deserialization of the DAG string saved in a File
+//      dag = Some(Utilities.deserializeDAG(new String(Files.readAllBytes(Paths.get(dagPath)))))
+//    }
+    //If the Script path is not set and the script is not loaded in the options
+    // and no serialized DAG was submitted, close execution.
+    if (scriptPath == null && script == null && dag.isEmpty ) {
       println(usage); sys.exit(9)
     }
 
     // In case scriptPath is empty then set the path to test.GMQL file,
     // This is needed only to generate JOBID.
-    if (scriptPath == null) scriptPath = "test.GMQL"
+    if (scriptPath == null)
+      scriptPath = "test.GMQL"
 
     //read GMQL script
-    val dag: String =
-      if (script != null) script /*deSerializeDAG(script)*/
-      else readScriptFile(scriptPath) /*List[Operator]()*/
-
+    val query: String =
+      if (dag.isDefined) ""  //If we have a serialized DAG we do not need the query
+      else if (script != null) script
+      else readScriptFile(scriptPath)
 
     //Generate JOBID in case there is no JOBID set in the CLI options.
     if (jobid == "") jobid = generateJobId(scriptPath, username)
@@ -234,26 +244,32 @@ object GMQLExecuteCommand {
     val implementation: Implementation = getImplemenation(executionType,jobid,outputFormat,outputCoordinateSystem)
 
     val server = new GmqlServer(implementation, Some(1000))
-    // get the dag --> [IRVariable]
-
-
-    val translator = new Translator(server, "/tmp/")
-
-    val translation = /*if(!dag.isEmpty) dag else translator.phase1(readScriptFile(scriptPath))*/
-      compile(jobid, translator, dag, inputs,outputs)
-
-    try {
-      if (translator.phase2(translation)) {
-        server.run()
-      }else{
-        logger.error("Compile failed..")
-        System.exit(0);
-      }
-    } catch {
-      case e: CompilerException => logger.error(e.getMessage) ; System.exit(0)
-      case ex:Exception => logger.error("exception: \t"+ex.getMessage);/*ex.printStackTrace();*/ System.exit(0)
-      case e : Throwable =>logger.error("Throwable: "+e.getMessage);/* e.printStackTrace(); */System.exit(0)
+    if (dag.isDefined) {
+      // If we are executing a DAG we simply add the List[IRVariable] to the
+      // materialization list and execute
+      server.materializationList ++= dag.get.dag
+      server.run()
     }
+    else {
+      val translator = new Translator(server, "/tmp/")
+
+      val translation = /*if(!dag.isEmpty) dag else translator.phase1(readScriptFile(scriptPath))*/
+        compile(jobid, translator, query, inputs,outputs)
+
+      try {
+        if (translator.phase2(translation)) {
+          server.run()
+        }else{
+          logger.error("Compile failed..")
+          System.exit(0);
+        }
+      } catch {
+        case e: CompilerException => logger.error(e.getMessage) ; System.exit(0)
+        case ex:Exception => logger.error("exception: \t"+ex.getMessage);/*ex.printStackTrace();*/ System.exit(0)
+        case e : Throwable =>logger.error("Throwable: "+e.getMessage);/* e.printStackTrace(); */System.exit(0)
+      }
+    }
+
   }
 
   def generateJobId(scriptPath: String, username: String) = "job_" + new java.io.File(scriptPath).getName.substring(0, new java.io.File(scriptPath).getName.indexOf(".")) + username + "_" + date
@@ -294,36 +310,12 @@ object GMQLExecuteCommand {
     }
   }
 
-
-  //TODO: Enable serialization of the DAG
-  //  def deSerializeDAG(dag:String): List[Operator] ={
-  //    val bytes = Base64.decode(dag.getBytes());
-  //    val objectInputStream1 = new ObjectInputStream( new ByteArrayInputStream(bytes) );
-  //
-  //    objectInputStream1.readObject().asInstanceOf[List[Operator]];
-  //  }
-
-  def deSerializeDAG(dagEncoded: String): List[Operator] = {
-    val bytes = Base64.decode(dagEncoded.getBytes());
-    val objectInputStream1 = new ObjectInputStream(new ByteArrayInputStream(bytes));
-
-    val dag = objectInputStream1.readObject().asInstanceOf[java.util.ArrayList[Operator]];
-
-    println("hi\n" + dag.toString)
-    var DAG: List[Operator] = List[Operator]()
-    for (i <- 0 until dag.size() - 1) {
-      DAG = DAG :+ dag.get(i)
-    }
-
-    DAG
-  }
-
-  // Deserialization of the DAG to a list of IRVarialbles to be materialized
-  def deSerializeDAGToIRList(dagEncoded: String): List[IRVariable] = {
-    val bytes = Base64.decode(dagEncoded.getBytes())
-    val objectInputStream1 = new ObjectInputStream(new ByteArrayInputStream(bytes))
-
-    objectInputStream1.readObject().asInstanceOf[List[IRVariable]]
+  def readFile(path: String) : String = {
+    val conf = new Configuration();
+    val pathHadoop = new org.apache.hadoop.fs.Path(path);
+    val fs = FileSystem.get(pathHadoop.toUri(), conf);
+    val ifS = fs.open(pathHadoop)
+    scala.io.Source.fromInputStream(ifS).mkString
   }
 
   def compile(id: String, translator: Translator, script: String, inputs: Map[String, String],outputs: Map[String, String]): List[Operator] = {

@@ -5,19 +5,24 @@ import java.io.{File, PrintWriter}
 import java.util
 import java.util.concurrent.{ExecutorService, Executors, TimeUnit}
 
-import it.polimi.genomics.core.GMQLScript
-import it.polimi.genomics.manager.Exceptions.{InvalidGMQLJobException, NoJobsFoundException, UserQuotaExceeded}
+import it.polimi.genomics.core.DataStructures._
+import it.polimi.genomics.core.{BinSize, GMQLSchemaFormat, GMQLScript, ImplementationPlatform}
+import it.polimi.genomics.core.exception.UserExceedsQuota
+import it.polimi.genomics.manager.Exceptions.{InvalidGMQLJobException, NoJobsFoundException}
 import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLocalLauncher, GMQLRemoteLauncher, GMQLSparkLauncher}
 import it.polimi.genomics.repository.{Utilities => General_Utilities}
+import org.apache.spark.SparkContext
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.HashMap
+
+
 /**
- * Created by Abdulrahman Kaitoua on 10/09/15.
- * Email: abdulrahman.kaitoua@polimi.it
- *
- */
+  * Created by Abdulrahman Kaitoua on 10/09/15.
+  * Email: abdulrahman.kaitoua@polimi.it
+  *
+  */
 class GMQLExecute (){
 
   private final val logger: Logger = LoggerFactory.getLogger(this.getClass);
@@ -78,7 +83,51 @@ class GMQLExecute (){
     job;
   }
 
-  /**
+  def registerDAG(script:GMQLScript, gMQLContext: GMQLContext, jobid:String = ""): GMQLJob = {
+    def saveScript(fileName:String) = {
+      val scriptHistory: File = new File(General_Utilities().getScriptsDir(gMQLContext.username)+ fileName + ".dag")
+      new PrintWriter(scriptHistory) { write(script.dag); close }
+    }
+
+    logger.info("Execution Platform is set to "+gMQLContext.implPlatform+"\n\t" +
+      "DagPath = "+script.dagPath+"\n\tUsername = "+gMQLContext.username)
+
+    val job: GMQLJob = new GMQLJob(gMQLContext,script,gMQLContext.username)
+    val jID = job.jobId
+
+    /* PATH RENAMING */
+    val (outDSs, newSerializedDAG): (List[String], String) = job.renameDAGPaths(script.dag)
+    //script.dag = newSerializedDAG
+    script.dag = ""
+
+    // save the dag on a file
+    val repository = General_Utilities().getRepository()
+    val dagPath = repository.saveDagQuery(gMQLContext.username, newSerializedDAG, jID + ".dag")
+
+    script.dagPath = dagPath
+
+    val uToj: Option[List[String]] = USER_TO_JOBID.get(gMQLContext.username);
+    val jToDSs: Option[List[String]] = JOBID_TO_OUT_DSs.get(jID)
+
+    //if the user is not found create empty lists of jobs and out Datasets.
+    var jobs: List[String]= if (!uToj.isDefined) List[String](); else uToj.get
+    var dataSets: List[String]= if (!jToDSs.isDefined) List[String](); else jToDSs.get
+
+    jobs ::= jID
+    dataSets :::= outDSs
+
+    USER_TO_JOBID = USER_TO_JOBID + (gMQLContext.username-> jobs)
+    JOBID_TO_OUT_DSs = JOBID_TO_OUT_DSs + (jID -> dataSets)
+
+    //register the job
+    JOBID_TO_JOB_INSTANCE = JOBID_TO_JOB_INSTANCE + (jID -> job);
+    job
+  }
+
+
+
+
+    /**
     * Get the job instance from the job name.
     * If the job is not found  [[ InvalidGMQLJobException]] exception will be thrown
     *
@@ -115,15 +164,67 @@ class GMQLExecute (){
 
 
   /***
-  * Try to Execute GMQL Job. The job will be checked for execution of the provided platform
-  * and run in case of clear from errors.
-  *
-  * @param job
-  */
-  @throws(classOf[UserQuotaExceeded])
+    * Try to Execute GMQL Job. The job will be checked for execution of the provided platform
+    * and run in case of clear from errors.
+    *
+    * @param job
+    */
+  @throws(classOf[UserExceedsQuota])
   def execute(job:GMQLJob):Unit={
+
+    if( job.gMQLContext.checkQuota ) {
+      val userClass = job.gMQLContext.userClass
+      val userName  = job.gMQLContext.username
+      val exceeded  = General_Utilities().getRepository().isUserQuotaExceeded(userName, userClass)
+
+      if( exceeded ) {
+        throw new UserExceedsQuota()
+      }
+
+    }
+
     val launcher_mode = Utilities().LAUNCHER_MODE
 
+    val launcher: GMQLLauncher =
+
+      if (launcher_mode equals Utilities().CLUSTER_LAUNCHER) {
+        logger.info("Using Spark Launcher")
+        new GMQLSparkLauncher(job)
+      } else if (launcher_mode equals Utilities().REMOTE_CLUSTER_LAUNCHER) {
+        logger.info("Using Remote Launcher")
+        new GMQLRemoteLauncher(job)
+      } else if (launcher_mode equals Utilities().LOCAL_LAUNCHER) {
+        logger.info("Using Local Launcher")
+        new GMQLLocalLauncher(job)
+      } else {
+        throw new Exception("Unknown launcher mode.")
+      }
+
+    execute(job.jobId, launcher)
+
+  }
+
+  /**
+    * This function enables the DAG to be passed to a GMQLJob as a serialized String.
+    * It executes directly the DAG.
+    * */
+//  def executeDAG(username: String, serializedDag : String, outputFormat : String): GMQLJob = {
+//    val outputGMQLFormat = GMQLSchemaFormat.getType(outputFormat)
+//    val gmqlScript = new GMQLScript("", "", serializedDag, "")
+//    val binsize = new BinSize(5000, 5000, 1000)
+//    val repository = General_Utilities().getRepository()
+//    val gmqlContext = new GMQLContext(repository, outputGMQLFormat)
+//    val job = new GMQLJob(gmqlContext, gmqlScript, username)
+//    /*The job id is generated with the username, the current date and the suffix "DAG".*/
+//    job.runGMQL(job.generateJobId(username, "DAG"), getLauncher(job))
+//    job
+//  }
+
+  /**
+    *  Gets the launcher given a GMQLJob
+  * */
+  def getLauncher(job:GMQLJob): GMQLLauncher = {
+    val launcher_mode = Utilities().LAUNCHER_MODE
     val launcher: GMQLLauncher =
 
       if ( launcher_mode equals Utilities().CLUSTER_LAUNCHER ) {
@@ -137,12 +238,10 @@ class GMQLExecute (){
       if ( launcher_mode equals Utilities().LOCAL_LAUNCHER ) {
         logger.info("Using Local Launcher")
         new GMQLLocalLauncher(job)
-        } else {
+      } else {
         throw new Exception("Unknown launcher mode.")
       }
-
-    execute(job.jobId,launcher)
-
+    launcher
   }
 
 
@@ -226,7 +325,7 @@ class GMQLExecute (){
       execService.awaitTermination(Long.MaxValue, TimeUnit.SECONDS);
     }catch{
       case ex:InterruptedException => println (ex.getMessage)
-      }
+    }
   }
 
 

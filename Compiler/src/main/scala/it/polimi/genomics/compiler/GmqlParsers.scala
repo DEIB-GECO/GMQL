@@ -94,7 +94,7 @@ trait GmqlParsers extends JavaTokenParsers {
   val ASC:Parser[String] = """[a|A][s|S][c|C]""".r
   val DESC:Parser[String] = """[d|D][e|E][s|S][c|C]""".r
   val EXACT:Parser[String] = """[e|E][x|X][a|A][c|C][t|T]""".r
-  val FULLNAME:Parser[String] = """[f|F][u|U][l|L][l|L][n|N][a|A][m|M][e|E]""".r
+  val FULLNAME:Parser[String] = """[f|F][u|U][l|L][l|L]""".r
   val TRUE:Parser[String] = """[t|T][r|R][u|U][e|E]""".r
   val FALSE:Parser[String] = """[f|F][a|A][l|L][s|S][e|E]""".r
 
@@ -376,7 +376,15 @@ trait GmqlParsers extends JavaTokenParsers {
 
   val single_metadata_modifier:Parser[MetaModifier] =
     (metadata_attribute <~ AS) ~ stringLiteral ^^ {
-      x => MetaModifier(x._1, MEStringConstant(x._2.drop(1).dropRight(1)))
+      x => {
+        val string:String = x._2.drop(1).dropRight(1)
+        if (!string.isEmpty())
+          MetaModifier(x._1, MEStringConstant(x._2.drop(1).dropRight(1)))
+        else {
+          val msg = "Empty strings are not allowed to be passed as constant value"
+          throw new CompilerException(msg)
+        }
+      }
     } |
       (
         (
@@ -498,5 +506,22 @@ trait GmqlParsers extends JavaTokenParsers {
     x =>
       x.map(y => FieldName(y))
   }
+
+
+  val group_meta_aggfun:Parser[TemporaryMetaAggregateFunction] =
+      (((metadata_attribute ) <~ AS) ~ ((ident <~ "(") ~ (metadata_attribute <~ ")")) ^^ {
+        x => TemporaryMetaUnaryAggregateFunction(
+          x._2._1,
+          x._2._2,
+          x._1)
+      }) |
+      (((metadata_attribute ) <~ AS) ~ (ident <~ ("(" <~ ")"))  ^^ {
+        x => TemporaryMetaNullaryAggregateFunction(
+          x._2,
+          x._1)
+      })
+
+
+  val group_meta_aggfun_list:Parser[List[TemporaryMetaAggregateFunction]] = repsep(group_meta_aggfun, ",")
 
 }

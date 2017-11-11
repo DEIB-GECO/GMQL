@@ -4,7 +4,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
 
 import it.polimi.genomics.core.GMQLLoaderBase
-import it.polimi.genomics.core.DataStructures.Builtin.{ExtendFunctionFactory, MapFunctionFactory, MetaExtensionFactory, RegionExtensionFactory}
+import it.polimi.genomics.core.DataStructures.Builtin._
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.{NoTop, Top, TopG}
 import it.polimi.genomics.core.DataStructures.GroupRDParameters.FIELD
 import it.polimi.genomics.core.DataStructures.RegionAggregate.RegionsToRegion
@@ -23,6 +23,9 @@ abstract class Implementation {
 
   /** Returns the factory that builds metadata modifiers */
   def metaExtensionFactory: MetaExtensionFactory = DefaultMetaExtensionFactory
+
+  /** Returns the factory that builds metadata modifiers */
+  def metaAggregateFunctionFactory: MetaAggregateFactory = DefaultMetaAggregateFactory
 
   /** Returns the factory that builds region modifiers */
   def regionExtensionFactory:RegionExtensionFactory = DefaultRegionExtensionFactory

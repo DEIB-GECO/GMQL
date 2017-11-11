@@ -3,11 +3,11 @@ package it.polimi.genomics.repository.FSRepository
 import java.io._
 import java.text.SimpleDateFormat
 import java.util
-import java.util.Date
+import java.util.{Calendar, Date}
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
 import it.polimi.genomics.core.GDMSUserClass.GDMSUserClass
-import it.polimi.genomics.core.{GMQLSchemaCoordinateSystem, GMQLSchemaField, GMQLSchemaFormat}
+import it.polimi.genomics.core.{GDMSUserClass, GMQLSchemaCoordinateSystem, GMQLSchemaField, GMQLSchemaFormat}
 import it.polimi.genomics.repository
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
 import it.polimi.genomics.repository.GMQLExceptions._
@@ -15,13 +15,15 @@ import it.polimi.genomics.repository.{GMQLRepository, GMQLSample, GMQLStatistics
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.slf4j.LoggerFactory
 
+
 import scala.collection.JavaConverters._
+
 /**
   * Created by abdulrahman on 12/04/16.
   */
 class DFSRepository extends GMQLRepository with XMLDataSetRepository{
   private final val logger = LoggerFactory.getLogger(this.getClass)
-    repository.Utilities()
+  repository.Utilities()
 
   /**
     * Add a new dataset to GMQL repository, this dataset is usually a result of a script execution.
@@ -33,6 +35,9 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     * @param schemaType One of GMQL schema types as shown in [[ GMQLSchemaFormat]]
     */
   override def createDs(dataSet:IRDataSet, userName: String, Samples: java.util.List[GMQLSample], GMQLScriptPath: String,schemaType:GMQLSchemaFormat.Value, schemaCoordinateSystem:GMQLSchemaCoordinateSystem.Value): Unit = {
+
+    val dsname = dataSet.position
+
     //Create Temp folder to place the meta files temporarly in Local file system
     val tmpFolderName = General_Utilities().getTempDir(userName)+dataSet.position+"_/"
     val tmpFolder = new File(tmpFolderName)
@@ -46,12 +51,39 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
       new GMQLSample(name = x.name,meta = metaFile )
     }.toList.asJava
 
-    //create DS as a set of XML files in the local repository
+
+    var dssize = 0F
+
+    // Copy web_profile.xml from HDFS to local
+
+    if( !Samples.asScala.isEmpty ) {
+      val s1 = Samples.asScala.head.name
+      val dspath = s1.substring(0, s1.lastIndexOf("/") + 1)
+      val fulldspath = General_Utilities().getHDFSRegionDir(userName) + "/" + dspath
+      val sourceProfile = fulldspath + "/web_profile.xml"
+      val destFilePath = General_Utilities().getProfileDir(userName) + "/" + dsname + ".profile"
+
+      FS_Utilities.copyfiletoLocal(sourceProfile, destFilePath)
+
+      dssize = getFileSize(fulldspath) / 1000
+    }
+
+    // Add dataset meta
+    val dssize_str= "%.2f".format(dssize) + " MB"
+    val date = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date());
+    val meta = Map("Creation date" -> date, "Created by" -> userName, "Size" -> dssize_str)
+
+    setDatasetMeta(dsname, userName, meta)
+
+    // Create DS as a set of XML files in the local repository
     super.createDs(dataSet, userName, samples, GMQLScriptPath, schemaType, schemaCoordinateSystem)
 
     //clean the temp Directory
     tmpFolder.delete()
   }
+
+
+
 
   /**
     *     * Import Dataset into GMQL from Local file system.
@@ -61,12 +93,12 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     * @param userName String of the user name to add this dataset to.
     * @param schemaPath String of the path to the xml file of the dataset's schema.
     */
-  override def importDs(dataSetName: String, userName: String, Samples: java.util.List[GMQLSample], schemaPath: String): Unit = {
+  override def importDs(dataSetName: String, userName: String, userClass: GDMSUserClass, Samples: java.util.List[GMQLSample], schemaPath: String): Unit = {
     if (FS_Utilities.validate(schemaPath)) {
       val date = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
       val samples = Samples.asScala.map(x=> GMQLSample(ID = x.ID, name = dataSetName+"_"+date+ "/"+new File(x.name).getName,meta = x.meta) ).asJava
       // Import the dataset schema and Script files to the local folder
-      super.importDs(dataSetName: String, userName: String, samples ,schemaPath)
+
 
       // Copy sample and Meta data from HDFS to the local folder
       Samples.asScala.map{x =>
@@ -74,9 +106,16 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
         FS_Utilities.copyfiletoHDFS(x.name, HDFSfile)
       }
 
-      FS_Utilities.copyfiletoHDFS(General_Utilities().getSchemaDir(userName)+dataSetName+".schema",
+      FS_Utilities.copyfiletoHDFS(schemaPath,
         General_Utilities().getHDFSRegionDir(userName)+ new Path(samples.get(0).name).getParent.toString+ "/test.schema"
       )
+
+      // Set File size
+      val size = getFileSize(General_Utilities().getHDFSDSRegionDir(userName,dataSetName+"_"+date))
+      val dssize_str= "%.2f".format(size/1000) + " MB"
+      setDatasetMeta(dataSetName, userName, Map("Size" -> dssize_str))
+
+      super.importDs(dataSetName, userName, userClass, samples ,schemaPath)
     } else {
       logger.info("The dataset schema does not confirm the schema style (XSD)")
     }
@@ -90,7 +129,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     * @param Sample GMQL sample [[ GMQLSample]].
     * @param userName String of the user name.
     */
-  override def addSampleToDS(dataSet: String, userName: String, Sample: GMQLSample): Unit = ???
+  override def addSampleToDS(dataSet: String, userName: String, Sample: GMQLSample,  userClass: GDMSUserClass = GDMSUserClass.PUBLIC): Unit = ???
 
   /**
     * Delete Data Set from the repository, Delete XML files from local File system and delete the samples and meta files from HDFS.
@@ -107,9 +146,13 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     val conf = FS_Utilities.gethdfsConfiguration()
     val fs = FileSystem.get(conf)
     val hdfspath = conf.get("fs.defaultFS") + General_Utilities().getHDFSRegionDir(userName)
-    dataset.samples.map{x=>
-      fs.delete(new Path(hdfspath+x.name),true);
-      fs.delete(new Path(hdfspath+x.meta),true)
+
+    if (dataset.samples.length > 0) {
+      val regex       = "(/+)(exp(/+))?([^/]+)$".r
+      val ds_folder   =  regex.replaceFirstIn(hdfspath+dataset.samples(0).name, "")
+      fs.delete(new Path(ds_folder), true)
+    } else {
+      logger.warn("Trying to delete a dataset with no samples.")
     }
 
     //Delete dataset XML files
@@ -139,24 +182,17 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     val fs = FileSystem.get(conf);
     val dsPath = conf.get("fs.defaultFS") +repository.Utilities().getHDFSRegionDir(userName) + dataSetName
     val samples = fs.listStatus(new Path(dsPath))
-        .flatMap(x => {
-          if (fs.exists(new Path(x.getPath.toString+".meta")) ) {
-            Some(new GMQLSample(dataSetName+x.getPath.getName))
-          } else
-            None
-        }).toList.asJava;
+      .flatMap(x => {
+        if (fs.exists(new Path(x.getPath.toString+".meta")) ) {
+          Some(new GMQLSample(dataSetName+x.getPath.getName))
+        } else
+          None
+      }).toList.asJava;
     val schema =
       readSchemaFile(dsPath + "/test.schema")
     (samples,schema.fields.asJava)
   }
 
-
-  /**
-    *
-    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
-    * @return
-    */
-  override def getDSStatistics(dataSet: String, userName: String): GMQLStatistics = ???
 
   /**
     *  export the dataset from Hadoop Distributed File system to Local File system
@@ -189,8 +225,13 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     */
   override def registerUser(userName: String): Boolean = {
     val dir = General_Utilities().getHDFSRegionDir(userName)
-    val creationMessage = if(FS_Utilities.createDFSDir(dir)) "\t Created..." else "\t Not created..."
+    var creationMessage = if(FS_Utilities.createDFSDir(dir)) "\t Created..." else "\t Not created..."
     logger.info( dir + creationMessage)
+
+    // create a folder also for the serialized dags
+    val dag_dir = General_Utilities().getHDFSDagQueryDir(userName, create = false)
+    creationMessage = if(FS_Utilities.createDFSDir(dag_dir)) "\t Dag folder created..." else "\t Dag folder not created..."
+    logger.info( dag_dir + creationMessage)
     super.registerUser(userName)
   }
 
@@ -204,7 +245,8 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     logger.info(s"HDFS Folders Deletion for user $userName...")
 
     logger.info( General_Utilities().getHDFSRegionDir( userName )+"\t Status:" +
-      (if (FS_Utilities.deleteDFSDir(General_Utilities().getHDFSRegionDir( userName ))) "Deleted." else "Error"))
+      (if (   FS_Utilities.deleteDFSDir(General_Utilities().getHDFSRegionDir( userName ) )
+           && FS_Utilities.deleteDFSDir(General_Utilities().getHDFSUserDir( userName) )) "Deleted." else "Error"))
 
     super.unregisterUser(userName)
   }
@@ -247,20 +289,21 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
   }
 
   /**
+    * Save a serialized dag to the dag folder for the specified user
     *
-    * Import Dataset into GMQL from Local file system.
-    *
-    * @param dataSetName String of the dataset name.
-    * @param userName    String of the user name.
-    * @param userClass   GDMSUserClass
-    * @param Samples     List of GMQL samples [[ GMQLSample]].
-    * @param schemaPath  String of the path to the xml file of the dataset schema.
-    * @throws GMQLNotValidDatasetNameException
-    * @throws GMQLUserNotFound
-    * @throws java.lang.Exception
-    */
-  override def importDs(dataSetName: String, userName: String, userClass: GDMSUserClass, Samples: util.List[GMQLSample], schemaPath: String): Unit = {
-    importDs(dataSetName, userName, Samples, schemaPath)
+    * @param userName      [[String]] the username
+    * @param serializedDag [[String]] the serialized dag
+    * @return the resulting location
+    **/
+  override def saveDagQuery(userName: String, serializedDag: String, fileName: String): String = {
+    val queryPath = General_Utilities().getHDFSDagQueryDir(userName)
+    val conf = FS_Utilities.gethdfsConfiguration()
+    val fs = FileSystem.get(conf)
+    val resultPath = queryPath + "/" + fileName
+    val outStream = fs.create(new Path(resultPath))
+    serializedDag.map(x => outStream.write(x))
+    outStream.close()
+    resultPath
   }
 
   /**
@@ -273,101 +316,43 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
   override def getDsInfoStream(datasetName: String, userName: String): InputStream = ???
 
   /**
-    * Returns the metadata associated to a dataset, e.g:
-    * Source => Politecnico di Milano
-    * Type => GDM
-    * Creation Date => 21 Mar 2011
-    * Creation Time => 00:18:56
-    * Size => "50.12 MB"
-    *
-    * @param datasetName dataset name as a string
-    * @param userName    the owner of the dataset
-    * @return a Map[String, String] containing property_name => value
-    */
-override def getDatasetMeta(datasetName: String, userName: String): Map[String, String] = {
-
-  var res = Map[String,String]()
-  res += ("Source" -> "Wellington")
-  res += ("Type" -> "Wellington")
-  res += ("Creation Date" -> "Wellington")
-  res += ("Creation Time" -> "Wellington")
-  res += ("Size" -> "50.12 MB")
-
-  res
-
-}
-
-  /**
-    * Set an entry on dataset metadata
-    *
-    * @param datasetName
-    * @param userName
-    * @param key
-    * @param value
-    */
-override def setDatasetMeta(datasetName: String, userName: String, key: String, value: String): Unit = ???
-
-  /**
-    * Returns profiling information concerning the whole dataset, e.g.:
-    * Number of samples => 15
-    * Number of regions => 31209
-    * Average region length => 123.12
-    *
-    * @param datasetName dataset name as a string
-    * @param userName    the owner of the dataset
-    * @return a Map[String, String] containing property_name => value
-    */
-override def getDatasetProfile(datasetName: String, userName: String): Map[String, String] = {
-
-  var res = Map[String,String]()
-  res += ("Number of samples" -> "15")
-  res += ("Number of regions" -> "31209")
-  res += ("Average region length" -> "123.12")
-
-  res
-}
-
-  /**
-    * Returns profiling information concerning a specific sample of the dataset, e.g.:
-    *
-    * Number of samples => 15
-    * Number of regions => 31209
-    * Average region length => 123.12
-    *
-    * @param datasetName dataset name as a string
-    * @param sampleId    id of the sample (index 1 .. N)
-    * @param usernName   the owner of the dataset
-    */
-override def getSampleProfie(datasetName: String, sampleId: Long, usernName: String): Unit = {
-
-  var res = Map[String,String]()
-  res += ("Number of samples" -> "15")
-  res += ("Number of regions" -> "31209")
-  res += ("Average region length" -> "123.12")
-
-  res
-}
-
-  /**
     * Returns information about the user disk quota usage
     *
     * @param userName
     * @param userClass
-    * @return (occupied, available) in KBs
+    * @return (occupied, user_quota) in KBs
     */
-override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Float, Float) = {
+  override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Long, Long) = {
 
-  (500000,1000000)
-}
+    val user_quota = General_Utilities().getUserQuota(userClass)
+    val userDir    = General_Utilities().getHDFSUserDir(userName)
+    val occupied   = getFileSize(userDir).toLong
+
+    (occupied,user_quota)
+  }
+
 
   /**
-    * Boolean value: true if user quota is exceeded
     *
-    * @param username
-    * @param userClass
-    * @return
+    * @param path path of a folder or file
+    * @return size in KBs dived by replication factor, -1 if path not found
     */
-  override def isUserQuotaExceeded(username: String, userClass: GDMSUserClass): Boolean = {
-    false
+   def getFileSize(path: String): Float = {
+
+    val conf = FS_Utilities.gethdfsConfiguration()
+    val fs   = FileSystem.get(conf)
+    val filePath = new Path(path)
+
+    if ( fs.exists(filePath) ) {
+      val summary     = fs.getContentSummary(filePath)
+      val replication = fs.getDefaultReplication(filePath)
+
+      (summary.getSpaceConsumed() / 1000)/replication
+
+    } else {
+      -1
+    }
+
   }
+
 }

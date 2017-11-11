@@ -1,14 +1,30 @@
 package it.polimi.genomics.core.DataStructures
 
+import scala.collection.mutable
+
 /**
  * It represent a generic Intermediate Representation Daga operator
  */
-class IROperator {
+class IROperator extends Serializable {
   val operatorName = this.getClass.getName.substring(this.getClass.getName.lastIndexOf('.')+1) + " " + this.hashCode()
 
   var intermediateResult : Option[AnyRef] = None
 
   override def toString = operatorName
+
+  /**
+    * Get the list of input operators for the current operator.
+    * */
+  def getOperatorList: List[IROperator] = {
+    val result = mutable.Set[IROperator]()
+    for (method <- this.getClass.getMethods) {
+      if (method.getParameterCount == 0 && classOf[IROperator].isAssignableFrom(method.getReturnType)) {
+        result.add(method.invoke(this).asInstanceOf[IROperator])
+      }
+    }
+    result.toList
+  }
+
 
 }
 

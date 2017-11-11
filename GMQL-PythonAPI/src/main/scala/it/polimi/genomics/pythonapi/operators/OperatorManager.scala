@@ -3,11 +3,13 @@ package it.polimi.genomics.pythonapi.operators
 import it.polimi.genomics.core.DataStructures.CoverParameters._
 import it.polimi.genomics.core.DataStructures.CoverParameters.CoverFlag.CoverFlag
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.{ASC, DESC, Direction}
-import it.polimi.genomics.core.DataStructures.GroupMDParameters.{NoTop, Top, TopG, TopParameter}
+import it.polimi.genomics.core.DataStructures.GroupMDParameters._
+import it.polimi.genomics.core.DataStructures.GroupRDParameters.{FIELD, GroupingParameter}
 import it.polimi.genomics.core.DataStructures.IRVariable
 import it.polimi.genomics.core.DataStructures.JoinParametersRD._
 import it.polimi.genomics.core.DataStructures.MetaAggregate.{MetaAggregateStruct, MetaExtension}
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
+import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition.{AttributeEvaluationStrategy, Default, MetaJoinCondition}
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
 import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionFunction, RegionsToMeta, RegionsToRegion}
@@ -113,7 +115,7 @@ object OperatorManager {
   * */
 
   def project(index: Int, projected_meta : Option[java.util.List[String]],
-              extended_meta : Option[MetaExtension],
+              extended_meta : Option[java.util.List[MetaExtension]],
               all_but_meta: Boolean,
               projected_regs : Option[java.util.List[String]],
               all_but_regs : Option[java.util.List[String]],
@@ -158,7 +160,13 @@ object OperatorManager {
       //extended_regs_scala.get.map(x => println(x.inputIndexes + "\t" + x.output_index + "\t" + x.output_name))
     }
 
-    val nv = v.PROJECT(projected_meta_scala, extended_meta, all_but_meta,
+    // EXTENDED META
+    var extended_meta_scala : Option[List[MetaExtension]] = None
+    if(extended_meta.isDefined) {
+      extended_meta_scala = Some(extended_meta.get.asScala.toList)
+    }
+
+    val nv = v.PROJECT(projected_meta_scala, extended_meta_scala, all_but_meta,
       projected_regs_scala,all_but_scala, extended_regs_scala)
 
     val new_index = PythonManager.putNewVariable(nv)
@@ -193,17 +201,16 @@ object OperatorManager {
   }
 
   def cover(index: Int, coverFlag : CoverFlag, minAcc : CoverParam, maxAcc : CoverParam,
-            groupBy : java.util.List[String], aggregates: java.util.List[RegionsToRegion]): Int = {
-    val groupByPar : Option[List[String]] = {
-      if(groupBy.size() > 0)
-        Option(groupBy.asScala.toList)
+            groupBy : Option[java.util.List[String]], aggregates: java.util.List[RegionsToRegion]): Int = {
+    val aggregatesPar = aggregates.asScala.toList
+    val groupByCondition = {
+      if(groupBy.isDefined)
+        Some(getAttributeEvaluationStrategy(groupBy.get.asScala.toList))
       else
         None
     }
-    val aggregatesPar = aggregates.asScala.toList
-
     val v = PythonManager.getVariable(index)
-    val nv = v COVER(coverFlag,minAcc,maxAcc,aggregatesPar,groupByPar)
+    val nv = v COVER(coverFlag,minAcc,maxAcc,aggregatesPar,groupByCondition)
     // generate new index
     val new_index = PythonManager.putNewVariable(nv)
     new_index
@@ -213,10 +220,12 @@ object OperatorManager {
     conditionName match {
       case "DLE" =>
         logger.info("DLE("+argument.toLong+")")
-        DistLess(argument.toLong)
+        DistLess(argument.toLong + 1)
       case "DGE" =>
         logger.info("DGE("+argument.toLong+")")
-        DistGreater(argument.toLong)
+        DistGreater(argument.toLong - 1)
+      case "DL" => DistLess(argument.toLong)
+      case "DG" => DistGreater(argument.toLong)
       case "MD" =>
         logger.info("MD("+argument.toInt+")")
         MinDistance(argument.toInt)
@@ -251,7 +260,7 @@ object OperatorManager {
   }
 
   def getMetaJoinCondition(metadataAttributeList : java.util.List[String]): Option[MetaJoinCondition] = {
-    // for now we consider only DEFAULT AttributeEvaluationStrategy
+    // TODO: enable different evaluation strategies
     var listAttributes = new ListBuffer[AttributeEvaluationStrategy]()
 
     for(m <- metadataAttributeList) {
@@ -262,6 +271,11 @@ object OperatorManager {
       None
     else
       Option(MetaJoinCondition(listAttributes.toList))
+  }
+
+  def getAttributeEvaluationStrategy(metadataAttributeList : List[String]): List[AttributeEvaluationStrategy] = {
+    // TODO: enable different evaluation strategies
+    metadataAttributeList.map(x => Default(x))
   }
 
   def getRegionBuilderJoin(builder: String) : RegionBuilder = {
@@ -329,6 +343,7 @@ object OperatorManager {
     paramName.toUpperCase match {
       case "TOP" => Top(k.toInt)
       case "TOPG" => TopG(k.toInt)
+      case "TOPP" => TopP(k.toInt)
       case _ => NoTop()
     }
   }
@@ -341,8 +356,11 @@ object OperatorManager {
       DESC
   }
 
-  def order(index: Int, meta_ordering : java.util.List[String], meta_ascending : java.util.List[Boolean],
-           metaTop : String, metaK : String, region_ordering : java.util.List[String], region_ascending: java.util.List[Boolean],
+  def order(index: Int, meta_ordering : java.util.List[String],
+            meta_ascending : java.util.List[Boolean],
+            metaTop : String, metaK : String,
+            region_ordering : java.util.List[String],
+            region_ascending: java.util.List[Boolean],
             regionTop: String, regionK : String): Int = {
     val metaTopParameter = getOrderTopParameter(metaTop, metaK)
     val regionTopParameter = getOrderTopParameter(regionTop, regionK)
@@ -399,6 +417,58 @@ object OperatorManager {
   }
 
   /*
+  * GROUP
+  * */
+
+  def getMetaGroupByCondition(meta_keys: List[String]): MetaGroupByCondition = {
+    MetaGroupByCondition(getAttributeEvaluationStrategy(meta_keys))
+  }
+
+  def getGroupingParameters(region_keys: List[String], v: IRVariable): List[GroupingParameter] = {
+    region_keys.map(x => {
+      val fieldNum = v.get_field_by_name(x)
+      if(fieldNum.isEmpty)
+        throw new IllegalArgumentException("Region attribute " + x + " is not present!")
+      else
+        FIELD(fieldNum.get)
+    })
+  }
+
+//  def group(index: Int, meta_keys: Option[java.util.List[String]],
+//            meta_aggregates: Option[java.util.List[RegionsToMeta]], meta_group_name: String,
+//            region_keys: Option[java.util.List[String]],
+//            region_aggregates: Option[java.util.List[RegionsToRegion]]): Int = {
+//
+//    val v = PythonManager.getVariable(index)
+//
+//    var meta_keys_condition: Option[MetaGroupByCondition] = None
+//    if(meta_keys.isDefined) {
+//      meta_keys_condition = Some(getMetaGroupByCondition(meta_keys.get.asScala.toList))
+//    }
+//
+//    var meta_aggregates_scala: Option[List[RegionsToMeta]] = None
+//    if(meta_aggregates.isDefined) {
+//      meta_aggregates_scala = Some(meta_aggregates.get.asScala.toList)
+//    }
+//
+//    var region_keys_condition: Option[List[GroupingParameter]] = None
+//    if(region_keys.isDefined) {
+//      region_keys_condition = Some(getGroupingParameters(region_keys.get.asScala.toList, v))
+//    }
+//
+//    var region_aggregates_scala: Option[List[RegionsToRegion]] = None
+//    if(region_aggregates.isDefined) {
+//      region_aggregates_scala = Some(region_aggregates.get.asScala.toList)
+//    }
+//
+//    val nv = v GROUP(meta_keys_condition, meta_aggregates_scala, meta_group_name,
+//      region_keys_condition, region_aggregates_scala)
+//
+//    val new_index = PythonManager.putNewVariable(nv)
+//    new_index
+//  }
+
+  /*
   * EXTEND
   * */
   def extend(index: Int, region_aggregates: java.util.List[RegionsToMeta]): Int = {
@@ -427,16 +497,16 @@ object OperatorManager {
   /*
   * MERGE
   * */
-  def merge(index: Int, groupBy : java.util.List[String]): Int = {
+  def merge(index: Int, groupBy : Option[java.util.List[String]]): Int = {
     // get the corresponding variable
     val v = PythonManager.getVariable(index)
-    val groupByPar : Option[List[String]] = {
-      if(groupBy.size() > 0)
-        Option(groupBy.asScala.toList)
+    val groupByCondition = {
+      if(groupBy.isDefined)
+        Some(getAttributeEvaluationStrategy(groupBy.get.asScala.toList))
       else
         None
     }
-    val nv = v.MERGE(groupByPar)
+    val nv = v.MERGE(groupByCondition)
     // generate new index
     val new_index = PythonManager.putNewVariable(nv)
     new_index

@@ -4,31 +4,14 @@ import java.io.InputStream
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
 import it.polimi.genomics.core.GDMSUserClass.GDMSUserClass
-import it.polimi.genomics.core.{GMQLSchema, GMQLSchemaCoordinateSystem, GMQLSchemaField, GMQLSchemaFormat}
+import it.polimi.genomics.core._
 import it.polimi.genomics.repository.GMQLExceptions._
+import it.polimi.genomics.core.exception.UserExceedsQuota
 
 /**
   * Created by Abdulrahman Kaitoua on 11/04/16.
   */
 trait GMQLRepository {
-
-  /**
-    *
-    *  Import Dataset into GMQL from Local file system.
-    *
-    * @param dataSetName  String of the dataset name.
-    * @param userName String of the user name.
-    * @param Samples List of GMQL samples [[ GMQLSample]].
-    * @param schemaPath String of the path to the xml file of the dataset schema.
-    * @throws GMQLNotValidDatasetNameException
-    * @throws GMQLUserNotFound
-    * @throws java.lang.Exception
-    */
-  @throws(classOf[GMQLDSException])
-  @deprecated
-  def importDs(dataSetName:String, userName:String, Samples:java.util.List[GMQLSample], schemaPath:String)
-
-
 
   /**
     *
@@ -44,7 +27,7 @@ trait GMQLRepository {
     * @throws java.lang.Exception
     */
   @throws(classOf[GMQLDSException])
-  @throws(classOf[GMQLDSExceedsQuota])
+  @throws(classOf[UserExceedsQuota])
   def importDs(dataSetName:String, userName:String, userClass: GDMSUserClass, Samples:java.util.List[GMQLSample], schemaPath:String)
 
 
@@ -89,7 +72,8 @@ trait GMQLRepository {
     * @throws GMQLSampleNotFound
     */
   @throws(classOf[GMQLDSException])
-  def addSampleToDS(dataSet:String, userName:String, Sample:GMQLSample)
+  @throws(classOf[UserExceedsQuota])
+  def addSampleToDS(dataSet:String, userName:String, Sample:GMQLSample, userClass: GDMSUserClass = GDMSUserClass.PUBLIC)
 
   /**
     *
@@ -171,16 +155,6 @@ trait GMQLRepository {
     */
   @throws(classOf[GMQLDSException])
   def DSExistsInPublic( dataSet:String): Boolean
-
-  /**
-    *
-    *  return the statistics (profiling ) of the dataset
-    *
-    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
-    * @return
-    */
-  def getDSStatistics(dataSet:String, userName:String):GMQLStatistics
-
 
   /**
     *
@@ -336,10 +310,9 @@ trait GMQLRepository {
     *
     * @param datasetName
     * @param userName
-    * @param key
-    * @param value
+    * @param metaEntries , a map of key => values entries
     */
-  def setDatasetMeta(datasetName: String, userName: String, key: String, value: String)
+  def setDatasetMeta(datasetName: String, userName: String, metaEntries:Map[String,String])
 
 
   /**
@@ -351,7 +324,7 @@ trait GMQLRepository {
     * @param datasetName dataset name as a string
     * @param userName   the owner of the dataset
     * @return a Map[String, String] containing property_name => value
-   */
+    */
   def getDatasetProfile(datasetName: String, userName: String): Map[String, String]
 
 
@@ -363,10 +336,10 @@ trait GMQLRepository {
     *   Average region length => 123.12
     *
     * @param datasetName dataset name as a string
-    * @param sampleId id of the sample (index 1 .. N)
-    * @param usernName the owner of the dataset
+    * @param sampleName name of the sample (index 1 .. N)
+    * @param userName the owner of the dataset
     */
-  def getSampleProfie(datasetName: String, sampleId: Long, usernName: String)
+  def getSampleProfile(datasetName: String, sampleName: String, userName: String): Map[String, String]
 
 
   // User Class management
@@ -375,9 +348,9 @@ trait GMQLRepository {
     * Returns information about the user disk quota usage
     * @param userName
     * @param userClass
-    * @return (occupied, available) in KBs
+    * @return (occupied, user_quota) in KBs
     */
-  def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Float, Float)
+  def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Long, Long)
 
   /**
     * Boolean value: true if user quota is exceeded
@@ -386,6 +359,19 @@ trait GMQLRepository {
     * @return
     */
   def isUserQuotaExceeded(username: String, userClass: GDMSUserClass): Boolean
-}
 
+
+  /**
+    * Save a serialized dag to the dag folder for the specified user
+    *
+    * @param userName [[String]] the username
+    * @param serializedDag [[String]] the serialized dag
+    * @param fileName [[String]] the file name of the dag in the folder
+    * @return the resulting location
+    * */
+  def saveDagQuery(userName: String, serializedDag: String, fileName: String): String
+
+  def getInfoStream(dataSetName: String, userName: String): InputStream
+
+  }
 

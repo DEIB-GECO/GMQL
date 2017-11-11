@@ -2,6 +2,7 @@ package it.polimi.genomics.repository
 
 import java.io.{File, FilenameFilter}
 
+import it.polimi.genomics.core.GDMSUserClass
 import it.polimi.genomics.repository.FSRepository.{DFSRepository, LFSRepository}
 import it.polimi.genomics.repository.{Utilities => u}
 import org.apache.log4j.xml.DOMConfigurator
@@ -144,7 +145,7 @@ object RepositoryManager {
             i += 1; i
           }.toString))
         }
-        mr.importDs(args(1), username, samples.asJava,args(2))
+        mr.importDs(dataSetName = args(2),userName = username, userClass = GDMSUserClass.PUBLIC, Samples = samples.asJava, schemaPath = args(2))
 
       //        }catch {
       //          case ex: Throwable => logger.error("trace: "+ex.getMessage)

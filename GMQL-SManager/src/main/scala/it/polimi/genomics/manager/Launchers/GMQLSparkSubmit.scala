@@ -1,10 +1,11 @@
 package it.polimi.genomics.manager.Launchers
 
 /**
-  * @AUTHOR ABDULRAHMAN KAITOUA
+  * @author ABDULRAHMAN KAITOUA
   */
 
 import java.io.{ByteArrayOutputStream, IOException, ObjectOutputStream}
+import java.util
 
 import com.sun.jersey.core.util.Base64
 import it.polimi.genomics.compiler.Operator
@@ -28,6 +29,7 @@ class GMQLSparkSubmit(job:GMQLJob) {
   val HADOOP_CONF_DIR = General_Utilities().HADOOP_CONF_DIR
   val YARN_CONF_DIR =  General_Utilities().HADOOP_CONF_DIR
   val GMQL_HOME = General_Utilities().GMQLHOME
+  val SPARK_UI_PORT = Utilities().SPARK_UI_PORT
 
 
   final val GMQLjar:String = Utilities().CLI_JAR_local()
@@ -67,54 +69,68 @@ class GMQLSparkSubmit(job:GMQLJob) {
       "YARN_CONF_DIR" -> YARN_CONF_DIR
     )
 
-
-
-    val fsRegDir = FSR_Utilities.gethdfsConfiguration().get("fs.defaultFS")+
-      General_Utilities().getHDFSRegionDir(job.username)
-
     val outDir = job.outputVariablesList.map{x=>
-      val dir = if (General_Utilities().MODE == General_Utilities().HDFS)
-        fsRegDir + x + "/"
-      else General_Utilities().getRegionDir(job.username) + x +"/"
+      val dir = job.renameOutputDirs(x)
       x.substring(job.jobId.length+1)+":::"+dir }.mkString(",")
 
 //    println(outDir)
 
-   val d =  new SparkLauncher(env.asJava)
+    var d =  new SparkLauncher(env.asJava)
       .setSparkHome(SPARK_HOME)
       .setAppResource(GMQLjar)
       .setMainClass(MASTER_CLASS)
+      .setConf("spark.ui.port", SPARK_UI_PORT.toString)
+      .setConf("spark.driver.extraClassPath", Utilities().lib_dir_local + "/libs/*")
+      //.setConf("spark.executor.extraClassPath", Utilities().lib_dir_local + "/*")
       .addAppArgs("-username", job.username,
-        "-script", job.script.script/*serializeDAG(job.operators)*/,
-        "-scriptpath", job.script.scriptPath,
-        "-inputDirs",job.inputDataSets.map{x =>x._1+":::"+x._2+"/"}.mkString(","),
+        //"-script", job.script.script/*serializeDAG(job.operators)*/,
+        //"-scriptpath", job.script.scriptPath,
+        //"-inputDirs",job.inputDataSets.map{x =>x._1+":::"+x._2+"/"}.mkString(","),
         //TODO: Check how to get the schema path from the repository manager.
 //        "-schemata",job.inputDataSets.map(x => x._2+":::"+getSchema(job,x._1)).mkString(","),
         "-jobid", job.jobId,
         "-outputFormat",job.gMQLContext.outputFormat.toString,
         "-outputCoordinateSystem", job.gMQLContext.outputCoordinateSystem.toString,
-        "-outputDirs", outDir,
+        //"-outputDirs", outDir,
         "-logDir",General_Utilities().getLogDir(job.username))
       .setConf("spark.app.id", APPID)
+    if(job.script.script != null && job.script.script != "") {
+      d = d.addAppArgs("-script", job.script.script)
+    }
+    if(job.script.scriptPath != null && job.script.scriptPath != "") {
+      d = d.addAppArgs("-scriptpath", job.script.scriptPath)
+    }
+    if(job.inputDataSets.nonEmpty) {
+      d = d.addAppArgs("-inputDirs",job.inputDataSets.map{x =>x._1+":::"+x._2+"/"}.mkString(","))
+      d = d.addAppArgs("-schemata",job.inputDataSets.map(x => x._2+":::"+getSchema(job,x._1)).mkString(","))
+    }
+    if(outDir.nonEmpty){
+      d = d.addAppArgs("-outputDirs", outDir)
+    }
 
-      //These configurations are now taken from the defaults of Spark system (or spark/conf/Spark-defaults.conf file).
-/*      .setConf("spark.driver.memory", DRIVER_MEM)
-      .setConf("spark.akka.frameSize", "200")
-      .setConf("spark.executor.memory", EXECUTOR_MEM)
-      .setConf("spark.executor.instances", NUM_EXECUTORS)
-      .setConf("spark.executor.cores", CORES)
-      .setConf("spark.default.parallelism", DEFAULT_PARALLELISM)
-      .setConf("spark.driver.allowMultipleContexts", "true")
-      .setConf("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-      .setConf("spark.kryoserializer.buffer", "64")
-      .setConf("spark.rdd.compress","true")
-      .setConf("spark.akka.threads","8")
-        .setConf("spark.yarn.am.memory","4g") // instead of driver.mem when yarn client mode
-        .setConf("spark.yarn.am.memoryOverhead","600") // instead of spark.yarn.driver.memoryOverhead when client mode
-        .setConf("spark.yarn.executor.memoryOverhead","600")*/
-      .setVerbose(true)
-      .startApplication()
-    d
+    if(job.script.dag != null && job.script.dag != "") {
+      d = d.addAppArgs("-dag", job.script.dag)
+    }
+    if(job.script.dagPath != null && job.script.dagPath != "") {
+      d = d.addAppArgs("-dagpath", job.script.dagPath)
+    }
+
+    //d=d.setConf("spark.executor.extraJavaOptions", "-Dlog4j.configuration=file:/Users/canakoglu/GMQL-sources/temp/GMQL/GMQL-Core/src/main/resources/logback.xml")
+
+
+
+
+
+
+
+    // Assign maximum number of executors according to the user category
+    if( Utilities().USER_EXECUTORS.contains(job.gMQLContext.userClass) ) {
+      d = d.setConf("spark.cores.max", Utilities().USER_EXECUTORS(job.gMQLContext.userClass).toString)
+    }
+
+    val b = d.setVerbose(true).startApplication()
+
+    b
   }
 
   /**
@@ -132,26 +148,26 @@ class GMQLSparkSubmit(job:GMQLJob) {
     Source.fromFile(General_Utilities().getSchemaDir(user)+DS+".schema").getLines().mkString("")
   }
 
-  /**
-    * Serialize GMQL DAG
-    *
-    * TODO: DAG serialization is Not used currently, instead we are sending the script as a parameter
-    * @param dag input as a List of [[ Operator]]
-    * @return String as the serialization of the DAG
-    */
-  def serializeDAG(dag: List[Operator]): String = {
-    try {
-      val mylist =  new java.util.ArrayList[Operator]
-      for(i <- dag) mylist.add(i)
-
-      val byteArrayOutputStream = new ByteArrayOutputStream();
-      val objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
-      objectOutputStream.writeObject(mylist);
-      objectOutputStream.close();
-      new String(Base64.encode(byteArrayOutputStream.toByteArray()));
-
-    } catch {
-      case io: IOException => io.printStackTrace(); "none"
-    }
-  }
+//  /**
+//    * Serialize GMQL DAG
+//    *
+//    * TODO: DAG serialization is Not used currently, instead we are sending the script as a parameter
+//    * @param dag input as a List of [[ Operator]]
+//    * @return String as the serialization of the DAG
+//    */
+//  def serializeDAG(dag: List[Operator]): String = {
+//    try {
+//      val mylist =  new java.util.ArrayList[Operator]
+//      for(i <- dag) mylist.add(i)
+//
+//      val byteArrayOutputStream = new ByteArrayOutputStream();
+//      val objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
+//      objectOutputStream.writeObject(mylist);
+//      objectOutputStream.close();
+//      new String(Base64.encode(byteArrayOutputStream.toByteArray()));
+//
+//    } catch {
+//      case io: IOException => io.printStackTrace(); "none"
+//    }
+//  }
 }

@@ -42,6 +42,11 @@
             <artifactId>GMQL-Spark</artifactId>
             <version>4.0</version>
         </dependency>
+        <!--<dependency>-->
+            <!--<groupId>it.polimi.genomics</groupId>-->
+            <!--<artifactId>GMQL-Cli</artifactId>-->
+            <!--<version>2.0</version>-->
+        <!--</dependency>-->
     </dependencies>
 
     <build>
@@ -109,6 +114,30 @@
             <!--</executions>-->
             <!--</plugin>-->
 
+            <!--<plugin>-->
+                <!--<artifactId>maven-assembly-plugin</artifactId>-->
+                <!--<version>2.4.1</version>-->
+                <!--<configuration>-->
+                    <!--<descriptorRefs>-->
+                        <!--<descriptorRef>jar-with-dependencies</descriptorRef>-->
+                    <!--</descriptorRefs>-->
+                    <!--<archive>-->
+                        <!--<manifestEntries>-->
+                            <!--<Main-Class>it.polimi.genomics.pythonapi.EntryPoint</Main-Class>-->
+                        <!--</manifestEntries>-->
+                    <!--</archive>-->
+                <!--</configuration>-->
+                <!--<executions>-->
+                    <!--<execution>-->
+                        <!--<id>make-assembly</id>-->
+                        <!--<phase>package</phase>-->
+                        <!--<goals>-->
+                            <!--<goal>single</goal>-->
+                        <!--</goals>-->
+                    <!--</execution>-->
+                <!--</executions>-->
+            <!--</plugin>-->
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -134,6 +163,11 @@
                     </execution>
                 </executions>
                 <configuration>
+                    <!--This is needed because GMQL-Repository and GMQL-Spark both use Hadoop configurations
+                    therefore we need to merge the sources of Hadoop code-->
+                    <transformers>
+                        <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                    </transformers>
                     <filters>
                         <filter>
                             <artifact>*:*</artifact>

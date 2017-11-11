@@ -6,9 +6,9 @@ import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParamet
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction._
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.{NoTop, TopParameter}
 import it.polimi.genomics.core.DataStructures.GroupRDParameters.GroupingParameter
-import it.polimi.genomics.core.DataStructures.JoinParametersRD.JoinQuadruple
+import it.polimi.genomics.core.DataStructures.JoinParametersRD.{JoinQuadruple, RegionBuilder}
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
-import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaExtension
+import it.polimi.genomics.core.DataStructures.MetaAggregate.{MetaAggregateFunction, MetaExtension}
 import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition.{AttributeEvaluationStrategy, MetaJoinCondition}
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
@@ -24,7 +24,7 @@ import it.polimi.genomics.core.ParsingType.PARSING_TYPE
   * @param regionDag Dag (series of operations) to build the region data of the variable
   * @param schema the schema of the new generate variable
   */
-@SerialVersionUID(0L)
+@SerialVersionUID(1000L)
 case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
                       schema : List[(String, PARSING_TYPE)] = List.empty) (implicit binS : BinningParameter) extends Serializable{
 
@@ -183,7 +183,7 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
   /** Group by with both meta grouping and region grouping
     */
   def GROUP(meta_keys : Option[MetaGroupByCondition] = None,
-            meta_aggregates : Option[List[RegionsToMeta]] = None,
+            meta_aggregates : Option[List[MetaAggregateFunction]] = None,
             meta_group_name : String = "_group",
             region_keys : Option[List[GroupingParameter]],
             region_aggregates : Option[List[RegionsToRegion]]): IRVariable ={
@@ -199,7 +199,7 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
       new IRVariable(
         IRGroupMD(
           meta_keys.get,
-          meta_aggregates.get,
+          meta_aggregates,
           meta_group_name,
           this.metaDag,
           this.regionDag),
@@ -207,7 +207,7 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
     }
     else{
       val new_region_dag = IRGroupRD(region_keys, region_aggregates, this.regionDag)
-      val new_meta_dag = IRGroupMD(meta_keys.get,meta_aggregates.get, meta_group_name, this.metaDag, new_region_dag)
+      val new_meta_dag = IRGroupMD(meta_keys.get,meta_aggregates, meta_group_name, this.metaDag, new_region_dag)
       new IRVariable (new_meta_dag, new_region_dag)
 
     }
@@ -346,8 +346,20 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
 
     new_region_dag.binSize = binS.size
 
-    val new_schema = this.schema.map(x => (reference_name.getOrElse("left")+"."+x._1,x._2)) ++
-      right_dataset.schema.map(x => (experiment_name.getOrElse("right")+"."+x._1,x._2))
+    val new_schema = region_builder match {
+      case RegionBuilder.LEFT_DISTINCT => this.schema
+      case RegionBuilder.RIGHT_DISTINCT => right_dataset.schema
+      case RegionBuilder.BOTH => this.schema.map(x => (reference_name.getOrElse("left")+"."+x._1,x._2)) ++
+        List(
+          ("chr", ParsingType.STRING),
+          ("start", ParsingType.LONG),
+          ("stop", ParsingType.LONG),
+          ("strand", ParsingType.CHAR)).map(x => (experiment_name.getOrElse("right")+"."+x._1,x._2)) ++
+        right_dataset.schema.map(x => (experiment_name.getOrElse("right")+"."+x._1,x._2))
+      case _ => this.schema.map(x => (reference_name.getOrElse("left")+"."+x._1,x._2)) ++
+        right_dataset.schema.map(x => (experiment_name.getOrElse("right")+"."+x._1,x._2))
+    }
+
     new IRVariable(new_meta_dag, new_region_dag, new_schema)
   }
 

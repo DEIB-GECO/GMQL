@@ -14,6 +14,21 @@
     <build>
         <sourceDirectory>./src/main/scala</sourceDirectory>
 
+
+        <!-- <resources>
+            </!- resource processsing with a different output directory
+                 for logback.xml -/>
+            <resource>
+                <directory>src/main/resources</directory>
+                <includes>
+                    <include>logback.xml</include>
+                </includes>
+                </!- relative to target/classes
+                     i.e. ${project.build.outputDirectory} -/>
+                <targetPath>${project.build.outputDirectory}</targetPath>
+            </resource>
+        </resources> -->
+
         <plugins>
 
             <plugin>
@@ -96,6 +111,28 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <!--&lt;!&ndash;Creates the JAR with dependencies&ndash;&gt;-->
+
+            <!--<plugin>-->
+                <!--<artifactId>maven-assembly-plugin</artifactId>-->
+                <!--<version>2.4.1</version>-->
+                <!--<configuration>-->
+                    <!--<descriptorRefs>-->
+                        <!--<descriptorRef>jar-with-dependencies</descriptorRef>-->
+                    <!--</descriptorRefs>-->
+                <!--</configuration>-->
+                <!--<executions>-->
+                    <!--<execution>-->
+                        <!--<id>make-assembly</id>-->
+                        <!--<phase>package</phase>-->
+                        <!--<goals>-->
+                            <!--<goal>single</goal>-->
+                        <!--</goals>-->
+                    <!--</execution>-->
+                <!--</executions>-->
+            <!--</plugin>-->
+
         </plugins>
     </build>
 </project>
