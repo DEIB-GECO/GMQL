@@ -172,6 +172,25 @@ object PythonManager {
     }
   }
 
+//  def buildParser(delimiter: String, chrPos: Int, startPos: Int, stopPos: Int,
+//                  strandPos: Option[Int], otherPos: Option[java.util.List[java.util.List[String]]]) = {
+//    val convertedOtherPos: Option[Array[(Int, ParsingType.PARSING_TYPE)]] = {
+//      if(otherPos.isDefined)
+//        Some(otherPos.get.map(x => {
+//          val xAsList = x.asScala.toList
+//          val pos = xAsList.get(0).toInt // get the position
+//          val name = xAsList.get(1)  // get the name
+//          val t = getParseTypeFromString(xAsList.get(2))  // get the PARSING_TYPE
+//          (pos, t)
+//        }).toArray)
+//      else
+//        None
+//    }
+//    val res = new BedParser(delimiter, chrPos, startPos, stopPos, strandPos, convertedOtherPos)
+//
+//  }
+
+  @deprecated
   def buildParser(delimiter: String, chrPos: Int, startPos: Int, stopPos: Int, strandPos: Int,
                   otherPos: java.util.List[java.util.List[String]]) : BedParser =
   {
