@@ -1,6 +1,6 @@
 package it.polimi.genomics.GMQLServer
 
-import it.polimi.genomics.core.DataStructures.IRVariable
+import it.polimi.genomics.core.DataStructures.{IROperator, IRVariable}
 
 /**
   * Created by Luca Nanni on 16/11/17.
@@ -21,3 +21,27 @@ trait GMQLOptimizer {
   def optimize(dag: List[IRVariable]) : List[IRVariable] = dag
 
 }
+
+class DAGTree(root: DAGNode) {
+  def getLeaves = root.getLeaves
+
+  def getNodes = root.getNodes
+}
+
+class DAGNode(val value: IROperator, val parents: List[DAGNode]){
+  def getLeaves: List[DAGNode] = {
+    if(this.parents.nonEmpty){
+      this.parents.flatMap(x => x.getLeaves)
+    }
+    else {
+      List(this)
+    }
+  }
+
+  def getNodes: List[DAGNode] = {
+    List(this) :: this.parents.flatMap(x => x.getNodes))
+    //TODO: finish
+  }
+}
+
+
