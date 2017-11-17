@@ -480,7 +480,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     * @return GMQL Job ID as a string
     */
   def generateJobId(username: String, queryname: String): String = {
-    "job_" + queryname.toLowerCase() + "_" + username + "_" + date
+    queryname.toLowerCase() +  "_" + date
   }
 
 }
