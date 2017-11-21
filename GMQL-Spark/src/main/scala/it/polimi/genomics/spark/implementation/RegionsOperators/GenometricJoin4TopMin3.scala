@@ -198,7 +198,8 @@ object GenometricJoin4TopMin3 {
         }
 
       val res: RDD[GRECORD] =
-        if (secondRoundParameters.max.isDefined || secondRoundParameters.min.isDefined || secondRoundParameters.stream.isDefined) {
+        if (secondRoundParameters.max.isDefined || secondRoundParameters.min.isDefined ||
+          (secondRoundParameters.stream.isDefined && (secondRoundParameters.max.isDefined || secondRoundParameters.min.isDefined))) {
           firstRound.flatMap{p=>
             val distance = p._2._11
             if (
