@@ -4,7 +4,6 @@ import java.io.FileNotFoundException
 import java.util.concurrent.atomic.AtomicLong
 
 import it.polimi.genomics.GMQLServer.{DefaultRegionsToMetaFactory, DefaultRegionsToRegionFactory, GmqlServer}
-import it.polimi.genomics.compiler.RegionPredicateTemp
 import it.polimi.genomics.core.DataStructures.CoverParameters._
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor.GMQL_DATASET
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.Direction
@@ -16,14 +15,13 @@ import it.polimi.genomics.core.DataStructures.{IRDataSet, IROperator, IRReadMD, 
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition._
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
 import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionFunction, RegionsToMeta, RegionsToRegion}
-import it.polimi.genomics.core.DataStructures.RegionCondition.{ChrCondition, REG_OP, RegionCondition}
+import it.polimi.genomics.core.DataStructures.RegionCondition.{ChrCondition, RegionCondition}
 import it.polimi.genomics.core.{GValue, _}
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.loaders._
 import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
-import sun.awt.image.PNGImageDecoder.Chromaticities
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
@@ -35,7 +33,7 @@ import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 object Wrapper {
 
   var GMQL_server: GmqlServer = _
-  var GMQL_executor: GMQLSparkExecutor = _
+  //var GMQL_executor: GMQLSparkExecutor = _
   var Spark_context: SparkContext = _
   var change_processing_possible= true
   var remote_processing: Boolean = false
@@ -98,8 +96,8 @@ object Wrapper {
 
     outputformat = outputFormat(output_format)
 
-    GMQL_executor = new GMQLSparkExecutor(sc = Spark_context, outputFormat = outputformat)
-    GMQL_server = new GmqlServer(GMQL_executor)
+    val executor = new GMQLSparkExecutor(sc = Spark_context, outputFormat = outputformat)
+    GMQL_server = new GmqlServer(executor)
 
     if (GMQL_server == null) {
       println("GMQL Server is down")
@@ -143,7 +141,7 @@ object Wrapper {
   def readDataset(data_input_path: String, parser_name: String, is_local: Boolean, is_GMQL:Boolean,
                   schema: Array[Array[String]],path_schema_XML:String): Array[String] =
   {
-    //var parser: BedParser = null
+    var parser: BedParser = null
     var out_p = ""
     var loc_path=""
     var remote_path=""
@@ -157,12 +155,9 @@ object Wrapper {
       if(last_name != "files")
         data_path = data_path + "/files"
     }
-    //println(data_path)
+    //val parser = GMQL_executor.getParser(parser_name.toLowerCase,path_schema_XML).asInstanceOf[BedParser]
 
-
-    val parser = GMQL_executor.getParser(parser_name.toLowerCase,path_schema_XML).asInstanceOf[BedParser]
-
-    /*parser_name match {
+    parser_name match {
       case "BEDPARSER" => parser = BedParser
       case "ANNPARSER" => parser = ANNParser
       case "BROADPROJPARSER" => parser = BroadProjParser
@@ -189,7 +184,7 @@ object Wrapper {
         }
       }
       case _ => return Array("1","No parser defined")
-    }*/
+    }
 
     if(is_local) {
       loc_path = data_path
@@ -236,7 +231,6 @@ object Wrapper {
         }
       }
     }
-
 
     val parser = new BedParser("\t", chr_index, start_index, end_index, Some(strand_index), Some(schemaList.toArray))
     parser.schema = schemaList_name.toList
@@ -1151,33 +1145,34 @@ object Wrapper {
     rest_manager.service_token = "cd754c8f-edce-4849-8506-6294604a33b4"
 
     initGMQL("GTF",false)
-    var schema = Array(Array("chr","STRING"),
+
+    /*var schema = Array(Array("chr","STRING"),
       Array("left","LONG"),
       Array("right","LONG"),
       Array("name","STRING"),
       Array("score","DOUBLE"),
       Array("strand","STRING"))
-    //val r = readDataset("/Users/simone/Desktop/Example_Dataset_1-2/Example_Dataset_2","CUSTOMPARSER",true,true,null,"/Users/simone/Desktop/Example_Dataset_1-2/Example_Dataset_2/files/dataset_2.schema")
-    //var TSS = select(null, "chr > 1 ",null,r1(1));
-
-   /* val p = new CustomParser()
-    p.setSchema("/Users/simone/Desktop/Example_Dataset_1-2/Example_Dataset_2/files/dataset_2.schema")
+    var TSS = select(null, "chr == 2",null,r(1));
 */
 
-    val schema1 = "/Users/simone/Desktop/Example_Dataset_1-2/Example_Dataset_2/files/dataset_2.schema"
-    val p = GMQL_executor.getParser("customparser", schema1).asInstanceOf[BedParser]
-    val r = GMQL_server.READ("/Users/simone/Desktop/Example_Dataset_1-2/Example_Dataset_2/files").USING(p)
+    val dataset  = "/Users/simone/Desktop/Example_Dataset_1-2/Example_Dataset_2"
+    val schemaXML  = "/Users/simone/Desktop/Example_Dataset_1-2/Example_Dataset_2/files/dataset_2.schema"
+    val dir_out = "/Users/simone/Downloads"
+    val parser = (new CustomParser).setSchema(schemaXML)
+    //val r = GMQL_server.READ(dataset).USING(parser)
 
+    val r = readDataset(dataset,"CUSTOMPARSER",true,true,null,schemaXML)
 
-    val reg_con: RegionCondition = ChrCondition("2")
+    val s = select(null,"chr == chr2 AND strand == . ",null,r(1))
 
-    val reg = r.SELECT(reg_con)
-
-    GMQL_server setOutputPath "/Users/simone/Downloads" MATERIALIZE reg
-    materialize_count.getAndIncrement()
-
-    // materialize(TSS(1),"/Users/simone/Downloads")
+    //val s = r1.SELECT(reg_cond)
+    materialize(s(1),dir_out)
+    //GMQL_server setOutputPath dir_out MATERIALIZE s
+    //materialize_count.getAndIncrement()
     execute()
+
+
+
   }
 
 

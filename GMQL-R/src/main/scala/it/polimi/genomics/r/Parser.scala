@@ -37,7 +37,8 @@ class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
         else{
           x.drop(1).dropRight(1).replace("\\\"","\"")
         }*/
-    })
+    } | """[a-zA-Z0-9_\\*\\+\\-]+""".r ^^{x => x} )
+
 
   val meta_attribute:Parser[String] = rep1sep(ident, ".") ^^ {_.mkString(".")}
 
@@ -56,12 +57,14 @@ class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
       x._1
     else
       x._1 + " AND " + x._2.mkString}
+
   val expr:Parser[String] = term ~ (("OR" ~> term)*) ^^ { x =>
     if (x._2.isEmpty)
       x._1
     else
       x._1 + " OR " + x._2.mkString
   }
+
 
   val cover_exp:Parser[String] = "ALL" ~> "+" ~> wholeNumber ~ ( "/" ~> wholeNumber) ^^ {
     x => "(ALL + " + x._1.toInt + ")" +"/" + x._2.toInt } |
