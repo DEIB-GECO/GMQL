@@ -373,8 +373,8 @@ object GenometricCover {
       if(startBin==stopBin) {
         List(((x._2, startBin, x._1,x._5), HashMap((x._3 - startBin * binSize).toInt -> 1, (x._4 - startBin * binSize).toInt -> -1)))
       } else{
-        val map_start  = ((x._2,startBin,x._1,x._5),HashMap((x._3 - startBin * binSize).toInt -> 1, binSize.toInt -> -1))
-        val map_stop   = ((x._2,stopBin, x._1,x._5),HashMap((x._4 - stopBin  * binSize).toInt -> -1, 0 -> 1))
+        val map_start  = ((x._2,startBin,x._1,x._5),HashMap((if (x._3 - startBin * binSize != binSize)x._3 - startBin * binSize else binSize-1).toInt -> 1, binSize.toInt -> -1))
+        val map_stop   = ((x._2,stopBin, x._1,x._5),HashMap(( if(x._4 - stopBin  * binSize !=0) x._4 - stopBin  * binSize else 1).toInt -> -1, 0 -> 1))
         val map_int = for (i <- startBin+1 to stopBin-1) yield (( x._2, i,x._1, x._5), HashMap(0->1,binSize.toInt-> -1))
 
         List(map_start, map_stop) ++ map_int

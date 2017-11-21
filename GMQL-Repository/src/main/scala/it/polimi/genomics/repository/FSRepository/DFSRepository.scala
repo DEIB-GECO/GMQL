@@ -34,7 +34,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     * @param GMQLScriptPath The path to the script text file that generated this data set.
     * @param schemaType One of GMQL schema types as shown in [[ GMQLSchemaFormat]]
     */
-  override def createDs(dataSet:IRDataSet, userName: String, Samples: java.util.List[GMQLSample], GMQLScriptPath: String,schemaType:GMQLSchemaFormat.Value, schemaCoordinateSystem:GMQLSchemaCoordinateSystem.Value): Unit = {
+  override def createDs(dataSet:IRDataSet, userName: String, Samples: java.util.List[GMQLSample], GMQLScriptPath: String,schemaType:GMQLSchemaFormat.Value, schemaCoordinateSystem:GMQLSchemaCoordinateSystem.Value,dsmeta: Map[String, String]): Unit = {
 
     val dsname = dataSet.position
 
@@ -71,12 +71,11 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     // Add dataset meta
     val dssize_str= "%.2f".format(dssize) + " MB"
     val date = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date());
-    val meta = Map("Creation date" -> date, "Created by" -> userName, "Size" -> dssize_str)
+    val meta = Map("Creation date" -> date, "Created by" -> userName, "Size" -> dssize_str)  ++ dsmeta
 
-    setDatasetMeta(dsname, userName, meta)
 
     // Create DS as a set of XML files in the local repository
-    super.createDs(dataSet, userName, samples, GMQLScriptPath, schemaType, schemaCoordinateSystem)
+    super.createDs(dataSet, userName, samples, GMQLScriptPath, schemaType, schemaCoordinateSystem,meta)
 
     //clean the temp Directory
     tmpFolder.delete()

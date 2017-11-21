@@ -44,7 +44,7 @@ trait GMQLRepository {
     * @throws it.polimi.genomics.repository.GMQLExceptions.GMQLSampleNotFound
     */
   @throws(classOf[GMQLDSException])
-  def createDs(dataSet:IRDataSet, userName:String, Samples:java.util.List[GMQLSample], GMQLScriptPaht:String = "ROOT_DS",schemaType:GMQLSchemaFormat.Value=GMQLSchemaFormat.TAB, schemaCoordinateSystem:GMQLSchemaCoordinateSystem.Value=GMQLSchemaCoordinateSystem.ZeroBased)
+  def createDs(dataSet:IRDataSet, userName:String, Samples:java.util.List[GMQLSample], GMQLScriptPaht:String = "ROOT_DS",schemaType:GMQLSchemaFormat.Value=GMQLSchemaFormat.TAB, schemaCoordinateSystem:GMQLSchemaCoordinateSystem.Value=GMQLSchemaCoordinateSystem.ZeroBased, dsmeta: Map[String, String])
 
 
   /**

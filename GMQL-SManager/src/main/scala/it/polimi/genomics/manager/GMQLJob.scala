@@ -39,10 +39,14 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
   private final val date: String = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
 
 
-  def jobId: String = {
+  def queryName: String = {
     val fileName = new java.io.File(script.scriptPath).getName
     val name = if(fileName.indexOf(".") > 0) fileName.substring(0, fileName.indexOf(".")) else fileName
-    generateJobId(username,name)
+    name
+  }
+
+  def jobId: String = {
+    generateJobId(username,queryName)
   }
 
   private final val logger: Logger = LoggerFactory.getLogger(this.getClass);
@@ -375,6 +379,10 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     if (!outputVariablesList.isEmpty) {
       try {
 
+
+        // Compute some execution-related dataset metadata
+        val dsmeta = Map( "Query name"->this.queryName)
+
         outputVariablesList.map { ds =>
 
           val (samples, sch) = repositoryHandle.listResultDSSamples(ds + "/exp/", this.username)
@@ -388,7 +396,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
             if(gMQLContext.outputFormat.equals(GMQLSchemaFormat.GTF))GMQLSchemaFormat.GTF else GMQLSchemaFormat.TAB,
             if(gMQLContext.outputCoordinateSystem.equals(GMQLSchemaCoordinateSystem.ZeroBased))GMQLSchemaCoordinateSystem.ZeroBased
             else if (gMQLContext.outputCoordinateSystem.equals(GMQLSchemaCoordinateSystem.OneBased)) GMQLSchemaCoordinateSystem.OneBased
-            else GMQLSchemaCoordinateSystem.Default)
+            else GMQLSchemaCoordinateSystem.Default, dsmeta)
         }
         elapsedTime.createDsTime = System.currentTimeMillis() - dsCreationTimestamp
         logger.info("DataSet creation Time: " + (elapsedTime.createDsTime/1000))
@@ -480,7 +488,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     * @return GMQL Job ID as a string
     */
   def generateJobId(username: String, queryname: String): String = {
-    "job_" + queryname.toLowerCase() + "_" + username + "_" + date
+    queryname.toLowerCase() +  "_" + date
   }
 
 }
