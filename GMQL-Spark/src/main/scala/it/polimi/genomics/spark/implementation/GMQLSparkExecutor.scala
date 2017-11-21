@@ -201,10 +201,10 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
               case _ => SelectMD(this, metaCondition, inputDataset, sc)
             }
           case IRPurgeMD(regionDataset, inputDataset) => inputDataset match{
-            case IRSelectMD(metaCondition1, inputDataset1) => inputDataset1 match{
-              case IRReadMD(path, loader,_) => SelectIMDWithNoIndex(this,metaCondition1,path,loader, sc)
-              case _ => SelectMD(this, metaCondition1, inputDataset1, sc)
-            }
+//            case IRSelectMD(metaCondition1, inputDataset1) => inputDataset1 match{
+//              case IRReadMD(path, loader,_) => SelectIMDWithNoIndex(this,metaCondition1,path,loader, sc)
+//              case _ => SelectMD(this, metaCondition1, inputDataset1, sc)
+//            }
             case _ => PurgeMD(this, regionDataset, inputDataset, sc)
           }
           case IRSemiJoin(externalMeta: MetaOperator, joinCondition: MetaJoinCondition, inputDataset: MetaOperator) => SemiJoinMD(this, externalMeta, joinCondition, inputDataset, sc)

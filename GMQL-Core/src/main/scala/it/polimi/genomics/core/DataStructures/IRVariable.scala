@@ -97,6 +97,9 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
       new_region_dag = new IRSelectRD(region_condition, Some(new_meta_dag), this.regionDag)
     }
 
+   if( region_condition.isDefined)
+     new_meta_dag = new IRPurgeMD(new_region_dag,new_meta_dag)
+
     new IRVariable(new_meta_dag, new_region_dag,this.schema)
 
   }
