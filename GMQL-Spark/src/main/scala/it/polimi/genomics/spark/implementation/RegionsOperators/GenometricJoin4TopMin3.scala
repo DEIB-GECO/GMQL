@@ -447,7 +447,9 @@ object GenometricJoin4TopMin3 {
 
   def distanceCalculator(a : (Long, Long), b : (Long, Long)) : Long = {
     // b to right of a
-    if(b._1 >= a._2){
+    if(a._1>b._1 && a._2<b._2) //a is contained in b
+      Math.min(a._1-b._2, b._1 -a._2)
+    else if(b._1 >= a._2){
       b._1 - a._2
     } else if(b._2 <= a._1) a._1 - b._2
     else {
