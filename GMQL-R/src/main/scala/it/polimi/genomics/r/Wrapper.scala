@@ -4,6 +4,7 @@ import java.io.FileNotFoundException
 import java.util.concurrent.atomic.AtomicLong
 
 import it.polimi.genomics.GMQLServer.{DefaultRegionsToMetaFactory, DefaultRegionsToRegionFactory, GmqlServer}
+import it.polimi.genomics.compiler.RegionPredicateTemp
 import it.polimi.genomics.core.DataStructures.CoverParameters._
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor.GMQL_DATASET
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.Direction
@@ -15,13 +16,14 @@ import it.polimi.genomics.core.DataStructures.{IRDataSet, IROperator, IRReadMD, 
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition._
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
 import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionFunction, RegionsToMeta, RegionsToRegion}
-import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
+import it.polimi.genomics.core.DataStructures.RegionCondition.{ChrCondition, REG_OP, RegionCondition}
 import it.polimi.genomics.core.{GValue, _}
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.loaders._
 import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
+import sun.awt.image.PNGImageDecoder.Chromaticities
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
@@ -33,6 +35,7 @@ import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 object Wrapper {
 
   var GMQL_server: GmqlServer = _
+  var GMQL_executor: GMQLSparkExecutor = _
   var Spark_context: SparkContext = _
   var change_processing_possible= true
   var remote_processing: Boolean = false
@@ -95,8 +98,8 @@ object Wrapper {
 
     outputformat = outputFormat(output_format)
 
-    val executor = new GMQLSparkExecutor(sc = Spark_context, outputFormat = outputformat)
-    GMQL_server = new GmqlServer(executor)
+    GMQL_executor = new GMQLSparkExecutor(sc = Spark_context, outputFormat = outputformat)
+    GMQL_server = new GmqlServer(GMQL_executor)
 
     if (GMQL_server == null) {
       println("GMQL Server is down")
@@ -108,6 +111,9 @@ object Wrapper {
   }
 
   def remote_processing(remote: Boolean): String = {
+
+    if(GMQL_server==null)
+      return "invoke init_gmql() first"
 
     if(change_processing_possible)
     {
@@ -135,9 +141,9 @@ object Wrapper {
   }
 
   def readDataset(data_input_path: String, parser_name: String, is_local: Boolean, is_GMQL:Boolean,
-                  schema: Array[Array[String]]): Array[String] =
+                  schema: Array[Array[String]],path_schema_XML:String): Array[String] =
   {
-    var parser: BedParser = null
+    //var parser: BedParser = null
     var out_p = ""
     var loc_path=""
     var remote_path=""
@@ -153,7 +159,10 @@ object Wrapper {
     }
     //println(data_path)
 
-    parser_name match {
+
+    val parser = GMQL_executor.getParser(parser_name.toLowerCase,path_schema_XML).asInstanceOf[BedParser]
+
+    /*parser_name match {
       case "BEDPARSER" => parser = BedParser
       case "ANNPARSER" => parser = ANNParser
       case "BROADPROJPARSER" => parser = BroadProjParser
@@ -165,21 +174,22 @@ object Wrapper {
         {
           parser = new CustomParser()
           try {
-            parser.asInstanceOf[CustomParser].setSchema(data_path)
+            parser.asInstanceOf[CustomParser].setSchema(path_schema_XML)
           }
           catch {
             case fe: FileNotFoundException => return Array("1",fe.getMessage)
           }
         }
         else {
-          if (schema != null)
+          if (schema != null) {
             parser = createParser(schema)
+          }
           else
             return Array("1","No schema defined")
         }
       }
       case _ => return Array("1","No parser defined")
-    }
+    }*/
 
     if(is_local) {
       loc_path = data_path
@@ -209,22 +219,27 @@ object Wrapper {
     var end_index = 0
     var strand_index = 0
     val schemaList = new ListBuffer[(Int, ParsingType.PARSING_TYPE)]()
+    val schemaList_name = new ListBuffer[(String, ParsingType.PARSING_TYPE)]()
 
     for (i <- 0 until schema.length) {
       var name = schema(i)(0)
       var parse_type = schema(i)(1)
       name match {
         case "seqnames" | "chr" => chr_index = i
-        case "start" | "lefg" => start_index = i
+        case "start" | "left" => start_index = i
         case "end" | "right" => end_index = i
         case "strand" => strand_index = i
         case _ => {
           var pt = getParsingTypeFromString(parse_type)
           schemaList += ((i, pt))
+          schemaList_name += ((name,pt))
         }
       }
     }
-    var parser = new BedParser("\t", chr_index, start_index, end_index, Some(strand_index), Some(schemaList.toArray))
+
+
+    val parser = new BedParser("\t", chr_index, start_index, end_index, Some(strand_index), Some(schemaList.toArray))
+    parser.schema = schemaList_name.toList
     parser
   }
 
@@ -412,23 +427,24 @@ object Wrapper {
   /*GMQL OPERATION*/
 
   def select(predicate: String, region_predicate: String, semi_join: Array[Array[String]],
-             semi_join_dataset: String, semi_join_neg:Boolean, input_dataset: String): Array[String] = {
+             input_dataset: String): Array[String] = {
 
     if (vv.get(input_dataset).isEmpty)
       return Array("1","No valid Data as input")
 
     val dataAsTheyAre = vv(input_dataset)
 
-
+    /*
     println(region_predicate)
     println(predicate)
-
+    */
     var semiJoinDataAsTheyAre: IRVariable = null
     var semi_join_metaDag: Option[MetaOperator] = None
+    var semi_join_list:Option[MetaJoinCondition]= None
+
     var selected_meta: (String, Option[MetadataCondition]) = ("", None)
     var selected_regions: (String, Option[RegionCondition]) = ("", None)
     val parser = new Parser(dataAsTheyAre, GMQL_server)
-    var semi_join_list:Option[MetaJoinCondition]=None
 
     if (predicate != null) {
       val str_predicate = parser.findAndChange(predicate)
@@ -444,17 +460,23 @@ object Wrapper {
         return Array("1",selected_regions._1)
     }
 
-    if(semi_join!=null){
-      semi_join_list= MetaJoinConditionList_with_neg(semi_join,semi_join_neg)
+    if(semi_join!=null)
+    {
+      val semijoin_data  = semi_join(0)(0)
+      if (vv.get(semijoin_data).isEmpty)
+        return Array("1","No valid Data as semijoin")
+
+      semiJoinDataAsTheyAre = vv(semijoin_data)
+      val not_in = semi_join(0)(1)
+      val semi_join_neg = not_in match{
+        case "TRUE" => true
+        case "FALSE" => false
+      }
+      val semi_join_cond = semi_join.drop(1)
+      semi_join_list= MetaJoinConditionList_with_neg(semi_join_cond,semi_join_neg)
       if (semi_join_list.isEmpty)
-        return Array("1","No valid condition in semi join")
+        return Array("1","No valid condition in semijoin")
 
-      if (semi_join_list.isDefined) {
-        if (vv.get(semi_join_dataset.toString).isEmpty)
-          return Array("1","No valid Data as semi join input")
-    }
-
-      semiJoinDataAsTheyAre = vv(semi_join_dataset.toString)
       semi_join_metaDag = Some(semiJoinDataAsTheyAre.metaDag)
     }
 
@@ -563,36 +585,27 @@ object Wrapper {
     Array("0",out_p)
   }
 
-  def order(meta_order: Array[Array[String]], meta_topg: Int, meta_top: Int, meta_top_perc: Int,
-            region_order: Array[Array[String]], region_topg: Int, region_top: Int, reg_top_perc: Int,
-            input_dataset: String): Array[String] = {
+  def order(meta_order: Array[Array[String]], meta_opt:String, meta_opt_value:Int, reg_opt:String, reg_opt_value:Int,
+            region_order: Array[Array[String]], input_dataset: String): Array[String] = {
 
     if (vv.get(input_dataset).isEmpty)
       return Array("1","No valid Data as input")
 
     val dataAsTheyAre = vv(input_dataset)
 
-    var m_top: TopParameter = NoTop()
-    var r_top: TopParameter = NoTop()
+    var m_top: TopParameter = meta_opt match{
+      case "mtop" =>  Top(meta_opt_value)
+      case "mtopp" => TopP(meta_opt_value)
+      case "mtopg" => TopG(meta_opt_value)
+      case _ => NoTop()
+    }
 
-    if (meta_top > 0)
-      m_top = Top(meta_top)
-
-    if (meta_topg > 0)
-      m_top = TopG(meta_topg)
-
-    if (meta_top_perc > 0)
-      m_top = TopP(meta_top_perc)
-
-    if (region_top > 0)
-      r_top = Top(region_top)
-
-    if (region_topg > 0)
-      r_top = TopG(region_topg)
-
-    if (reg_top_perc > 0)
-      r_top = TopP(reg_top_perc)
-
+    var r_top: TopParameter = reg_opt match{
+      case "rtop" =>  Top(reg_opt_value)
+      case "rtopp" => TopP(reg_opt_value)
+      case "rtopg" => TopG(reg_opt_value)
+      case _ => NoTop()
+    }
 
     val meta_list = meta_order_list(meta_order)
     var reg_ordering: (String, Option[List[(Int, Direction)]]) = ("", None)
@@ -1135,9 +1148,36 @@ object Wrapper {
 
   def main(args: Array[String]): Unit =
   {
+    rest_manager.service_token = "cd754c8f-edce-4849-8506-6294604a33b4"
 
-    Utilities.deserializeDAG("rO0ABXNyADJzY2FsYS5jb2xsZWN0aW9uLmltbXV0YWJsZS5MaXN0JFNlcmlhbGl6YXRpb25Qcm94eQAAAAAAAAABAwAAeHBzcgAxaXQucG9saW1pLmdlbm9taWNzLmNvcmUuRGF0YVN0cnVjdHVyZXMuSVJWYXJpYWJsZQAAAAAAAAAAAgAETAAEYmluU3QATUxpdC9wb2xpbWkvZ2Vub21pY3MvY29yZS9EYXRhU3RydWN0dXJlcy9FeGVjdXRpb25QYXJhbWV0ZXJzL0Jpbm5pbmdQYXJhbWV0ZXI7TAAHbWV0YURhZ3QANUxpdC9wb2xpbWkvZ2Vub21pY3MvY29yZS9EYXRhU3RydWN0dXJlcy9NZXRhT3BlcmF0b3I7TAAJcmVnaW9uRGFndAA3TGl0L3BvbGltaS9nZW5vbWljcy9jb3JlL0RhdGFTdHJ1Y3R1cmVzL1JlZ2lvbk9wZXJhdG9yO0wABnNjaGVtYXQAIUxzY2FsYS9jb2xsZWN0aW9uL2ltbXV0YWJsZS9MaXN0O3hwc3IAS2l0LnBvbGltaS5nZW5vbWljcy5jb3JlLkRhdGFTdHJ1Y3R1cmVzLkV4ZWN1dGlvblBhcmFtZXRlcnMuQmlubmluZ1BhcmFtZXRlcoHDZsE8mnhvAgABTAAEc2l6ZXQADkxzY2FsYS9PcHRpb247eHBzcgALc2NhbGEuTm9uZSRGUCT2U8qUrAIAAHhyAAxzY2FsYS5PcHRpb27+aTf92w5mdAIAAHhwc3IAMWl0LnBvbGltaS5nZW5vbWljcy5jb3JlLkRhdGFTdHJ1Y3R1cmVzLklSU2VsZWN0TUSR+WGIGuz2TwIAAkwADWlucHV0X2RhdGFzZXRxAH4ABEwACW1ldGFfY29uZHQATExpdC9wb2xpbWkvZ2Vub21pY3MvY29yZS9EYXRhU3RydWN0dXJlcy9NZXRhZGF0YUNvbmRpdGlvbi9NZXRhZGF0YUNvbmRpdGlvbjt4cHNyAC9pdC5wb2xpbWkuZ2Vub21pY3MuY29yZS5EYXRhU3RydWN0dXJlcy5JUlJlYWRNRDCZtpgSM1V5AgADTAAHZGF0YXNldHQAMkxpdC9wb2xpbWkvZ2Vub21pY3MvY29yZS9EYXRhU3RydWN0dXJlcy9JUkRhdGFTZXQ7TAAGbG9hZGVydAAkTGl0L3BvbGltaS9nZW5vbWljcy9jb3JlL0dNUUxMb2FkZXI7TAAFcGF0aHNxAH4ABnhwc3IAMGl0LnBvbGltaS5nZW5vbWljcy5jb3JlLkRhdGFTdHJ1Y3R1cmVzLklSRGF0YVNldPhmGMzmJRxfAgACTAAIcG9zaXRpb250ABJMamF2YS9sYW5nL1N0cmluZztMAAZzY2hlbWF0ABBMamF2YS91dGlsL0xpc3Q7eHB0AAdEQVRBU0VUc3IALHNjYWxhLmNvbGxlY3Rpb24uY29udmVydC5XcmFwcGVycyRTZXFXcmFwcGVy41PJHQIukDECAAJMAAYkb3V0ZXJ0ACNMc2NhbGEvY29sbGVjdGlvbi9jb252ZXJ0L1dyYXBwZXJzO0wACnVuZGVybHlpbmd0ABZMc2NhbGEvY29sbGVjdGlvbi9TZXE7eHBzcgAic2NhbGEuY29sbGVjdGlvbi5jb252ZXJ0LldyYXBwZXJzJK60s4os2ryBAgASTAAYRGljdGlvbmFyeVdyYXBwZXIkbW9kdWxldAA2THNjYWxhL2NvbGxlY3Rpb24vY29udmVydC9XcmFwcGVycyREaWN0aW9uYXJ5V3JhcHBlciQ7TAAWSXRlcmFibGVXcmFwcGVyJG1vZHVsZXQANExzY2FsYS9jb2xsZWN0aW9uL2NvbnZlcnQvV3JhcHBlcnMkSXRlcmFibGVXcmFwcGVyJDtMABZJdGVyYXRvcldyYXBwZXIkbW9kdWxldAA0THNjYWxhL2NvbGxlY3Rpb24vY29udmVydC9XcmFwcGVycyRJdGVyYXRvcldyYXBwZXIkO0wAGUpDb2xsZWN0aW9uV3JhcHBlciRtb2R1bGV0ADdMc2NhbGEvY29sbGVjdGlvbi9jb252ZXJ0L1dyYXBwZXJzJEpDb2xsZWN0aW9uV3JhcHBlciQ7TAAcSkNvbmN1cnJlbnRNYXBXcmFwcGVyJG1vZHVsZXQAOkxzY2FsYS9jb2xsZWN0aW9uL2NvbnZlcnQvV3JhcHBlcnMkSkNvbmN1cnJlbnRNYXBXcmFwcGVyJDtMABlKRGljdGlvbmFyeVdyYXBwZXIkbW9kdWxldAA3THNjYWxhL2NvbGxlY3Rpb24vY29udmVydC9XcmFwcGVycyRKRGljdGlvbmFyeVdyYXBwZXIkO0wAGkpFbnVtZXJhdGlvbldyYXBwZXIkbW9kdWxldAA4THNjYWxhL2NvbGxlY3Rpb24vY29udmVydC9XcmFwcGVycyRKRW51bWVyYXRpb25XcmFwcGVyJDtMABdKSXRlcmFibGVXcmFwcGVyJG1vZHVsZXQANUxzY2FsYS9jb2xsZWN0aW9uL2NvbnZlcnQvV3JhcHBlcnMkSkl0ZXJhYmxlV3JhcHBlciQ7TAAXSkl0ZXJhdG9yV3JhcHBlciRtb2R1bGV0ADVMc2NhbGEvY29sbGVjdGlvbi9jb252ZXJ0L1dyYXBwZXJzJEpJdGVyYXRvcldyYXBwZXIkO0wAE0pMaXN0V3JhcHBlciRtb2R1bGV0ADFMc2NhbGEvY29sbGVjdGlvbi9jb252ZXJ0L1dyYXBwZXJzJEpMaXN0V3JhcHBlciQ7TAASSk1hcFdyYXBwZXIkbW9kdWxldAAwTHNjYWxhL2NvbGxlY3Rpb24vY29udmVydC9XcmFwcGVycyRKTWFwV3JhcHBlciQ7TAAZSlByb3BlcnRpZXNXcmFwcGVyJG1vZHVsZXQAN0xzY2FsYS9jb2xsZWN0aW9uL2NvbnZlcnQvV3JhcHBlcnMkSlByb3BlcnRpZXNXcmFwcGVyJDtMABJKU2V0V3JhcHBlciRtb2R1bGV0ADBMc2NhbGEvY29sbGVjdGlvbi9jb252ZXJ0L1dyYXBwZXJzJEpTZXRXcmFwcGVyJDtMABtNdXRhYmxlQnVmZmVyV3JhcHBlciRtb2R1bGV0ADlMc2NhbGEvY29sbGVjdGlvbi9jb252ZXJ0L1dyYXBwZXJzJE11dGFibGVCdWZmZXJXcmFwcGVyJDtMABhNdXRhYmxlTWFwV3JhcHBlciRtb2R1bGV0ADZMc2NhbGEvY29sbGVjdGlvbi9jb252ZXJ0L1dyYXBwZXJzJE11dGFibGVNYXBXcmFwcGVyJDtMABhNdXRhYmxlU2VxV3JhcHBlciRtb2R1bGV0ADZMc2NhbGEvY29sbGVjdGlvbi9jb252ZXJ0L1dyYXBwZXJzJE11dGFibGVTZXFXcmFwcGVyJDtMABhNdXRhYmxlU2V0V3JhcHBlciRtb2R1bGV0ADZMc2NhbGEvY29sbGVjdGlvbi9jb252ZXJ0L1dyYXBwZXJzJE11dGFibGVTZXRXcmFwcGVyJDtMABFTZXFXcmFwcGVyJG1vZHVsZXQAL0xzY2FsYS9jb2xsZWN0aW9uL2NvbnZlcnQvV3JhcHBlcnMkU2VxV3JhcHBlciQ7eHBwcHBwcHBwcHBwcHBwcHBwcHBzcQB+AABzcgAsc2NhbGEuY29sbGVjdGlvbi5pbW11dGFibGUuTGlzdFNlcmlhbGl6ZUVuZCSKXGNb91MLbQIAAHhweHNyADxpdC5wb2xpbWkuZ2Vub21pY3Muc3BhcmsuaW1wbGVtZW50YXRpb24ubG9hZGVycy5DdXN0b21QYXJzZXL4aUcHwz4FWAIAAUwABmxvZ2dlcnQAEkxvcmcvc2xmNGovTG9nZ2VyO3hyADlpdC5wb2xpbWkuZ2Vub21pY3Muc3BhcmsuaW1wbGVtZW50YXRpb24ubG9hZGVycy5CZWRQYXJzZXLQVwF7i2DUQAIADEkABmNoclBvc0kACHN0YXJ0UG9zSQAHc3RvcFBvc0wAEGNvb3JkaW5hdGVTeXN0ZW10ABlMc2NhbGEvRW51bWVyYXRpb24kVmFsdWU7TAAJZGVsaW1pdGVycQB+ABZMAAZsb2dnZXJxAH4ANkwACG90aGVyUG9zcQB+AAlMAAtwYXJzaW5nVHlwZXEAfgA4TAAGc2NoZW1hcQB+AAZMABJzZW1pQ29tbWFEZWxpbWl0ZXJxAH4AFkwADnNwYWNlRGVsaW1pdGVycQB+ABZMAAlzdHJhbmRQb3NxAH4ACXhwAAAAAAAAAAMAAAAEc3IAFXNjYWxhLkVudW1lcmF0aW9uJFZhbM9pZ6/J/O1PAgACSQAYc2NhbGEkRW51bWVyYXRpb24kVmFsJCRpTAAEbmFtZXEAfgAWeHIAF3NjYWxhLkVudW1lcmF0aW9uJFZhbHVlYml8L+0hHVECAAJMAAYkb3V0ZXJ0ABNMc2NhbGEvRW51bWVyYXRpb247TAAcc2NhbGEkRW51bWVyYXRpb24kJG91dGVyRW51bXEAfgA8eHBzcgAzaXQucG9saW1pLmdlbm9taWNzLmNvcmUuR01RTFNjaGVtYUNvb3JkaW5hdGVTeXN0ZW0keBNWtwagJnsCAANMAAdEZWZhdWx0cQB+ADhMAAhPbmVCYXNlZHEAfgA4TAAJWmVyb0Jhc2VkcQB+ADh4cgARc2NhbGEuRW51bWVyYXRpb251oM3dmA5ZjgIACEkABm5leHRJZEkAG3NjYWxhJEVudW1lcmF0aW9uJCRib3R0b21JZEkAGHNjYWxhJEVudW1lcmF0aW9uJCR0b3BJZEwAFFZhbHVlT3JkZXJpbmckbW9kdWxldAAiTHNjYWxhL0VudW1lcmF0aW9uJFZhbHVlT3JkZXJpbmckO0wAD1ZhbHVlU2V0JG1vZHVsZXQAHUxzY2FsYS9FbnVtZXJhdGlvbiRWYWx1ZVNldCQ7TAAIbmV4dE5hbWV0ABtMc2NhbGEvY29sbGVjdGlvbi9JdGVyYXRvcjtMABdzY2FsYSRFbnVtZXJhdGlvbiQkbm1hcHQAHkxzY2FsYS9jb2xsZWN0aW9uL211dGFibGUvTWFwO0wAF3NjYWxhJEVudW1lcmF0aW9uJCR2bWFwcQB+AEN4cAAAAAMAAAAAAAAAA3BwcHNyACBzY2FsYS5jb2xsZWN0aW9uLm11dGFibGUuSGFzaE1hcAAAAAAAAAABAwAAeHB3DQAAAu4AAAAAAAAABAB4c3EAfgBFdw0AAALuAAAAAwAAAAQAc3IAEWphdmEubGFuZy5JbnRlZ2VyEuKgpPeBhzgCAAFJAAV2YWx1ZXhyABBqYXZhLmxhbmcuTnVtYmVyhqyVHQuU4IsCAAB4cAAAAAJzcQB+ADpxAH4ARHEAfgBEAAAAAnQAB2RlZmF1bHRzcQB+AEgAAAABcQB+AD1zcQB+AEgAAAAAc3EAfgA6cQB+AERxAH4ARAAAAAB0AAcwLWJhc2VkeHEAfgBLcQB+AD1xAH4AT3EAfgBEAAAAAXQABzEtYmFzZWR0AAEJc3IAIW9yZy5zbGY0ai5pbXBsLkxvZzRqTG9nZ2VyQWRhcHRlclXN1za94/XRAgABWgAMdHJhY2VDYXBhYmxleHIAJG9yZy5zbGY0ai5oZWxwZXJzLk1hcmtlcklnbm9yaW5nQmFzZX2DsVVOXSebAgAAeHIAIW9yZy5zbGY0ai5oZWxwZXJzLk5hbWVkTG9nZ2VyQmFzZWiSncgcTlV9AgABTAAEbmFtZXEAfgAWeHB0ADlpdC5wb2xpbWkuZ2Vub21pY3Muc3BhcmsuaW1wbGVtZW50YXRpb24ubG9hZGVycy5CZWRQYXJzZXIBc3IACnNjYWxhLlNvbWURIvJpXqGLdAIAAUwAAXh0ABJMamF2YS9sYW5nL09iamVjdDt4cQB+AAx1cgAPW0xzY2FsYS5UdXBsZTI7LswA39FP18ACAAB4cAAAAAlzcgAMc2NhbGEuVHVwbGUyLpRmfVuS+fUCAAJMAAJfMXEAfgBZTAACXzJxAH4AWXhwcQB+AE1zcQB+ADpzcgAkaXQucG9saW1pLmdlbm9taWNzLmNvcmUuUGFyc2luZ1R5cGUkQl8HzDHCBCQCAAZMAARDSEFScQB+ADhMAAZET1VCTEVxAH4AOEwAB0lOVEVHRVJxAH4AOEwABExPTkdxAH4AOEwABE5VTExxAH4AOEwABlNUUklOR3EAfgA4eHEAfgA/AAAABgAAAAAAAAAGcHBwc3EAfgBFdw0AAALuAAAAAAAAAAQAeHNxAH4ARXcNAAAC7gAAAAYAAAAEAHEAfgBKcQB+AF9zcQB+AEgAAAAFc3EAfgA6cQB+AGFxAH4AYQAAAAVwc3EAfgBIAAAABHNxAH4AOnEAfgBhcQB+AGEAAAAEcHEAfgBNc3EAfgA6cQB+AGFxAH4AYQAAAAFwc3EAfgBIAAAAA3NxAH4AOnEAfgBhcQB+AGEAAAADcHEAfgBOc3EAfgA6cQB+AGFxAH4AYQAAAABweHEAfgBqcQB+AGhxAH4Aa3EAfgBncQB+AGVxAH4AX3EAfgBhAAAAAnBzcQB+AF1xAH4ASnEAfgBfc3EAfgBdcQB+AGRxAH4AaHNxAH4AXXNxAH4ASAAAAAdxAH4AX3NxAH4AXXNxAH4ASAAAAAhxAH4AX3NxAH4AXXEAfgBxcQB+AGhzcQB+AF1xAH4AcXEAfgBoc3EAfgBdcQB+AHFxAH4AaHNxAH4AXXEAfgBxcQB+AGhzcQB+ADpzcgApaXQucG9saW1pLmdlbm9taWNzLmNvcmUuR01RTFNjaGVtYUZvcm1hdCRIiJ9S5ssgDgIABEwAB0NPTExFQ1RxAH4AOEwAA0dURnEAfgA4TAADVEFCcQB+ADhMAANWQ0ZxAH4AOHhxAH4APwAAAAQAAAAAAAAABHBwcHNxAH4ARXcNAAAC7gAAAAAAAAAEAHhzcQB+AEV3DQAAAu4AAAAEAAAABABxAH4ASnNxAH4AOnEAfgB4cQB+AHgAAAACdAADdmNmcQB+AE1xAH4AdnEAfgBpc3EAfgA6cQB+AHhxAH4AeAAAAAN0AAdjb2xsZWN0cQB+AE5zcQB+ADpxAH4AeHEAfgB4AAAAAHQAA3RhYnhxAH4AfXEAfgB2cQB+AH9xAH4Ae3EAfgB4AAAAAXQAA2d0ZnNxAH4AAHNxAH4AXXQABnNvdXJjZXEAfgBfc3EAfgBddAAHZmVhdHVyZXEAfgBfc3EAfgBddAAFc2NvcmVxAH4AaHNxAH4AXXQABWZyYW1lcQB+AF9zcQB+AF10AARuYW1lcQB+AF9zcQB+AF10AAZzaWduYWxxAH4AaHNxAH4AXXQABnB2YWx1ZXEAfgBoc3EAfgBddAAGcXZhbHVlcQB+AGhzcQB+AF10AARwZWFrcQB+AGhxAH4ANHh0AAE7dAABIHNxAH4AWHNxAH4ASAAAAAZzcQB+AFN0ADxpdC5wb2xpbWkuZ2Vub21pY3Muc3BhcmsuaW1wbGVtZW50YXRpb24ubG9hZGVycy5DdXN0b21QYXJzZXIBc3EAfgAAcQB+ABlxAH4ANHhzcgBCaXQucG9saW1pLmdlbm9taWNzLmNvcmUuRGF0YVN0cnVjdHVyZXMuTWV0YWRhdGFDb25kaXRpb24uUHJlZGljYXRlCJiVl8GouosCAANMAA5hdHRyaWJ1dGVfbmFtZXEAfgAWTAAIb3BlcmF0b3JxAH4AOEwABXZhbHVlcQB+AFl4cHQAC1BhdGllbnRfYWdlc3EAfgA6c3IAQWl0LnBvbGltaS5nZW5vbWljcy5jb3JlLkRhdGFTdHJ1Y3R1cmVzLk1ldGFkYXRhQ29uZGl0aW9uLk1FVEFfT1Ak4vrO+qm6KLgCAAZMAAJFUXEAfgA4TAACR1RxAH4AOEwAA0dURXEAfgA4TAACTFRxAH4AOEwAA0xURXEAfgA4TAAFTk9URVFxAH4AOHhxAH4APwAAAAYAAAAAAAAABnBwcHNxAH4ARXcNAAAC7gAAAAAAAAAEAHhzcQB+AEV3DQAAAu4AAAAGAAAABABxAH4ASnEAfgCfcQB+AGRzcQB+ADpxAH4AoXEAfgChAAAABXBxAH4AZnNxAH4AOnEAfgChcQB+AKEAAAAEcHEAfgBNc3EAfgA6cQB+AKFxAH4AoQAAAAFwcQB+AGlzcQB+ADpxAH4AoXEAfgChAAAAA3BxAH4ATnNxAH4AOnEAfgChcQB+AKEAAAAAcHhxAH4AqHEAfgCncQB+AKRxAH4An3EAfgClcQB+AKZxAH4AoQAAAAJwdAACNzBzcgAxaXQucG9saW1pLmdlbm9taWNzLmNvcmUuRGF0YVN0cnVjdHVyZXMuSVJTZWxlY3RSRGKslN119CzQAgADTAANZmlsdGVyZWRfbWV0YXEAfgAJTAANaW5wdXRfZGF0YXNldHEAfgAFTAAIcmVnX2NvbmRxAH4ACXhwc3EAfgBYcQB+ABBzcgAvaXQucG9saW1pLmdlbm9taWNzLmNvcmUuRGF0YVN0cnVjdHVyZXMuSVJSZWFkUkS1MFBDj+QfGQIAA0wAB2RhdGFzZXRxAH4AEkwABmxvYWRlcnEAfgATTAAFcGF0aHNxAH4ABnhwc3EAfgAVcQB+ABlxAH4AHXEAfgA5c3EAfgAAcQB+ABlxAH4ANHhxAH4ADXEAfgCCcQB+ADR4")
+    initGMQL("GTF",false)
+    var schema = Array(Array("chr","STRING"),
+      Array("left","LONG"),
+      Array("right","LONG"),
+      Array("name","STRING"),
+      Array("score","DOUBLE"),
+      Array("strand","STRING"))
+    //val r = readDataset("/Users/simone/Desktop/Example_Dataset_1-2/Example_Dataset_2","CUSTOMPARSER",true,true,null,"/Users/simone/Desktop/Example_Dataset_1-2/Example_Dataset_2/files/dataset_2.schema")
+    //var TSS = select(null, "chr > 1 ",null,r1(1));
 
+   /* val p = new CustomParser()
+    p.setSchema("/Users/simone/Desktop/Example_Dataset_1-2/Example_Dataset_2/files/dataset_2.schema")
+*/
+
+    val schema1 = "/Users/simone/Desktop/Example_Dataset_1-2/Example_Dataset_2/files/dataset_2.schema"
+    val p = GMQL_executor.getParser("customparser", schema1).asInstanceOf[BedParser]
+    val r = GMQL_server.READ("/Users/simone/Desktop/Example_Dataset_1-2/Example_Dataset_2/files").USING(p)
+
+
+    val reg_con: RegionCondition = ChrCondition("2")
+
+    val reg = r.SELECT(reg_con)
+
+    GMQL_server setOutputPath "/Users/simone/Downloads" MATERIALIZE reg
+    materialize_count.getAndIncrement()
+
+    // materialize(TSS(1),"/Users/simone/Downloads")
+    execute()
   }
 
 
