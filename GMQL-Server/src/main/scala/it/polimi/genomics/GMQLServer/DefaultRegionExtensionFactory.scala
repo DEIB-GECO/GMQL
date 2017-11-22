@@ -34,6 +34,8 @@ object DefaultRegionExtensionFactory extends RegionExtensionFactory{
         case REMetaAccessor(_, ParsingType.INTEGER) => ParsingType.INTEGER
         case REMetaAccessor(_, ParsingType.DOUBLE) => ParsingType.DOUBLE
         case REMetaAccessor(_, ParsingType.STRING) => ParsingType.STRING
+        case RESTRAND() => ParsingType.STRING
+        case RECHR() => ParsingType.STRING
         case _ => ParsingType.DOUBLE
       }
     }

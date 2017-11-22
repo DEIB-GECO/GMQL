@@ -5,7 +5,7 @@ import it.polimi.genomics.core.DataStructures.CoverParameters.CoverParam
 import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction._
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.{NoTop, TopParameter}
-import it.polimi.genomics.core.DataStructures.GroupRDParameters.GroupingParameter
+import it.polimi.genomics.core.DataStructures.GroupRDParameters.{FIELD, GroupingParameter}
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.{JoinQuadruple, RegionBuilder}
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
 import it.polimi.genomics.core.DataStructures.MetaAggregate.{MetaAggregateFunction, MetaExtension}
@@ -193,15 +193,27 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
 
     //only region grouping
     if (!meta_keys.isDefined && !meta_aggregates.isDefined) {
+
+      val new_schema = region_keys
+        .getOrElse(List.empty)
+        .filter(_.asInstanceOf[FIELD].position >= 0)
+        .map(_.asInstanceOf[FIELD].position)
+        .map(schema(_)) ++
+        region_aggregates
+          .getOrElse(List.empty)
+          .map(x=> (x.output_name.get, x.resType))
+
       new IRVariable(
         this.metaDag,
-        IRGroupRD(region_keys, region_aggregates, this.regionDag))
+        IRGroupRD(region_keys, region_aggregates, this.regionDag),
+        new_schema
+      )
     }
     //only the metadata grouping
     else if (!region_keys.isDefined && !region_aggregates.isDefined) {
       new IRVariable(
         IRGroupMD(
-          meta_keys.get,
+          meta_keys.getOrElse(new MetaGroupByCondition(List.empty)),
           meta_aggregates,
           meta_group_name,
           this.metaDag,
@@ -209,9 +221,26 @@ case class IRVariable(metaDag : MetaOperator, regionDag : RegionOperator,
         this.regionDag)
     }
     else{
+      val new_schema = region_keys
+        .getOrElse(List.empty)
+        .filter(_.asInstanceOf[FIELD].position >= 0)
+        .map(_.asInstanceOf[FIELD].position)
+        .map(schema(_)) ++
+        region_aggregates
+          .getOrElse(List.empty)
+          .map(x=> (x.output_name.get, x.resType))
+
       val new_region_dag = IRGroupRD(region_keys, region_aggregates, this.regionDag)
-      val new_meta_dag = IRGroupMD(meta_keys.get,meta_aggregates, meta_group_name, this.metaDag, new_region_dag)
-      new IRVariable (new_meta_dag, new_region_dag)
+      val new_meta_dag = IRGroupMD(
+        meta_keys.getOrElse(new MetaGroupByCondition(List.empty)),
+        meta_aggregates,
+        meta_group_name,
+        this.metaDag,
+        new_region_dag)
+      new IRVariable (
+        new_meta_dag,
+        new_region_dag,
+        new_schema)
 
     }
 
