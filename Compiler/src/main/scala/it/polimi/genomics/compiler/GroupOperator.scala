@@ -32,7 +32,7 @@ case class GroupOperator(op_pos : Position,
   override def check_input_number = one_input
 
   var meta_keys:Option[MetaGroupByCondition] = None
-  var refined_meta_aggregate_function_list: Option[List[MetaAggregateFunction]] = Some(List.empty)
+  var refined_meta_aggregate_function_list: Option[List[MetaAggregateFunction]] = None
   var meta_group_name:Option[String] = None
   var refined_region_aggregate_function_list : Option[List[RegionsToRegion]] = None
   var region_keys : Option[List[GroupingParameter]] = None
@@ -173,7 +173,7 @@ case class GroupOperator(op_pos : Position,
       throw new CompilerException(msg)
     }
 
-    if (!meta_keys.isDefined && !refined_meta_aggregate_function_list.get.isEmpty) {
+    if (!meta_keys.isDefined && refined_meta_aggregate_function_list.isDefined) {
       val msg = operator_name + " operator at line " + op_pos.line + ": " +
         "if metadata aggregate functions are provided, then metadata keys are required."
       throw new CompilerException(msg)
@@ -184,7 +184,6 @@ case class GroupOperator(op_pos : Position,
         "if region aggregate functions are provided, then region keys are required."
       throw new CompilerException(msg)
     }
-
 
     val mapped = super_variable_left.get.GROUP(
       meta_keys,
