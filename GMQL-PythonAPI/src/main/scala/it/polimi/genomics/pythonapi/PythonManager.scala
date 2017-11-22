@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.core.DataStructures._
-import it.polimi.genomics.core.{DAGSerializer, DAGWrapper, ParsingType, Utilities}
+import it.polimi.genomics.core._
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
@@ -172,26 +172,38 @@ object PythonManager {
     }
   }
 
-//  def buildParser(delimiter: String, chrPos: Int, startPos: Int, stopPos: Int,
-//                  strandPos: Option[Int], otherPos: Option[java.util.List[java.util.List[String]]]) = {
-//    val convertedOtherPos: Option[Array[(Int, ParsingType.PARSING_TYPE)]] = {
-//      if(otherPos.isDefined)
-//        Some(otherPos.get.map(x => {
-//          val xAsList = x.asScala.toList
-//          val pos = xAsList.get(0).toInt // get the position
-//          val name = xAsList.get(1)  // get the name
-//          val t = getParseTypeFromString(xAsList.get(2))  // get the PARSING_TYPE
-//          (pos, t)
-//        }).toArray)
-//      else
-//        None
-//    }
-//    val res = new BedParser(delimiter, chrPos, startPos, stopPos, strandPos, convertedOtherPos)
-//
-//  }
+  def buildParser(delimiter: String, chrPos: Int, startPos: Int, stopPos: Int,
+                  strandPos: Option[Int], otherPos: Option[java.util.List[java.util.List[String]]],
+                  parsingType: String, coordinateSystem: String) = {
+
+    val pType = GMQLSchemaFormat.getType(parsingType)
+    val cSystem = GMQLSchemaCoordinateSystem.getType(coordinateSystem)
+    var schema: List[(String, PARSING_TYPE)] = List()
+    var convertedOtherPos: Option[Array[(Int, ParsingType.PARSING_TYPE)]] = None
+    if(otherPos.isDefined) {
+      val otherPosAll: Array[(Int, String, ParsingType.PARSING_TYPE)] = {
+        otherPos.get.map(x => {
+          val xAsList = x.asScala.toList
+          val pos = xAsList.get(0).toInt // get the position
+          val name = xAsList.get(1) // get the name
+          val t = getParseTypeFromString(xAsList.get(2)) // get the PARSING_TYPE
+          (pos, name, t)
+        }).toArray
+      }
+
+      schema = otherPosAll.sortBy(x => x._1).map(x => (x._2, x._3)).toList
+      convertedOtherPos = Some(otherPosAll.sortBy(x => x._1).map(x => (x._1, x._3)))
+    }
+
+    val res = new BedParser(delimiter, chrPos, startPos, stopPos, strandPos, convertedOtherPos)
+    res.schema = schema
+    res.coordinateSystem = cSystem
+    res.parsingType = pType
+    res
+  }
 
   @deprecated
-  def buildParser(delimiter: String, chrPos: Int, startPos: Int, stopPos: Int, strandPos: Int,
+  def buildParser_old(delimiter: String, chrPos: Int, startPos: Int, stopPos: Int, strandPos: Int,
                   otherPos: java.util.List[java.util.List[String]]) : BedParser =
   {
     var strandPos_real :Option[Int] = None
