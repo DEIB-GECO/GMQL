@@ -1,5 +1,5 @@
 package it.polimi.genomics.GMQLServer
-import it.polimi.genomics.core.DataStructures.{IRAggregateRD, IRGroupMD, IRPurgeMD, IRVariable}
+import it.polimi.genomics.core.DataStructures._
 
 /**
   * Created by Luca Nanni on 16/11/17.
@@ -11,7 +11,7 @@ import it.polimi.genomics.core.DataStructures.{IRAggregateRD, IRGroupMD, IRPurge
   * "Metadata Management for Scientific Databases" by Pietro Pinoli,
   * Stefano Ceri, Davide Martinenghi and Luca Nanni
   */
-class MetaFirstOptimizer extends GMQLOptimizer {
+class MetaFirstOptimizer(decoratedOptimizer: GMQLOptimizer) extends GMQLOptimizerDecorator(decoratedOptimizer) {
 
   /**
     * Performs the optimization
@@ -20,19 +20,23 @@ class MetaFirstOptimizer extends GMQLOptimizer {
     */
   override def optimize(dag: List[IRVariable]): List[IRVariable] = {
     // The optimization is applied to each variable singularly
-    dag.map(optimizeMetaFirst)
+    super.optimize(dag).map(optimizeMetaFirst)
   }
 
 
   /**
-    *
+    * Applies the optimization to each IRVariable inside the DAG
     * @param dag
-    * @return
+    * @return the new IRVariable
     */
   private def optimizeMetaFirst(dag: IRVariable): IRVariable = {
-    if(!isMetaSeparable(dag))
+    if(!isMetaSeparable(dag)) {
+      // if the query is not meta-separable, just return the old dag
+      println("NOT META-SEPARABLE")
       dag
+    }
     else {
+      println("META-SEPARABLE")
       dag
       //TODO: finish
     }
@@ -52,11 +56,22 @@ class MetaFirstOptimizer extends GMQLOptimizer {
     */
   private def isMetaSeparable(dag: IRVariable): Boolean = {
     val metaDAG = dag.metaDag
-    val metaOperations = metaDAG.getOperatorList
-    !metaOperations.exists( {
-        case IRPurgeMD(_,_) | IRGroupMD(_,_,_,_,_) | IRAggregateRD(_,_) => true
-        case _ => false
-    })
+
+    def checkSingle(operator: IROperator): Boolean = {
+      operator match {
+        case IRPurgeMD(_,_) | IRGroupMD(_,_,_,_,_) | IRAggregateRD(_,_) => false
+        case _ => true
+      }
+    }
+
+    def check(operator : IROperator) : Boolean = {
+      val metaOperations = operator.getOperatorList
+      if(metaOperations.isEmpty)
+        checkSingle(operator)
+      else
+        checkSingle(operator) && metaOperations.forall(check)
+    }
+    check(metaDAG)
   }
 
 }
