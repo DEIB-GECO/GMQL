@@ -38,13 +38,16 @@ trait XMLDataSetRepository extends GMQLRepository{
     * @throws GMQLUserNotFound
     * @throws GMQLSampleNotFound
     */
-  def createDs(dataSet:IRDataSet, userName: String = General_Utilities().USERNAME, Samples: java.util.List[GMQLSample], GMQLScriptPath: String,schemaType:GMQLSchemaFormat.Value, schemaCoordinateSystem: GMQLSchemaCoordinateSystem.Value): Unit = {
+  def createDs(dataSet:IRDataSet, userName: String = General_Utilities().USERNAME, Samples: java.util.List[GMQLSample], GMQLScriptPath: String,schemaType:GMQLSchemaFormat.Value, schemaCoordinateSystem: GMQLSchemaCoordinateSystem.Value, dsmeta: Map[String, String]): Unit = {
     // Check the dataset name, return if the dataset is already used in
     // the repository of the this user or the public repository.
     if (DSExists(dataSet.position, userName)) {
       logger.warn(s"The dataset (${dataSet.position})  is already registered")
       throw new GMQLNotValidDatasetNameException(s"The dataset name (${dataSet.position}) is already registered")
     }
+
+    // Store dataset info file
+    setDatasetMeta(dataSet.position,userName,dsmeta)
 
     val samples: List[GMQLSample] = Samples.asScala.map{ x=>if (x.meta.equals("nothing.meta")) new GMQLSample(x.name, x.name+".meta",x.ID) else x}.toList
     //create DS descriptive file of the Data set

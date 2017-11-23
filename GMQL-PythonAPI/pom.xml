@@ -147,7 +147,7 @@
                 </configuration>
             </plugin>
 
-            <!--Builds the directory ./lib in which all the dependencies of CLI are put-->
+            <!--Builds the directory ./lib in which all the dependencies are put-->
             <plugin>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <executions>

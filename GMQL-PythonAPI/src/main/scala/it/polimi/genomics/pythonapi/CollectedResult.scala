@@ -10,7 +10,7 @@ import scala.collection.mutable.ListBuffer
   * Created by Luca Nanni on 27/05/17.
   * Email: luca.nanni@mail.polimi.it
   */
-class CollectedResult( var collectedResult: Any ) {
+class CollectedResult(collectedResult: Any ) {
 
   val VALUES_DELIMITER = "\t"
   val REGIONS_DELIMITER = "\n"
@@ -23,13 +23,10 @@ class CollectedResult( var collectedResult: Any ) {
     Array[(Long, (String, String))], List[(String, PARSING_TYPE)]) =
     collectedResult.asInstanceOf[(Array[(GRecordKey, Array[GValue])],
     Array[(Long, (String, String))], List[(String, PARSING_TYPE)])]
-
   var regions : Array[(GRecordKey, Array[GValue])] = result._1
   var metadata : Array[(Long, (String, String))] = result._2
   var schema : List[(String, PARSING_TYPE)] = result._3
-
   result = null
-  collectedResult = null
 
   /**
     * Transofrms the list of regions to a unique string built like this:
@@ -37,19 +34,23 @@ class CollectedResult( var collectedResult: Any ) {
     * "chr\tstart\tstop\tstrand\tvalue1\tvalue2\t...\tvalueN\n
     *  chr\tstart\tstop\tstrand\tvalue1\tvalue2\t...\tvalueN\n ..."
     * */
-  def getRegionsAsString(n: Int): String = {
-    var partOfRegions : Array[(GRecordKey, Array[GValue])] = regions
-    if (n > 0) {
-      partOfRegions = regions.take(n)
+  def getRegionsAsString(n: Option[Int]): String = {
+    var partOfRegions : Array[(GRecordKey, Array[GValue])] = Array()
+    if(n.isDefined && n.get > 0) {
+      partOfRegions = regions.take(n.get)
     }
-
+    else {
+      partOfRegions = regions
+    }
     val result : String = partOfRegions.map(
       x => {
         val listOfString = this.regionsToListOfString(x)
         listOfString.mkString(VALUES_DELIMITER)
       }
     ).mkString(REGIONS_DELIMITER)
-    this.regions = this.regions.drop(n)
+    if(n.isDefined && n.get > 0) {
+      this.regions = this.regions.drop(n.get)
+    }
     result
   }
 

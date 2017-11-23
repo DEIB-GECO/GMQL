@@ -35,7 +35,7 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
     */
   @throws(classOf[GMQLNotValidDatasetNameException])
   @throws(classOf[GMQLUserNotFound])
-  override def createDs(dataSet: IRDataSet, userName: String, Samples: java.util.List[GMQLSample], GMQLScriptPath: String, schemaType: GMQLSchemaFormat.Value, schemaCoordinateSystem:GMQLSchemaCoordinateSystem.Value): Unit = {
+  override def createDs(dataSet: IRDataSet, userName: String, Samples: java.util.List[GMQLSample], GMQLScriptPath: String, schemaType: GMQLSchemaFormat.Value, schemaCoordinateSystem:GMQLSchemaCoordinateSystem.Value,dsmeta: Map[String, String]): Unit = {
 
     val tempDir = General_Utilities().getTempDir(userName) + "/" + dataSet.position + "_/"
     val tempDirectory = new File(tempDir)
@@ -51,7 +51,7 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
     }.toList.asJava
 
     //create DS as a set of XML files in the local repository, this will read the meta files from the temp directory.
-    super.createDs(dataSet, userName, samples, GMQLScriptPath,schemaType,schemaCoordinateSystem)
+    super.createDs(dataSet, userName, samples, GMQLScriptPath,schemaType,schemaCoordinateSystem,dsmeta)
 
     //clean temp from the meta files.
     tempDirectory.delete()

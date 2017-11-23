@@ -198,7 +198,8 @@ object GenometricJoin4TopMin3 {
         }
 
       val res: RDD[GRECORD] =
-        if (secondRoundParameters.max.isDefined || secondRoundParameters.min.isDefined || secondRoundParameters.stream.isDefined) {
+        if (secondRoundParameters.max.isDefined || secondRoundParameters.min.isDefined ||
+          (secondRoundParameters.stream.isDefined && (secondRoundParameters.max.isDefined || secondRoundParameters.min.isDefined))) {
           firstRound.flatMap{p=>
             val distance = p._2._11
             if (
@@ -446,7 +447,9 @@ object GenometricJoin4TopMin3 {
 
   def distanceCalculator(a : (Long, Long), b : (Long, Long)) : Long = {
     // b to right of a
-    if(b._1 >= a._2){
+    if(a._1>b._1 && a._2<b._2) //a is contained in b
+      Math.min(a._1-b._2, b._1 -a._2)
+    else if(b._1 >= a._2){
       b._1 - a._2
     } else if(b._2 <= a._1) a._1 - b._2
     else {
