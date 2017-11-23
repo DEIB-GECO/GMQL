@@ -428,10 +428,10 @@ object Wrapper {
 
     val dataAsTheyAre = vv(input_dataset)
 
-    /*
+
     println(region_predicate)
     println(predicate)
-    */
+
     var semiJoinDataAsTheyAre: IRVariable = null
     var semi_join_metaDag: Option[MetaOperator] = None
     var semi_join_list:Option[MetaJoinCondition]= None
@@ -441,14 +441,14 @@ object Wrapper {
     val parser = new Parser(dataAsTheyAre, GMQL_server)
 
     if (predicate != null) {
-      val str_predicate = parser.findAndChange(predicate)
+      val str_predicate = parser.findAndChangeMeta(predicate)
       selected_meta = parser.parseSelectMetadata(str_predicate)
       if (selected_meta._2.isEmpty)
         return Array("1",selected_meta._1)
     }
 
     if (region_predicate != null) {
-      val str_predicate = parser.findAndChange(region_predicate)
+      val str_predicate = parser.findAndChangeReg(region_predicate)
       selected_regions = parser.parseSelectRegions(str_predicate)
       if (selected_regions._2.isEmpty)
         return Array("1",selected_regions._1)
@@ -1146,29 +1146,10 @@ object Wrapper {
 
     initGMQL("GTF",false)
 
-    /*var schema = Array(Array("chr","STRING"),
-      Array("left","LONG"),
-      Array("right","LONG"),
-      Array("name","STRING"),
-      Array("score","DOUBLE"),
-      Array("strand","STRING"))
-    var TSS = select(null, "chr == 2",null,r(1));
-*/
+    val HM_TF_rep_narrow = readDataset("/Users/simone/Desktop/HM_TF_rep_narrow/files","CUSTOMPARSER",true,true,null,"/Users/simone/Desktop/HM_TF_rep_narrow/files/schema.schema")
+    val HM_TF_rep_broad = readDataset("/Users/simone/Desktop/HM_TF_rep_broad/files","CUSTOMPARSER",true,true,null,"/Users/simone/Desktop/HM_TF_rep_broad/files/schema.schema")
 
-    val dataset  = "/Users/simone/Desktop/Example_Dataset_1-2/Example_Dataset_2"
-    val schemaXML  = "/Users/simone/Desktop/Example_Dataset_1-2/Example_Dataset_2/files/dataset_2.schema"
-    val dir_out = "/Users/simone/Downloads"
-    val parser = (new CustomParser).setSchema(schemaXML)
-    //val r = GMQL_server.READ(dataset).USING(parser)
-
-    val r = readDataset(dataset,"CUSTOMPARSER",true,true,null,schemaXML)
-
-    val s = select(null,"chr == chr2 AND strand == . ",null,r(1))
-
-    //val s = r1.SELECT(reg_cond)
-    materialize(s(1),dir_out)
-    //GMQL_server setOutputPath dir_out MATERIALIZE s
-    //materialize_count.getAndIncrement()
+    materialize(HM_TF_rep_broad(1),"/Users/simone/Desktop/")
     execute()
 
 

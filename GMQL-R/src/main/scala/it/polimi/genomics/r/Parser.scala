@@ -28,41 +28,50 @@ class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
     this(null,null)
   }
   val value:Parser[String] = floatingPointNumber |
-    (stringLiteral ^^ {
-      x=> x
-        /*
-        if (x.startsWith("'")){
-          x.drop(1).dropRight(1).replace("\\'","'")
-        }
-        else{
-          x.drop(1).dropRight(1).replace("\\\"","\"")
-        }*/
-    } | """[a-zA-Z0-9_\\*\\+\\-]+""".r ^^{x => x} )
+    (stringLiteral ^^ {x=> x} | """[a-zA-Z0-9_\\*\\+\\-]+""".r ^^{x => x} )
 
-
-  val meta_attribute:Parser[String] = rep1sep(ident, ".") ^^ {_.mkString(".")}
-
-  val meta:Parser[String] = "META(" ~>  value <~ ")" ^^ { x => "META(" + x.drop(1).dropRight(1)+ ")"  }
+  //val meta_attribute:Parser[String] = rep1sep(ident, ".") ^^ {_.mkString(".")}
+  val meta:Parser[String] = "META" ~> "(" ~>  value <~ ")" ^^ { x => "META(" + x.drop(1).dropRight(1)+ ")"  }
   val operator:Parser[String] = "==" | "!="  | ">=" | "<=" | ">" | "<"
   val attribute:Parser[String] = rep1sep(ident, ".") ^^ {_.mkString(".")}
-  val cond:Parser[String] = (attribute ~ operator ~ (value|meta)) ^^ {x => x._1._1 + x._1._2 + x._2}
-
+  val cond:Parser[String] = (attribute ~ operator ~ value ) ^^ {x => x._1._1 + x._1._2 + x._2}
   val factor: Parser[String] = "(" ~> expr <~ ")" ^^ {x=> "(" + x + ")"} |
     (("!" ~ "(" )~> expr <~ ")") ^^ { x => "NOT(" +x+ ")"  }  |
     ("!" ~> cond ) ^^ { x => "NOT(" +x+ ")"  } | cond
 
-
-  val term:Parser[String] = factor ~ (("AND" ~> factor)*) ^^ { x=>
+  val term:Parser[String] = factor ~ (("AND" ~> factor)*) ^^ { x =>
     if (x._2.isEmpty)
       x._1
-    else
-      x._1 + " AND " + x._2.mkString}
-
+    else {
+      (List(x._1) ++ x._2).reduce((x, y) => x + " AND " + y)
+    }
+  }
   val expr:Parser[String] = term ~ (("OR" ~> term)*) ^^ { x =>
     if (x._2.isEmpty)
       x._1
+    else {
+      (List(x._1) ++ x._2).reduce((x, y) => x + " OR " + y)
+    }
+  }
+
+  val value_reg:Parser[String] = """[a-zA-Z0-9_\\*\\+\\-]+""".r ^^{x => x} | floatingPointNumber
+  val cond_reg:Parser[String] = (attribute ~ operator ~ (meta | value_reg) ) ^^ {x => x._1._1 + x._1._2 + x._2}
+  val factor_reg: Parser[String] = "(" ~> expr_reg <~ ")" ^^ {x=> "(" + x + ")"} |
+    (("!" ~ "(" )~> expr_reg <~ ")") ^^ { x => "NOT(" +x+ ")"  }  |
+    ("!" ~> cond_reg ) ^^ { x => "NOT(" +x+ ")"  } | cond_reg
+
+  val term_reg:Parser[String] = factor_reg ~ (("AND" ~> factor_reg)*) ^^ { x =>
+    if (x._2.isEmpty)
+      x._1
+    else {
+      (List(x._1) ++ x._2).reduce((x, y) => x + " AND " + y)
+    }
+  }
+  val expr_reg:Parser[String] = term_reg ~ (("OR" ~> term_reg)*) ^^ { x =>
+    if (x._2.isEmpty)
+      x._1
     else
-      x._1 + " OR " + x._2.mkString
+      (List(x._1) ++ x._2).reduce((x, y) => x + " OR " + y)
   }
 
 
@@ -74,9 +83,21 @@ class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
 
 
 
-  def findAndChange(input:String): String =
+  def findAndChangeMeta(input:String): String =
   {
     val metadata = parse(expr, input)
+
+    metadata match {
+      case Success(result, next) => result
+      case NoSuccess(result, next) => "Invalid Syntax"
+      case Error(result, next) => "Invalid Syntax"
+      case Failure(result, next) => "Failure"
+    }
+  }
+
+  def findAndChangeReg(input:String): String =
+  {
+    val metadata = parse(expr_reg, input)
 
     metadata match {
       case Success(result, next) => result
