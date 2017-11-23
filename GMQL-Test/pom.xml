@@ -62,6 +62,12 @@
             <version>3.0</version>
         </dependency>
 
+        <dependency>
+            <groupId>it.polimi.genomics</groupId>
+            <artifactId>GMQL-PythonAPI</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
     </dependencies>
 
     <build>
