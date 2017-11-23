@@ -22,26 +22,43 @@ trait GMQLOptimizer {
 
 }
 
-class DAGTree(root: DAGNode) {
-  def getLeaves = root.getLeaves
-
-  def getNodes = root.getNodes
+/**
+  * The GMQL Optimizers are implemented with the Decorator Pattern.
+  * In this way it is enabled the stacking of various optimizers.
+  *
+  * @param decoratedOptimizer
+  */
+abstract class GMQLOptimizerDecorator(decoratedOptimizer: GMQLOptimizer) extends GMQLOptimizer{
+  override def optimize(dag: List[IRVariable]): List[IRVariable] = decoratedOptimizer.optimize(dag)
 }
 
-class DAGNode(val value: IROperator, val parents: List[DAGNode]){
-  def getLeaves: List[DAGNode] = {
-    if(this.parents.nonEmpty){
-      this.parents.flatMap(x => x.getLeaves)
-    }
-    else {
-      List(this)
-    }
-  }
-
-  def getNodes: List[DAGNode] = {
-    List(this) :: this.parents.flatMap(x => x.getNodes))
-    //TODO: finish
-  }
+/**
+  * The default optimizer. It does nothing to the DAG.
+  */
+class DefaultOptimizer extends GMQLOptimizer {
+  override def optimize(dag: List[IRVariable]): List[IRVariable] = dag
 }
+
+//class DAGTree(root: DAGNode) {
+//  def getLeaves = root.getLeaves
+//
+//  def getNodes = root.getNodes
+//}
+//
+//class DAGNode(val value: IROperator, val parents: List[DAGNode]){
+//  def getLeaves: List[DAGNode] = {
+//    if(this.parents.nonEmpty){
+//      this.parents.flatMap(x => x.getLeaves)
+//    }
+//    else {
+//      List(this)
+//    }
+//  }
+//
+//  def getNodes: List[DAGNode] = {
+//    List(this) :: this.parents.flatMap(x => x.getNodes))
+//    //TODO: finish
+//  }
+//}
 
 
