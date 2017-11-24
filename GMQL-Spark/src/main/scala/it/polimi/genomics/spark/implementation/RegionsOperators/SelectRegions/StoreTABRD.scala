@@ -9,7 +9,7 @@ import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.loaders.writeMultiOutputFiles
 import it.polimi.genomics.spark.implementation.loaders.writeMultiOutputFiles.RDDMultipleTextOutputFormat
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.FileSystem
+import org.apache.hadoop.fs.{FileSystem, Path, PathFilter}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{HashPartitioner, SparkContext}
 import org.slf4j.LoggerFactory
@@ -64,6 +64,13 @@ object StoreTABRD {
 //    writeMultiOutputFiles.saveAsMultipleTextFiles(metaKeyValue, MetaOutputPath)
     metaKeyValue.saveAsHadoopFile(MetaOutputPath,classOf[String],classOf[String],classOf[RDDMultipleTextOutputFormat])
     writeMultiOutputFiles.fixOutputMetaLocation(MetaOutputPath)
+
+    fs.listStatus(new Path(RegionOutputPath), new PathFilter {
+      override def accept(path: Path): Boolean = {println(path.getName); true}
+    })
+
+//    fs.deleteOnExit(new Path(RegionOutputPath+"*.crc"))
+    fs.deleteOnExit(new Path(RegionOutputPath+"_SUCCESS"))
 
     regions
   }
