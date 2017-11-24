@@ -15,7 +15,7 @@ import it.polimi.genomics.core.DataStructures.{IRDataSet, IROperator, IRReadMD, 
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition._
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
 import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionFunction, RegionsToMeta, RegionsToRegion}
-import it.polimi.genomics.core.DataStructures.RegionCondition.{ChrCondition, RegionCondition}
+import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
 import it.polimi.genomics.core.{GValue, _}
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
@@ -33,24 +33,21 @@ import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 object Wrapper {
 
   var GMQL_server: GmqlServer = _
-  //var GMQL_executor: GMQLSparkExecutor = _
   var Spark_context: SparkContext = _
   var change_processing_possible= true
   var remote_processing: Boolean = false
   var outputformat: GMQLSchemaFormat.Value = _
-  //thread safe counter for unique string pointer to dataset
-  //'cause we could have two pointer at the same dataset and we
-  //can not distinguish them
   var rest_manager = RESTManager
   var materialize_list: ListBuffer[IRVariable] = new ListBuffer[IRVariable]
 
-
-
+  //thread safe counter for unique string pointer to dataset
+  //'cause we could have two pointer at the same dataset and we
+  //can not distinguish them
   //example:
   // R shell
   //r = readDataset("/Users/simone/Downloads/job_filename_guest_new14_20170316_162715_DATA_SET_VAR")
   //r1 = readDataset("/Users/simone/Downloads/job_filename_guest_new14_20170316_162715_DATA_SET_VAR")
-  //are mapped in vv with the same key
+  //are mapped in vv with the same key but different in R
   var counter: AtomicLong = new AtomicLong(0)
   var dataset_index: AtomicLong = new AtomicLong(0)
 
@@ -99,10 +96,6 @@ object Wrapper {
     val executor = new GMQLSparkExecutor(sc = Spark_context, outputFormat = outputformat)
     GMQL_server = new GmqlServer(executor)
 
-    if (GMQL_server == null) {
-      println("GMQL Server is down")
-      return
-    }
     change_processing_possible=true
     remote_processing = remote_proc
     println("GMQL Server is up")
@@ -110,7 +103,7 @@ object Wrapper {
 
   def remote_processing(remote: Boolean): String = {
 
-    if(GMQL_server==null)
+    if(GMQL_server == null)
       return "invoke init_gmql() first"
 
     if(change_processing_possible)
@@ -141,12 +134,14 @@ object Wrapper {
   def readDataset(data_input_path: String, parser_name: String, is_local: Boolean, is_GMQL:Boolean,
                   schema: Array[Array[String]],path_schema_XML:String): Array[String] =
   {
+    if(GMQL_server == null)
+      return Array("1","invoke init_gmql() first")
+
     var parser: BedParser = null
     var out_p = ""
     var loc_path=""
     var remote_path=""
     var data_path = data_input_path
-    //println(data_path)
 
     if (is_local && is_GMQL)
     {
@@ -355,7 +350,8 @@ object Wrapper {
     {
       if(remote_processing)
       {
-        val base64DAG:String  = Utilities.serializeToBase64(materialize_list.toList)
+        var dagW = new DAGWrapper(materialize_list.toList)
+        val base64DAG:String  = DAGSerializer.serializeToBase64(dagW)
         return Array("0",base64DAG)
       }
       else
