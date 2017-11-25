@@ -4,7 +4,7 @@ import it.polimi.genomics.core.DataStructures.GroupRDParameters.{FIELD, Grouping
 import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaAggregateFunction
 import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition.Default
-import it.polimi.genomics.core.DataStructures.RegionAggregate.RegionsToRegion
+import it.polimi.genomics.core.DataStructures.RegionAggregate.{COORD_POS, RegionsToRegion}
 
 import scala.util.parsing.input.Position
 
@@ -32,7 +32,7 @@ case class GroupOperator(op_pos : Position,
   override def check_input_number = one_input
 
   var meta_keys:Option[MetaGroupByCondition] = None
-  var refined_meta_aggregate_function_list: Option[List[MetaAggregateFunction]] = Some(List.empty)
+  var refined_meta_aggregate_function_list: Option[List[MetaAggregateFunction]] = None
   var meta_group_name:Option[String] = None
   var refined_region_aggregate_function_list : Option[List[RegionsToRegion]] = None
   var region_keys : Option[List[GroupingParameter]] = None
@@ -101,7 +101,15 @@ case class GroupOperator(op_pos : Position,
                 .map(_.name)
                 .toSet
                 .toList
-                .map((x:String) => left_var_get_field_name(x).get)
+                .map((x:String) => {
+                  x.toLowerCase match {
+                    case "chr" => COORD_POS.CHR_POS
+                    case "left" => COORD_POS.LEFT_POS
+                    case "right" => COORD_POS.RIGHT_POS
+                    case "strand" => COORD_POS.STRAND_POS
+                    case _ => left_var_get_field_name(x).get
+                  }
+                })
                 .map(FIELD)
             )
         }
@@ -161,7 +169,7 @@ case class GroupOperator(op_pos : Position,
         !region_keys.isDefined &&
         !refined_region_aggregate_function_list.isDefined) {
       val msg = operator_name + " operator at line " + op_pos.line + ": " +
-        "empy parameters are not allowed for this operator."
+        "empty parameters are not allowed for this operator."
       throw new CompilerException(msg)
     }
 
@@ -176,7 +184,6 @@ case class GroupOperator(op_pos : Position,
         "if region aggregate functions are provided, then region keys are required."
       throw new CompilerException(msg)
     }
-
 
     val mapped = super_variable_left.get.GROUP(
       meta_keys,
