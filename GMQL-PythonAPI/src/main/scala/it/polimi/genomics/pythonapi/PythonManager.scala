@@ -343,4 +343,8 @@ object PythonManager {
   def setSparkLocalDir(dir: String): Unit = {
     EntryPoint.properties.sparkLocalDir = dir
   }
+
+  def setHadoopHomeDir(dir: String): Unit = {
+    System.setProperty("hadoop.home.dir", dir)
+  }
 }
