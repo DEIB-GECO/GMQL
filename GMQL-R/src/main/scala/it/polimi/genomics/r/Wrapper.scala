@@ -48,9 +48,11 @@ object Wrapper {
   //r = readDataset("/Users/simone/Downloads/job_filename_guest_new14_20170316_162715_DATA_SET_VAR")
   //r1 = readDataset("/Users/simone/Downloads/job_filename_guest_new14_20170316_162715_DATA_SET_VAR")
   //are mapped in vv with the same key but different in R
+
   var counter: AtomicLong = new AtomicLong(0)
   var dataset_index: AtomicLong = new AtomicLong(0)
 
+  // probably not needed use materialize_list.length()
   var materialize_count: AtomicLong = new AtomicLong(0)
 
   var mem_meta: Array[Array[String]] = _
@@ -199,7 +201,6 @@ object Wrapper {
     this.datasetQueue += elem_map
 
     Array("0",out_p)
-
   }
 
   def createParser(schema: Array[Array[String]]): BedParser = {
@@ -285,8 +286,8 @@ object Wrapper {
         var local = elem(0)
         if(local!=null)
         {
-          var name_local:Array[String] = local.split("/")
-          var last_name = name_local(name_local.length-2)
+          val name_local:Array[String] = local.split("/")
+          val last_name = name_local(name_local.length-2)
           //upload
           modify_DAG(metaDAG,local,last_name)
           modify_DAG(regDAG,local,last_name)
@@ -350,7 +351,7 @@ object Wrapper {
     {
       if(remote_processing)
       {
-        var dagW = new DAGWrapper(materialize_list.toList)
+        val dagW = DAGWrapper(materialize_list.toList)
         val base64DAG:String  = DAGSerializer.serializeToBase64(dagW)
         return Array("0",base64DAG)
       }
@@ -424,7 +425,6 @@ object Wrapper {
 
     val dataAsTheyAre = vv(input_dataset)
 
-
     println(region_predicate)
     println(predicate)
 
@@ -494,10 +494,8 @@ object Wrapper {
     val dataAsTheyAre = vv(input_dataset)
     val parser = new Parser(dataAsTheyAre, GMQL_server)
 
-    /*
     println(extended_meta)
     println(extended_values)
-*/
 
     val meta_list: Option[List[String]] = MetadataAttributesList(projected_meta)
 
@@ -944,10 +942,11 @@ object Wrapper {
       //println("null")
       return join_by_list
     }
-   // println("not null")
 
     for (elem <- join_by) {
       val attribute = elem(0)
+     // print(elem(0), elem(1))
+
       attribute match {
         case "DEF" => joinList += Default(elem(1))
         case "FULL" => joinList += FullName(elem(1))
@@ -1048,7 +1047,6 @@ object Wrapper {
     order_list
   }
 
-
   def region_order_list(order_matrix: Any, data: IRVariable): (String, Option[List[(Int, Direction)]]) = {
 
     var order_list: Option[List[(Int, Direction)]] = None
@@ -1079,40 +1077,48 @@ object Wrapper {
   }
 
 
-  def RegionQuadrupleList(quad_join_list: Any): List[JoinQuadruple] = {
+  def RegionQuadrupleList(quad_join: Array[Array[String]]): List[JoinQuadruple] = {
 
     var quad_list: List[JoinQuadruple] = null
-    val temp_list = new ListBuffer[JoinQuadruple]()
+    val temp_list = new ListBuffer[Option[AtomicCondition]]()
 
-    if (quad_join_list == null)
+    val len = quad_join.length
+    if (quad_join == null)
       return quad_list
 
-
-    quad_join_list match {
-      case quad_matrix: Array[Array[String]] => {
-        for (elem <- quad_matrix) {
-          temp_list += JoinQuadruple(first = atomic_cond(elem(0), elem(1)),
-            atomic_cond(elem(2), elem(3)), atomic_cond(elem(4), elem(5)),
-            atomic_cond(elem(6), elem(7)))
+    quad_join match {
+      case quad_join: Array[Array[String]] => {
+        for (elem <- quad_join) {
+          print(elem(0), elem(1))
+          temp_list += atomic_cond(elem(0), elem(1))
         }
-        quad_list = temp_list.toList
+        if(len < 4)
+          for(i <- 0 until 4-len)
+            temp_list += None
       }
     }
+    /*
+    println(temp_list(0))
+    println(temp_list(1))
+    println(temp_list(2))
+    println(temp_list(3))
+*/
+    val quadruple = JoinQuadruple(temp_list(0),temp_list(1),temp_list(2),temp_list(3))
+    List(quadruple)
 
-    quad_list
   }
 
 
   def atomic_cond(cond: String, value: String): Option[AtomicCondition] = {
     cond match {
-      case "DGE" => Some(DistGreater(value.toInt - 1))
-      case "DLE" => Some(DistLess(value.toInt + 1))
-      case "DG" => Some(DistGreater(value.toInt))
+      case "DGE" => Some(DistGreater(value.toLong - 1))
+      case "DLE" => Some(DistLess(value.toLong + 1))
+      case "DG" => Some(DistGreater(value.toLong))
       case "DL" => Some(DistLess(value.toLong))
       case "UP" => Some(Upstream())
       case "DOWN" => Some(DownStream())
       case "MD" => Some(MinDistance(value.toInt))
-      case "NA" => None
+      case _ => None
     }
   }
 
@@ -1138,16 +1144,30 @@ object Wrapper {
 
   def main(args: Array[String]): Unit =
   {
+    /*
     rest_manager.service_token = "cd754c8f-edce-4849-8506-6294604a33b4"
 
-    initGMQL("GTF",false)
+    initGMQL("TAB",false)
 
-    val HM_TF_rep_narrow = readDataset("/Users/simone/Desktop/HM_TF_rep_narrow/files","CUSTOMPARSER",true,true,null,"/Users/simone/Desktop/HM_TF_rep_narrow/files/schema.schema")
-    val HM_TF_rep_broad = readDataset("/Users/simone/Desktop/HM_TF_rep_broad/files","CUSTOMPARSER",true,true,null,"/Users/simone/Desktop/HM_TF_rep_broad/files/schema.schema")
+    val dataset1 ="/Users/simone/Desktop/Example_Dataset_1-2/Example_Dataset_1/files"
+    val dataset2 ="/Users/simone/Desktop/Example_Dataset_1-2/Example_Dataset_2/files"
 
-    materialize(HM_TF_rep_broad(1),"/Users/simone/Desktop/")
+    val DS1 = readDataset(dataset1,"CUSTOMPARSER",true,true,null,dataset1+"/dataset_1.schema")
+    val DS2 = readDataset(dataset2,"CUSTOMPARSER",true,true,null,dataset2+"/dataset_2.schema")
+
+    val ds1 = select(null,"chr == chr2",null,DS1(1))
+    val ds2 = select(null,"chr == chr2",null,DS2(1))
+
+
+    val join_cond = Array(Array("MD","1"),Array("DGE","20"))
+    val meta_join = Array(Array("DEF","cell_karyotype"))
+
+    val res = join(join_cond,meta_join,"RIGHT",ds2(1),ds1(1))
+
+    materialize(res(1),"/Users/simone/Desktop/")
+
     execute()
-
+*/
   }
 
 
