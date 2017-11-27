@@ -106,6 +106,7 @@ object StoreGTFRD {
     metaKeyValue.saveAsHadoopFile(MetaOutputPath,classOf[String],classOf[String],classOf[RDDMultipleTextOutputFormat])
 
     writeMultiOutputFiles.fixOutputMetaLocation(MetaOutputPath)
+    fs.deleteOnExit(new Path(RegionOutputPath+"_SUCCESS"))
 
     regions
   }
