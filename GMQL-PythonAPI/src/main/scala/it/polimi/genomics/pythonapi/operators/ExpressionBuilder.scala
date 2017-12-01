@@ -71,6 +71,19 @@ class ExpressionBuilder(index : Int) {
   }
 
   /**
+    * META AGGREGATES
+    */
+
+  def createMetaAggregateFunction(functionName: String, newAttrName: String, argument: Option[String]) : MetaAggregateFunction =
+  {
+    val metaAggregateFactory = PythonManager.getServer.implementation.metaAggregateFunctionFactory
+    if(argument.isDefined)
+      metaAggregateFactory.get(functionName, argument.get, Some(newAttrName))
+    else
+      metaAggregateFactory.get(functionName, Some(newAttrName))
+  }
+
+  /**
     * REGION CONDITIONS
     * */
 
@@ -156,30 +169,38 @@ class ExpressionBuilder(index : Int) {
   /**
     * REGION AGGREGATES
     * */
-  def getRegionsToRegion(functionName: String, newAttrName: String, argument: String): RegionsToRegion = {
+  def getRegionsToRegion(functionName: String, newAttrName: String, argument: Option[String]): RegionsToRegion = {
     val regionsToRegionFactory = PythonManager.getServer.implementation.mapFunctionFactory
     val variable = PythonManager.getVariable(this.index)
-    val field_number = variable.get_field_by_name(argument)
-    // by default it's a COUNT operation
-    if(field_number.isDefined) {
-      val res = regionsToRegionFactory.get(functionName, field_number.get, Option(newAttrName))
-      res.output_name = Option(newAttrName)
+    if(argument.isDefined) {
+      val field_number = variable.get_field_by_name(argument.get)
+      if(field_number.isDefined) {
+        val res = regionsToRegionFactory.get(functionName, field_number.get, Some(newAttrName))
+        res.output_name = Some(newAttrName)
+        res
+      }
+      else
+        throw new IllegalArgumentException("The field " + argument + " does not exists!")
+    }
+    else {
+      val res = regionsToRegionFactory.get(functionName, Some(newAttrName))
+      res.output_name = Some(newAttrName)
       res
     }
-    else
-      throw new IllegalArgumentException("The filed " + argument + " does not exists!")
+
+
   }
 
   def getRegionsToMeta(functionName: String, newAttrName: String, argument: String): RegionsToMeta = {
     val regionsToMetaFactory = PythonManager.getServer.implementation.extendFunctionFactory
     val variable = PythonManager.getVariable(this.index)
     val field_number = variable.get_field_by_name(argument)
-    // by default it's a COUNT operation
-    var res : RegionsToMeta = regionsToMetaFactory.get("COUNT", Option(newAttrName))
     if(field_number.isDefined) {
-      res = regionsToMetaFactory.get(functionName, field_number.get, Option(newAttrName))
+      val res = regionsToMetaFactory.get(functionName, field_number.get, Option(newAttrName))
+      res
     }
-    res
+    else
+      throw new IllegalArgumentException("The field " + argument + " does not exists!")
   }
 
   /**
