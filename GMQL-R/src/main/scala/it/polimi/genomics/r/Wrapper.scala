@@ -216,7 +216,7 @@ object Wrapper {
       var name = schema(i)(0)
       var parse_type = schema(i)(1)
       name match {
-        case "seqnames" | "chr" => chr_index = i
+        case "seqnames" | "chr" | "chrom" => chr_index = i
         case "start" | "left" => start_index = i
         case "end" | "right" => end_index = i
         case "strand" => strand_index = i
@@ -353,6 +353,7 @@ object Wrapper {
       {
         val dagW = DAGWrapper(materialize_list.toList)
         val base64DAG:String  = DAGSerializer.serializeToBase64(dagW)
+        val a = DAGSerializer.deserializeDAG(base64DAG)
         return Array("0",base64DAG)
       }
       else
@@ -1144,30 +1145,41 @@ object Wrapper {
 
   def main(args: Array[String]): Unit =
   {
-    /*
-    rest_manager.service_token = "cd754c8f-edce-4849-8506-6294604a33b4"
 
-    initGMQL("TAB",false)
+    rest_manager.service_token = "0aff0d90-b15d-4d43-bb09-353a2eedc9ff"
 
-    val dataset1 ="/Users/simone/Desktop/Example_Dataset_1-2/Example_Dataset_1/files"
-    val dataset2 ="/Users/simone/Desktop/Example_Dataset_1-2/Example_Dataset_2/files"
+    val schema = Array(Array("chrom"	,"STRING"),
+    Array("start",	"LONG"),
+      Array("end"	,"LONG"),
+        Array("name",	"STRING"),
+          Array("score",	"DOUBLE"),
+            Array("strand"	,"STRING"),
+              Array("signal"	,"DOUBLE"),
+                Array("pvalue"	,"DOUBLE"),
+                  Array("qvalue",	"DOUBLE"))
 
-    val DS1 = readDataset(dataset1,"CUSTOMPARSER",true,true,null,dataset1+"/dataset_1.schema")
-    val DS2 = readDataset(dataset2,"CUSTOMPARSER",true,true,null,dataset2+"/dataset_2.schema")
+    initGMQL("TAB",true)
 
-    val ds1 = select(null,"chr == chr2",null,DS1(1))
-    val ds2 = select(null,"chr == chr2",null,DS2(1))
+    val dataset2 = "/Users/simone/Desktop/ds2/files"
+    val dataset1 = "public.HG19_ENCODE_NARROW_AUG_2017"
+    val dataset2_schema = "/Users/simone/Desktop/ds2/files/dataset_2.schema"
+
+    val dataset3 = "/Users/simone/Downloads/filename2_20171130_100928_TF_rep_good/files"
+    val schema3 = dataset3 + "/schema.schema"
 
 
-    val join_cond = Array(Array("MD","1"),Array("DGE","20"))
-    val meta_join = Array(Array("DEF","cell_karyotype"))
+    val DS3 = readDataset(dataset3,"CUSTOMPARSER",true,true,null,schema3)
 
-    val res = join(join_cond,meta_join,"RIGHT",ds2(1),ds1(1))
+    val DS1 = readDataset(dataset1,"CUSTOMPARSER",false,true,schema,null)
+    //val DS2 = readDataset(dataset2,"CUSTOMPARSER",true,true,null,dataset2_schema)
 
-    materialize(res(1),"/Users/simone/Desktop/")
 
-    execute()
-*/
+    //materialize(DS2(1),"")
+    //materialize(DS3(1),"")
+    take(DS3(1),0)
+
+    //execute()
+
   }
 
 
