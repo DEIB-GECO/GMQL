@@ -188,8 +188,11 @@ object Wrapper {
       remote_path = null
     }
     else {
+
       loc_path=null
-      remote_path=data_path
+      var owner_dataset:Array[String] = data_path.split("\\.")
+      var dataset = owner_dataset(owner_dataset.length-1)
+      remote_path=dataset
     }
 
     val dataAsTheyAre = GMQL_server.READ(data_path).USING(parser)
@@ -1168,7 +1171,7 @@ object Wrapper {
     val schema3 = dataset3 + "/schema.schema"
 
 
-    val DS3 = readDataset(dataset3,"CUSTOMPARSER",true,true,null,schema3)
+    //val DS3 = readDataset(dataset3,"CUSTOMPARSER",true,true,null,schema3)
 
     val DS1 = readDataset(dataset1,"CUSTOMPARSER",false,true,schema,null)
     //val DS2 = readDataset(dataset2,"CUSTOMPARSER",true,true,null,dataset2_schema)
@@ -1176,7 +1179,7 @@ object Wrapper {
 
     //materialize(DS2(1),"")
     //materialize(DS3(1),"")
-    take(DS3(1),0)
+    //take(DS3(1),0)
 
     //execute()
 
