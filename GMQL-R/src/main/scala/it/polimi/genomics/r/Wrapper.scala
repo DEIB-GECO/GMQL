@@ -3,14 +3,16 @@ package it.polimi.genomics.r
 import java.io.FileNotFoundException
 import java.util.concurrent.atomic.AtomicLong
 
-import it.polimi.genomics.GMQLServer.{DefaultRegionsToMetaFactory, DefaultRegionsToRegionFactory, GmqlServer}
+import it.polimi.genomics.GMQLServer.{DefaultMetaAggregateFactory, DefaultRegionsToMetaFactory, DefaultRegionsToRegionFactory, GmqlServer}
 import it.polimi.genomics.core.DataStructures.CoverParameters._
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor.GMQL_DATASET
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.Direction
 import it.polimi.genomics.core.DataStructures.GroupMDParameters._
+import it.polimi.genomics.core.DataStructures.GroupRDParameters.{FIELD, GroupingParameter}
 import it.polimi.genomics.core.DataStructures.JoinParametersRD._
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
-import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaExtension
+import it.polimi.genomics.core.DataStructures.MetaAggregate.{MetaAggregateFunction, MetaExtension}
+import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
 import it.polimi.genomics.core.DataStructures.{IRDataSet, IROperator, IRReadMD, IRReadRD, IRVariable, MetaOperator, RegionOperator}
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition._
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
@@ -133,6 +135,15 @@ object Wrapper {
     }
   }
 
+  def stopGMQL(): Unit =
+  {
+    if(GMQL_server!=null)
+      Spark_context.stop()
+
+    GMQL_server == null
+    Spark_context == null
+  }
+
   def readDataset(data_input_path: String, parser_name: String, is_local: Boolean, is_GMQL:Boolean,
                   schema: Array[Array[String]],path_schema_XML:String): Array[String] =
   {
@@ -190,9 +201,10 @@ object Wrapper {
     else {
 
       loc_path=null
-      var owner_dataset:Array[String] = data_path.split("\\.")
-      var dataset = owner_dataset(owner_dataset.length-1)
-      remote_path=dataset
+      val owner_dataset:Array[String] = data_path.split("\\.")
+      val dataset = owner_dataset(owner_dataset.length-1)
+      remote_path = dataset
+      data_path = dataset
     }
 
     val dataAsTheyAre = GMQL_server.READ(data_path).USING(parser)
@@ -261,16 +273,16 @@ object Wrapper {
     val regionDS = Spark_context.parallelize(regions.map {
       x => (new GRecordKey(x(0).toLong, x(1), x(2).toLong, x(3).toLong, x(4).toCharArray.head), getGvalueArray(x.drop(4)))
     })
+    val parser = createParser(schema)
 
-    val schemaDS = create_list_schema(schema)
 
-    val dataAsTheyAre = GMQL_server.READ("").USING(metaDS, regionDS, schemaDS)
+    val dataAsTheyAre = GMQL_server.READ("").USING(metaDS, regionDS, parser.schema)
 
     val index = counter.getAndIncrement()
     val out_p = "dataset" + index
     vv = vv + (out_p -> dataAsTheyAre)
-
     out_p
+
   }
 
   def materialize(data_to_materialize: String, data_output_path: String): Array[String] = {
@@ -314,8 +326,8 @@ object Wrapper {
         }
       }
     }
-    materialize_list += materialize
     GMQL_server setOutputPath data_output_path MATERIALIZE materialize
+    materialize_list += materialize
     materialize_count.getAndIncrement()
     change_processing_possible=false
 
@@ -354,9 +366,9 @@ object Wrapper {
     {
       if(remote_processing)
       {
-        val dagW = DAGWrapper(materialize_list.toList)
+        val dagW = DAGWrapper(GMQL_server.materializationList.toList)
         val base64DAG:String  = DAGSerializer.serializeToBase64(dagW)
-        val a = DAGSerializer.deserializeDAG(base64DAG)
+        //val a = DAGSerializer.deserializeDAG(base64DAG)
         return Array("0",base64DAG)
       }
       else
@@ -365,7 +377,7 @@ object Wrapper {
         materialize_count.set(0)
       }
       change_processing_possible = true
-      materialize_list.clear()
+      GMQL_server.materializationList.clear()
       Array("0","Executed")
     }
   }
@@ -577,6 +589,59 @@ object Wrapper {
     Array("0",out_p)
   }
 
+  /*  def GROUP(meta_keys : Option[MetaGroupByCondition] = None,
+            meta_aggregates : Option[List[MetaAggregateFunction]] = None,
+            meta_group_name : String = "_group",
+            region_keys : Option[List[GroupingParameter]],
+            region_aggregates : Option[List[RegionsToRegion]]): IRVariable ={*/
+
+  def group(meta_keys:Array[Array[String]], meta_aggr:Array[Array[String]], region_keys:Array[String],
+            aggregates:Array[Array[String]], input_dataset: String): Array[String] = {
+
+    if (vv.get(input_dataset).isEmpty)
+      return Array("1","No valid Data as input")
+
+    var aggr_list: (String, List[RegionsToRegion]) = ("", List())
+    var aggr_list_opt: Option[List[RegionsToRegion]] = None
+    var meta_aggr_list: (String, Option[List[MetaAggregateFunction]]) = ("", None)
+    var group_reg_list:(String, Option[List[GroupingParameter]]) = ("", None)
+    val dataAsTheyAre = vv(input_dataset)
+    var MetaGroupByList:Option[MetaGroupByCondition] = None
+    val groupList: Option[List[AttributeEvaluationStrategy]] = MetaAttributeEvaluationStrategyList(meta_keys)
+    if(groupList.isDefined)
+      MetaGroupByList = Some(MetaGroupByCondition(groupList.get))
+
+    if (aggregates != null) {
+      aggr_list = RegionToRegionAggregates(aggregates, dataAsTheyAre)
+      if (aggr_list._2.isEmpty)
+        return Array("1",aggr_list._1)
+
+      aggr_list_opt = Some(aggr_list._2)
+    }
+
+    if(region_keys !=null ) {
+      group_reg_list = groupingParam(region_keys, dataAsTheyAre)
+      if (group_reg_list._2.isEmpty)
+        return Array("1", group_reg_list._1)
+    }
+
+    if(meta_aggr !=null ) {
+      meta_aggr_list = MetaAggregates(meta_aggr, dataAsTheyAre)
+      if (meta_aggr_list._2.isEmpty)
+        return Array("1", meta_aggr_list._1)
+    }
+
+    val group = dataAsTheyAre.GROUP(MetaGroupByList,meta_aggr_list._2,"_group",group_reg_list._2,aggr_list_opt)
+
+    val index = counter.getAndIncrement()
+    val out_p = input_dataset + "/group" + index
+    vv = vv + (out_p -> group)
+
+    Array("0",out_p)
+  }
+
+
+
   def order(meta_order: Array[Array[String]], meta_opt:String, meta_opt_value:Int, reg_opt:String, reg_opt_value:Int,
             region_order: Array[Array[String]], input_dataset: String): Array[String] = {
 
@@ -585,14 +650,14 @@ object Wrapper {
 
     val dataAsTheyAre = vv(input_dataset)
 
-    var m_top: TopParameter = meta_opt match{
+    val m_top: TopParameter = meta_opt match{
       case "mtop" =>  Top(meta_opt_value)
       case "mtopp" => TopP(meta_opt_value)
       case "mtopg" => TopG(meta_opt_value)
       case _ => NoTop()
     }
 
-    var r_top: TopParameter = reg_opt match{
+    val r_top: TopParameter = reg_opt match{
       case "rtop" =>  Top(reg_opt_value)
       case "rtopp" => TopP(reg_opt_value)
       case "rtopg" => TopG(reg_opt_value)
@@ -723,11 +788,11 @@ object Wrapper {
 
     val dataAsTheyAre = vv(input_dataset)
     var aggr_list: (String, List[RegionsToRegion]) = ("", List())
-    var paramMin = get_param(min)
+    val paramMin = get_param(min)
     if (paramMin._2 == null)
       return (paramMin._1, null)
 
-    var paramMax = get_param(max)
+    val paramMax = get_param(max)
     if (paramMax._2 == null)
       return (paramMax._1, null)
 
@@ -848,6 +913,25 @@ object Wrapper {
   }
 
 
+  def groupingParam(params: Array[String],data: IRVariable): (String, Option[List[GroupingParameter]]) =
+  {
+    var group_List: Option[List[GroupingParameter]] = None
+    var temp_list = new ListBuffer[GroupingParameter]()
+    for (elem <- params) {
+      val field = data.get_field_by_name(elem)
+      if (field.isEmpty) {
+        val error = "No value " + elem(2) + " from this schema"
+        return (error, group_List) //empty list
+      }
+      var pos = field.get
+      temp_list += FIELD(pos)
+    }
+    group_List = Some(temp_list.toList)
+
+    ("OK",group_List)
+  }
+
+
   def RegionsToMetaFactory(aggregates: Any, data: IRVariable): (String, List[RegionsToMeta]) = {
     var region_meta_list: List[RegionsToMeta] = List()
     var temp_list = new ListBuffer[RegionsToMeta]()
@@ -856,15 +940,20 @@ object Wrapper {
       case aggregates: Array[Array[String]] => {
 
         for (elem <- aggregates) {
-          if (elem(1).equalsIgnoreCase("COUNT"))
-            temp_list += DefaultRegionsToMetaFactory.get(elem(1), Some(elem(0)))
+          if (elem(1).equalsIgnoreCase("COUNT")) {
+            var res = DefaultRegionsToMetaFactory.get(elem(1), Some(elem(0)))
+            res.output_attribute_name = elem(0)
+            temp_list += res
+          }
           else {
             val field = data.get_field_by_name(elem(2))
             if (field.isEmpty) {
               val error = "No value " + elem(2) + " from this schema"
               return (error, region_meta_list) //empty list
             }
-            temp_list += DefaultRegionsToMetaFactory.get(elem(1), field.get, Some(elem(0)))
+            var res = DefaultRegionsToMetaFactory.get(elem(1), field.get, Some(elem(0)))
+            res.output_attribute_name = elem(0)
+            temp_list += res
           }
         }
         region_meta_list = temp_list.toList
@@ -882,14 +971,20 @@ object Wrapper {
 
         for (elem <- aggregates) {
           if (elem(1).equalsIgnoreCase("COUNT"))
-            temp_list += DefaultRegionsToRegionFactory.get(elem(1), Some(elem(0)))
+          {
+            var res = DefaultRegionsToRegionFactory.get(elem(1), Some(elem(0)))
+            res.output_name = Some(elem(0))
+            temp_list += res
+          }
           else {
             val field = data.get_field_by_name(elem(2))
             if (field.isEmpty) {
               val error = "No value " + elem(2) + " from this schema"
               return (error, aggr_list) //empty list
             }
-            temp_list += DefaultRegionsToRegionFactory.get(elem(1), field.get, Some(elem(0)))
+            var res = DefaultRegionsToRegionFactory.get(elem(1), field.get, Some(elem(0)))
+            res.output_name = Some(elem(0))
+            temp_list += res
           }
         }
         aggr_list = temp_list.toList
@@ -897,6 +992,39 @@ object Wrapper {
     }
     ("OK", aggr_list) // not empty list
   }
+
+  def MetaAggregates(aggregates: Any, data: IRVariable): (String, Option[List[MetaAggregateFunction]]) = {
+    var meta_aggr_list: List[MetaAggregateFunction] = List()
+    val temp_list = new ListBuffer[MetaAggregateFunction]()
+
+    aggregates match
+    {
+      case aggregates: Array[Array[String]] => {
+
+        for (elem <- aggregates) {
+          try {
+            if (elem(1).equalsIgnoreCase("COUNTSAMP")) {
+              var res = DefaultMetaAggregateFactory.get(elem(1), Some(elem(0)))
+              //res.output_name = Some(elem(0))
+              temp_list += res
+            }
+            else {
+              var res = DefaultMetaAggregateFactory.get(elem(1), elem(2), Some(elem(0)))
+              //res.output_name = Some(elem(0))
+              temp_list += res
+            }
+          }
+          catch {
+            case fe: Exception => return (fe.getMessage, None)
+          }
+        }
+      }
+        meta_aggr_list = temp_list.toList
+    }
+
+    ("OK", Some(meta_aggr_list)) // not empty list
+  }
+
 
 
   def MetadataAttributesList(group_by: Array[String]): Option[List[String]] = {
@@ -1107,7 +1235,7 @@ object Wrapper {
     println(temp_list(2))
     println(temp_list(3))
 */
-    val quadruple = JoinQuadruple(temp_list(0),temp_list(1),temp_list(2),temp_list(3))
+    val quadruple = JoinQuadruple(temp_list.head,temp_list(1),temp_list(2),temp_list(3))
     List(quadruple)
 
   }
@@ -1149,40 +1277,57 @@ object Wrapper {
   def main(args: Array[String]): Unit =
   {
 
+    /*
     rest_manager.service_token = "0aff0d90-b15d-4d43-bb09-353a2eedc9ff"
 
-    val schema = Array(Array("chrom"	,"STRING"),
-    Array("start",	"LONG"),
-      Array("end"	,"LONG"),
+    val schema = Array(Array("chr"	,"STRING"),
+    Array("left",	"LONG"),
+      Array("right"	,"LONG"),
         Array("name",	"STRING"),
           Array("score",	"DOUBLE"),
-            Array("strand"	,"STRING"),
-              Array("signal"	,"DOUBLE"),
+            Array("strand"	,"STRING")
+              /*Array("signal"	,"DOUBLE"),
                 Array("pvalue"	,"DOUBLE"),
-                  Array("qvalue",	"DOUBLE"))
+                  Array("qvalue",	"DOUBLE")*/)
 
-    initGMQL("TAB",true)
+    initGMQL("TAB",false)
 
-    val dataset2 = "/Users/simone/Desktop/ds2/files"
-    val dataset1 = "public.HG19_ENCODE_NARROW_AUG_2017"
-    val dataset2_schema = "/Users/simone/Desktop/ds2/files/dataset_2.schema"
+    val dataset1 = "/Users/simone/Desktop/TF_TEAD/files"
+    val dataset1_schema = "/Users/simone/Desktop/TF_TEAD/files/schema.schema"
 
-    val dataset3 = "/Users/simone/Downloads/filename2_20171130_100928_TF_rep_good/files"
-    val schema3 = dataset3 + "/schema.schema"
+    val dataset2 = "/Users/simone/Desktop/h1/files"
+    val dataset2_schema = "/Users/simone/Desktop/h1/files/granges.schema"
+
+    //val dataset3 = "/Users/simone/Downloads/filename2_20171130_100928_TF_rep_good/files"
+    //val schema3 = dataset3 + "/schema.schema"
 
 
     //val DS3 = readDataset(dataset3,"CUSTOMPARSER",true,true,null,schema3)
 
-    val DS1 = readDataset(dataset1,"CUSTOMPARSER",false,true,schema,null)
+    val DS1 = readDataset(dataset1,"CUSTOMPARSER",true,true,null,dataset1_schema)
     //val DS2 = readDataset(dataset2,"CUSTOMPARSER",true,true,null,dataset2_schema)
+    val DS2 = readDataset(dataset2,"CUSTOMPARSER",true,true,null,dataset2_schema)
+
+    val m = map(null,Array(Array("count","COUNT")),DS2(1),DS1(1))
+
+    val e = extend(Array(Array("_region_count","COUNT")),m(1))
+
+    val s = select(null,"count > 0",null,e(1))
+
+    val e1 = extend(Array(Array("_region_count_2","COUNT")),s(1))
 
 
-    //materialize(DS2(1),"")
-    //materialize(DS3(1),"")
-    //take(DS3(1),0)
+    /*val a = read(null,null,Array(Array("chr","FACTOR"),Array("start","INTEGER"),
+      Array("end","INTEGER"),Array("strand","FACTOR")))*/
 
-    //execute()
+    //materialize(DS2(1),"/Users/simone/Desktop/DS2")
+    materialize(e1(1),"/Users/simone/Desktop/ex1")
+    //materialize(s(1),"/Users/simone/Desktop/s")
+    //materialize(e(1),"/Users/simone/Desktop/ex")
+    //materialize(e1(1),"/Users/simone/Desktop/ex_1")
 
+    execute()
+*/
   }
 
 
