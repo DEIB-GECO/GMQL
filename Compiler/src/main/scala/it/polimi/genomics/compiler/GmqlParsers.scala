@@ -342,11 +342,13 @@ trait GmqlParsers extends JavaTokenParsers {
       } |
     (
       (
-        not(RIGHT | LEFT | START | STOP) ~> any_field_identifier |
+        not(RIGHT | LEFT | START | STOP | CHR | STRAND) ~> any_field_identifier |
         RIGHT ^^ {x => FieldPosition(COORD_POS.RIGHT_POS)} |
         LEFT ^^ {x => FieldPosition(COORD_POS.LEFT_POS)} |
         START ^^ {x => FieldPosition(COORD_POS.START_POS)} |
-        STOP ^^ {x => FieldPosition(COORD_POS.STOP_POS)}
+        STOP ^^ {x => FieldPosition(COORD_POS.STOP_POS)} |
+        STRAND ^^ {x => FieldPosition(COORD_POS.STRAND_POS)} |
+        CHR ^^ {x => FieldPosition(COORD_POS.CHR_POS)}
         ) <~ AS
       ) ~ re_expr ^^ { x => RegionModifier(x._1,x._2)}
 
