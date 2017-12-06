@@ -49,7 +49,7 @@ case class GroupOperator(op_pos : Position,
     )
 
     if (parameters.unamed.isDefined) {
-      val key_list = parser_unnamed(metadata_attribute_list, None).get.map(Default(_))
+      val key_list = parser_unnamed(rich_metadata_attribute_list, None).get
       if (key_list.length <= 1)
         meta_keys = Some (
           MetaGroupByCondition(key_list)
