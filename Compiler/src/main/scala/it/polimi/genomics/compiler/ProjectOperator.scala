@@ -109,7 +109,7 @@
                   .map(_.asInstanceOf[FieldName].name)
                 if (allNames.toSet.size != allNames.size){
                   val msg = "In " + operator_name + " at line " + op_pos.line + ", " +
-                    "in 'region_update' option some field name has been repeated multiple times"
+                    "in 'region_update' option, some field name has been repeated multiple times"
                   throw new CompilerException(msg)
                 }
                 val l = partial.get
