@@ -342,7 +342,13 @@ trait GmqlParsers extends JavaTokenParsers {
       } |
     (
       (
-        not(RIGHT | LEFT | START | STOP | CHR | STRAND) ~> any_field_identifier |
+        any_field_identifier.withFilter(
+          x =>
+            x match {
+              case FieldName(n) => !List("chr", "start", "stop", "left", "right", "strand").contains(n.toLowerCase)
+              case _ => true
+            }
+        ) |
         RIGHT ^^ {x => FieldPosition(COORD_POS.RIGHT_POS)} |
         LEFT ^^ {x => FieldPosition(COORD_POS.LEFT_POS)} |
         START ^^ {x => FieldPosition(COORD_POS.START_POS)} |
