@@ -179,12 +179,6 @@ case class GroupOperator(op_pos : Position,
       throw new CompilerException(msg)
     }
 
-    if (!region_keys.isDefined && refined_region_aggregate_function_list.isDefined) {
-      val msg = operator_name + " operator at line " + op_pos.line + ": " +
-        "if region aggregate functions are provided, then region keys are required."
-      throw new CompilerException(msg)
-    }
-
     val mapped = super_variable_left.get.GROUP(
       meta_keys,
       refined_meta_aggregate_function_list,
