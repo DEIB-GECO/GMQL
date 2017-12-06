@@ -252,11 +252,11 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
         x.paths = List(getInputDsPath(x.dataset.position))
         None
       case x: IRStoreRD =>
-        val outDsName = jobId + "_" + x.dataSet.position
+        val outDsName = generateResultName(queryName) + "_" + x.dataSet.position
         x.path = renameOutputDirs(outDsName)
         Some(outDsName)
       case x: IRStoreMD =>
-        val outDsName = jobId + "_" + x.dataSet.position
+        val outDsName = generateResultName(queryName) + "_" + x.dataSet.position
         x.path = renameOutputDirs(outDsName)
         Some(outDsName)
       case _ =>
@@ -487,6 +487,11 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     * @return GMQL Job ID as a string
     */
   def generateJobId(username: String, queryname: String): String = {
+    "job_"+username+"_"+generateResultName(queryname)
+  }
+
+
+  def generateResultName(queryname:String): String = {
     queryname.toLowerCase() +  "_" + date
   }
 
