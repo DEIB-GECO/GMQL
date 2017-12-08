@@ -28,7 +28,7 @@ object GMQLExecuteCommand {
   try{
      if(new File("GMQL-Core/src/main/resources/logback.xml").exists())
         {
-          DOMConfigurator.configure("../conf/logback.xml")
+          DOMConfigurator.configure("GMQL-Core/src/main/resources/logback.xml")
           val root:ch.qos.logback.classic.Logger = org.slf4j.LoggerFactory.getLogger("org").asInstanceOf[ch.qos.logback.classic.Logger];
           root.setLevel(ch.qos.logback.classic.Level.WARN);
           org.slf4j.LoggerFactory.getLogger("it.polimi.genomics.cli").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.INFO)
@@ -365,7 +365,7 @@ object GMQLExecuteCommand {
       val conf = new SparkConf().setAppName("GMQL V2.1 Spark " + jobid)
         .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "128")
         .set("spark.driver.allowMultipleContexts","true")
-        .set("spark.sql.tungsten.enabled", "true")//.setMaster("local[*]")
+        .set("spark.sql.tungsten.enabled", "true").setMaster("local[*]")
       val sc: SparkContext = new SparkContext(conf)
 //      sc.addSparkListener(new SparkListener() {
 //        override def onApplicationStart(applicationStart: SparkListenerApplicationStart) {
