@@ -88,6 +88,8 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     status = Status.COMPILING
     General_Utilities().USERNAME = username
 
+    val res_name = generateResultName(queryName)
+
     val compileTimestamp = System.currentTimeMillis();
     try {
       //compile the GMQL Code phase 1
@@ -97,8 +99,8 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
       outputVariablesList = languageParserOperators.flatMap(x => x match {
         case d: MaterializeOperator =>
           if (!d.store_path.isEmpty)
-            Some(id + "_" + d.store_path.replace("/", "_"))
-          else Some(id)
+            Some( res_name + "_" + d.store_path.replace("/", "_"))
+          else Some(res_name)
         case _ => None
       })
 
@@ -171,13 +173,13 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
           if (!d.store_path.isEmpty){
             if (General_Utilities().MODE == General_Utilities().HDFS)
               d.store_path = fsRegDir + id + "_" + d.store_path + "/"
-            else d.store_path = id + "_" + d.store_path + "/"
+            else d.store_path = res_name + "_" + d.store_path + "/"
             d
           }
           else{
             if (General_Utilities().MODE == General_Utilities().HDFS)
               d.store_path = fsRegDir + id + "/"
-            else d.store_path = id + "/"
+            else d.store_path = res_name + "/"
             d
           }
         case s: Operator => s
@@ -491,7 +493,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
   }
 
 
-  def generateResultName(queryname:String): String = {
+  def generateResultName(queryname:String = queryName): String = {
     queryname.toLowerCase() +  "_" + date
   }
 
