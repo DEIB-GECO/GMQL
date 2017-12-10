@@ -137,11 +137,13 @@ object Wrapper {
 
   def stopGMQL(): Unit =
   {
-    if(GMQL_server!=null)
+    if(GMQL_server!=null) {
       Spark_context.stop()
-
-    GMQL_server == null
-    Spark_context == null
+      GMQL_server == null
+      Spark_context == null
+    }
+    else
+      println("GMQL Server has not been initialized yet")
   }
 
   def readDataset(data_input_path: String, parser_name: String, is_local: Boolean, is_GMQL:Boolean,
@@ -606,10 +608,13 @@ object Wrapper {
     var meta_aggr_list: (String, Option[List[MetaAggregateFunction]]) = ("", None)
     var group_reg_list:(String, Option[List[GroupingParameter]]) = ("", None)
     val dataAsTheyAre = vv(input_dataset)
-    var MetaGroupByList:Option[MetaGroupByCondition] = None
-    val groupList: Option[List[AttributeEvaluationStrategy]] = MetaAttributeEvaluationStrategyList(meta_keys)
-    if(groupList.isDefined)
-      MetaGroupByList = Some(MetaGroupByCondition(groupList.get))
+    var metaGroupByList:Option[MetaGroupByCondition] = None
+
+    if(meta_keys!=null) {
+      val groupList: Option[List[AttributeEvaluationStrategy]] = MetaAttributeEvaluationStrategyList(meta_keys)
+      if (groupList.isDefined)
+        metaGroupByList = Some(MetaGroupByCondition(groupList.get))
+    }
 
     if (aggregates != null) {
       aggr_list = RegionToRegionAggregates(aggregates, dataAsTheyAre)
@@ -631,7 +636,7 @@ object Wrapper {
         return Array("1", meta_aggr_list._1)
     }
 
-    val group = dataAsTheyAre.GROUP(MetaGroupByList,meta_aggr_list._2,"_group",group_reg_list._2,aggr_list_opt)
+    val group = dataAsTheyAre.GROUP(metaGroupByList,meta_aggr_list._2,"_group",group_reg_list._2,aggr_list_opt)
 
     val index = counter.getAndIncrement()
     val out_p = input_dataset + "/group" + index
@@ -906,8 +911,11 @@ object Wrapper {
     output match {
       case "LEFT" => RegionBuilder.LEFT
       case "RIGHT" => RegionBuilder.RIGHT
-      case "CONTIG" => RegionBuilder.CONTIG
+      case "CAT" => RegionBuilder.CONTIG
       case "INTERSECTION" => RegionBuilder.INTERSECTION
+      case "BOTH" => RegionBuilder.BOTH
+      case "LEFT_DIST" => RegionBuilder.LEFT_DISTINCT
+      case "RIGHT_DIST" => RegionBuilder.RIGHT_DISTINCT
     }
 
   }
