@@ -88,6 +88,8 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     status = Status.COMPILING
     General_Utilities().USERNAME = username
 
+    val res_name = generateResultName(queryName)
+
     val compileTimestamp = System.currentTimeMillis();
     try {
       //compile the GMQL Code phase 1
@@ -97,8 +99,8 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
       outputVariablesList = languageParserOperators.flatMap(x => x match {
         case d: MaterializeOperator =>
           if (!d.store_path.isEmpty)
-            Some(id + "_" + d.store_path.replace("/", "_"))
-          else Some(id)
+            Some( res_name + "_" + d.store_path.replace("/", "_"))
+          else Some(res_name)
         case _ => None
       })
 
@@ -171,13 +173,13 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
           if (!d.store_path.isEmpty){
             if (General_Utilities().MODE == General_Utilities().HDFS)
               d.store_path = fsRegDir + id + "_" + d.store_path + "/"
-            else d.store_path = id + "_" + d.store_path + "/"
+            else d.store_path = res_name + "_" + d.store_path + "/"
             d
           }
           else{
             if (General_Utilities().MODE == General_Utilities().HDFS)
               d.store_path = fsRegDir + id + "/"
-            else d.store_path = id + "/"
+            else d.store_path = res_name + "/"
             d
           }
         case s: Operator => s
@@ -252,11 +254,11 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
         x.paths = List(getInputDsPath(x.dataset.position))
         None
       case x: IRStoreRD =>
-        val outDsName = jobId + "_" + x.dataSet.position
+        val outDsName = generateResultName(queryName) + "_" + x.dataSet.position
         x.path = renameOutputDirs(outDsName)
         Some(outDsName)
       case x: IRStoreMD =>
-        val outDsName = jobId + "_" + x.dataSet.position
+        val outDsName = generateResultName(queryName) + "_" + x.dataSet.position
         x.path = renameOutputDirs(outDsName)
         Some(outDsName)
       case _ =>
@@ -487,6 +489,11 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     * @return GMQL Job ID as a string
     */
   def generateJobId(username: String, queryname: String): String = {
+    "job_"+username+"_"+generateResultName(queryname)
+  }
+
+
+  def generateResultName(queryname:String = queryName): String = {
     queryname.toLowerCase() +  "_" + date
   }
 

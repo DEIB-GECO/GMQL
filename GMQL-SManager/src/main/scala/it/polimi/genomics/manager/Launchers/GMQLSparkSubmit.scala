@@ -71,7 +71,7 @@ class GMQLSparkSubmit(job:GMQLJob) {
 
     val outDir = job.outputVariablesList.map{x=>
       val dir = job.renameOutputDirs(x)
-      x.substring(job.jobId.length+1)+":::"+dir }.mkString(",")
+      x.substring(job.generateResultName().length+1)+":::"+dir }.mkString(",")
 
 //    println(outDir)
 
