@@ -205,19 +205,27 @@ object OperatorManager {
   }
 
   def getCoverParam(p : String): CoverParam = {
-    p.toUpperCase match {
-      case "ALL" => new ALL{}
-      case "ANY" => new ANY{}
-      case _ =>
-        try {
-          val number = p.toInt
-          new N {
-            override val n: Int = number
-          }
-        } catch {
-          case _ : Exception => throw new IllegalArgumentException(p + " is an invalid COVER parameter")
-        }
+    val coverParameterManager = CoverParameterManager
+    var number: Option[Int] = None
+    try {
+      number = Some(p.toInt)
+      coverParameterManager.getCoverParam("N", number)
+    } catch {
+      case _ => coverParameterManager.getCoverParam(p, None)
     }
+//    p.toUpperCase match {
+//      case "ALL" => new ALL{}
+//      case "ANY" => new ANY{}
+//      case _ =>
+//        try {
+//          val number = p.toInt
+//          new N {
+//            override val n: Int = number
+//          }
+//        } catch {
+//          case _ : Exception => throw new IllegalArgumentException(p + " is an invalid COVER parameter")
+//        }
+//    }
   }
 
   def cover(index: Int, coverFlag : CoverFlag, minAcc : CoverParam, maxAcc : CoverParam,
