@@ -63,7 +63,7 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
           val score = if (!s(5).trim.equals(".") && !s(5).trim.toLowerCase().equals("null")) // When the values is not present it is considered . and we cast it into 0.0
             GDouble(s(5).trim.toDouble)
           else
-            /*GDouble(0.0)*/ GNull()
+            GNull()
 
           val source = GString(s(1).trim)
           val feature = GString(s(2).trim)
@@ -95,15 +95,15 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
         }
         case _ => {
           if (otherPos.isDefined) otherPos.get.foldLeft(new Array[GValue](0))((a, b) => a :+ {
-            b._2 match {
-              case ParsingType.DOUBLE => if(s(b._1).trim.toLowerCase().equals("null") || s(b._1).trim.equals(".")) {
-                /*GDouble(0.0)*/ GNull()
-              } else GDouble(s(b._1).trim.toDouble)
-              case ParsingType.STRING => GString(s(b._1).trim.toString)
-            }
-          })
-          else new Array[GValue](0)
-        }
+          b._2 match {
+            case ParsingType.DOUBLE => if(s(b._1).trim.toLowerCase().equals("null") || s(b._1).trim.equals(".")) {
+              GNull()
+            } else GDouble(s(b._1).trim.toDouble)
+            case ParsingType.STRING => GString(s(b._1).trim)
+          }
+        })
+        else new Array[GValue](0)
+      }
       }
 
       val newStart = if (coordinateSystem == GMQLSchemaCoordinateSystem.OneBased) s(startPos).trim.toLong - 1 else s(startPos).trim.toLong
@@ -128,7 +128,7 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
         logger.warn("Chrom: " + chrPos + "\tStart: " + startPos + "\tStop: " + stopPos + "\tstrand: " + strandPos);
         logger.warn("Values: " + otherPos.getOrElse(Array[(Int, ParsingType.PARSING_TYPE)]()).map(x => "(" + x._1 + "," + x._2 + ")").mkString("\t") + "\n" +
           "This line can not be casted (check the spacing): \n\t\t" + t);
-        None //throw ParsingException.create(t._2, e)
+        None
     }
   }
 
@@ -221,7 +221,9 @@ object BroadPeaksParser extends BedParser("\t", 0, 1, 2, Some(5), Some(Array((3,
   *
   *
   */
-object NarrowPeakParser extends BedParser("\t", 0, 1, 2, Some(5), Some(Array((3, ParsingType.STRING), (4, ParsingType.DOUBLE), (6, ParsingType.DOUBLE), (7, ParsingType.DOUBLE), (8, ParsingType.DOUBLE), (9, ParsingType.DOUBLE)))) {
+object NarrowPeakParser extends BedParser("\t", 0, 1, 2,
+  Some(5),
+  Some(Array((3, ParsingType.STRING), (4, ParsingType.DOUBLE), (6, ParsingType.DOUBLE), (7, ParsingType.DOUBLE), (8, ParsingType.DOUBLE), (9, ParsingType.DOUBLE)))) {
 
   schema = List(("name", ParsingType.STRING),
     ("score", ParsingType.DOUBLE),
@@ -229,6 +231,43 @@ object NarrowPeakParser extends BedParser("\t", 0, 1, 2, Some(5), Some(Array((3,
     ("pValue", ParsingType.DOUBLE),
     ("qValue", ParsingType.DOUBLE),
     ("peak", ParsingType.DOUBLE))
+
+  override def region_parser(t: (Long, String)): Option[(GRecordKey, Array[GValue])] = {
+
+    val s: Array[String] = t._2 split "\t"
+
+    val name = GString(s(3).trim)
+    val score_raw = s(4).trim.toLowerCase
+    val score = if (score_raw.equals(".") || score_raw.equals("null")) GNull() else GDouble(score_raw.toDouble)
+    val sigVal_raw = s(6).trim.toLowerCase
+    val sigVal = if (sigVal_raw.equals(".") || sigVal_raw.equals("null")) GNull() else GDouble(sigVal_raw.toDouble)
+    val pVal_raw = s(7).trim.toLowerCase
+    val pVal = if (pVal_raw.equals(".") || pVal_raw.equals("null")) GNull() else GDouble(pVal_raw.toDouble)
+    val qVal_raw = s(8).trim.toLowerCase
+    val qVal = if (qVal_raw.equals(".") || qVal_raw.equals("null")) GNull() else GDouble(qVal_raw.toDouble)
+    val peak_raw = s(9).trim.toLowerCase
+    val peak = if (peak_raw.equals(".") || peak_raw.equals("null")) GNull() else GDouble(peak_raw.toDouble)
+
+    val other = Array[GValue](name, score, sigVal, pVal, qVal, peak)
+
+    val newStart = s(startPos).trim.toLong
+
+    val c = s(strandPos.get).trim.charAt(0)
+    val strand = if (c.equals('+') || c.equals('-')) {
+      c
+    } else {
+      '*'
+    }
+
+    Some(
+      (new GRecordKey(
+        t._1,
+        s(chrPos).trim,
+        newStart,
+        s(stopPos).trim.toLong,
+        strand),
+        other))
+  }
 }
 
 /**
