@@ -63,7 +63,10 @@ object SelectIRD {
     def parser(x: (Long, String)) = loader.asInstanceOf[GMQLLoader[(Long, String), Option[GRECORD], (Long, String), Option[MetaType]]].region_parser(x)
 
     if (selectedURIs.size > 0)
-      sc forPath (selectedURIs.mkString(",")) LoadRegionsCombineFiles(parser, PredicateRD.applyRegionSelect, optimized_reg_cond) cache
+      sc
+        .forPath(selectedURIs.mkString(","))
+        .LoadRegionsCombineFiles(parser, PredicateRD.applyRegionSelect, optimized_reg_cond)
+        .cache
     else {
       logger.warn("One input select is empty..")
       sc.emptyRDD[GRECORD]

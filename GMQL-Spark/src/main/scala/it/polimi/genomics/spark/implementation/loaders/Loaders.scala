@@ -85,22 +85,33 @@ object Loaders {
       * @param regionPredicate [[Option]] of [[RegionCondition]]
       * @return [[RDD]] of [[GRECORD]]
       */
-    def LoadRegionsCombineFiles(parser: ((Long, String)) => Option[GRECORD], lineFilter: ((RegionCondition, GRECORD) => Boolean), regionPredicate: Option[RegionCondition]): RDD[GRECORD] = {
+    def LoadRegionsCombineFiles(
+                                 parser: ((Long, String)) => Option[GRECORD],
+                                 lineFilter: ((RegionCondition, GRECORD) => Boolean),
+                                 regionPredicate: Option[RegionCondition]): RDD[GRECORD] = {
       val rdd = sc
         .newAPIHadoopRDD(conf, classOf[CombineTextFileWithPathInputFormat], classOf[Long], classOf[Text])
-      val rddPartitioned =
-      //        if (rdd.partitions.size < 20)
-      //        rdd.repartition(40)
-      //      else
-        rdd
-      rddPartitioned.flatMap { x => val gRecord = parser(x._1, x._2.toString);
-        gRecord match {
-          case Some(reg) => if (regionPredicate.isDefined) {
-            if (lineFilter(regionPredicate.get, reg)) gRecord else None
-          } else gRecord
-          case None => None
+
+
+      //Has to be further revised, in particular the else branch
+      if (!regionPredicate.isDefined) {
+        rdd.flatMap( x => parser(x._1, x._2.toString) )
+      }
+      else {
+        rdd.flatMap {
+          x =>
+            val gRecord = parser(x._1, x._2.toString)
+            gRecord match {
+              case Some(reg) =>
+                  if (lineFilter(regionPredicate.get, reg))
+                    gRecord
+                  else
+                    None
+              case None => None
+            }
         }
       }
+
     }
 
     /**
