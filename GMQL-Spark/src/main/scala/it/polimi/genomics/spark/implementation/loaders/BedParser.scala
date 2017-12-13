@@ -25,7 +25,7 @@ import scala.xml.XML
   */
 class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopPos: Int, var strandPos: Option[Int], var otherPos: Option[Array[(Int, ParsingType.PARSING_TYPE)]]) extends GMQLLoader[(Long, String), Option[DataTypes.GRECORD], (Long, String), Option[DataTypes.MetaType]] with java.io.Serializable {
 
-  private val logger: Logger = LoggerFactory.getLogger(classOf[BedParser]);
+  private val logger: Logger = LoggerFactory.getLogger(classOf[BedParser])
   var parsingType = GMQLSchemaFormat.TAB
   var coordinateSystem = GMQLSchemaCoordinateSystem.ZeroBased
   final val spaceDelimiter: String = " "
@@ -225,6 +225,7 @@ object NarrowPeakParser extends BedParser("\t", 0, 1, 2,
   Some(5),
   Some(Array((3, ParsingType.STRING), (4, ParsingType.DOUBLE), (6, ParsingType.DOUBLE), (7, ParsingType.DOUBLE), (8, ParsingType.DOUBLE), (9, ParsingType.DOUBLE)))) {
 
+  val logger: Logger = LoggerFactory.getLogger(classOf[BedParser])
   schema = List(("name", ParsingType.STRING),
     ("score", ParsingType.DOUBLE),
     ("signalValue", ParsingType.DOUBLE),
@@ -232,42 +233,53 @@ object NarrowPeakParser extends BedParser("\t", 0, 1, 2,
     ("qValue", ParsingType.DOUBLE),
     ("peak", ParsingType.DOUBLE))
 
+
   override def region_parser(t: (Long, String)): Option[(GRecordKey, Array[GValue])] = {
 
-    val s: Array[String] = t._2 split "\t"
+    try {
+      val s: Array[String] = t._2 split "\t"
 
-    val name = GString(s(3).trim)
-    val score_raw = s(4).trim.toLowerCase
-    val score = if (score_raw.equals(".") || score_raw.equals("null")) GNull() else GDouble(score_raw.toDouble)
-    val sigVal_raw = s(6).trim.toLowerCase
-    val sigVal = if (sigVal_raw.equals(".") || sigVal_raw.equals("null")) GNull() else GDouble(sigVal_raw.toDouble)
-    val pVal_raw = s(7).trim.toLowerCase
-    val pVal = if (pVal_raw.equals(".") || pVal_raw.equals("null")) GNull() else GDouble(pVal_raw.toDouble)
-    val qVal_raw = s(8).trim.toLowerCase
-    val qVal = if (qVal_raw.equals(".") || qVal_raw.equals("null")) GNull() else GDouble(qVal_raw.toDouble)
-    val peak_raw = s(9).trim.toLowerCase
-    val peak = if (peak_raw.equals(".") || peak_raw.equals("null")) GNull() else GDouble(peak_raw.toDouble)
+      val name = GString(s(3).trim)
+      val score_raw = s(4).trim.toLowerCase
+      val score = if (score_raw.equals(".") || score_raw.equals("null")) GNull() else GDouble(score_raw.toDouble)
+      val sigVal_raw = s(6).trim.toLowerCase
+      val sigVal = if (sigVal_raw.equals(".") || sigVal_raw.equals("null")) GNull() else GDouble(sigVal_raw.toDouble)
+      val pVal_raw = s(7).trim.toLowerCase
+      val pVal = if (pVal_raw.equals(".") || pVal_raw.equals("null")) GNull() else GDouble(pVal_raw.toDouble)
+      val qVal_raw = s(8).trim.toLowerCase
+      val qVal = if (qVal_raw.equals(".") || qVal_raw.equals("null")) GNull() else GDouble(qVal_raw.toDouble)
+      val peak_raw = s(9).trim.toLowerCase
+      val peak = if (peak_raw.equals(".") || peak_raw.equals("null")) GNull() else GDouble(peak_raw.toDouble)
 
-    val other = Array[GValue](name, score, sigVal, pVal, qVal, peak)
+      val other = Array[GValue](name, score, sigVal, pVal, qVal, peak)
 
-    val newStart = s(startPos).trim.toLong
+      val newStart = s(startPos).trim.toLong
 
-    val c = s(strandPos.get).trim.charAt(0)
-    val strand = if (c.equals('+') || c.equals('-')) {
-      c
-    } else {
-      '*'
-    }
+      val c = s(strandPos.get).trim.charAt(0)
+      val strand = if (c.equals('+') || c.equals('-')) {
+        c
+      } else {
+        '*'
+      }
 
-    Some(
-      (new GRecordKey(
-        t._1,
-        s(chrPos).trim,
-        newStart,
-        s(stopPos).trim.toLong,
-        strand),
-        other))
+      Some(
+        (new GRecordKey(
+          t._1,
+          s(chrPos).trim,
+          newStart,
+          s(stopPos).trim.toLong,
+          strand),
+          other))
+      } catch {
+        case e: Throwable =>
+          logger.warn(e.getMessage)
+          logger.warn("Chrom: " + chrPos + "\tStart: " + startPos + "\tStop: " + stopPos + "\tstrand: " + strandPos);
+          logger.warn("Values: " + otherPos.getOrElse(Array[(Int, ParsingType.PARSING_TYPE)]()).map(x => "(" + x._1 + "," + x._2 + ")").mkString("\t") + "\n" +
+            "This line can not be casted (check the spacing): \n\t\t" + t);
+          None
+      }
   }
+
 }
 
 /**
