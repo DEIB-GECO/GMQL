@@ -28,9 +28,9 @@ object StoreTABRD {
     val regions = executor.implement_rd(value, sc)
     val meta = executor.implement_md(associatedMeta,sc)
 
-    val conf = new Configuration();
-    val dfsPath = new org.apache.hadoop.fs.Path(path);
-    val fs = FileSystem.get(dfsPath.toUri(), conf);
+    val conf = new Configuration()
+    val dfsPath = new org.apache.hadoop.fs.Path(path)
+    val fs = FileSystem.get(dfsPath.toUri(), conf)
 
     val MetaOutputPath = path + "/meta/"
     val RegionOutputPath = path + "/exp/"
@@ -50,18 +50,22 @@ object StoreTABRD {
     val regionsPartitioner = new HashPartitioner(Ids.count.toInt)
 
     val keyedRDD =
-      regions.sortBy(s=>s._1).map{x =>
-        val newStart = if (coordinateSystem == GMQLSchemaCoordinateSystem.OneBased) (x._1._3 + 1) else x._1._3  //start: 0-based -> 1-based
+      regions/*.sortBy(s=>s._1)*/.map{x =>
+        val newStart =
+          if (coordinateSystem == GMQLSchemaCoordinateSystem.OneBased)
+            (x._1._3 + 1)
+          else
+            x._1._3  //start: 0-based -> 1-based
+
         (outSample+"_"+ "%05d".format(newIDSbroad.value.get(x._1._1).getOrElse(x._1._1))+".gdm",
         x._1._2 + "\t" + newStart + "\t" + x._1._4 + "\t" + x._1._5 + "\t" + x._2.mkString("\t"))}
-          .partitionBy(regionsPartitioner)//.mapPartitions(x=>x.toList.sortBy{s=> val data = s._2.split("\t"); (data(0),data(1).toLong,data(2).toLong)}.iterator)
+          .partitionBy(regionsPartitioner)
 
     keyedRDD.saveAsHadoopFile(RegionOutputPath,classOf[String],classOf[String],classOf[RDDMultipleTextOutputFormat])
-//    writeMultiOutputFiles.saveAsMultipleTextFiles(keyedRDD, RegionOutputPath)
+
 
     val metaKeyValue = meta.sortBy(x=>(x._1,x._2)).map(x => (outSample+"_"+ "%05d".format(newIDSbroad.value.get(x._1).get) + ".gdm.meta", x._2._1 + "\t" + x._2._2)).partitionBy(regionsPartitioner)
 
-//    writeMultiOutputFiles.saveAsMultipleTextFiles(metaKeyValue, MetaOutputPath)
     metaKeyValue.saveAsHadoopFile(MetaOutputPath,classOf[String],classOf[String],classOf[RDDMultipleTextOutputFormat])
     writeMultiOutputFiles.fixOutputMetaLocation(MetaOutputPath)
 
@@ -69,7 +73,6 @@ object StoreTABRD {
       override def accept(path: Path): Boolean = {println(path.getName); true}
     })
 
-//    fs.deleteOnExit(new Path(RegionOutputPath+"*.crc"))
     fs.deleteOnExit(new Path(RegionOutputPath+"_SUCCESS"))
 
     regions
