@@ -41,7 +41,7 @@ object StoreTABRD {
     logger.debug(meta.toDebugString)
 
 
-    val outSample = "S"
+    val outSample = "S_"
 
     val Ids = meta.keys.distinct()
     val newIDS: Map[Long, Long] = Ids.zipWithIndex().collectAsMap()
@@ -57,9 +57,19 @@ object StoreTABRD {
           else
             x._1._3  //start: 0-based -> 1-based
 
-        (outSample+"_"+ "%05d".format(newIDSbroad.value.get(x._1._1).getOrElse(x._1._1))+".gdm",
-        x._1._2 + "\t" + newStart + "\t" + x._1._4 + "\t" + x._1._5 + "\t" + x._2.mkString("\t"))}
-          .partitionBy(regionsPartitioner)
+        (outSample
+          .concat("%05d".format(newIDSbroad.value.get(x._1._1).getOrElse(x._1._1)))
+          .concat(".gdm"),
+        x._1._2
+          .concat("\t")
+          .concat(newStart.toString)
+          .concat("\t")
+          .concat(x._1._4.toString)
+          .concat("\t")
+          .concat(x._1._5.toString)
+          .concat("\t")
+          .concat(x._2.mkString("\t")))}
+        .partitionBy(regionsPartitioner)
 
     keyedRDD.saveAsHadoopFile(RegionOutputPath,classOf[String],classOf[String],classOf[RDDMultipleTextOutputFormat])
 
