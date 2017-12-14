@@ -20,6 +20,8 @@ import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
 import scala.xml.{Elem, Node, NodeSeq, XML}
+import FS_Utilities.isValidDsName
+
 
 /**
   * Created by abdulrahman on 16/01/2017.
@@ -72,6 +74,8 @@ trait XMLDataSetRepository extends GMQLRepository{
     */
   @throws(classOf[GMQLNotValidDatasetNameException])
   override def importDs(dataSetName: String, userName: String, userClass: GDMSUserClass = GDMSUserClass.PUBLIC, Samples: java.util.List[GMQLSample], schemaPath: String): Unit = {
+    if(!isValidDsName(dataSetName))
+      throw new GMQLNotValidDatasetNameException(s"Dataset name is not valid, $dataSetName")
 
     if( isUserQuotaExceeded(userName, userClass) ) {
       throw new UserExceedsQuota()
