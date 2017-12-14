@@ -12,6 +12,8 @@ import org.apache.commons.io.FileUtils
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
+import FS_Utilities.isValidDsName
+
 /**
   * Created by abdulrahman on 12/04/16.
   */
@@ -34,6 +36,8 @@ class LFSRepository extends GMQLRepository with XMLDataSetRepository{
   @throws(classOf[GMQLUserNotFound])
   @throws(classOf[Exception])
   override def importDs(dataSetName: String, userName: String, userClass: GDMSUserClass = GDMSUserClass.PUBLIC, Samples: java.util.List[GMQLSample], schemaPath: String): Unit = {
+    if(!isValidDsName(dataSetName))
+      throw new GMQLNotValidDatasetNameException(s"Dataset name is not valid, $dataSetName")
 
     //Check if the dataset schema is valid otherwise return an exception
     if (FS_Utilities.validate(schemaPath)) {

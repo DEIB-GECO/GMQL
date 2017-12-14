@@ -5,6 +5,7 @@ import java.nio.file.{FileSystems, Paths}
 import it.polimi.genomics.core.{GMQLSchemaFormat, ParsingType}
 import it.polimi.genomics.repository.{GMQLSample, Utilities => General_Utilities}
 import java.io._
+import javax.lang.model.SourceVersion
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, LocalFileSystem, Path}
@@ -242,5 +243,12 @@ object FS_Utilities {
       }
       else dir.delete
     }
+
+  /**
+    * check if the dataset name is a valid identifier
+    * @param datasetName
+    * @return
+    */
+  def isValidDsName(datasetName: String) : Boolean = SourceVersion.isIdentifier(datasetName)
 
 }
