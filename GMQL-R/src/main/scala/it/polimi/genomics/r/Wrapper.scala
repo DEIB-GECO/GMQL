@@ -734,6 +734,7 @@ object Wrapper {
 
   def flat(min: String, max: String, groupBy: Array[Array[String]], aggregates: Array[Array[String]],
            input_dataset: String): Array[String] = {
+    println("flat")
     val (error, flat) = doVariant(CoverFlag.FLAT, min, max, groupBy, aggregates, input_dataset)
     if (flat == null)
       return Array("1",error)
@@ -748,6 +749,8 @@ object Wrapper {
   def histogram(min: String, max: String, groupBy: Array[Array[String]], aggregates: Array[Array[String]],
                 input_dataset: String): Array[String] = {
     val (error, histogram) = doVariant(CoverFlag.FLAT, min, max, groupBy, aggregates, input_dataset)
+    println("histogram")
+
     if (histogram == null)
       return Array("1",error)
 
@@ -760,6 +763,7 @@ object Wrapper {
 
   def summit(min: String, max: String, groupBy: Array[Array[String]], aggregates: Array[Array[String]],
              input_dataset: String): Array[String] = {
+    println("summit")
     val (error, summit) = doVariant(CoverFlag.SUMMIT, min, max, groupBy, aggregates, input_dataset)
     if (summit == null)
       return Array("1",error)
@@ -773,6 +777,8 @@ object Wrapper {
 
   def cover(min: String, max: String, groupBy: Array[Array[String]], aggregates: Array[Array[String]],
             input_dataset: String): Array[String] = {
+    println("cover")
+
     val (error, cover) = doVariant(CoverFlag.COVER, min, max, groupBy, aggregates, input_dataset)
     if (cover == null)
       return Array("1",error)
