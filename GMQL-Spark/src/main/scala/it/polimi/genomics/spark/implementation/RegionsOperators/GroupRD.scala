@@ -4,8 +4,8 @@ import com.google.common.hash.Hashing
 import it.polimi.genomics.core.DataStructures.GroupRDParameters.FIELD
 import it.polimi.genomics.core.DataStructures.{GroupRDParameters, RegionAggregate, RegionOperator}
 import it.polimi.genomics.core.DataTypes.GRECORD
-import it.polimi.genomics.core.{GNull, GValue}
 import it.polimi.genomics.core.exception.SelectFormatException
+import it.polimi.genomics.core.{GNull, GValue}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
@@ -51,7 +51,14 @@ object GroupRD {
               new Array[GValue](0)
             }
 
-          (a._1, aggregated)
+          val groupingFields: Array[GValue] = if (groupingParameters.isDefined){
+            groupingParameters.get.map{ case FIELD(pos) =>
+              a._2(pos)
+            }.toArray.map(f => f.head)
+          } else new Array[GValue](0)
+
+
+          (a._1, groupingFields ++ aggregated)
         }
     res
   }

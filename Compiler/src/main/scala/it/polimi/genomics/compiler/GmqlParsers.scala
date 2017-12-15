@@ -35,7 +35,11 @@ trait GmqlParsers extends JavaTokenParsers {
   val anyVariableIdentifier:Parser[Variable] = variableId | variablePath
 
   val fixed_field_position:Parser[Int] = (regex("[$](\\d|[1-9]\\d*)".r) ) ^^ {x => x.tail.toInt}
-  val region_field_name:Parser[String] = rep1sep(ident, ".") ^^ {_.mkString(".")}
+  val region_field_name:Parser[String] = rep1sep(ident, ".").withFilter(
+      x => {
+        !List("chr", "start", "left", "stop", "right", "strand").contains(x.mkString(".").toLowerCase)
+      }
+    ) ^^ {_.mkString(".")}
   val any_field_identifier:Parser[FieldPositionOrName] =
     fixed_field_position ^^ {FieldPosition(_)} |
       region_field_name ^^ {FieldName(_)}
@@ -295,13 +299,18 @@ trait GmqlParsers extends JavaTokenParsers {
       allBut |
       region_project_list
 
-  lazy val re_factor:Parser[RENode] = START ^^ {x=>RESTART()} |
-    STOP ^^ {x => RESTOP()} | LEFT ^^ {x => RELEFT()} |
-    RIGHT ^^ {x=> RERIGHT()} | CHR ^^ {x => RECHR()} | STRAND ^^ {x => RESTRAND()} |
-    decimalNumber ^^ {x => REFloat(x.toDouble)} |
-    SQRT ~> "(" ~> re_expr <~ ")" ^^ {RESQRT(_)} |
-    any_field_identifier ^^ {x => REFieldNameOrPosition(x)} | "(" ~> re_expr <~ ")" |
-    SUB ~> re_expr ^^ {x => RENegate(x)}
+  lazy val re_factor:Parser[RENode] =
+    START ^^ {x=>RESTART()} |
+      STOP ^^ {x => RESTOP()} |
+      LEFT ^^ {x => RELEFT()} |
+      RIGHT ^^ {x=> RERIGHT()} |
+      CHR ^^ {x => RECHR()} |
+      STRAND ^^ {x => RESTRAND()} |
+      decimalNumber ^^ {x => REFloat(x.toDouble)} |
+      SQRT ~> "(" ~> re_expr <~ ")" ^^ {RESQRT(_)} |
+      any_field_identifier ^^ {x => REFieldNameOrPosition(x)} |
+      "(" ~> re_expr <~ ")" |
+      SUB ~> re_expr ^^ {x => RENegate(x)}
 
   val re_term: Parser[RENode] = re_factor ~ rep((MULT|DIV) ~ re_factor) ^^ {
     case t ~ ts => ts.foldLeft(t) {
@@ -320,6 +329,12 @@ trait GmqlParsers extends JavaTokenParsers {
 
   val single_region_modifier:Parser[SingleProjectOnRegion] =
     ((region_field_name ^^ {FieldName(_)}) <~ AS) ~ stringLiteral ^^ {
+      x => RegionModifier(x._1, REStringConstant(x._2.drop(1).dropRight(1)))
+    } |
+    ((CHR ^^ {x => FieldPosition(COORD_POS.CHR_POS)}) <~ AS) ~ stringLiteral ^^ {
+        x => RegionModifier(x._1, REStringConstant(x._2.drop(1).dropRight(1)))
+      } |
+    ((STRAND ^^ {x => FieldPosition(COORD_POS.STRAND_POS)}) <~ AS) ~ stringLiteral ^^ {
       x => RegionModifier(x._1, REStringConstant(x._2.drop(1).dropRight(1)))
     } |
     ((region_field_name ^^ {FieldName(_)}) <~ AS) ~ (META ~> "(" ~> metadata_attribute <~ "," <~ INTEGER <~ ")") ^^ {
@@ -342,13 +357,7 @@ trait GmqlParsers extends JavaTokenParsers {
       } |
     (
       (
-        any_field_identifier.withFilter(
-          x =>
-            x match {
-              case FieldName(n) => !List("chr", "start", "stop", "left", "right", "strand").contains(n.toLowerCase)
-              case _ => true
-            }
-        ) |
+        (region_field_name ^^ {FieldName(_)}) |
         RIGHT ^^ {x => FieldPosition(COORD_POS.RIGHT_POS)} |
         LEFT ^^ {x => FieldPosition(COORD_POS.LEFT_POS)} |
         START ^^ {x => FieldPosition(COORD_POS.START_POS)} |

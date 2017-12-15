@@ -333,7 +333,7 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
       groupStatement |
       wrongStatement
 
-    val filler = """(.|\n)*;""".r
+    val filler = rep("""(.|\n)""".r) ~ ";"
 
     do {
       val outcome = parse(validStatement, remaining)
