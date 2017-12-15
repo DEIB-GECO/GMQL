@@ -164,9 +164,10 @@ object Loaders {
       * @return [[Long]] as the file ID
       */
     override def generateKey(split: CombineFileSplit, index: Integer): Long = {
+
       val uri = split.getPath(index).getName
       val uriExt =uri.substring(uri.lastIndexOf(".")+1,uri.size)
-      val URLNoMeta = if(!uriExt.equals("meta"))uri.substring(0,uri.size ) else  uri.substring(0,uri.lastIndexOf("."))
+      val URLNoMeta = if(!uriExt.equals("meta")) uri.substring(0,uri.size ) else  uri.substring(0,uri.lastIndexOf("."))
       Hashing.md5().newHasher().putString(URLNoMeta.replaceAll("/",""),java.nio.charset.StandardCharsets.UTF_8).hash().asLong()
     }
   }
