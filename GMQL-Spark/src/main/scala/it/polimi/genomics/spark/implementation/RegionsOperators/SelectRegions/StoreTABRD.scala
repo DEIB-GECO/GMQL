@@ -74,7 +74,7 @@ object StoreTABRD {
     keyedRDD.saveAsHadoopFile(RegionOutputPath,classOf[String],classOf[String],classOf[RDDMultipleTextOutputFormat])
 
 
-    val metaKeyValue = meta.sortBy(x=>(x._1,x._2)).map(x => (outSample+"_"+ "%05d".format(newIDSbroad.value.get(x._1).get) + ".gdm.meta", x._2._1 + "\t" + x._2._2)).partitionBy(regionsPartitioner)
+    val metaKeyValue = meta.sortBy(x=>(x._1,x._2)).map(x => (outSample+ "%05d".format(newIDSbroad.value.get(x._1).get) + ".gdm.meta", x._2._1 + "\t" + x._2._2)).partitionBy(regionsPartitioner)
 
     metaKeyValue.saveAsHadoopFile(MetaOutputPath,classOf[String],classOf[String],classOf[RDDMultipleTextOutputFormat])
     writeMultiOutputFiles.fixOutputMetaLocation(MetaOutputPath)
