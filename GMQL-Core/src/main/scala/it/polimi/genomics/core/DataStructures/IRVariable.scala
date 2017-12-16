@@ -236,7 +236,9 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
           meta_group_name,
           this.metaDag,
           this.regionDag),
-        this.regionDag)
+        this.regionDag,
+        this.schema
+      )
     }
     else {
       val new_schema = region_keys
