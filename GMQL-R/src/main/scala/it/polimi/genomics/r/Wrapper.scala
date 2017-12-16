@@ -137,11 +137,8 @@ object Wrapper {
 
   def stopGMQL(): Unit =
   {
-    if(GMQL_server!=null) {
+    if(GMQL_server!=null)
       Spark_context.stop()
-      GMQL_server == null
-      Spark_context == null
-    }
     else
       println("GMQL Server has not been initialized yet")
   }
@@ -154,14 +151,14 @@ object Wrapper {
 
     var parser: BedParser = null
     var out_p = ""
-    var loc_path=""
-    var remote_path=""
+    var loc_path = ""
+    var remote_path = ""
     var data_path = data_input_path
 
     if (is_local && is_GMQL)
     {
-      var name_local:Array[String] = data_path.split("/")
-      var last_name = name_local(name_local.length-1)
+      val name_local:Array[String] = data_path.split("/")
+      val last_name = name_local(name_local.length-1)
       if(last_name != "files")
         data_path = data_path + "/files"
     }
@@ -329,7 +326,7 @@ object Wrapper {
       }
     }
     GMQL_server setOutputPath data_output_path MATERIALIZE materialize
-    materialize_list += materialize
+    //materialize_list += materialize
     materialize_count.getAndIncrement()
     change_processing_possible=false
 
@@ -591,12 +588,6 @@ object Wrapper {
     Array("0",out_p)
   }
 
-  /*  def GROUP(meta_keys : Option[MetaGroupByCondition] = None,
-            meta_aggregates : Option[List[MetaAggregateFunction]] = None,
-            meta_group_name : String = "_group",
-            region_keys : Option[List[GroupingParameter]],
-            region_aggregates : Option[List[RegionsToRegion]]): IRVariable ={*/
-
   def group(meta_keys:Array[Array[String]], meta_aggr:Array[Array[String]], region_keys:Array[String],
             aggregates:Array[Array[String]], input_dataset: String): Array[String] = {
 
@@ -686,7 +677,7 @@ object Wrapper {
   }
 
   //we use "right" and "left" as prefixes
-  def union(right_dataset: String, left_dataset: String): Array[String] = {
+  def union(left_dataset: String, right_dataset: String): Array[String] = {
     if (vv.get(right_dataset).isEmpty)
       return Array("1","No valid right Data as input")
 
@@ -748,7 +739,7 @@ object Wrapper {
 
   def histogram(min: String, max: String, groupBy: Array[Array[String]], aggregates: Array[Array[String]],
                 input_dataset: String): Array[String] = {
-    val (error, histogram) = doVariant(CoverFlag.FLAT, min, max, groupBy, aggregates, input_dataset)
+    val (error, histogram) = doVariant(CoverFlag.HISTOGRAM, min, max, groupBy, aggregates, input_dataset)
     println("histogram")
 
     if (histogram == null)
@@ -823,7 +814,7 @@ object Wrapper {
 
   // we do not add left, right and count name: we set to None
   def map(condition: Array[Array[String]], aggregates: Array[Array[String]],
-          right_dataset: String, left_dataset: String): Array[String] = {
+          left_dataset: String, right_dataset: String): Array[String] = {
     if (vv.get(right_dataset).isEmpty)
       return Array("1","No valid right Data as input")
 
@@ -854,8 +845,12 @@ object Wrapper {
 
 
   // we do not add ref and exp name: we set to None
-  def join(region_join: Array[Array[String]], meta_join: Array[Array[String]], output: String,
-           right_dataset: String, left_dataset: String): Array[String] = {
+  def join(genometric: Array[Array[String]], meta_join: Array[Array[String]], output: String,
+           left_dataset: String, right_dataset: String): Array[String] = {
+
+    if(GMQL_server == null)
+      return Array("1","invoke init_gmql() first")
+
     if (vv.get(right_dataset).isEmpty)
       return Array("1","No valid right Data as input")
 
@@ -866,7 +861,7 @@ object Wrapper {
     val rightDataAsTheyAre = vv(right_dataset)
 
     val meta_join_list: Option[MetaJoinCondition] = MetaJoinConditionList(meta_join)
-    val region_join_list: List[JoinQuadruple] = RegionQuadrupleList(region_join)
+    val region_join_list: List[JoinQuadruple] = RegionQuadrupleList(genometric)
 
     val reg_out = regionBuild(output)
 
@@ -877,7 +872,7 @@ object Wrapper {
     val out_p = left_dataset + "/join" + index
     vv = vv + (out_p -> join)
 
-    Array("0",out_p)
+    Array("0","")
   }
 
 
@@ -1085,7 +1080,6 @@ object Wrapper {
     val joinList = new ListBuffer[AttributeEvaluationStrategy]()
 
     if (join_by == null  ) {
-      //println("null")
       return join_by_list
     }
 
@@ -1228,27 +1222,20 @@ object Wrapper {
     var quad_list: List[JoinQuadruple] = null
     val temp_list = new ListBuffer[Option[AtomicCondition]]()
 
-    val len = quad_join.length
-    if (quad_join == null)
+    if (quad_join == null) {
       return quad_list
-
-    quad_join match {
-      case quad_join: Array[Array[String]] => {
-        for (elem <- quad_join) {
-          print(elem(0), elem(1))
-          temp_list += atomic_cond(elem(0), elem(1))
-        }
-        if(len < 4)
-          for(i <- 0 until 4-len)
-            temp_list += None
-      }
     }
-    /*
-    println(temp_list(0))
-    println(temp_list(1))
-    println(temp_list(2))
-    println(temp_list(3))
-*/
+
+    val len = quad_join.length
+
+    for (elem <- quad_join) {
+      print(elem(0), elem(1))
+      temp_list += atomic_cond(elem(0), elem(1))
+    }
+    if(len < 4)
+      for(i <- 0 until 4-len)
+        temp_list += None
+
     val quadruple = JoinQuadruple(temp_list.head,temp_list(1),temp_list(2),temp_list(3))
     List(quadruple)
 
