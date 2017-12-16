@@ -64,7 +64,7 @@ trait MetaSelection {
       case value: Double =>
         s:Iterable[(String,String)] => s.exists({
           x =>
-              x._1.endsWith(predicate.attribute_name) &&
+            (x._1.equals(predicate.attribute_name) || x._1.endsWith("."+predicate.attribute_name)) &&
                 (value.equals(ALL) ||
                   (try{x._2.toDouble.equals(value)} catch {case _ : Throwable => false})
                   )
@@ -72,7 +72,7 @@ trait MetaSelection {
       case value: String =>
         s:Iterable[(String,String)] => s.exists({
           x =>
-            x._1.endsWith(predicate.attribute_name) &&
+            (x._1.equals(predicate.attribute_name) || x._1.endsWith("."+predicate.attribute_name)) &&
               (value.equals(ALL) ||
                 x._2.toLowerCase.equals(value.toLowerCase())
                 )
@@ -86,13 +86,13 @@ trait MetaSelection {
       case value: Double =>
         s:Iterable[(String,String)] => s.exists({
           x =>
-            x._1.endsWith(predicate.attribute_name) &&
+            (x._1.equals(predicate.attribute_name) || x._1.endsWith("."+predicate.attribute_name)) &&
               (try{!x._2.toDouble.equals(value)} catch {case _ : Throwable => true})
         })
       case value: String =>
         s:Iterable[(String,String)] => s.exists({
           x =>
-            x._1.endsWith(predicate.attribute_name) &&
+            (x._1.equals(predicate.attribute_name) || x._1.endsWith("."+predicate.attribute_name)) &&
               !x._2.toLowerCase.equals(value.toLowerCase())
         })
     }
@@ -104,7 +104,7 @@ trait MetaSelection {
       case value: Double =>
         s:Iterable[(String,String)] => s.exists({
           x =>
-            x._1.endsWith(predicate.attribute_name) &&
+            (x._1.equals(predicate.attribute_name) || x._1.endsWith("."+predicate.attribute_name)) &&
               (try{x._2.toDouble > value} catch {case _ : Throwable => false})
 
         })
@@ -120,7 +120,7 @@ trait MetaSelection {
       case value: Double =>
         s:Iterable[(String,String)] => s.exists({
           x =>
-            x._1.endsWith(predicate.attribute_name) &&
+            (x._1.equals(predicate.attribute_name) || x._1.endsWith("."+predicate.attribute_name)) &&
               (try{x._2.toDouble >= value} catch {case _ : Throwable => false})
 
         })
@@ -137,7 +137,7 @@ trait MetaSelection {
       case value: Double =>
         s:Iterable[(String,String)] => s.exists({
           x =>
-            x._1.endsWith(predicate.attribute_name) &&
+            (x._1.equals(predicate.attribute_name) || x._1.endsWith("."+predicate.attribute_name)) &&
               (try{x._2.toDouble < value} catch {case _ : Throwable => false})
 
         })
@@ -154,7 +154,7 @@ trait MetaSelection {
       case value: Double =>
         s:Iterable[(String,String)] => s.exists({
           x =>
-            x._1.endsWith(predicate.attribute_name) &&
+            (x._1.equals(predicate.attribute_name) || x._1.endsWith("."+predicate.attribute_name)) &&
               (try{x._2.toDouble <= value} catch {case _ : Throwable => false})
 
         })
@@ -166,7 +166,8 @@ trait MetaSelection {
   }
 
   def buildContainAttribute(name : String) : Iterable[(String, String)] => Boolean = {
-    s:Iterable[(String,String)] => s.exists(_._1.endsWith(name))
+    s:Iterable[(String,String)] => s.exists(
+      x =>(x._1.equals(name) || x._1.endsWith("."+name)))
   }
 
 }

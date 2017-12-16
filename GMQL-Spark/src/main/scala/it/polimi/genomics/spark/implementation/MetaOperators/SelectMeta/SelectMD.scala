@@ -16,7 +16,11 @@ object SelectMD {
   private final val logger = LoggerFactory.getLogger(SelectMD.getClass)
 
   @throws[SelectFormatException]
-  def apply(executor : GMQLSparkExecutor, metaCondition: MetadataCondition, inputDataset: MetaOperator, sc : SparkContext) : RDD[MetaType] = {
+  def apply(executor : GMQLSparkExecutor,
+            metaCondition: MetadataCondition,
+            inputDataset: MetaOperator,
+            sc : SparkContext) : RDD[MetaType] = {
+
     logger.info("----------------SELECTMD executing..")
 
     val input = executor.implement_md(inputDataset, sc).cache()
