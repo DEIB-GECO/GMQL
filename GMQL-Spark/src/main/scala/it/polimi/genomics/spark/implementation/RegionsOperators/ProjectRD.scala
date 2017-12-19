@@ -234,7 +234,7 @@ object ProjectRD {
       attributes.update(f.output_index.get, computeFunction(r, f, inputMeta))
     }
 
-    val new_values = s(for (f <- new_fields) yield computeFunction(r, f, inputMeta)).toArray
+    val new_values = ((for (f <- new_fields) yield computeFunction(r, f, inputMeta)).toArray)
 
     val all_attributes = attributes ++ new_values
 
