@@ -14,104 +14,235 @@ import org.apache.spark.rdd.RDD
 import org.slf4j.LoggerFactory
 
 /**
- * Created by abdulrahman kaitoua on 06/07/15.
- */
+  * Created by abdulrahman kaitoua on 06/07/15.
+  */
 object ProjectRD {
   private final val logger = LoggerFactory.getLogger(this.getClass);
 
   @throws[SelectFormatException]
-  def apply(executor : GMQLSparkExecutor, projectedValues : Option[List[Int]], tupleAggregator : Option[List[RegionExtension]], inputDataset : RegionOperator, inputMeta: MetaOperator, env : SparkContext) : RDD[GRECORD] = {
+  def apply(executor: GMQLSparkExecutor,
+            projectedValues: Option[List[Int]],
+            tupleAggregator: Option[List[RegionExtension]],
+            inputDataset: RegionOperator,
+            inputMeta: MetaOperator,
+            env: SparkContext): RDD[GRECORD] = {
     logger.info("----------------ProjectRD executing..")
 
     val input = executor.implement_rd(inputDataset, env)
     val metadata = executor.implement_md(inputMeta, env)
-    val meta: Array[(Long, (String, String))]  = if (tupleAggregator.isDefined) {
-      val metaaccessors = tupleAggregator.get.flatMap { agg =>
-        agg.inputIndexes.flatMap(in =>
-          if (in.isInstanceOf[MetaAccessor]) Some(in.asInstanceOf[MetaAccessor].attribute_name) else None
-        )
-      }
 
-      if (metaaccessors.size > 0)
-        metadata.filter(x => metaaccessors.contains(x._2._1)).distinct.collect
+
+    //metadata pairs needed
+    val meta: Array[(Long, (String, String))] =
+      if (tupleAggregator.isDefined) {
+        val metaaccessors = tupleAggregator.get.flatMap {
+          agg =>
+            agg.inputIndexes.flatMap(
+              in =>
+                if (in.isInstanceOf[MetaAccessor])
+                  Some(in.asInstanceOf[MetaAccessor].attribute_name)
+                else
+                  None
+            )
+        }
+        if (metaaccessors.size > 0)
+          metadata
+            .filter(x => metaaccessors.contains(x._2._1))
+            .distinct
+            .collect
+        else
+          Array[(Long, (String, String))]()
+      }
       else
         Array[(Long, (String, String))]()
-    } else Array[(Long, (String, String))]()
 
-    val extended = if (tupleAggregator.isDefined) input.flatMap { a =>
+    val chr_fun = try {
+      Some(
+        tupleAggregator
+          .getOrElse(List.empty)
+          .filter(_.output_index == Some(COORD_POS.CHR_POS))(0)
+      )
+    } catch {
+      case _ => None
+    }
+
+    val strand_fun = try {
+      Some(
+        tupleAggregator
+          .getOrElse(List.empty)
+          .filter(_.output_index == Some(COORD_POS.STRAND_POS))(0)
+      )
+    } catch {
+      case _ => None
+    }
+
+    val left_fun = try {
+      Some(
+        tupleAggregator
+          .getOrElse(List.empty)
+          .filter(_.output_index == Some(COORD_POS.LEFT_POS))(0)
+      )
+    } catch {
+      case _ => None
+    }
+
+    val right_fun = try {
+      Some(
+        tupleAggregator
+          .getOrElse(List.empty)
+          .filter(_.output_index == Some(COORD_POS.RIGHT_POS))(0)
+      )
+    } catch {
+      case _ => None
+    }
+
+    val start_fun = try {
+      Some(
+        tupleAggregator
+          .getOrElse(List.empty)
+          .filter(_.output_index == Some(COORD_POS.START_POS))(0)
+      )
+    } catch {
+      case _ => None
+    }
+
+    val stop_fun = try {
+      Some(
+        tupleAggregator
+          .getOrElse(List.empty)
+          .filter(_.output_index == Some(COORD_POS.STOP_POS))(0)
+      )
+    } catch {
+      case _ => None
+    }
+
+    val modifier_funs =
+      tupleAggregator
+        .getOrElse(List.empty)
+        .filter(x => x.output_index.isDefined && x.output_index.get >= 0)
+
+    val new_fields_funs =
+      tupleAggregator
+        .getOrElse(List.empty)
+        .filter(!_.output_index.isDefined)
 
 
-      extendRegion(a, a, tupleAggregator.get,meta)
-    }.cache()
-    else input
+    if (tupleAggregator.isDefined) {
+      input
+        .flatMap(
+          modify_tuple(
+            _,
+            meta,
+            chr_fun,
+            strand_fun,
+            left_fun,
+            right_fun,
+            start_fun,
+            stop_fun,
+            modifier_funs,
+            new_fields_funs,
+            projectedValues))
+    } else {
+      input.map(
+        a => (
+          a._1, projectedValues.get.foldLeft(Array[GValue]())((Acc, b) => Acc :+ a._2(b))
+        ))
+    }
 
-    if(projectedValues.isDefined)
-      extended.map(a  => (a._1,  projectedValues.get.foldLeft(Array[GValue]())((Acc, b) => Acc :+ a._2(b)) ))
-    else extended
   }
 
-  def computeFunction(r : GRECORD, agg : RegionExtension,inputMeta:Array[(Long,(String,String))]) : GValue = {
-    agg.fun( agg.inputIndexes.foldLeft(Array[GValue]())((acc,b) => acc :+ {
-      if(b.isInstanceOf[MetaAccessor]){
-        val values = inputMeta.filter(x=>
-          x._1
-            == r._1._1
-          && x._2._1.equals(b.asInstanceOf[MetaAccessor].attribute_name)).distinct
 
-        if (values.size > 0) {
-          val value = values.head._2._2
-          try {
-            GDouble(value.toDouble)
-          }
-          catch {
-            case _: Throwable => GString(value)
-          }
-        } else GNull()
-      }else b.asInstanceOf[Int] match {
-        case COORD_POS.CHR_POS => new GString(r._1._2)
-        case COORD_POS.LEFT_POS => new GDouble(r._1._3)
-        case COORD_POS.RIGHT_POS => new GDouble(r._1._4)
-        case COORD_POS.STRAND_POS => new GString(r._1._5.toString)
-        case _: Int => r._2(b.asInstanceOf[Int])
-      }
-    }))
+  def computeFunction(r: GRECORD, agg: RegionExtension, inputMeta: Array[(Long, (String, String))]): GValue = {
+    agg
+      .fun(
+        agg.inputIndexes.foldLeft(Array[GValue]())((acc, b) => acc :+ {
+          if (b.isInstanceOf[MetaAccessor]) {
+            val values = inputMeta.filter(x =>
+              x._1 == r._1._1 &&
+                x._2._1.equals(b.asInstanceOf[MetaAccessor].attribute_name))
+
+            if (values.size > 0) {
+              val value = values.head._2._2
+              try {
+                GDouble(value.toDouble)
+              }
+              catch {
+                case _: Throwable => GString(value)
+              }
+            } else GNull()
+          } else
+            b.asInstanceOf[Int] match {
+              case COORD_POS.CHR_POS => new GString(r._1._2)
+              case COORD_POS.LEFT_POS => new GDouble(r._1._3)
+              case COORD_POS.RIGHT_POS => new GDouble(r._1._4)
+              case COORD_POS.STRAND_POS => new GString(r._1._5.toString)
+              case _: Int => r._2(b.asInstanceOf[Int])
+            }
+        }))
   }
 
-  def extendRegion(out : GRECORD, r:GRECORD, aggList : List[RegionExtension],inputMeta:Array[(Long,(String,String))]) : Option[GRECORD] = {
-    if(aggList.isEmpty) {
-      //out
-      if (out._1._3 >= out._1._4) // if left > right, the region is deleted
-      {
-        None
-      }
-      else if (out._1._3 < 0) //if left become < 0, set it to 0
-      {
-        Some((new GRecordKey(out._1._1, out._1._2, 0, out._1._4, out._1._5), out._2))
-      }
-      else Some(out)
+  def modify_tuple(r: GRECORD,
+                   inputMeta: Array[(Long, (String, String))],
+                   chr_fun: Option[RegionExtension] = None,
+                   strand_fun: Option[RegionExtension] = None,
+                   left_fun: Option[RegionExtension] = None,
+                   right_fun: Option[RegionExtension] = None,
+                   start_fun: Option[RegionExtension] = None,
+                   stop_fun: Option[RegionExtension] = None,
+                   modify_existing: List[RegionExtension] = List.empty,
+                   new_fields: List[RegionExtension] = List.empty,
+                   projected_values: Option[List[Int]] = None
+                  ): Option[GRECORD] = {
+
+    val new_chr: String = if (chr_fun.isDefined) {
+      computeFunction(r, chr_fun.get, inputMeta).asInstanceOf[GString].v
+    } else {
+      r._1.chrom
     }
-    else {
-      val agg = aggList.head
-      agg.output_index match {
-        case Some(COORD_POS.CHR_POS) => extendRegion((new GRecordKey(out._1._1, computeFunction(r, agg,inputMeta).asInstanceOf[GString].v, out._1._3, out._1._4, out._1._5), out._2),r, aggList.tail,inputMeta)
-        case Some(COORD_POS.LEFT_POS) => extendRegion((new GRecordKey(out._1._1, out._1._2, computeFunction(r, agg,inputMeta).asInstanceOf[GDouble].v.toLong, out._1._4, out._1._5), out._2),r, aggList.tail,inputMeta)
-        case Some(COORD_POS.RIGHT_POS) => extendRegion((new GRecordKey(out._1._1, out._1._2, out._1._3, computeFunction(r, agg,inputMeta).asInstanceOf[GDouble].v.toLong, out._1._5), out._2),r, aggList.tail,inputMeta)
-        case Some(COORD_POS.STRAND_POS) => extendRegion((new GRecordKey(out._1._1, out._1._2, out._1._3, out._1._4, computeFunction(r, agg,inputMeta).asInstanceOf[GString].v.charAt(0)), out._2),r, aggList.tail,inputMeta)
-        case Some(COORD_POS.START_POS) => {
-          if (out._1._5.equals('-')) {
-            extendRegion((new GRecordKey(out._1._1, out._1._2, out._1._3, computeFunction(r, agg,inputMeta).asInstanceOf[GDouble].v.toLong, out._1._5), out._2), r, aggList.tail,inputMeta)
-          } else
-            extendRegion((new GRecordKey(out._1._1, out._1._2, computeFunction(r, agg,inputMeta).asInstanceOf[GDouble].v.toLong, out._1._4, out._1._5), out._2),r, aggList.tail,inputMeta)
-        }
-        case Some(COORD_POS.STOP_POS) => {
-          if (out._1._5.equals('-')) {
-            extendRegion((new GRecordKey(out._1._1, out._1._2, computeFunction(r, agg,inputMeta).asInstanceOf[GDouble].v.toLong, out._1._4, out._1._5), out._2), r, aggList.tail,inputMeta)
-          } else
-            extendRegion((new GRecordKey(out._1._1, out._1._2, out._1._3, computeFunction(r, agg,inputMeta).asInstanceOf[GDouble].v.toLong, out._1._5), out._2),r, aggList.tail,inputMeta)
-        }
-        case Some(v : Int) => extendRegion((out._1, {out._2.update(v, computeFunction(r, agg,inputMeta)); out._2} ),r, aggList.tail,inputMeta)
-        case None => extendRegion((out._1, out._2 :+ computeFunction(r, agg,inputMeta)),r, aggList.tail,inputMeta)
-      }
+    val new_strand: Char = if (strand_fun.isDefined) {
+      computeFunction(r, strand_fun.get, inputMeta).asInstanceOf[GString].v.charAt(0)
+    } else {
+      r._1.strand
     }
+    val new_left: Long = if (left_fun.isDefined) {
+      math.max(0L, computeFunction(r, left_fun.get, inputMeta).asInstanceOf[GDouble].v.toLong)
+    } else if (start_fun.isDefined && r._1.strand != '-') {
+      math.max(0L, computeFunction(r, start_fun.get, inputMeta).asInstanceOf[GDouble].v.toLong)
+    } else if (stop_fun.isDefined && r._1.strand == '-') {
+      math.max(0L, computeFunction(r, stop_fun.get, inputMeta).asInstanceOf[GDouble].v.toLong)
+    } else {
+      r._1.start
+    }
+    val new_right: Long = if (right_fun.isDefined) {
+      computeFunction(r, right_fun.get, inputMeta).asInstanceOf[GDouble].v.toLong
+    } else if (start_fun.isDefined && r._1.strand == '-') {
+      computeFunction(r, start_fun.get, inputMeta).asInstanceOf[GDouble].v.toLong
+    } else if (stop_fun.isDefined && r._1.strand != '-') {
+      computeFunction(r, stop_fun.get, inputMeta).asInstanceOf[GDouble].v.toLong
+    } else {
+      r._1.stop
+    }
+
+    if (
+      (left_fun.isDefined || right_fun.isDefined || start_fun.isDefined || stop_fun.isDefined) &&
+        (new_right <= new_left)) {
+      return None
+    }
+
+    val attributes = r._2
+    for (f <- modify_existing) {
+      attributes.update(f.output_index.get, computeFunction(r, f, inputMeta))
+    }
+
+    val new_values = s(for (f <- new_fields) yield computeFunction(r, f, inputMeta)).toArray
+
+    val all_attributes = attributes ++ new_values
+
+    val out_attributes = if (projected_values.isDefined) {
+      (for (i <- projected_values.get) yield all_attributes(i)).toArray
+    } else {
+      all_attributes
+    }
+    Some((new GRecordKey(r._1.id, new_chr, new_left, new_right, new_strand), out_attributes))
   }
 }
