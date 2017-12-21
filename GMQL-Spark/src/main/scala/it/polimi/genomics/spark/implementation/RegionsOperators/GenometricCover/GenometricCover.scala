@@ -21,52 +21,65 @@ import scala.xml.dtd.ANY
 /**
   * Created by Abdulrahman Kaitoua on 10/08/15.
   */
+
+case class InternalCoverKey(chrom : String, bin: Int, id: Long) extends Serializable
+
 object GenometricCover {
   type Grecord = (Long, String, Long, Long, Char, Array[GValue])
 
   private final val logger = LoggerFactory.getLogger(GenometricCover.getClass);
 
   @throws[SelectFormatException]
-  def apply(executor : GMQLSparkExecutor, coverFlag : CoverFlag, min : CoverParam, max : CoverParam, aggregators : List[RegionsToRegion], grouping : Option[MetaGroupOperator], inputDataset : RegionOperator, binSize : Long, sc : SparkContext) : RDD[GRECORD] = {
+  def apply(executor: GMQLSparkExecutor, coverFlag: CoverFlag, min: CoverParam, max: CoverParam, aggregators: List[RegionsToRegion], grouping: Option[MetaGroupOperator], inputDataset: RegionOperator, binSize: Long, sc: SparkContext): RDD[GRECORD] = {
     logger.info("----------------Cover executing..")
 
     // CREATE DATASET RECURSIVELY
     val ds: RDD[GRECORD] = executor.implement_rd(inputDataset, sc)
 
-    val groups: Option[Broadcast[Map[Long, Long]]] = if(grouping.isDefined)
+    val groups: Option[Broadcast[Map[Long, Long]]] = if (grouping.isDefined)
       Some(sc.broadcast(executor.implement_mgd(grouping.get, sc).collectAsMap()))
     else None
 
-    val groupIds = if(groups.isDefined){
+    val groupIds = if (groups.isDefined) {
       groups.get.value.toList.map(_._2).distinct
     } else {
       List(0L)
     }
 
+    val negative_strand = prepare_dataset_stranded(ds, groups, binSize, '-')
+      .reduceByKey((a, b) => {
+        (a.merged(b)({ case ((k, v1), (_, v2)) => (k, v1 + v2) }))
+      })
+
+    val positive_strand = prepare_dataset_stranded(ds, groups, binSize, '+')
+      .reduceByKey((a, b) => {
+        (a.merged(b)({ case ((k, v1), (_, v2)) => (k, v1 + v2) }))
+      })
+
     //ASSGIN GROUPS TO THE DATA AND IF NOT GROUPED GIVE ID 0 AS THE GROUP ID
-    val groupedDs : RDD[(Long, String, Long, Long, Char, Long, Array[GValue])] =
-      assignGroups( ds, groups)
+    //val groupedDs: RDD[(Long, String, Long, Long, Char, Long, Array[GValue])] = prepare_dataset(ds, groups, binSize)
+    //assignGroups(ds, groups)
 
     // EXTRACT START-STOP POINTS
-    val extracted: RDD[((String, Int, Long, Char), HashMap[Int, Int])] =
-      extractor(groupedDs, binSize)
-
+    //val extracted: RDD[((String, Int, Long, Char), HashMap[Int, Int])] =
+      //extractor(groupedDs, binSize)
 
 
     // PREPARE COVER PARAMETERS
     // calculate the value only if needed
-    val allValue : Map[Long, Int] =
-    if(min.isInstanceOf[ALL] || max.isInstanceOf[ALL]){
-      if(groups.isDefined){
+    val allValue: Map[Long, Int] =
+    if (min.isInstanceOf[ALL] || max.isInstanceOf[ALL]) {
+      if (groups.isDefined) {
         // SWITCH (sampleID, GroupID) to (GroupID,SampleID) THEN GROUP BY GROUPID AND COUNT THE SAMPLES IN EACH GROUP
-        groups.get.value.groupBy(_._2).map(x=>(x._1,x._2.size))
+        groups.get.value.groupBy(_._2).map(x => (x._1, x._2.size))
 
-      }else{
-        val samplesCount = groupedDs.map(x=>x._6).distinct().count.toInt
-        groupIds.map(v => ((v, samplesCount))).foldRight(new HashMap[Long, Int])((a,z) => z + a)
+      } else {
+        val samplesCount = ds.map(_._1.id).distinct().count.toInt
+        Map(0L -> samplesCount)
+        //groupIds.map(v => ((v, samplesCount))).foldRight(new HashMap[Long, Int])((a, z) => z + a)
       }
     } else {
-      Map(0L->0)
+      Map(0L -> 0)
     }
 
     val minimum: Map[Long, Int] =
@@ -80,36 +93,39 @@ object GenometricCover {
       else groupIds.map(v => ((v, max.asInstanceOf[N].n))).foldRight(new HashMap[Long, Int])((a, z) => z + a)
 
 
-//    val minimum : Map[Long, Int] =
-//      min match{
-//        case ALL() => allValue
-//        case ANY() => groupIds.map(v => ((v, 1))).foldRight(new HashMap[Long, Int])((a,z) => z + a)
-//        case N(value) => groupIds.map(v => (v, value)).foldRight(new HashMap[Long, Int])((a,z) => z + a)
-//      }
-//
-//    val maximum : Map[Long, Int] =
-//      max match{
-//        case ALL() => allValue
-//        case ANY() => groupIds.map(v => ((v, Int.MaxValue))).foldRight(new HashMap[Long, Int])((a,z) => z + a)
-//        case N(value) => groupIds.map(v => ((v, value))).foldRight(new HashMap[Long, Int])((a,z) => z + a)
-//      }
+
 
     // EXECUTE COVER ON BINS
-    val ss = extracted
-      // collapse coincident point
-      .reduceByKey((a,b) => {
-      ( a.merged(b)({case ((k,v1),(_,v2)) => (k,v1+v2)}))
-    })
 
-    val binnedPureCover : RDD[Grecord] =ss.flatMap(bin => {
-      val points : List[(Int, Int)] = bin._2.toList.sortBy(_._1)
+
+    val negative_pure_cover: RDD[Grecord] = negative_strand.flatMap(bin => {
+      val points: List[(Int, Int)] = bin._2.toList.sortBy(_._1)
       coverFlag match {
-        case CoverFlag.COVER => coverHelper( points.iterator,  minimum, maximum , bin._1._3, bin._1._1, bin._1._4, bin._1._2, binSize)
-        case CoverFlag.HISTOGRAM => histogramHelper(points.iterator,minimum, maximum, bin._1._3, bin._1._1, bin._1._4, bin._1._2, binSize)
-        case CoverFlag.SUMMIT => summitHelper(points.iterator,minimum, maximum,  bin._1._3, bin._1._1, bin._1._4, bin._1._2, binSize)
-        case CoverFlag.FLAT => coverHelper(  points.iterator, minimum, maximum, bin._1._3, bin._1._1, bin._1._4, bin._1._2, binSize)
+        case CoverFlag.COVER => coverHelper(points.iterator, minimum, maximum, bin._1.id, bin._1.chrom, '-', bin._1.bin, binSize)
+        case CoverFlag.HISTOGRAM => histogramHelper(points.iterator, minimum, maximum, bin._1.id, bin._1.chrom, '-', bin._1.bin, binSize)
+        case CoverFlag.SUMMIT => summitHelper(points.iterator, minimum, maximum, bin._1.id, bin._1.chrom, '-', bin._1.bin, binSize)
+        case CoverFlag.FLAT => coverHelper(points.iterator, minimum, maximum, bin._1.id, bin._1.chrom, '-', bin._1.bin, binSize)
       }
     })
+    coverFlag match {
+      case CoverFlag.COVER => negative_strand.flatMap(bin => {
+        val points: List[(Int, Int)] = bin._2.toList.sortBy(_._1)
+        coverHelper(points.iterator, minimum, maximum, bin._1.id, bin._1.chrom, '-', bin._1.bin, binSize)
+      })
+      case CoverFlag.HISTOGRAM => negative_strand.flatMap(bin => {
+        val points: List[(Int, Int)] = bin._2.toList.sortBy(_._1)
+        histogramHelper(points.iterator, minimum, maximum, bin._1.id, bin._1.chrom, '-', bin._1.bin, binSize)
+      })
+      case CoverFlag.SUMMIT => negative_strand.flatMap(bin => {
+        val points: List[(Int, Int)] = bin._2.toList.sortBy(_._1)
+        summitHelper(points.iterator, minimum, maximum, bin._1.id, bin._1.chrom, '-', bin._1.bin, binSize)
+      })
+      case CoverFlag.FLAT => negative_strand.flatMap(bin => {
+        val points: List[(Int, Int)] = bin._2.toList.sortBy(_._1)
+        coverHelper(points.iterator, minimum, maximum, bin._1.id, bin._1.chrom, '-', bin._1.bin, binSize)
+      })
+    }
+
 
     //SPLIT DATASET -> FIND REGIONS THAT MAY CROSS A BIN
     val valid: RDD[Grecord] =
@@ -121,18 +137,18 @@ object GenometricCover {
     // ARE IN THE SAME CHROMOSOME
     // HAVE COINCIDENT STOP AND START
     // HAVE SAME INTERSECTION COUNTER
-    val joined : RDD[Grecord] =
+    val joined: RDD[Grecord] =
     notValid
-      .groupBy(x=>(x._1,x._2,x._5))
-      .flatMap{x=>
-        val i = x._2.toList.sortBy(x=>(x._3,x._4)).iterator
+      .groupBy(x => (x._1, x._2, x._5))
+      .flatMap { x =>
+        val i = x._2.toList.sortBy(x => (x._3, x._4)).iterator
         var out = List[Grecord]()
         if (i.hasNext) {
           var old: Grecord = i.next()
           while (i.hasNext) {
             val current = i.next()
             if (old._4.equals(current._3) && (!coverFlag.equals(CoverFlag.HISTOGRAM) || old._6(0).asInstanceOf[GDouble].v.equals(current._6(0).asInstanceOf[GDouble].v))) {
-              old = (old._1, old._2, old._3, current._4, old._5, Array[GValue]():+GDouble(Math.max(old._6(0).asInstanceOf[GDouble].v,current._6(0).asInstanceOf[GDouble].v)))
+              old = (old._1, old._2, old._3, current._4, old._5, Array[GValue]() :+ GDouble(Math.max(old._6(0).asInstanceOf[GDouble].v, current._6(0).asInstanceOf[GDouble].v)))
             } else {
               out = out :+ old
               old = current
@@ -143,12 +159,12 @@ object GenometricCover {
         out
       }
 
-    val pureCover : RDD[Grecord] = valid.union(joined)
+    val pureCover: RDD[Grecord] = valid.union(joined)
 
-    val flat : Boolean = coverFlag.equals(CoverFlag.FLAT)
-    val summit : Boolean = coverFlag.equals(CoverFlag.SUMMIT)
+    val flat: Boolean = coverFlag.equals(CoverFlag.FLAT)
+    val summit: Boolean = coverFlag.equals(CoverFlag.SUMMIT)
 
-    GMAP4(aggregators, flat, summit,pureCover, groupedDs, binSize)
+    GMAP4(aggregators, flat, summit, pureCover, groupedDs, binSize)
   }
 
   // EXECUTORS
@@ -163,12 +179,12 @@ object GenometricCover {
     * @param maximum
     * @param i
     */
-  final def coverHelper( si : Iterator[(Int, Int)],minimum : Map[Long,Int], maximum : Map[Long,Int], id : Long, chr : String, strand : Char, bin : Int, binSize : Long) : List[Grecord] = {
+  final def coverHelper(si: Iterator[(Int, Int)], minimum: Map[Long, Int], maximum: Map[Long, Int], id: Long, chr: String, strand: Char, bin: Int, binSize: Long): List[Grecord] = {
     var start = 0L
     var count = 0
     var countMax = 0
     var recording = false
-    si.flatMap { current=>
+    si.flatMap { current =>
 
       val newCount = count + current._2
 
@@ -200,7 +216,7 @@ object GenometricCover {
         //output a region
         val end = binSize
         Some(((id, chr, newStart + bin * binSize, if (current._1 > end) end + bin * binSize else current._1 + bin * binSize, strand, new Array[GValue](0) :+ GDouble(countMax))))
-      }else
+      } else
         None
 
       count = newCount
@@ -220,7 +236,7 @@ object GenometricCover {
     * @param maximum
     * @param i
     */
-  final def histogramHelper(i : Iterator[(Int, Int)], minimum : Map[Long,Int], maximum : Map[Long,Int], id : Long, chr : String, strand : Char, bin : Int, binSize : Long)  : List[Grecord] = {
+  final def histogramHelper(i: Iterator[(Int, Int)], minimum: Map[Long, Int], maximum: Map[Long, Int], id: Long, chr: String, strand: Char, bin: Int, binSize: Long): List[Grecord] = {
     var count = 0
     var start = 0L
     i.flatMap { current =>
@@ -229,18 +245,18 @@ object GenometricCover {
       if (start.equals(current._1)) {
         count = newCount
         None
-      }// ALL THE ITERATIONS GOES HERE
+      } // ALL THE ITERATIONS GOES HERE
       else {
         //IF THE NEW COUNT IS  ACCEPTABLE AND DIFFERENT FROM THE PREVIOUS COUNT = > NEW REGION START
         val newStart: Long = if (newCount >= minimum.get(id).get && newCount <= maximum.get(id).get && newCount != count)
-            current._1
-          else
-            start
+          current._1
+        else
+          start
 
         //output a region
         val out = if (count >= minimum.get(id).get && count <= maximum.get(id).get && newCount != count && count != 0) {
           val end = binSize
-          Some ((id, chr, start + bin * binSize, current._1 + bin * binSize, strand, Array[GValue]( GDouble(count))))
+          Some((id, chr, start + bin * binSize, current._1 + bin * binSize, strand, Array[GValue](GDouble(count))))
         }
         else None
 
@@ -260,8 +276,8 @@ object GenometricCover {
     * @param growing
     * @param i
     */
-  final def summitHelper( i : Iterator[(Int, Int)],  minimum : Map[Long,Int], maximum : Map[Long,Int], id : Long, chr : String, strand : Char, bin : Int, binSize : Long) :List[Grecord] = {
-    var start =0L
+  final def summitHelper(i: Iterator[(Int, Int)], minimum: Map[Long, Int], maximum: Map[Long, Int], id: Long, chr: String, strand: Char, bin: Int, binSize: Long): List[Grecord] = {
+    var start = 0L
     var count = 0
     var valid = false
     var reEnteredInValidZoneDecreasing = false
@@ -271,7 +287,7 @@ object GenometricCover {
       val newCount: Int = count + current._2
       val newValid = newCount >= minimum.get(id).getOrElse(1) && newCount <= maximum.get(id).getOrElse(Int.MaxValue)
       val newGrowing: Boolean = newCount > count || (growing && newCount.equals(count))
-      val newReEnteredInValidZoneDecreasing : Boolean = !valid && newValid
+      val newReEnteredInValidZoneDecreasing: Boolean = !valid && newValid
 
       if (start.equals(current._1)) {
         count = newCount
@@ -279,7 +295,7 @@ object GenometricCover {
         reEnteredInValidZoneDecreasing = newReEnteredInValidZoneDecreasing
         growing = newGrowing
         None
-      }else{
+      } else {
         val newStart: Long =
           if (newValid && newCount != count) {
             val begin = 0
@@ -293,11 +309,11 @@ object GenometricCover {
             start
           }
 
-       val out =if ( ( (valid && growing && (!newGrowing || !newValid ) ) ||   (reEnteredInValidZoneDecreasing && !newGrowing)) && count != 0) {
+        val out = if (((valid && growing && (!newGrowing || !newValid)) || (reEnteredInValidZoneDecreasing && !newGrowing)) && count != 0) {
           //output a region
           val end = binSize
-          Some ((id, chr, start+ bin * binSize, if (current._1 > end) end + bin * binSize else current._1 + bin * binSize, strand, Array[GValue]() :+ GDouble(count)))
-        }else None
+          Some((id, chr, start + bin * binSize, if (current._1 > end) end + bin * binSize else current._1 + bin * binSize, strand, Array[GValue]() :+ GDouble(count)))
+        } else None
 
         start = newStart
         count = newCount
@@ -311,19 +327,97 @@ object GenometricCover {
 
   //PREPARATORS
 
+  def prepare_dataset_stranded(dataset: RDD[GRECORD],
+                               grouping: Option[Broadcast[Map[Long, Long]]],
+                               binSize: Long,
+                               strand: Char): RDD[(InternalCoverKey, HashMap[Int, Int])] = {
+
+    val strand_filtered = dataset.filter(x => x._1.strand.equals('*') || x._1.strand.equals(strand))
+    if (grouping.isDefined) {
+      val groups = grouping.get.value
+      strand_filtered.flatMap(
+        { x =>
+          val groupId = groups.get(x._1._1)
+          if (!groupId.isDefined) {
+            None
+          } else {
+            val startBin = (x._1.start / binSize).toInt
+            val stopBin = (x._1.stop / binSize).toInt
+            if (startBin == stopBin) {
+              List(
+                (InternalCoverKey(x._1.chrom, startBin, groupId.get),
+                  HashMap((x._1.start % binSize).toInt -> 1, (x._1.stop % binSize).toInt -> -1)
+                ))
+            } else {
+              val map_start = (
+                InternalCoverKey(x._1.chrom, startBin, groupId.get),
+                HashMap((x._1.start % binSize).toInt -> 1, binSize.toInt -> -1)
+              )
+
+              val map_stop = (
+                InternalCoverKey(x._1.chrom, stopBin, groupId.get),
+                HashMap(0 -> 1, (x._1.stop % binSize).toInt -> -1)
+              )
+
+              val map_int = for (i <- startBin + 1 to stopBin - 1) yield
+                (
+                  InternalCoverKey(x._1.chrom, i, groupId.get),
+                  HashMap(0 -> 1, binSize.toInt -> -1)
+                )
+
+              map_start :: (map_stop :: map_int.toList)
+            }
+          }
+        }
+      )
+    } else {
+      strand_filtered.flatMap(
+        { x =>
+          val startBin = (x._1.start / binSize).toInt
+          val stopBin = (x._1.stop / binSize).toInt
+          if (startBin == stopBin) {
+            List(
+              (
+                InternalCoverKey(x._1.chrom, startBin, 0L),
+                HashMap((x._1.start % binSize).toInt -> 1, (x._1.stop % binSize).toInt -> -1)
+              ))
+          } else {
+            val map_start = (
+              InternalCoverKey(x._1.chrom, startBin, 0L),
+              HashMap((x._1.start % binSize).toInt -> 1, binSize.toInt -> -1)
+            )
+
+            val map_stop = (
+              InternalCoverKey(x._1.chrom, stopBin, 0L),
+              HashMap(0 -> 1, (x._1.stop % binSize).toInt -> -1)
+            )
+
+            val map_int = for (i <- startBin + 1 to stopBin - 1) yield
+              (
+                InternalCoverKey(x._1.chrom, i, 0L),
+                HashMap(0 -> 1, binSize.toInt -> -1)
+              )
+
+            map_start :: (map_stop :: map_int.toList)
+          }
+        })
+    }
+  }
+
+
+
   /**
-    *  Assign Group ID to the regions
+    * Assign Group ID to the regions
     *
-    * @param dataset input dataset
+    * @param dataset  input dataset
     * @param grouping Group IDs
     * @return RDD with group ids set in each sample.
     */
-  def assignGroups(dataset : RDD[GRECORD], grouping : Option[Broadcast[Map[Long, Long]]]): RDD[(Long, String, Long, Long, Char, Long, Array[GValue])] = {
-    val strands = dataset.map(x=>x._1._5).distinct().collect()
-    val doubleStrand = if(strands.size > 2) true else false
-    val positiveStrand = if(strands.size == 2 && strands.contains('+') ) true else false
-    if(grouping.isDefined)
-    {
+  def assignGroups(dataset: RDD[GRECORD], grouping: Option[Broadcast[Map[Long, Long]]]): RDD[(Long, String, Long, Long, Char, Long, Array[GValue])] = {
+    val strands = dataset.map(x => x._1._5).distinct().collect()
+    val doubleStrand = if (strands.size > 2) true else false
+    val positiveStrand = if (strands.size == 2 && strands.contains('+')) true else false
+    if (grouping.isDefined) {
       val groups = grouping.get.value
       dataset.flatMap { x =>
         val groupId = groups.get(x._1._1)
@@ -348,11 +442,11 @@ object GenometricCover {
         }
       }
     } else {
-      dataset.flatMap{x =>
-        if (x._1._5.equals('*')&& doubleStrand) {
+      dataset.flatMap { x =>
+        if (x._1._5.equals('*') && doubleStrand) {
           List((0L, x._1._2, x._1._3, x._1._4, '-', x._1._1, x._2)
-            ,(0L, x._1._2, x._1._3, x._1._4, '+', x._1._1, x._2))
-        }else if (x._1._5.equals('*') && positiveStrand) {
+            , (0L, x._1._2, x._1._3, x._1._4, '+', x._1._1, x._2))
+        } else if (x._1._5.equals('*') && positiveStrand) {
           //output is Positive strand because the data contains only Positive strand
           List((0L, x._1._2, x._1._3, x._1._4, '+', x._1._1, x._2))
         } else if (x._1._5.equals('*') && !positiveStrand && doubleStrand) {
@@ -365,24 +459,22 @@ object GenometricCover {
     }
   }
 
-  def extractor(dataset : RDD[(Long, String, Long, Long, Char, Long, Array[GValue])], binSize : Long) = {
-    dataset.flatMap{x =>
-      val startBin =(x._3/binSize).toInt
-      val stopBin = (x._4/binSize).toInt
+  def extractor(dataset: RDD[(Long, String, Long, Long, Char, Long, Array[GValue])], binSize: Long) = {
+    dataset.flatMap { x =>
+      val startBin = (x._3 / binSize).toInt
+      val stopBin = (x._4 / binSize).toInt
 
-      if(startBin==stopBin) {
-        List(((x._2, startBin, x._1,x._5), HashMap((x._3 - startBin * binSize).toInt -> 1, (x._4 - startBin * binSize).toInt -> -1)))
-      } else{
-        val map_start  = ((x._2,startBin,x._1,x._5),HashMap((if (x._3 - startBin * binSize != binSize)x._3 - startBin * binSize else binSize-1).toInt -> 1, binSize.toInt -> -1))
-        val map_stop   = ((x._2,stopBin, x._1,x._5),HashMap(( if(x._4 - stopBin  * binSize !=0) x._4 - stopBin  * binSize else 1).toInt -> -1, 0 -> 1))
-        val map_int = for (i <- startBin+1 to stopBin-1) yield (( x._2, i,x._1, x._5), HashMap(0->1,binSize.toInt-> -1))
+      if (startBin == stopBin) {
+        List(((x._2, startBin, x._1, x._5), HashMap((x._3 - startBin * binSize).toInt -> 1, (x._4 - startBin * binSize).toInt -> -1)))
+      } else {
+        val map_start = ((x._2, startBin, x._1, x._5), HashMap((if (x._3 - startBin * binSize != binSize) x._3 - startBin * binSize else binSize - 1).toInt -> 1, binSize.toInt -> -1))
+        val map_stop = ((x._2, stopBin, x._1, x._5), HashMap((if (x._4 - stopBin * binSize != 0) x._4 - stopBin * binSize else 1).toInt -> -1, 0 -> 1))
+        val map_int = for (i <- startBin + 1 to stopBin - 1) yield ((x._2, i, x._1, x._5), HashMap(0 -> 1, binSize.toInt -> -1))
 
         List(map_start, map_stop) ++ map_int
       }
     }
   }
-
-
 
 
 }

@@ -17,7 +17,12 @@ object ProjectMD {
   private final val logger = LoggerFactory.getLogger(ProjectMD.getClass);
 
   @throws[SelectFormatException]
-  def apply(executor: GMQLSparkExecutor, projectedAttributes: Option[List[String]], metaAggregator: Option[List[MetaExtension]], all_but_flag:Boolean, inputDataset: MetaOperator, sc: SparkContext): RDD[MetaType] = {
+  def apply(executor: GMQLSparkExecutor,
+            projectedAttributes: Option[List[String]],
+            metaAggregator: Option[List[MetaExtension]],
+            all_but_flag:Boolean,
+            inputDataset: MetaOperator,
+            sc: SparkContext): RDD[MetaType] = {
 
 //    if(metaAggregator.isDefined) println("defined",metaAggregator.get.newAttributeName,metaAggregator.get.inputAttributeNames,metaAggregator.get.inputAttributeNames,metaAggregator.get.fun(Array(List(("abdo","1"),("sam","2")))))
     logger.info("----------------ProjectMD executing..")
