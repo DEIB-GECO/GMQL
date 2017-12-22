@@ -366,7 +366,7 @@ object Wrapper {
       if(remote_processing)
       {
         val dagW = DAGWrapper(GMQL_server.materializationList.toList)
-        val base64DAG:String  = DAGSerializer.serializeToBase64(dagW)
+        val base64DAG:String  = DAGSerializer.serializeDAG(dagW)
         //val a = DAGSerializer.deserializeDAG(base64DAG)
         return Array("0",base64DAG)
       }
