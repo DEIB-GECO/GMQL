@@ -14,15 +14,15 @@
 
     <name>GMQL-PythonAPI</name>
     <description>Polimi GMQL, Big Data processing for Genomics</description>
-    <inceptionYear>2014</inceptionYear>
-    <properties>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <encoding>UTF-8</encoding>
-        <scala.version>2.11.8</scala.version>
-        <scalaCompatVersion>2.11</scalaCompatVersion>
-        <maven.scala.checkConsistency>false</maven.scala.checkConsistency>
-    </properties>
+    <!--<inceptionYear>2014</inceptionYear>-->
+    <!--<properties>-->
+        <!--<maven.compiler.source>1.8</maven.compiler.source>-->
+        <!--<maven.compiler.target>1.8</maven.compiler.target>-->
+        <!--<encoding>UTF-8</encoding>-->
+        <!--<scala.version>2.11.8</scala.version>-->
+        <!--<scalaCompatVersion>2.11</scalaCompatVersion>-->
+        <!--<maven.scala.checkConsistency>false</maven.scala.checkConsistency>-->
+    <!--</properties>-->
 
     <dependencies>
         <dependency>
@@ -191,7 +191,8 @@
                             </excludes>
                         </filter>
                     </filters>
-                    <finalName>uber-${project.artifactId}-${project.version}</finalName>
+                    <!--<finalName>uber-${project.artifactId}-${project.version}</finalName>-->
+                    <finalName>pythonAPI-0.0.8</finalName>
                 </configuration>
             </plugin>
             <plugin>
