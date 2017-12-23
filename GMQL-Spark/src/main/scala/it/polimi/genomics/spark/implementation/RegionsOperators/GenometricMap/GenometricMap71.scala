@@ -186,7 +186,7 @@ object GenometricMap71 {
       }
 
     def binDS(bin: Long,Bgroups: RDD[(Long, Long)],partitioner: Partitioner ): RDD[((Long, String, Int), (Long, Long, Long, Char, Array[GValue]))] =
-        rdd.partitionBy(partitioner). keyBy(x=>x._1._1).join(Bgroups, partitioner).flatMap { x =>
+        rdd.partitionBy(new HashPartitioner(1000)). keyBy(x=>x._1._1).join(Bgroups, partitioner).flatMap { x =>
         if (bin > 0) {
             val startbin = (x._2._1._1._3 / bin).toInt
             val stopbin = (x._2._1._1._4 / bin).toInt
