@@ -216,7 +216,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     //Get the output Datasets names.
     outputVariablesList = outDss
 
-    (outDss, DAGSerializer.serializeToBase64(DAGWrapper(dagVars)))
+    (outDss, DAGSerializer.serializeDAG(DAGWrapper(dagVars)))
   }
 
 
