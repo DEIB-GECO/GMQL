@@ -137,8 +137,10 @@ object Wrapper {
 
   def stopGMQL(): Unit =
   {
-    if(GMQL_server!=null)
+    if(GMQL_server!=null) {
       Spark_context.stop()
+      GMQL_server = null
+    }
     else
       println("GMQL Server has not been initialized yet")
   }
@@ -846,7 +848,7 @@ object Wrapper {
 
   // we do not add ref and exp name: we set to None
   def join(genometric: Array[Array[String]], meta_join: Array[Array[String]], output: String,
-           left_dataset: String, right_dataset: String): Array[String] = {
+           attributes: Array[String], left_dataset: String, right_dataset: String): Array[String] = {
 
     if(GMQL_server == null)
       return Array("1","invoke init_gmql() first")
@@ -859,13 +861,20 @@ object Wrapper {
 
     val leftDataAsTheyAre = vv(left_dataset)
     val rightDataAsTheyAre = vv(right_dataset)
+    var attr_list: (String, Option[List[(Int, Int)]]) = ("",None)
 
+    if (attributes != null) {
+      attr_list = joinRegAttributeList(attributes, leftDataAsTheyAre)
+      if (attr_list._2.isEmpty)
+        return Array("1",attr_list._1)
+    }
     val meta_join_list: Option[MetaJoinCondition] = MetaJoinConditionList(meta_join)
     val region_join_list: List[JoinQuadruple] = RegionQuadrupleList(genometric)
 
     val reg_out = regionBuild(output)
 
-    val join = leftDataAsTheyAre.JOIN(meta_join_list, region_join_list, reg_out, rightDataAsTheyAre, None, None)
+    val join = leftDataAsTheyAre.JOIN(meta_join_list, region_join_list, reg_out,
+      rightDataAsTheyAre, None, None, attr_list._2)
 
     val index = counter.getAndIncrement()
     // val out_p = left_dataset+right_dataset+"/join"+index
@@ -1240,6 +1249,25 @@ object Wrapper {
     List(quadruple)
 
   }
+
+  def joinRegAttributeList(reg_attributes: Array[String], data: IRVariable): (String, Option[List[(Int, Int)]]) = {
+    var attributeList: Option[List[(Int, Int)]] = None
+    val temp_list = new ListBuffer[(Int, Int)]()
+
+    for (elem <- reg_attributes) {
+      val field = data.get_field_by_name(elem)
+      if (field.isEmpty) {
+        val error = "No value " + elem + " from this schema"
+        return (error, attributeList) //empty list
+      }
+      val parse_type = data.get_type_by_name(elem)
+
+      temp_list += ((field.get, parse_type.get.##))
+    }
+    attributeList = Some(temp_list.toList)
+    ("OK", attributeList)
+  }
+
 
 
   def atomic_cond(cond: String, value: String): Option[AtomicCondition] = {
