@@ -77,6 +77,8 @@ class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
 
   val cover_exp:Parser[String] = "ALL" ~> "+" ~> wholeNumber ~ ( "/" ~> wholeNumber) ^^ {
     x => "(ALL + " + x._1.toInt + ")" +"/" + x._2.toInt } |
+    "(" ~ "ALL" ~> "+" ~> wholeNumber ~ ")" ~ ( "/" ~> wholeNumber) ^^ {
+      x => "(ALL + " + x._1._1.toInt + ")" +"/" + x._2.toInt } |
     wholeNumber ^^ { x => x} |
     "ALL" ~ "/" ~> wholeNumber ^^ {x => "ALL / "+x} |
     "ALL" ^^ {x => x} | "ANY" ^^ {x=> x}

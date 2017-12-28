@@ -789,7 +789,6 @@ object Wrapper {
     if (vv.get(input_dataset).isEmpty)
       return ("No valid dataset as input", null)
 
-
     val dataAsTheyAre = vv(input_dataset)
     var aggr_list: (String, List[RegionsToRegion]) = ("", List())
     val paramMin = get_param(min)
@@ -814,9 +813,9 @@ object Wrapper {
   }
 
 
-  // we do not add left, right and count name: we set to None
+  // we do not add left, right: we set to None
   def map(condition: Array[Array[String]], aggregates: Array[Array[String]],
-          left_dataset: String, right_dataset: String): Array[String] = {
+          count_name:String, left_dataset: String, right_dataset: String): Array[String] = {
     if (vv.get(right_dataset).isEmpty)
       return Array("1","No valid right Data as input")
 
@@ -833,10 +832,15 @@ object Wrapper {
       if (aggr_list._2.isEmpty)
         return Array("1",aggr_list._1)
     }
-
     val condition_list: Option[MetaJoinCondition] = MetaJoinConditionList(condition)
 
-    val map = leftDataAsTheyAre.MAP(condition_list, aggr_list._2, rightDataAsTheyAre, None, None, None)
+    var c_name = Option("")
+    if(count_name!=null)
+      c_name = Option(count_name)
+    else
+      c_name = None
+
+    val map = leftDataAsTheyAre.MAP(condition_list, aggr_list._2, rightDataAsTheyAre, None,None, c_name)
 
     val index = counter.getAndIncrement()
     val out_p = left_dataset + "/map" + index
@@ -881,7 +885,7 @@ object Wrapper {
     val out_p = left_dataset + "/join" + index
     vv = vv + (out_p -> join)
 
-    Array("0","")
+    Array("0",out_p)
   }
 
 
@@ -1357,6 +1361,9 @@ object Wrapper {
 
     execute()
 */
+
+    //get_param("(ALL+1)/2")
+
   }
 
 
