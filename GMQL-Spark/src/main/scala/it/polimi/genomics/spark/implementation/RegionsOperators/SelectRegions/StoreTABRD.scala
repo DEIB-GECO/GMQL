@@ -65,13 +65,6 @@ object StoreTABRD {
     metaKeyValue.saveAsHadoopFile(MetaOutputPath,classOf[String],classOf[String],classOf[RDDMultipleTextOutputFormat])
     writeMultiOutputFiles.fixOutputMetaLocation(MetaOutputPath)
 
-    fs.listStatus(new Path(RegionOutputPath), new PathFilter {
-      override def accept(path: Path): Boolean = {println(path.getName); true}
-    })
-
-//    fs.deleteOnExit(new Path(RegionOutputPath+"*.crc"))
-    fs.deleteOnExit(new Path(RegionOutputPath+"_SUCCESS"))
-
     regions
   }
 }
