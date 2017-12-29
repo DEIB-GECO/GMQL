@@ -31,7 +31,7 @@ import it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions.{R
 import it.polimi.genomics.spark.implementation.RegionsOperators._
 import it.polimi.genomics.spark.implementation.loaders._
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.hadoop.fs.{FileSystem, Path, PathFilter}
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.slf4j.LoggerFactory
@@ -161,6 +161,13 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
             e.printStackTrace()
           }
         }
+
+        fs.deleteOnExit(new Path(RegionOutputPath+"_SUCCESS"))
+
+        fs.setVerifyChecksum(false)
+        fs.listStatus(new Path(RegionOutputPath),new PathFilter {
+          override def accept(path: Path): Boolean = {fs.delete(new Path(path.getParent.toString + "/."+path.getName +".crc"));true}
+        })
 
       }
     } catch {
