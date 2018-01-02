@@ -307,7 +307,7 @@ object OperatorManager {
       case "LEFT" =>  RegionBuilder.LEFT
       case "LEFT_DISTINCT" => RegionBuilder.LEFT_DISTINCT
       case "RIGHT" => RegionBuilder.RIGHT
-      case "RIGHT" =>  RegionBuilder.RIGHT_DISTINCT
+      case "RIGHT_DISTINCT" =>  RegionBuilder.RIGHT_DISTINCT
       case "INTERSECTION" => RegionBuilder.INTERSECTION
       case "CONTIG" => RegionBuilder.CONTIG
       case "BOTH" => RegionBuilder.BOTH
