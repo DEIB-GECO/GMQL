@@ -926,7 +926,7 @@ object Wrapper {
       case "LEFT" => RegionBuilder.LEFT
       case "RIGHT" => RegionBuilder.RIGHT
       case "CAT" => RegionBuilder.CONTIG
-      case "INTERSECTION" => RegionBuilder.INTERSECTION
+      case "INT" => RegionBuilder.INTERSECTION
       case "BOTH" => RegionBuilder.BOTH
       case "LEFT_DIST" => RegionBuilder.LEFT_DISTINCT
       case "RIGHT_DIST" => RegionBuilder.RIGHT_DISTINCT
