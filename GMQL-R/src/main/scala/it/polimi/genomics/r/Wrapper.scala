@@ -1310,60 +1310,17 @@ object Wrapper {
   def main(args: Array[String]): Unit =
   {
 
-    /*
-    rest_manager.service_token = "0aff0d90-b15d-4d43-bb09-353a2eedc9ff"
-
-    val schema = Array(Array("chr"	,"STRING"),
-    Array("left",	"LONG"),
-      Array("right"	,"LONG"),
-        Array("name",	"STRING"),
-          Array("score",	"DOUBLE"),
-            Array("strand"	,"STRING")
-              /*Array("signal"	,"DOUBLE"),
-                Array("pvalue"	,"DOUBLE"),
-                  Array("qvalue",	"DOUBLE")*/)
-
     initGMQL("TAB",false)
 
-    val dataset1 = "/Users/simone/Desktop/TF_TEAD/files"
-    val dataset1_schema = "/Users/simone/Desktop/TF_TEAD/files/schema.schema"
-
-    val dataset2 = "/Users/simone/Desktop/h1/files"
-    val dataset2_schema = "/Users/simone/Desktop/h1/files/granges.schema"
-
-    //val dataset3 = "/Users/simone/Downloads/filename2_20171130_100928_TF_rep_good/files"
-    //val schema3 = dataset3 + "/schema.schema"
-
-
-    //val DS3 = readDataset(dataset3,"CUSTOMPARSER",true,true,null,schema3)
+    val dataset1 = "/Users/simone/Desktop/datasets/dataset_2/files"
+    val dataset1_schema = dataset1 + "/schema.schema"
 
     val DS1 = readDataset(dataset1,"CUSTOMPARSER",true,true,null,dataset1_schema)
-    //val DS2 = readDataset(dataset2,"CUSTOMPARSER",true,true,null,dataset2_schema)
-    val DS2 = readDataset(dataset2,"CUSTOMPARSER",true,true,null,dataset2_schema)
-
-    val m = map(null,Array(Array("count","COUNT")),DS2(1),DS1(1))
-
-    val e = extend(Array(Array("_region_count","COUNT")),m(1))
-
-    val s = select(null,"count > 0",null,e(1))
-
-    val e1 = extend(Array(Array("_region_count_2","COUNT")),s(1))
-
-
-    /*val a = read(null,null,Array(Array("chr","FACTOR"),Array("start","INTEGER"),
-      Array("end","INTEGER"),Array("strand","FACTOR")))*/
-
-    //materialize(DS2(1),"/Users/simone/Desktop/DS2")
-    materialize(e1(1),"/Users/simone/Desktop/ex1")
-    //materialize(s(1),"/Users/simone/Desktop/s")
-    //materialize(e(1),"/Users/simone/Desktop/ex")
-    //materialize(e1(1),"/Users/simone/Desktop/ex_1")
+    val predicate = "(chr == chr2 OR chr == chr3) AND !(strand == \"+\" OR strand == \"-\") AND start >= 130 AND stop <= 250"
+    val s = select(null,predicate,null,DS1(1))
+    materialize(s(1),"/Users/simone/Desktop/ex1")
 
     execute()
-*/
-
-    //get_param("(ALL+1)/2")
-
   }
 
 

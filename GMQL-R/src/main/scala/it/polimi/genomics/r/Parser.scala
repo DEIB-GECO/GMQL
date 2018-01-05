@@ -54,8 +54,24 @@ class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
     }
   }
 
-  val value_reg:Parser[String] = """[a-zA-Z0-9_\\*\\+\\-]+""".r ^^{x => x} | floatingPointNumber
-  val cond_reg:Parser[String] = (attribute ~ operator ~ (meta | value_reg) ) ^^ {x => x._1._1 + x._1._2 + x._2}
+  /*
+  val chr_cond:Parser[String] = CHR ~> "==" ~> """[a-zA-Z0-9_\\*\\+\\-]+""".r ^^ {x =>"chr == "+ x}
+  val left_cond:Parser[String] = LEFT ~> (operator ~ decimalNumber) ^^ {x=> "left" + x._1 + x._2.toLong}
+  val right_cond:Parser[String] = RIGHT ~> (operator~ decimalNumber)^^ {x=> "right" + x._1 + x._2.toLong}
+  val stop_cond:Parser[String] = STOP ~> (operator~ decimalNumber)^^ {x=> "stop" + x._1 + x._2.toLong}
+  val start_cond:Parser[String] = START ~> (operator~ decimalNumber)^^ {x=> "start" + x._1 + x._2.toLong}
+  val strand_cond:Parser[String] = STRAND ~> "==" ~> """[\\+]""".r ^^ {x => "strand ==" +x}|
+    ("""[\\+]""".r) ^^ {x => "strand ==" +x.mkString}|
+    ("""[\\-]""".r) ^^ {x => "strand ==" +x}|
+    ("""[\\*]""".r) ^^ {x => "strand ==" +x.mkString}|
+    """\\+""".r ^^ {x => "strand ==" +x}|  """\\-""".r ^^ {x => "strand ==" +x}|
+    """\\*""".r  ^^ {x => "strand ==" +x}|
+    "\"-\""  ^^ {x => "strand ==" +x}| "\"+\""  ^^ {x => "strand ==" +x}|
+    "\"*\""  ^^ {x => "strand ==" +x}
+*/
+  val value_reg:Parser[String] = """[a-zA-Z0-9_\\*\\+\\-]+""".r ^^{x => x} | floatingPointNumber|
+  stringLiteral ^^ {x=>x}
+  val cond_reg:Parser[String] = (attribute ~ operator ~ value_reg ) ^^ {x => x._1._1 + x._1._2 + x._2}
   val factor_reg: Parser[String] = "(" ~> expr_reg <~ ")" ^^ {x=> "(" + x + ")"} |
     (("!" ~ "(" )~> expr_reg <~ ")") ^^ { x => "NOT(" +x+ ")"  }  |
     ("!" ~> cond_reg ) ^^ { x => "NOT(" +x+ ")"  } | cond_reg
@@ -99,9 +115,9 @@ class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
 
   def findAndChangeReg(input:String): String =
   {
-    val metadata = parse(expr_reg, input)
+    val region = parse(expr_reg, input)
 
-    metadata match {
+    region match {
       case Success(result, next) => result
       case NoSuccess(result, next) => "Invalid Syntax"
       case Error(result, next) => "Invalid Syntax"
