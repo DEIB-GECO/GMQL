@@ -189,7 +189,13 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
 
     } else {
 
-      new IRVariable(new_meta_dag, this.regionDag, this.schema)
+      val new_region_dag = if (!(projected_meta.isDefined || extended_meta.isDefined)) IRProjectRD(
+        projected_values,
+        extended_values,
+        this.regionDag, this.metaDag)
+      else this.regionDag
+
+      new IRVariable(new_meta_dag, /*this.regionDag*/ new_region_dag, this.schema)
 
     }
 
