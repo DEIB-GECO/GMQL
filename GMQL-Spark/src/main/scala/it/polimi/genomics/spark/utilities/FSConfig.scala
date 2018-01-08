@@ -16,11 +16,11 @@ object FSConfig {
 
     if( conf == null ) {
       conf = new Configuration()
-      conf.set("hadoop.google.cloud.auth.service.account.enable","true")
-      conf.set("hadoop.google.cloud.auth.service.account.json.keyfile", credentials)
-      conf.set("hadoop.fs.gs.impl","com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem")
-      conf.set("hadoop.fs.AbstractFileSystem.gs.impl","com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem")
-      conf.set("hadoop.fs.gs.project.id",projId)
+      conf.set("google.cloud.auth.service.account.enable","true")
+      conf.set("google.cloud.auth.service.account.json.keyfile", credentials)
+      conf.set("fs.gs.impl","com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem")
+      conf.set("fs.AbstractFileSystem.gs.impl","com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem")
+      conf.set("fs.gs.project.id",projId)
     }
     conf
   }
