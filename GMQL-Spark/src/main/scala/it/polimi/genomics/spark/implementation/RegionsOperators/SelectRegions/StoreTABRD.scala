@@ -50,7 +50,7 @@ object StoreTABRD {
     val regionsPartitioner = new HashPartitioner(Ids.count.toInt)
 
     val keyedRDD =
-      regions.sortBy(s=>s._1).map{x =>
+      regions.map{x =>
         val newStart = if (coordinateSystem == GMQLSchemaCoordinateSystem.OneBased) (x._1._3 + 1) else x._1._3  //start: 0-based -> 1-based
         (outSample+"_"+ "%05d".format(newIDSbroad.value.get(x._1._1).getOrElse(x._1._1))+".gdm",
         x._1._2 + "\t" + newStart + "\t" + x._1._4 + "\t" + x._1._5 + "\t" + x._2.mkString("\t"))}

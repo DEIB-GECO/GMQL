@@ -40,7 +40,6 @@
             <!--<artifactId>GMQL-Flink</artifactId>-->
             <!--<version>3.0</version>-->
         <!--</dependency>-->
-
         <dependency>
             <groupId>it.polimi.genomics</groupId>
             <artifactId>GMQL-Spark</artifactId>
@@ -52,6 +51,18 @@
                 <!--</exclusion>-->
             <!--</exclusions>-->
         </dependency>
+	<!-- https://mvnrepository.com/artifact/com.google.cloud.bigdataoss/gcs-connector -->
+<dependency>
+    <groupId>com.google.cloud.bigdataoss</groupId>
+    <artifactId>gcs-connector</artifactId>
+    <version>1.6.1-hadoop2</version>
+	<exclusions>
+        <exclusion>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+        </exclusion>
+    </exclusions>
+</dependency>
 
         <dependency>
             <groupId>it.polimi.genomics</groupId>

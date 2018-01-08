@@ -12,14 +12,10 @@
         <module>GMQL-dot</module>
         <module>Compiler</module>
         <module>GMQL-Test</module>
-        <module>GMQL-R</module>
-        <module>GMQL-SciDB</module>
-        <module>SciDB-ScalaAPI</module>
         <module>GMQL-Repository</module>
         <module>GMQL-Profiler</module>
         <module>GMQL-SManager</module>
         <module>WSC</module>
-        <module>GMQL-PythonAPI</module>
         <module>GMQL-Flink</module>
     </modules>
     <name>${project.artifactId}</name>

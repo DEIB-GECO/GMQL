@@ -13,9 +13,9 @@ import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
 import org.apache.log4j.xml.DOMConfigurator
-import org.apache.log4j.{FileAppender, Level, PatternLayout}
+import org.apache.log4j.{FileAppender, Level, PatternLayout, ConsoleAppender}
 import org.apache.spark.{SparkConf, SparkContext}
-import org.slf4j.LoggerFactory
+import org.slf4j._
 
 /**
   * Created by Abdulrahman Kaitoua on 10/09/15.
@@ -25,17 +25,16 @@ import org.slf4j.LoggerFactory
 
 object GMQLExecuteCommand {
   private final val logger = LoggerFactory.getLogger(/*Logger.ROOT_LOGGER_NAME)*/ GMQLExecuteCommand.getClass);
-  try{
-     if(new File("GMQL-Core/src/main/resources/logback.xml").exists())
-        {
-          DOMConfigurator.configure("../conf/logback.xml")
-          val root:ch.qos.logback.classic.Logger = org.slf4j.LoggerFactory.getLogger("org").asInstanceOf[ch.qos.logback.classic.Logger];
-          root.setLevel(ch.qos.logback.classic.Level.WARN);
-          org.slf4j.LoggerFactory.getLogger("it.polimi.genomics.cli").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.INFO)
-        }
-  }catch{
-    case _:Throwable => logger.warn("log4j.xml is not found in conf")
-  }
+  org.apache.log4j.Logger.getRootLogger().getLoggerRepository().resetConfiguration()
+
+  val console = new ConsoleAppender() //create appender
+  //configure the appender
+  val PATTERN = "%d [%p|%c|%C{1}] %m%n"
+  console.setLayout(new PatternLayout(PATTERN))
+  console.setThreshold(Level.ALL)
+  console.activateOptions()
+  //add appender to any Logger (here is root)
+  org.apache.log4j.Logger.getRootLogger().addAppender(console)
   val dateFormat = new SimpleDateFormat("yyyy-MM-dd");
   System.setProperty("current.date", dateFormat.format(new Date()));
 
@@ -361,34 +360,23 @@ object GMQLExecuteCommand {
   }
 
   def getImplemenation(executionType:String,jobid:String , outputFormat: GMQLSchemaFormat.Value, outputCoordinateSystem: GMQLSchemaCoordinateSystem.Value) ={
-//    if (executionType.equals(it.polimi.genomics.core.ImplementationPlatform.SPARK.toString.toLowerCase())) {
-      val conf = new SparkConf().setAppName("GMQL V2.1 Spark " + jobid)
-        .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "128")
-        .set("spark.driver.allowMultipleContexts","true")
-        .set("spark.sql.tungsten.enabled", "true")//.setMaster("local[*]")
-      val sc: SparkContext = new SparkContext(conf)
-//      sc.addSparkListener(new SparkListener() {
-//        override def onApplicationStart(applicationStart: SparkListenerApplicationStart) {
-//          logger.debug("Spark ApplicationStart: " + applicationStart.appName);
-//        }
-//
-//        override def onStageCompleted(stageCompleted: SparkListenerStageCompleted): Unit = {
-//          logger.debug("Number of tasks "+stageCompleted.stageInfo.numTasks+ "\tinfor:"+ stageCompleted.stageInfo.rddInfos.mkString("\n"))
-//          logger.debug("Spark Stage ended: " +stageCompleted.stageInfo.name+
-//            /*", with details ("+ stageCompleted.stageInfo.details+*/
-//            " ,execTime: "+ stageCompleted.stageInfo.completionTime.getOrElse(0));
-//        }
-//
-//        override def onApplicationEnd(applicationEnd: SparkListenerApplicationEnd) {
-//          logger.debug("Spark ApplicationEnd: " + applicationEnd.time);
-//        }
-//
-//      });
+	val projId      = "gmql-188714"
+
+    	val credentials = "/usr/src/myapp/credentials.json"
+
+   	val conf = new SparkConf().setAppName("Prova").setMaster("local[*]")
+      	 .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "128")
+     	 .set("spark.driver.allowMultipleContexts","true")
+     	 .set("spark.sql.tungsten.enabled", "true")//.setMaster("local[*]")
+     	 .set("spark.hadoop.google.cloud.auth.service.account.enable","true")
+     	 .set("spark.hadoop.google.cloud.auth.service.account.json.keyfile", credentials)
+     	 .set("spark.hadoop.fs.gs.impl","com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem")
+     	 .set("spark.hadoop.fs.AbstractFileSystem.gs.impl","com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem")
+     	 .set("spark.hadoop.fs.gs.project.id",projId)
+
+    val sc: SparkContext = new SparkContext(conf)
+ 
       new GMQLSparkExecutor(testingIOFormats = false, sc = sc, outputFormat = outputFormat, outputCoordinateSystem = outputCoordinateSystem)
-//    }
-//    else /*if(executionType.equals(FLINK)) */ {
-//      new FlinkImplementation()
-//    }
   }
 
   private def extractInDSsSchema(inputSchemata:String):Map[String, String] ={
