@@ -474,8 +474,8 @@ object Wrapper {
         return Array("1","No valid Data as semijoin")
 
       semiJoinDataAsTheyAre = vv(semijoin_data)
-      val not_in = semi_join(0)(1)
-      val semi_join_neg = not_in match{
+      val is_in = semi_join(0)(1)
+      val semi_join_neg = is_in match{
         case "TRUE" => true
         case "FALSE" => false
       }

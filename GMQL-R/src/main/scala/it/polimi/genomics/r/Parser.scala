@@ -116,7 +116,7 @@ class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
   def findAndChangeReg(input:String): String =
   {
     val region = parse(expr_reg, input)
-
+    print(region)
     region match {
       case Success(result, next) => result
       case NoSuccess(result, next) => "Invalid Syntax"
