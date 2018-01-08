@@ -8,6 +8,7 @@ package it.polimi.genomics.spark.implementation.loaders
 
 import java.io._
 
+import it.polimi.genomics.spark.utilities.FSConfig
 import org.apache.hadoop.io.NullWritable
 
 //import it.polimi.genomics.repository.{Utilities => General_Utilities}
@@ -71,7 +72,7 @@ object writeMultiOutputFiles{
     * @tparam T The type of the rows
     */
   def saveAsMultipleTextFiles[T:ClassTag](src: RDD[(String,String)], root: String, codec: Option[Class[_ <: CompressionCodec]]) {
-    val hadoopConf = new Configuration()
+    val hadoopConf = FSConfig.getConf()
     val jobConf = new JobConf(hadoopConf)
 
     jobConf.setOutputFormat(classOf[RDDMultipleTextOutputFormat])
@@ -95,7 +96,7 @@ object writeMultiOutputFiles{
     */
   def fixOutputMetaLocation(originalPath:String): Unit = {
     println(originalPath)
-    val conf = new Configuration();
+    val conf = FSConfig.getConf()
     val path = new org.apache.hadoop.fs.Path(originalPath);
     val fs = FileSystem.get(path.toUri(), conf);
       try {
@@ -116,7 +117,7 @@ object writeMultiOutputFiles{
 
   @deprecated
   def fixOutputNamingLocation(originalPath:String,outName:String): Unit = {
-    val conf = new Configuration();
+    val conf = FSConfig.getConf()
     val path = new org.apache.hadoop.fs.Path(originalPath);
     val fs = FileSystem.get(path.toUri(), conf);
       try {

@@ -8,6 +8,7 @@ import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.loaders.writeMultiOutputFiles
 import it.polimi.genomics.spark.implementation.loaders.writeMultiOutputFiles.RDDMultipleTextOutputFormat
+import it.polimi.genomics.spark.utilities.FSConfig
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path, PathFilter}
 import org.apache.spark.rdd.RDD
@@ -28,7 +29,7 @@ object StoreTABRD {
     val regions = executor.implement_rd(value, sc)
     val meta = executor.implement_md(associatedMeta,sc)
 
-    val conf = new Configuration();
+    val conf = FSConfig.getConf()
     val dfsPath = new org.apache.hadoop.fs.Path(path);
     val fs = FileSystem.get(dfsPath.toUri(), conf);
 

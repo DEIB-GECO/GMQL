@@ -9,6 +9,7 @@ package it.polimi.genomics.spark.implementation.loaders
 import com.google.common.hash._
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
 import it.polimi.genomics.core.DataTypes.{GRECORD, MetaType}
+import it.polimi.genomics.spark.utilities.FSConfig
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FSDataInputStream, FileSystem, Path}
 import org.apache.hadoop.io._
@@ -35,7 +36,7 @@ object Loaders {
     * @param path [[String]] as the input path
     */
   class Context(val sc: SparkContext, val path: String) {
-    val conf = new Configuration()
+    val conf = FSConfig.getConf()
     conf.set("textinputformat.record.delimiter", defaultCombineDelim)
     conf.set("mapreduce.input.fileinputformat.input.dir.recursive", "true")
     conf.set("mapred.input.dir", path)

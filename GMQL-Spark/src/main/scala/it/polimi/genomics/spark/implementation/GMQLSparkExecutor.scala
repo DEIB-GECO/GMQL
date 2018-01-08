@@ -30,6 +30,7 @@ import it.polimi.genomics.spark.implementation.RegionsOperators.GenometricMap._
 import it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions.{ReadMEMRD, StoreGTFRD, StoreTABRD, TestingReadRD}
 import it.polimi.genomics.spark.implementation.RegionsOperators._
 import it.polimi.genomics.spark.implementation.loaders._
+import it.polimi.genomics.spark.utilities.FSConfig
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.spark.SparkContext
@@ -127,7 +128,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
           case _:Throwable => variableDir
         }
 
-        val conf = new Configuration();
+        val conf = FSConfig.getConf()
         val path = new org.apache.hadoop.fs.Path(RegionOutputPath);
         fs = FileSystem.get(path.toUri(), conf);
 

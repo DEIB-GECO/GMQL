@@ -3,6 +3,7 @@ package it.polimi.genomics.spark.implementation.RegionsOperators
 import it.polimi.genomics.core.DataTypes.{GRECORD, MetaType}
 import it.polimi.genomics.core.GMQLLoader
 import it.polimi.genomics.spark.implementation.loaders.Loaders._
+import it.polimi.genomics.spark.utilities.FSConfig
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path, PathFilter}
 import org.apache.spark.SparkContext
@@ -19,7 +20,7 @@ object ReadRD {
   def apply(paths: List[String], loader: GMQLLoader[Any, Any, Any, Any], sc: SparkContext): RDD[GRECORD] = {
     def parser(x: (Long, String)) = loader.asInstanceOf[GMQLLoader[(Long, String), Option[GRECORD], (Long, String), Option[MetaType]]].region_parser(x)
 
-    val conf = new Configuration();
+    val conf = FSConfig.getConf()
     val path = new org.apache.hadoop.fs.Path(paths.head);
     val fs = FileSystem.get(path.toUri(), conf);
 

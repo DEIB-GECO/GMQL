@@ -3,6 +3,7 @@ package it.polimi.genomics.spark.implementation.MetaOperators.SelectMeta
 import it.polimi.genomics.core.DataTypes.MetaType
 import it.polimi.genomics.core.{DataTypes, GMQLLoader}
 import it.polimi.genomics.spark.implementation.loaders.Loaders._
+import it.polimi.genomics.spark.utilities.FSConfig
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path, PathFilter}
 import org.apache.spark.SparkContext
@@ -22,7 +23,7 @@ object ReadMD {
         .asInstanceOf[GMQLLoader[(Long, String), Option[DataTypes.GRECORD], (Long, String), Option[DataTypes.MetaType]]]
         .meta_parser(x)
 
-    val conf = new Configuration()
+    val conf = FSConfig.getConf()
     val path = new Path(paths.head)
     val fs = FileSystem.get(path.toUri(), conf)
 

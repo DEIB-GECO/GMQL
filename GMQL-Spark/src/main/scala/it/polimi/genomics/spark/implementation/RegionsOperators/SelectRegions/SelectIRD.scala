@@ -9,6 +9,7 @@ import it.polimi.genomics.core.DataTypes._
 import it.polimi.genomics.core.GMQLLoader
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
+import it.polimi.genomics.spark.utilities.FSConfig
 //import it.polimi.genomics.repository.{Utilities => General_Utilities}
 //import it.polimi.genomics.repository.FSRepository.{LFSRepository, Utilities => FSR_Utilities}
 import org.apache.hadoop.fs.{FileSystem, Path, PathFilter}
@@ -36,7 +37,7 @@ object SelectIRD {
     }
     logger.info("----------------SelectIRD ")
 
-    val conf = new Configuration();
+    val conf = FSConfig.getConf()
     val path = new org.apache.hadoop.fs.Path(URIs.head);
     val fs = FileSystem.get(path.toUri(), conf);
 
