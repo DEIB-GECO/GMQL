@@ -442,8 +442,8 @@ object Wrapper {
 
     val dataAsTheyAre = vv(input_dataset)
 
-    println(region_predicate)
-    println(predicate)
+    //println(region_predicate)
+    //println(predicate)
 
     var semiJoinDataAsTheyAre: IRVariable = null
     var semi_join_metaDag: Option[MetaOperator] = None
@@ -480,7 +480,7 @@ object Wrapper {
         case "FALSE" => false
       }
       val semi_join_cond = semi_join.drop(1)
-      semi_join_list= MetaJoinConditionList_with_neg(semi_join_cond,semi_join_neg)
+      semi_join_list= MetaJoinConditionList_with_neg(semi_join_cond,!semi_join_neg)
       if (semi_join_list.isEmpty)
         return Array("1","No valid condition in semijoin")
 
@@ -511,8 +511,8 @@ object Wrapper {
     val dataAsTheyAre = vv(input_dataset)
     val parser = new Parser(dataAsTheyAre, GMQL_server)
 
-    println(extended_meta)
-    println(extended_values)
+    //println(extended_meta)
+    //println(extended_values)
 
     val meta_list: Option[List[String]] = MetadataAttributesList(projected_meta)
 
@@ -727,7 +727,7 @@ object Wrapper {
 
   def flat(min: String, max: String, groupBy: Array[Array[String]], aggregates: Array[Array[String]],
            input_dataset: String): Array[String] = {
-    println("flat")
+    //println("flat")
     val (error, flat) = doVariant(CoverFlag.FLAT, min, max, groupBy, aggregates, input_dataset)
     if (flat == null)
       return Array("1",error)
@@ -742,7 +742,7 @@ object Wrapper {
   def histogram(min: String, max: String, groupBy: Array[Array[String]], aggregates: Array[Array[String]],
                 input_dataset: String): Array[String] = {
     val (error, histogram) = doVariant(CoverFlag.HISTOGRAM, min, max, groupBy, aggregates, input_dataset)
-    println("histogram")
+    //println("histogram")
 
     if (histogram == null)
       return Array("1",error)
@@ -756,7 +756,7 @@ object Wrapper {
 
   def summit(min: String, max: String, groupBy: Array[Array[String]], aggregates: Array[Array[String]],
              input_dataset: String): Array[String] = {
-    println("summit")
+    //println("summit")
     val (error, summit) = doVariant(CoverFlag.SUMMIT, min, max, groupBy, aggregates, input_dataset)
     if (summit == null)
       return Array("1",error)
@@ -770,7 +770,7 @@ object Wrapper {
 
   def cover(min: String, max: String, groupBy: Array[Array[String]], aggregates: Array[Array[String]],
             input_dataset: String): Array[String] = {
-    println("cover")
+    //println("cover")
 
     val (error, cover) = doVariant(CoverFlag.COVER, min, max, groupBy, aggregates, input_dataset)
     if (cover == null)
@@ -1242,7 +1242,7 @@ object Wrapper {
     val len = quad_join.length
 
     for (elem <- quad_join) {
-      print(elem(0), elem(1))
+      //print(elem(0), elem(1))
       temp_list += atomic_cond(elem(0), elem(1))
     }
     if(len < 4)
@@ -1309,18 +1309,18 @@ object Wrapper {
 
   def main(args: Array[String]): Unit =
   {
-
-    initGMQL("TAB",false)
+    initGMQL("GTF",false)
 
     val dataset1 = "/Users/simone/Desktop/datasets/dataset_2/files"
     val dataset1_schema = dataset1 + "/schema.schema"
 
     val DS1 = readDataset(dataset1,"CUSTOMPARSER",true,true,null,dataset1_schema)
-    val predicate = "(chr == chr2 OR chr == chr3) AND !(strand == \"+\" OR strand == \"-\") AND start >= 130 AND stop <= 250"
+    val predicate = "chr == chr3 AND strand ==\"+\" OR start > 130 AND !(stop < 120 OR strand==\"-\") " +
+      "AND score > META(\"avg_score\")"
     val s = select(null,predicate,null,DS1(1))
-    materialize(s(1),"/Users/simone/Desktop/ex1")
+    //materialize(s(1),"/Users/simone/Desktop/ex1")
 
-    execute()
+   // execute()
   }
 
 
