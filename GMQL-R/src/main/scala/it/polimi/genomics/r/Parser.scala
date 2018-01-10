@@ -31,7 +31,6 @@ class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
     (stringLiteral ^^ {x=> x} | """[a-zA-Z0-9_\\*\\+\\-]+""".r ^^{x => x} )
 
   //val meta_attribute:Parser[String] = rep1sep(ident, ".") ^^ {_.mkString(".")}
-  val meta:Parser[String] = "META" ~> "(" ~>  value <~ ")" ^^ { x => "META(" + x.drop(1).dropRight(1)+ ")"  }
   val operator:Parser[String] = "==" | "!="  | ">=" | "<=" | ">" | "<"
   val attribute:Parser[String] = rep1sep(ident, ".") ^^ {_.mkString(".")}
   val cond:Parser[String] = (attribute ~ operator ~ value ) ^^ {x => x._1._1 + x._1._2 + x._2}
@@ -54,27 +53,23 @@ class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
     }
   }
 
-  /*
   val chr_cond:Parser[String] = CHR ~> "==" ~> """[a-zA-Z0-9_\\*\\+\\-]+""".r ^^ {x =>"chr == "+ x}
   val left_cond:Parser[String] = LEFT ~> (operator ~ decimalNumber) ^^ {x=> "left" + x._1 + x._2.toLong}
-  val right_cond:Parser[String] = RIGHT ~> (operator~ decimalNumber)^^ {x=> "right" + x._1 + x._2.toLong}
-  val stop_cond:Parser[String] = STOP ~> (operator~ decimalNumber)^^ {x=> "stop" + x._1 + x._2.toLong}
-  val start_cond:Parser[String] = START ~> (operator~ decimalNumber)^^ {x=> "start" + x._1 + x._2.toLong}
-  val strand_cond:Parser[String] = STRAND ~> "==" ~> """[\\+]""".r ^^ {x => "strand ==" +x}|
-    ("""[\\+]""".r) ^^ {x => "strand ==" +x.mkString}|
-    ("""[\\-]""".r) ^^ {x => "strand ==" +x}|
-    ("""[\\*]""".r) ^^ {x => "strand ==" +x.mkString}|
-    """\\+""".r ^^ {x => "strand ==" +x}|  """\\-""".r ^^ {x => "strand ==" +x}|
-    """\\*""".r  ^^ {x => "strand ==" +x}|
-    "\"-\""  ^^ {x => "strand ==" +x}| "\"+\""  ^^ {x => "strand ==" +x}|
-    "\"*\""  ^^ {x => "strand ==" +x}
-*/
+  val right_cond:Parser[String] = RIGHT ~> (operator ~ decimalNumber) ^^ {x=> "right" + x._1 + x._2.toLong}
+  val stop_cond:Parser[String] = STOP ~> (operator ~ decimalNumber) ^^ {x=> "stop" + x._1 + x._2.toLong}
+  val start_cond:Parser[String] = START ~> (operator ~ decimalNumber) ^^ {x=> "start" + x._1 + x._2.toLong}
+  val strand_cond:Parser[String] = STRAND ~> "==" ~> stringLiteral ^^ {x=> "strand" + "==" + x}
+
+
+  val meta_cond:Parser[String] = (attribute ~ operator ~ ("META" ~> "(" ~>  value_reg <~ ")") )^^
+    { x => x._1._1 +x._1._2 + "META(" + x._2.drop(1).dropRight(1)+ ")" }
   val value_reg:Parser[String] = """[a-zA-Z0-9_\\*\\+\\-]+""".r ^^{x => x} | floatingPointNumber|
-  stringLiteral ^^ {x=>x}
-  val cond_reg:Parser[String] = (attribute ~ operator ~ value_reg ) ^^ {x => x._1._1 + x._1._2 + x._2}
+   stringLiteral ^^ {x=> x}
+  val cond_reg:Parser[String] = chr_cond | strand_cond | start_cond | stop_cond | left_cond | right_cond |
+    meta_cond
   val factor_reg: Parser[String] = "(" ~> expr_reg <~ ")" ^^ {x=> "(" + x + ")"} |
     (("!" ~ "(" )~> expr_reg <~ ")") ^^ { x => "NOT(" +x+ ")"  }  |
-    ("!" ~> cond_reg ) ^^ { x => "NOT(" +x+ ")"  } | cond_reg
+    ("!" ~> cond_reg ) ^^ { x => "NOT(" +x+ ")"  }  | cond_reg
 
   val term_reg:Parser[String] = factor_reg ~ (("AND" ~> factor_reg)*) ^^ { x =>
     if (x._2.isEmpty)
@@ -116,7 +111,7 @@ class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
   def findAndChangeReg(input:String): String =
   {
     val region = parse(expr_reg, input)
-    print(region)
+    //println(region)
     region match {
       case Success(result, next) => result
       case NoSuccess(result, next) => "Invalid Syntax"
