@@ -75,6 +75,21 @@ case class OrderOperator(op_pos : Position,
 
   override def translate_operator(status : CompilerStatus):CompilerDefinedVariable = {
 
+    if (!meta_order.isDefined && !region_order.isDefined){
+      val msg = "In " + this.operator_name + " operator at line " +
+        op_pos.line + ": at leat a metadata or a region ordering must be specified. "
+      throw new CompilerException(msg)
+    }
+    if (!meta_top.isInstanceOf[NoTop] && !meta_order.isDefined){
+      val msg = "In " + this.operator_name + " operator at line " +
+        op_pos.line + ": metadata attribute(s) must be specified. "
+      throw new CompilerException(msg)
+    }
+    if (!region_top.isInstanceOf[NoTop] && !region_order.isDefined){
+      val msg = "In " + this.operator_name + " operator at line " +
+        op_pos.line + ": region_order parameter must be specified. "
+      throw new CompilerException(msg)
+    }
     val sorted = super_variable_left.get.ORDER(
       meta_order,
       "_order",
