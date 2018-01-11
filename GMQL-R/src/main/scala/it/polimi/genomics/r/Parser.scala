@@ -59,6 +59,7 @@ class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
   val stop_cond:Parser[String] = STOP ~> (operator ~ decimalNumber) ^^ {x=> "stop" + x._1 + x._2.toLong}
   val start_cond:Parser[String] = START ~> (operator ~ decimalNumber) ^^ {x=> "start" + x._1 + x._2.toLong}
   val strand_cond:Parser[String] = STRAND ~> "==" ~> stringLiteral ^^ {x=> "strand" + "==" + x}
+  val schema_cond:Parser[String] = cond
 
 
   val meta_cond:Parser[String] = (attribute ~ operator ~ ("META" ~> "(" ~>  value_reg <~ ")") )^^
@@ -66,7 +67,7 @@ class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
   val value_reg:Parser[String] = """[a-zA-Z0-9_\\*\\+\\-]+""".r ^^{x => x} | floatingPointNumber|
    stringLiteral ^^ {x=> x}
   val cond_reg:Parser[String] = chr_cond | strand_cond | start_cond | stop_cond | left_cond | right_cond |
-    meta_cond
+    meta_cond | cond
   val factor_reg: Parser[String] = "(" ~> expr_reg <~ ")" ^^ {x=> "(" + x + ")"} |
     (("!" ~ "(" )~> expr_reg <~ ")") ^^ { x => "NOT(" +x+ ")"  }  |
     ("!" ~> cond_reg ) ^^ { x => "NOT(" +x+ ")"  }  | cond_reg

@@ -169,7 +169,7 @@ object Wrapper {
     parser_name match {
       case "BEDPARSER" => parser = BedParser
       case "ANNPARSER" => parser = ANNParser
-      case "BROADPROJPARSER" => parser = BroadProjParser
+      case "BROADPEAKPARSER" => parser = BroadPeaksParser
       case "BASICPARSER" => parser = BasicParser
       case "NARROWPEAKPARSER" => parser = NarrowPeakParser
       case "RNASEQPARSER" => parser = RnaSeqParser
@@ -669,7 +669,7 @@ object Wrapper {
       if (reg_ordering._2.isEmpty)
         return Array("1",reg_ordering._1)
     }
-    val order = dataAsTheyAre.ORDER(meta_list, "_group", m_top, reg_ordering._2, r_top)
+    val order = dataAsTheyAre.ORDER(meta_list, "_order", m_top, reg_ordering._2, r_top)
 
     val index = counter.getAndIncrement()
     val out_p = input_dataset + "/order" + index
@@ -895,7 +895,7 @@ object Wrapper {
     var covParam: CoverParam = null
     var parser_res: (String, CoverParam)=null
 
-    var parameter = try {
+    val parameter = try {
         param.toInt
       }
     catch {
@@ -1316,7 +1316,7 @@ object Wrapper {
 
     val DS1 = readDataset(dataset1,"CUSTOMPARSER",true,true,null,dataset1_schema)
     val predicate = "chr == chr3 AND strand ==\"+\" OR start > 130 AND !(stop < 120 OR strand==\"-\") " +
-      "AND score > META(\"avg_score\")"
+      "AND score > META(\"avg_score\") AND pvalue < 0.01"
     val s = select(null,predicate,null,DS1(1))
     //materialize(s(1),"/Users/simone/Desktop/ex1")
 
