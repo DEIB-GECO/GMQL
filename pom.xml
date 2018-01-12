@@ -17,7 +17,6 @@
         <module>GMQL-SManager</module>
         <module>WSC</module>
         <module>GMQL-PythonAPI</module>
-        <module>GMQL-Flink</module>
     </modules>
     <name>${project.artifactId}</name>
     <description>Polimi GMQL, Big Data processing for Genomics</description>
