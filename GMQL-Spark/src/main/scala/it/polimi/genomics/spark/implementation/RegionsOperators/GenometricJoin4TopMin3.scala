@@ -67,7 +67,6 @@ object GenometricJoin4TopMin3 {
     // assign group and bin experiment
     val binnedExp: RDD[((Long, String, Int), (Long,Long, Long, Char, Array[GValue], Int,Int))] =binExperiment(exp,Bgroups,BINNING_PARAMETER)
 
-
     // (ExpID,chr ,bin), start, stop, strand, values,BinStart)
     distanceJoinCondition.map{q =>
       val qList = q.toList()
@@ -94,6 +93,7 @@ object GenometricJoin4TopMin3 {
       //Key of join (expID, chr, bin)
       //result : aggregation,(groupid, Chr, rStart,rStop, rStrand, rValues, eStart, eStop, eStrand, eValues, Distance)
       val joined =  binnedRegions.join(binnedExp) //TODO Set the parallelism factors
+
       val firstRound: RDD[((Long, Int), (Long, String, Long, Long, Char, Array[GValue], Long, Long, Char, Array[GValue], Long))] = if (!minDistanceParameter.isDefined) {
           joined.flatMap { x => val r = x._2._1;
             val e = x._2._2;
@@ -188,8 +188,12 @@ object GenometricJoin4TopMin3 {
           }
 
           val firstGroup = first.groupByKey()
-            .flatMap{x=>val itr = x._2.toList.sortBy(_._9)(Ordering[Long]); var buffer = Long.MinValue; var count = minDistanceParameter.get.asInstanceOf[MinDistance].number
-              itr.takeWhile(s=> {if(count >0 && s._9 != buffer) {count = count -1 ;buffer = s._9   ; true} else if (s._9==buffer) true else  false})/*take(minDistanceParameter.get.asInstanceOf[MinDistance].number)*/.map(s=> ((x._1._1,x._1._3),(x._1._2,x._1._4,s)))}
+            .flatMap{
+              x=>
+                val itr = x._2.toList.sortBy(_._9)(Ordering[Long])
+                var buffer = Long.MinValue
+                var count = minDistanceParameter.get.asInstanceOf[MinDistance].number
+              itr.takeWhile(s=> {if(count >0 && s._9 != buffer) {count = count -1 ;buffer = s._9   ; true} else if (s._9==buffer) true else  false}).map(s=> ((x._1._1,x._1._3),(x._1._2,x._1._4,s)))}
 
           firstGroup.groupByKey()
             .flatMap{x=>val itr = x._2.toList.sortBy(_._3._9)(Ordering[Long]); var buffer = Long.MinValue; var count = minDistanceParameter.get.asInstanceOf[MinDistance].number
@@ -198,8 +202,11 @@ object GenometricJoin4TopMin3 {
         }
 
       val res: RDD[GRECORD] =
-        if (secondRoundParameters.max.isDefined || secondRoundParameters.min.isDefined ||
-          (secondRoundParameters.stream.isDefined && (secondRoundParameters.max.isDefined || secondRoundParameters.min.isDefined))) {
+        if (
+          secondRoundParameters.max.isDefined ||
+            secondRoundParameters.min.isDefined ||
+            secondRoundParameters.stream.isDefined){
+
           firstRound.flatMap{p=>
             val distance = p._2._11
             if (
