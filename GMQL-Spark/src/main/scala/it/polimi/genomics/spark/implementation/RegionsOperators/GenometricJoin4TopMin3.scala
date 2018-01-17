@@ -108,7 +108,9 @@ object GenometricJoin4TopMin3 {
                 ((e._2 < r._2 && r._2 < e._3 && e._2 < r._3 && r._3 < e._3) && (r._6.equals(x._1._3))) //including and firstBinRef = current
               )
             val same_strand = (r._4.equals('*') || e._4.equals('*') || r._4.equals(e._4))
-            val intersect_distance = (!firstRoundParameters.max.isDefined || firstRoundParameters.max.get > distance) && (!firstRoundParameters.min.isDefined || firstRoundParameters.min.get < distance)
+            val intersect_distance =
+              (!firstRoundParameters.max.isDefined || firstRoundParameters.max.get > distance) &&
+                (!firstRoundParameters.min.isDefined || firstRoundParameters.min.get < distance)
             val no_stream = (!firstRoundParameters.stream.isDefined)
             val UPSTREAM = if (no_stream) true
             else (
@@ -349,9 +351,9 @@ object GenometricJoin4TopMin3 {
     ds.flatMap{r  =>
       val hs = Hashing.md5.newHasher
       val maxDistance : Long =
-        if(firstRound.max.isDefined) firstRound.max.get
+        if(firstRound.max.isDefined) Math.max(0L, firstRound.max.get)
         else if(secondRound.max.isDefined) Math.max(secondRound.max.get,max)
-        else if(firstRound.min.isDefined)firstRound.min.get + max else max
+        else if(firstRound.min.isDefined) firstRound.min.get + max else max
       val start1 : Long = if(!firstRound.stream.isDefined || (firstRound.stream.get.equals(r._6)) || (r._6.equals('*') && firstRound.stream.get.equals('+')) ) r._4 - maxDistance else r._5
       val end1 : Long = if(firstRound.min.isDefined) r._4 - firstRound.min.get else 0L
       val split : Boolean = firstRound.min.isDefined
@@ -453,15 +455,14 @@ object GenometricJoin4TopMin3 {
   }
 
   def distanceCalculator(a : (Long, Long), b : (Long, Long)) : Long = {
-    // b to right of a
-    if(a._1>b._1 && a._2<b._2) //a is contained in b
-      Math.min(a._1-b._2, b._1 -a._2)
-    else if(b._1 >= a._2){
-      b._1 - a._2
-    } else if(b._2 <= a._1) a._1 - b._2
-    else {
-      // intersecting
-      Math.max(a._1, b._1) - Math.min(a._2, b._2)
+
+    val d1:Long = a._1 - b._2
+    val d2:Long = b._1 - a._2
+
+    if (a._2 < b._1 || b._2 < a._1){
+      Math.min(Math.abs(d1),Math.abs(d2))
+    } else {
+      -Math.min(Math.abs(d1),Math.abs(d2))
     }
 
   }
