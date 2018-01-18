@@ -100,6 +100,9 @@ class GMQLExecute (){
 
     /* PATH RENAMING */
     val (outDSs, newSerializedDAG): (List[String], String) = job.renameDAGPaths(script.dag)
+
+    outDSs.foreach(dataSetName => FS_Utilities.checkDsName(dataSetName) )
+
     //script.dag = newSerializedDAG
     script.dag = ""
 
