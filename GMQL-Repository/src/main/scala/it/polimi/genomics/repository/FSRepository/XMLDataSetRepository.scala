@@ -3,7 +3,6 @@ package it.polimi.genomics.repository.FSRepository
 import java.io._
 import java.nio.file.{Files, Paths}
 import java.text.SimpleDateFormat
-import java.util
 import java.util.Date
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
@@ -11,16 +10,16 @@ import it.polimi.genomics.core.GDMSUserClass._
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core.exception.UserExceedsQuota
 import it.polimi.genomics.core.{GDMSUserClass, _}
+import it.polimi.genomics.repository.FSRepository.FS_Utilities.checkDsName
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
 import it.polimi.genomics.repository.GMQLExceptions._
-import it.polimi.genomics.repository.{DatasetOrigin, GMQLRepository, GMQLSample, GMQLStatistics, RepositoryType, Utilities => General_Utilities}
+import it.polimi.genomics.repository.{DatasetOrigin, GMQLRepository, GMQLSample, RepositoryType, Utilities => General_Utilities}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
 import scala.xml.{Elem, Node, NodeSeq, XML}
-import FS_Utilities.isValidDsName
 
 
 /**
@@ -74,8 +73,7 @@ trait XMLDataSetRepository extends GMQLRepository{
     */
   @throws(classOf[GMQLNotValidDatasetNameException])
   override def importDs(dataSetName: String, userName: String, userClass: GDMSUserClass = GDMSUserClass.PUBLIC, Samples: java.util.List[GMQLSample], schemaPath: String): Unit = {
-    if(!isValidDsName(dataSetName))
-      throw new GMQLNotValidDatasetNameException(s"Dataset name is not valid, $dataSetName")
+    checkDsName(dataSetName)
 
     if( isUserQuotaExceeded(userName, userClass) ) {
       throw new UserExceedsQuota()
