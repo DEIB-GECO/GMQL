@@ -122,7 +122,8 @@ case class JoinOperator(op_pos : Position,
           output_builder == RegionBuilder.BOTH)) {
 
       val msg = "JOIN operator at line " + op_pos.line +
-        ": when a condition on distance is not provided, the only possible region builders are LEFT and RIGHT."
+        ": when a condition on distance is not provided, the only possible " +
+        "region builders are LEFT, RIGHT, LEFT_DISTINCT, RIGHT_DISTINCT and BOTH."
       throw new CompilerException(msg)
 
     }

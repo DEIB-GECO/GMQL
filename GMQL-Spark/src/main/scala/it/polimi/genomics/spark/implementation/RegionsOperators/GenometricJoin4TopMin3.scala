@@ -133,8 +133,16 @@ object GenometricJoin4TopMin3 {
                       ((r._4.equals('-')) && e._3 <= r._2) // reference with negative strand => experiment must be earlier
                     )
                 )
+            val JOIN_ON_ATTRIBUTE_CONDITION = if(join_on_attributes.isDefined) {
+              join_on_attributes.get.foldLeft(true)((z,indexes)=> z && (r._5(indexes._1) == e._5(indexes._2)))
+            } else {
+              true
+            }
+
             if (first_match &&
-              same_strand && intersect_distance && (no_stream || UPSTREAM || DOWNSTREAM)
+              same_strand && intersect_distance &&
+              (no_stream || UPSTREAM || DOWNSTREAM) &&
+              JOIN_ON_ATTRIBUTE_CONDITION
             ) {
               val aggregationId: Long = Hashing.md5.newHasher.putString(r._1 + e._1 + r._2 + r._3 + r._4 + r._5.mkString("/"),java.nio.charset.Charset.defaultCharset()).hash().asLong
               val id = Hashing.md5.newHasher.putLong(r._1).putLong(e._1).hash.asLong
@@ -179,7 +187,7 @@ object GenometricJoin4TopMin3 {
                     )
                 )
 
-            val JOIN_ON_ATTRIBUTE_CONDITION = if(join_on_attributes.isDefined) {join_on_attributes.get.foldLeft(true)((z,indexes)=> z || (r._5(indexes._1) == e._5(indexes._2)))} else true
+            val JOIN_ON_ATTRIBUTE_CONDITION = if(join_on_attributes.isDefined) {join_on_attributes.get.foldLeft(true)((z,indexes)=> z && (r._5(indexes._1) == e._5(indexes._2)))} else true
             if (first_match &&
               same_strand && intersect_distance && (no_stream || UPSTREAM || DOWNSTREAM) && JOIN_ON_ATTRIBUTE_CONDITION
             ) {
