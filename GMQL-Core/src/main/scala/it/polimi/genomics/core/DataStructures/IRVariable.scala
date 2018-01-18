@@ -195,7 +195,7 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
         this.regionDag, this.metaDag)
       else this.regionDag
 
-      new IRVariable(new_meta_dag, /*this.regionDag*/ new_region_dag, this.schema)
+      new IRVariable(new_meta_dag, new_region_dag, List.empty)
 
     }
 
