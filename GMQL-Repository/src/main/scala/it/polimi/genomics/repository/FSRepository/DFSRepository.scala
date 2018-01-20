@@ -2,22 +2,20 @@ package it.polimi.genomics.repository.FSRepository
 
 import java.io._
 import java.text.SimpleDateFormat
-import java.util
-import java.util.{Calendar, Date}
+import java.util.Date
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
 import it.polimi.genomics.core.GDMSUserClass.GDMSUserClass
 import it.polimi.genomics.core.{GDMSUserClass, GMQLSchemaCoordinateSystem, GMQLSchemaField, GMQLSchemaFormat}
 import it.polimi.genomics.repository
+import it.polimi.genomics.repository.FSRepository.FS_Utilities.checkDsName
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
 import it.polimi.genomics.repository.GMQLExceptions._
-import it.polimi.genomics.repository.{GMQLRepository, GMQLSample, GMQLStatistics, Utilities => General_Utilities}
+import it.polimi.genomics.repository.{GMQLRepository, GMQLSample, Utilities => General_Utilities}
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.slf4j.LoggerFactory
 
-
 import scala.collection.JavaConverters._
-import FS_Utilities.isValidDsName
 
 /**
   * Created by abdulrahman on 12/04/16.
@@ -94,8 +92,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     * @param schemaPath String of the path to the xml file of the dataset's schema.
     */
   override def importDs(dataSetName: String, userName: String, userClass: GDMSUserClass, Samples: java.util.List[GMQLSample], schemaPath: String): Unit = {
-    if(!isValidDsName(dataSetName))
-      throw new GMQLNotValidDatasetNameException(s"Dataset name is not valid, $dataSetName")
+    checkDsName(dataSetName)
 
     if (FS_Utilities.validate(schemaPath)) {
       val date = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
@@ -150,16 +147,21 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     val fs = FileSystem.get(conf)
     val hdfspath = conf.get("fs.defaultFS") + General_Utilities().getHDFSRegionDir(userName)
 
-    if (dataset.samples.length > 0) {
-      val regex       = "(/+)(exp(/+))?([^/]+)$".r
-      val ds_folder   =  regex.replaceFirstIn(hdfspath+dataset.samples(0).name, "")
+    if (dataset.samples.nonEmpty) {
+      val regex = "(/+)(exp(/+))?([^/]+)$".r
+      val ds_folder = regex.replaceFirstIn(hdfspath + dataset.samples.head.name, "")
       fs.delete(new Path(ds_folder), true)
-    } else {
-      logger.warn("Trying to delete a dataset with no samples.")
-    }
 
-    //Delete dataset XML files
-    dataset.Delete()
+      if (!fs.exists(new Path(ds_folder))) {
+        //Delete dataset XML files
+        dataset.Delete()
+      } else {
+        logger.error("Not able to delete HDFS folder.")
+        throw new IOException()
+      }
+    } else {
+      dataset.Delete()
+    }
   }
 
   /**

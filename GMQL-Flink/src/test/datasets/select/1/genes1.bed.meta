@@ -1,5 +1,0 @@
-name	genes1
-source	hg19_promoter
-annotation_type	promoter
-provider	UCSC
-cell	10

@@ -67,7 +67,6 @@ object GenometricJoin4TopMin3 {
     // assign group and bin experiment
     val binnedExp: RDD[((Long, String, Int), (Long,Long, Long, Char, Array[GValue], Int,Int))] =binExperiment(exp,Bgroups,BINNING_PARAMETER)
 
-
     // (ExpID,chr ,bin), start, stop, strand, values,BinStart)
     distanceJoinCondition.map{q =>
       val qList = q.toList()
@@ -94,6 +93,7 @@ object GenometricJoin4TopMin3 {
       //Key of join (expID, chr, bin)
       //result : aggregation,(groupid, Chr, rStart,rStop, rStrand, rValues, eStart, eStop, eStrand, eValues, Distance)
       val joined =  binnedRegions.join(binnedExp) //TODO Set the parallelism factors
+
       val firstRound: RDD[((Long, Int), (Long, String, Long, Long, Char, Array[GValue], Long, Long, Char, Array[GValue], Long))] = if (!minDistanceParameter.isDefined) {
           joined.flatMap { x => val r = x._2._1;
             val e = x._2._2;
@@ -108,7 +108,9 @@ object GenometricJoin4TopMin3 {
                 ((e._2 < r._2 && r._2 < e._3 && e._2 < r._3 && r._3 < e._3) && (r._6.equals(x._1._3))) //including and firstBinRef = current
               )
             val same_strand = (r._4.equals('*') || e._4.equals('*') || r._4.equals(e._4))
-            val intersect_distance = (!firstRoundParameters.max.isDefined || firstRoundParameters.max.get > distance) && (!firstRoundParameters.min.isDefined || firstRoundParameters.min.get < distance)
+            val intersect_distance =
+              (!firstRoundParameters.max.isDefined || firstRoundParameters.max.get > distance) &&
+                (!firstRoundParameters.min.isDefined || firstRoundParameters.min.get < distance)
             val no_stream = (!firstRoundParameters.stream.isDefined)
             val UPSTREAM = if (no_stream) true
             else (
@@ -131,8 +133,16 @@ object GenometricJoin4TopMin3 {
                       ((r._4.equals('-')) && e._3 <= r._2) // reference with negative strand => experiment must be earlier
                     )
                 )
+            val JOIN_ON_ATTRIBUTE_CONDITION = if(join_on_attributes.isDefined) {
+              join_on_attributes.get.foldLeft(true)((z,indexes)=> z && (r._5(indexes._1) == e._5(indexes._2)))
+            } else {
+              true
+            }
+
             if (first_match &&
-              same_strand && intersect_distance && (no_stream || UPSTREAM || DOWNSTREAM)
+              same_strand && intersect_distance &&
+              (no_stream || UPSTREAM || DOWNSTREAM) &&
+              JOIN_ON_ATTRIBUTE_CONDITION
             ) {
               val aggregationId: Long = Hashing.md5.newHasher.putString(r._1 + e._1 + r._2 + r._3 + r._4 + r._5.mkString("/"),java.nio.charset.Charset.defaultCharset()).hash().asLong
               val id = Hashing.md5.newHasher.putLong(r._1).putLong(e._1).hash.asLong
@@ -177,7 +187,7 @@ object GenometricJoin4TopMin3 {
                     )
                 )
 
-            val JOIN_ON_ATTRIBUTE_CONDITION = if(join_on_attributes.isDefined) {join_on_attributes.get.foldLeft(true)((z,indexes)=> z || (r._5(indexes._1) == e._5(indexes._2)))} else true
+            val JOIN_ON_ATTRIBUTE_CONDITION = if(join_on_attributes.isDefined) {join_on_attributes.get.foldLeft(true)((z,indexes)=> z && (r._5(indexes._1) == e._5(indexes._2)))} else true
             if (first_match &&
               same_strand && intersect_distance && (no_stream || UPSTREAM || DOWNSTREAM) && JOIN_ON_ATTRIBUTE_CONDITION
             ) {
@@ -188,8 +198,12 @@ object GenometricJoin4TopMin3 {
           }
 
           val firstGroup = first.groupByKey()
-            .flatMap{x=>val itr = x._2.toList.sortBy(_._9)(Ordering[Long]); var buffer = Long.MinValue; var count = minDistanceParameter.get.asInstanceOf[MinDistance].number
-              itr.takeWhile(s=> {if(count >0 && s._9 != buffer) {count = count -1 ;buffer = s._9   ; true} else if (s._9==buffer) true else  false})/*take(minDistanceParameter.get.asInstanceOf[MinDistance].number)*/.map(s=> ((x._1._1,x._1._3),(x._1._2,x._1._4,s)))}
+            .flatMap{
+              x=>
+                val itr = x._2.toList.sortBy(_._9)(Ordering[Long])
+                var buffer = Long.MinValue
+                var count = minDistanceParameter.get.asInstanceOf[MinDistance].number
+              itr.takeWhile(s=> {if(count >0 && s._9 != buffer) {count = count -1 ;buffer = s._9   ; true} else if (s._9==buffer) true else  false}).map(s=> ((x._1._1,x._1._3),(x._1._2,x._1._4,s)))}
 
           firstGroup.groupByKey()
             .flatMap{x=>val itr = x._2.toList.sortBy(_._3._9)(Ordering[Long]); var buffer = Long.MinValue; var count = minDistanceParameter.get.asInstanceOf[MinDistance].number
@@ -198,8 +212,11 @@ object GenometricJoin4TopMin3 {
         }
 
       val res: RDD[GRECORD] =
-        if (secondRoundParameters.max.isDefined || secondRoundParameters.min.isDefined ||
-          (secondRoundParameters.stream.isDefined && (secondRoundParameters.max.isDefined || secondRoundParameters.min.isDefined))) {
+        if (
+          secondRoundParameters.max.isDefined ||
+            secondRoundParameters.min.isDefined ||
+            secondRoundParameters.stream.isDefined){
+
           firstRound.flatMap{p=>
             val distance = p._2._11
             if (
@@ -342,9 +359,9 @@ object GenometricJoin4TopMin3 {
     ds.flatMap{r  =>
       val hs = Hashing.md5.newHasher
       val maxDistance : Long =
-        if(firstRound.max.isDefined) firstRound.max.get
+        if(firstRound.max.isDefined) Math.max(0L, firstRound.max.get)
         else if(secondRound.max.isDefined) Math.max(secondRound.max.get,max)
-        else if(firstRound.min.isDefined)firstRound.min.get + max else max
+        else if(firstRound.min.isDefined) firstRound.min.get + max else max
       val start1 : Long = if(!firstRound.stream.isDefined || (firstRound.stream.get.equals(r._6)) || (r._6.equals('*') && firstRound.stream.get.equals('+')) ) r._4 - maxDistance else r._5
       val end1 : Long = if(firstRound.min.isDefined) r._4 - firstRound.min.get else 0L
       val split : Boolean = firstRound.min.isDefined
@@ -446,15 +463,14 @@ object GenometricJoin4TopMin3 {
   }
 
   def distanceCalculator(a : (Long, Long), b : (Long, Long)) : Long = {
-    // b to right of a
-    if(a._1>b._1 && a._2<b._2) //a is contained in b
-      Math.min(a._1-b._2, b._1 -a._2)
-    else if(b._1 >= a._2){
-      b._1 - a._2
-    } else if(b._2 <= a._1) a._1 - b._2
-    else {
-      // intersecting
-      Math.max(a._1, b._1) - Math.min(a._2, b._2)
+
+    val d1:Long = a._1 - b._2
+    val d2:Long = b._1 - a._2
+
+    if (a._2 < b._1 || b._2 < a._1){
+      Math.min(Math.abs(d1),Math.abs(d2))
+    } else {
+      -Math.min(Math.abs(d1),Math.abs(d2))
     }
 
   }

@@ -62,7 +62,7 @@ class GMQLExecute (){
     val jID: String = jobProfile._1
     val outDSs: List[String] = jobProfile._2
 
-    outDSs.foreach(dataSetName => if(!FS_Utilities.isValidDsName(dataSetName)) throw new GMQLNotValidDatasetNameException(s"Dataset name is not valid, $dataSetName"))
+    outDSs.foreach(dataSetName => FS_Utilities.checkDsName(dataSetName) )
 
 
     //query script of the dataset
@@ -100,6 +100,9 @@ class GMQLExecute (){
 
     /* PATH RENAMING */
     val (outDSs, newSerializedDAG): (List[String], String) = job.renameDAGPaths(script.dag)
+
+    outDSs.foreach(dataSetName => FS_Utilities.checkDsName(dataSetName) )
+
     //script.dag = newSerializedDAG
     script.dag = ""
 

@@ -1,6 +1,8 @@
-
 GenoMetric Query Language (GMQL) Engine
 =======================================
+
+[![Build status](https://travis-ci.org/DEIB-GECO/GMQL.svg?branch=master)](https://travis-ci.org/DEIB-GECO)
+
 
 A GMQL script is expressed as a sequence of GMQL operations with the following structure:
 ```

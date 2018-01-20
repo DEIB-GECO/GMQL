@@ -1,11 +1,11 @@
 package it.polimi.genomics.repository.FSRepository
 
 import java.io.{File, InputStream}
-import java.util
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
 import it.polimi.genomics.core.GDMSUserClass.GDMSUserClass
 import it.polimi.genomics.core.{GDMSUserClass, GMQLSchemaCoordinateSystem, GMQLSchemaField, GMQLSchemaFormat}
+import it.polimi.genomics.repository.FSRepository.FS_Utilities.checkDsName
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
 import it.polimi.genomics.repository.GMQLExceptions._
 import it.polimi.genomics.repository.{Utilities => General_Utilities, _}
@@ -15,7 +15,6 @@ import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Await
-import FS_Utilities.isValidDsName
 
 /**
   * Created by abdulrahman on 12/04/16.
@@ -73,8 +72,7 @@ class RFSRepository extends GMQLRepository with XMLDataSetRepository {
   @throws(classOf[GMQLNotValidDatasetNameException])
   @throws(classOf[GMQLUserNotFound])
   override def importDs(dataSetName: String, userName: String, userClass: GDMSUserClass, Samples: java.util.List[GMQLSample], schemaPath: String): Unit = {
-    if(!isValidDsName(dataSetName))
-      throw new GMQLNotValidDatasetNameException(s"Dataset name is not valid, $dataSetName")
+    checkDsName(dataSetName)
     if (FS_Utilities.validate(schemaPath)) {
       // Import the dataset schema and Script files to the local folder
       super.importDs(dataSetName, userName, userClass,  Samples: java.util.List[GMQLSample], schemaPath: String)

@@ -162,17 +162,6 @@ case class GroupOperator(op_pos : Position,
 
   override def translate_operator(status : CompilerStatus):CompilerDefinedVariable = {
 
-
-    //check parameters validity
-    if (!meta_keys.isDefined &&
-        !refined_meta_aggregate_function_list.isDefined &&
-        !region_keys.isDefined &&
-        !refined_region_aggregate_function_list.isDefined) {
-      val msg = operator_name + " operator at line " + op_pos.line + ": " +
-        "empty parameters are not allowed for this operator."
-      throw new CompilerException(msg)
-    }
-
     if (!meta_keys.isDefined && refined_meta_aggregate_function_list.isDefined) {
       val msg = operator_name + " operator at line " + op_pos.line + ": " +
         "if metadata aggregate functions are provided, then metadata keys are required."
