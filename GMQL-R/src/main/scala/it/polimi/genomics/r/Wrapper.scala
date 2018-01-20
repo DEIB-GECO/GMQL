@@ -370,6 +370,8 @@ object Wrapper {
         val dagW = DAGWrapper(GMQL_server.materializationList.toList)
         val base64DAG:String  = DAGSerializer.serializeDAG(dagW)
         //val a = DAGSerializer.deserializeDAG(base64DAG)
+        change_processing_possible = true
+        GMQL_server.materializationList.clear()
         return Array("0",base64DAG)
       }
       else
@@ -1309,18 +1311,37 @@ object Wrapper {
 
   def main(args: Array[String]): Unit =
   {
-    initGMQL("GTF",false)
+    initGMQL("GTF",true)
+    rest_manager.service_token = "14ae473f-4c08-4da5-9339-606c7845056a"
+    rest_manager.service_url = "http://genomic.deib.polimi.it/gmql-rest-test/"
+    val dataset1 = "filename3_20180117_135024_HM_TF_rep"
+    val dataset2 = "public.HG19_ENCODE_NARROW_AUG_2017"
+    //val dataset1_schema = dataset1 + "/schema.schema"
 
-    val dataset1 = "/Users/simone/Desktop/datasets/dataset_2/files"
-    val dataset1_schema = dataset1 + "/schema.schema"
+    val schema = Array(Array("chrom",	"STRING"),
+      Array("start",	"LONG"),
+        Array("end","LONG"),
+        Array("strand","STRING"),
+        Array("name","STRING"),
+        Array("score","DOUBLE"),
+        Array("signal","DOUBLE"),
+        Array("pvalue","DOUBLE"),
+        Array("qvalue",	"DOUBLE"),
+        Array("peak",	"DOUBLE"))
 
-    val DS1 = readDataset(dataset1,"CUSTOMPARSER",true,true,null,dataset1_schema)
-    val predicate = "chr == chr3 AND strand ==\"+\" OR start > 130 AND !(stop < 120 OR strand==\"-\") " +
-      "AND score > META(\"avg_score\") AND pvalue < 0.01"
-    val s = select(null,predicate,null,DS1(1))
-    //materialize(s(1),"/Users/simone/Desktop/ex1")
 
-   // execute()
+    val DS1 = readDataset(dataset2,"CUSTOMPARSER",false,true,schema,null)
+
+    val predicate = "assay == \"ChIP-seq\" AND assembly == \"hg19\" AND project == \"ENCODE\" AND file_status == \"released\" AND biosample_term_name == \"H1-hESC\" AND output_type == \"optimal idr thresholded peaks\""
+    val s = select(predicate,null,null,DS1(1))
+    materialize(s(1),"pred")
+    execute()
+
+
+    val s1 = select(predicate,null,null,s(1))
+    materialize(s1(1),"pred2")
+    execute()
+
   }
 
 
