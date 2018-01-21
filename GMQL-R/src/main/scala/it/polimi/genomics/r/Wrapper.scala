@@ -164,7 +164,6 @@ object Wrapper {
       if(last_name != "files")
         data_path = data_path + "/files"
     }
-    //val parser = GMQL_executor.getParser(parser_name.toLowerCase,path_schema_XML).asInstanceOf[BedParser]
 
     parser_name match {
       case "BEDPARSER" => parser = BedParser
@@ -232,7 +231,7 @@ object Wrapper {
       var name = schema(i)(0)
       var parse_type = schema(i)(1)
       name match {
-        case "seqnames" | "chr" | "chrom" => chr_index = i
+        case "seqname" | "seqnames" | "chr" | "chrom" => chr_index = i
         case "start" | "left" => start_index = i
         case "end" | "right" => end_index = i
         case "strand" => strand_index = i
@@ -263,6 +262,7 @@ object Wrapper {
       case "BOOL" => ParsingType.STRING
       case "FACTOR" => ParsingType.STRING
       case "NUMERIC" => ParsingType.DOUBLE
+      case "DOUBLE" => ParsingType.DOUBLE
       case _ => ParsingType.DOUBLE
     }
   }
@@ -1314,16 +1314,19 @@ object Wrapper {
     initGMQL("GTF",true)
     rest_manager.service_token = "14ae473f-4c08-4da5-9339-606c7845056a"
     rest_manager.service_url = "http://genomic.deib.polimi.it/gmql-rest-test/"
-    val dataset1 = "filename3_20180117_135024_HM_TF_rep"
-    val dataset2 = "public.HG19_ENCODE_NARROW_AUG_2017"
-    //val dataset1_schema = dataset1 + "/schema.schema"
+    val dataset1 = "/Users/simone/Desktop/datasets/dataset_1/files"
+    val dataset2 = "public.Example_Dataset_1"
+    val dataset1_schema = dataset1 + "/schema.schema"
 
-    val schema = Array(Array("chrom",	"STRING"),
-      Array("start",	"LONG"),
-        Array("end","LONG"),
-        Array("strand","STRING"),
+    val schema = Array(Array("seqname",	"STRING"),
+      Array("source",	"STRING"),
+        Array("feature","STRING"),
+      Array("start","LONG"),
+      Array("end","LONG"),
+      Array("score","DOUBLE"),
+      Array("strand","STRING"),
+        Array("frame","STRING"),
         Array("name","STRING"),
-        Array("score","DOUBLE"),
         Array("signal","DOUBLE"),
         Array("pvalue","DOUBLE"),
         Array("qvalue",	"DOUBLE"),
@@ -1332,15 +1335,21 @@ object Wrapper {
 
     val DS1 = readDataset(dataset2,"CUSTOMPARSER",false,true,schema,null)
 
-    val predicate = "assay == \"ChIP-seq\" AND assembly == \"hg19\" AND project == \"ENCODE\" AND file_status == \"released\" AND biosample_term_name == \"H1-hESC\" AND output_type == \"optimal idr thresholded peaks\""
-    val s = select(predicate,null,null,DS1(1))
-    materialize(s(1),"pred")
+    //val DS1 = readDataset(dataset1,"CUSTOMPARSER",true,true,null,dataset1_schema)
+
+    val predicate = "patient_age < 70 "
+    val r_predicate = "chr==chr1"
+    val s = select(predicate,r_predicate,null,DS1(1))
+    materialize(DS1(1),"pred")
     execute()
 
+   /* val groupBy = Array(Array("DEF","biosample_term_name"),
+      Array("DEF","experiment_target"))
 
-    val s1 = select(predicate,null,null,s(1))
-    materialize(s1(1),"pred2")
-    execute()
+    val s1 = cover("1","2",groupBy,null,s(1))
+*/
+    //materialize(s1(1),"cover")
+    //val b = execute()
 
   }
 

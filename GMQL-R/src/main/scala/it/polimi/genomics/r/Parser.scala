@@ -123,7 +123,6 @@ class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
 
   def findAndChangeCover(input:String): String =
   {
-
     val param = parse(cover_exp, input)
 
     param match {
