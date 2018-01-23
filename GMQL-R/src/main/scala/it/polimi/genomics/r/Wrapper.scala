@@ -263,7 +263,7 @@ object Wrapper {
 
     gType match{
       case GMQLSchemaFormat.GTF =>
-        parser.calculateMapParamters(Some(schemaList_name.map(_._1).tail.tail.tail.tail))
+        parser.calculateMapParameters(Some(schemaList_name.map(_._1).tail.tail.tail.tail))
         parser.coordinateSystem = coordSystem(cSystem.toLowerCase)
       case GMQLSchemaFormat.TAB =>
         parser.coordinateSystem = coordSystem("0-based")

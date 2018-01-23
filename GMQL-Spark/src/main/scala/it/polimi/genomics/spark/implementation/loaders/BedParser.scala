@@ -72,7 +72,7 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
   private var nameTypeMap: Map[String, PARSING_TYPE] = _
 
   //added function in order to calculate GTF parameters once.
-  def calculateMapParamters(namePosition: Option[Seq[String]] = None): Unit = {
+  def calculateMapParameters(namePosition: Option[Seq[String]] = None): Unit = {
     parsingType match {
       case GMQLSchemaFormat.GTF =>
         if (otherPos.getOrElse(Array.empty).length > 4) otherPosGTF = otherPos.get.tail.tail.tail.tail else otherPosGTF = Array.empty
@@ -417,7 +417,7 @@ class CustomParser extends BedParser("\t", 0, 1, 2, Some(3), Some(Array((4, Pars
         strandPos = Some(6)
         otherPos = Some(other)
 
-        calculateMapParamters(Some(namePositionMap))
+        calculateMapParameters(Some(namePositionMap))
 
         this.schema = List(("source", ParsingType.STRING), ("feature", ParsingType.STRING), ("score", ParsingType.DOUBLE), ("frame", ParsingType.STRING)) ++ valuesPositionsSchema
       }
