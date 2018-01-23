@@ -132,6 +132,16 @@ object Wrapper {
       case "GTF" => GMQLSchemaFormat.GTF
       //case "VCF" => GMQLSchemaFormat.VCF
       case "COLLECT" => GMQLSchemaFormat.COLLECT
+      case _ => GMQLSchemaFormat.TAB
+    }
+  }
+
+  def coordSystem(coord: String): GMQLSchemaCoordinateSystem.Value = {
+    coord match {
+      case "default" => GMQLSchemaCoordinateSystem.Default
+      case "0-based" => GMQLSchemaCoordinateSystem.ZeroBased
+      case "1-based" => GMQLSchemaCoordinateSystem.OneBased
+      case _ => GMQLSchemaCoordinateSystem.Default
     }
   }
 
@@ -146,7 +156,8 @@ object Wrapper {
   }
 
   def readDataset(data_input_path: String, parser_name: String, is_local: Boolean, is_GMQL:Boolean,
-                  schema: Array[Array[String]],path_schema_XML:String): Array[String] =
+                  schema: Array[Array[String]],path_schema_XML:String,coordSys:String,
+                  formatType:String): Array[String] =
   {
     if(GMQL_server == null)
       return Array("1","invoke init_gmql() first")
@@ -185,7 +196,7 @@ object Wrapper {
         }
         else {
           if (schema != null) {
-            parser = createParser(schema)
+            parser = createParser(schema,coordSys,formatType).asInstanceOf[BedParser]
           }
           else
             return Array("1","No schema defined")
@@ -218,7 +229,7 @@ object Wrapper {
     Array("0",out_p)
   }
 
-  def createParser(schema: Array[Array[String]]): BedParser = {
+  def createParser(schema: Array[Array[String]],cSystem:String,formatType:String): BedParser = {
 
     var chr_index = 0
     var start_index = 0
@@ -233,7 +244,7 @@ object Wrapper {
       name match {
         case "seqname" | "seqnames" | "chr" | "chrom" => chr_index = i
         case "start" | "left" => start_index = i
-        case "end" | "right" => end_index = i
+        case "end" | "right" | "stop" => end_index = i
         case "strand" => strand_index = i
         case _ => {
           var pt = getParsingTypeFromString(parse_type)
@@ -243,8 +254,21 @@ object Wrapper {
       }
     }
 
+
     val parser = new BedParser("\t", chr_index, start_index, end_index, Some(strand_index), Some(schemaList.toArray))
     parser.schema = schemaList_name.toList
+
+    val gType = outputFormat(formatType.toUpperCase)
+    parser.parsingType = gType
+
+    gType match{
+      case GMQLSchemaFormat.GTF =>
+        parser.calculateMapParamters(Some(schemaList_name.map(_._1).tail.tail.tail.tail))
+        parser.coordinateSystem = coordSystem(cSystem.toLowerCase)
+      case GMQLSchemaFormat.TAB =>
+        parser.coordinateSystem = coordSystem("0-based")
+    }
+
     parser
   }
 
@@ -267,14 +291,15 @@ object Wrapper {
     }
   }
 
-  def read(meta: Array[Array[String]], regions: Array[Array[String]], schema: Array[Array[String]]): String = {
+  def read(meta: Array[Array[String]], regions: Array[Array[String]],
+           schema: Array[Array[String]],coordSys:String, formatType:String): String = {
 
     val metaDS = Spark_context.parallelize(meta.map { x => (x(0).toLong, (x(1), x(2))) })
 
     val regionDS = Spark_context.parallelize(regions.map {
       x => (new GRecordKey(x(0).toLong, x(1), x(2).toLong, x(3).toLong, x(4).toCharArray.head), getGvalueArray(x.drop(4)))
     })
-    val parser = createParser(schema)
+    val parser = createParser(schema,coordSys,formatType)
 
 
     val dataAsTheyAre = GMQL_server.READ("").USING(metaDS, regionDS, parser.schema)
@@ -1316,28 +1341,41 @@ object Wrapper {
     rest_manager.service_token = "14ae473f-4c08-4da5-9339-606c7845056a"
     rest_manager.service_url = "http://genomic.deib.polimi.it/gmql-rest-test/"
     val dataset1 = "/Users/simone/Desktop/datasets/dataset_1/files"
-    val dataset2 = "public.HG19_ROADMAP_EPIGENOMICS_BROADPEAK"
+    val dataset2 = "public.Example_Dataset_1"
     val dataset1_schema = dataset1 + "/schema.schema"
 
-    val schema = Array(Array("CHR",	"STRING"),
-      Array("score",	"STRING"),
-        Array("name","STRING"),
+    val schema = Array(
+      Array("CHR",	"STRING"),
       Array("start","LONG"),
       Array("stop","LONG"),
+      Array("name",	"STRING"),
+      Array("score","DOUBLE"),
       Array("strand","STRING"),
-        Array("signal","DOUBLE"),
-        Array("pvalue","DOUBLE"),
-        Array("qvalue",	"DOUBLE"))
+      Array("signal","DOUBLE"),
+      Array("pvalue","DOUBLE"),
+      Array("qvalue","DOUBLE"))
 
 
-    val DS1 = readDataset(dataset2,"NARROWPEAKPARSER",false,true,schema,null)
+    val schemagtf = Array(
+      Array("seqname",	"STRING"),
+      Array("source","STRING"),
+      Array("feature","STRING"),
+      Array("start",	"LONG"),
+      Array("end","LONG"),
+      Array("score","DOUBLE"),
+    Array("strand","STRING"),
+      Array("frame","STRING"),
+      Array("name","STRING"),
+    Array("signal","DOUBLE"),
+      Array("pvalue","DOUBLE"),
+    Array("qvalue","DOUBLE"),
+    Array("peak","DOUBLE"))
 
-    //val DS1 = readDataset(dataset1,"CUSTOMPARSER",true,true,null,dataset1_schema)
+    val DS1 = readDataset(dataset2,"CUSTOMPARSER",false,true,schemagtf,null,"default","GTF")
 
-    val predicate = "assay == \"H3K4ac\" "
-    val r_predicate = "chr==chr1"
+    val predicate = "patient_age < 70"
     val s = select(predicate,null,null,DS1(1))
-    materialize(s(1),"pred")
+    materialize(DS1(1),"pred")
     execute()
 
     val groupBy = Array(Array("DEF","biosample_term_name"),
