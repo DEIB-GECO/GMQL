@@ -166,12 +166,12 @@ object Wrapper {
     }
 
     parser_name match {
-      case "BEDPARSER" => parser = BedParser
-      case "ANNPARSER" => parser = ANNParser
-      case "BROADPEAKPARSER" => parser = BroadPeaksParser
-      case "BASICPARSER" => parser = BasicParser
-      case "NARROWPEAKPARSER" => parser = NarrowPeakParser
-      case "RNASEQPARSER" => parser = RnaSeqParser
+      //case "BEDPARSER" => parser = BedParser.asInstanceOf[BedParser]
+      case "ANNPARSER" => parser = ANNParser.asInstanceOf[BedParser]
+      case "BROADPEAKPARSER" => parser = BroadPeaksParser.asInstanceOf[BedParser]
+      case "BASICPARSER" => parser = BasicParser.asInstanceOf[BedParser]
+      case "NARROWPEAKPARSER" => parser = NarrowPeakParser.asInstanceOf[BedParser]
+      case "RNASEQPARSER" => parser = RnaSeqParser.asInstanceOf[BedParser]
       case "CUSTOMPARSER" => {
         if (is_local)
         {
@@ -228,7 +228,7 @@ object Wrapper {
     val schemaList_name = new ListBuffer[(String, ParsingType.PARSING_TYPE)]()
 
     for (i <- 0 until schema.length) {
-      var name = schema(i)(0)
+      var name = schema(i)(0).toLowerCase
       var parse_type = schema(i)(1)
       name match {
         case "seqname" | "seqnames" | "chr" | "chrom" => chr_index = i
@@ -793,6 +793,7 @@ object Wrapper {
 
     val dataAsTheyAre = vv(input_dataset)
     var aggr_list: (String, List[RegionsToRegion]) = ("", List())
+
     val paramMin = get_param(min)
     if (paramMin._2 == null)
       return (paramMin._1, null)
@@ -1315,41 +1316,37 @@ object Wrapper {
     rest_manager.service_token = "14ae473f-4c08-4da5-9339-606c7845056a"
     rest_manager.service_url = "http://genomic.deib.polimi.it/gmql-rest-test/"
     val dataset1 = "/Users/simone/Desktop/datasets/dataset_1/files"
-    val dataset2 = "public.Example_Dataset_1"
+    val dataset2 = "public.HG19_ROADMAP_EPIGENOMICS_BROADPEAK"
     val dataset1_schema = dataset1 + "/schema.schema"
 
-    val schema = Array(Array("seqname",	"STRING"),
-      Array("source",	"STRING"),
-        Array("feature","STRING"),
-      Array("start","LONG"),
-      Array("end","LONG"),
-      Array("score","DOUBLE"),
-      Array("strand","STRING"),
-        Array("frame","STRING"),
+    val schema = Array(Array("CHR",	"STRING"),
+      Array("score",	"STRING"),
         Array("name","STRING"),
+      Array("start","LONG"),
+      Array("stop","LONG"),
+      Array("strand","STRING"),
         Array("signal","DOUBLE"),
         Array("pvalue","DOUBLE"),
-        Array("qvalue",	"DOUBLE"),
-        Array("peak",	"DOUBLE"))
+        Array("qvalue",	"DOUBLE"))
 
 
-    val DS1 = readDataset(dataset2,"CUSTOMPARSER",false,true,schema,null)
+    val DS1 = readDataset(dataset2,"NARROWPEAKPARSER",false,true,schema,null)
 
     //val DS1 = readDataset(dataset1,"CUSTOMPARSER",true,true,null,dataset1_schema)
 
-    val predicate = "patient_age < 70 "
+    val predicate = "assay == \"H3K4ac\" "
     val r_predicate = "chr==chr1"
-    val s = select(predicate,r_predicate,null,DS1(1))
-    materialize(DS1(1),"pred")
+    val s = select(predicate,null,null,DS1(1))
+    materialize(s(1),"pred")
     execute()
 
-   /* val groupBy = Array(Array("DEF","biosample_term_name"),
+    val groupBy = Array(Array("DEF","biosample_term_name"),
       Array("DEF","experiment_target"))
 
-    val s1 = cover("1","2",groupBy,null,s(1))
-*/
-    //materialize(s1(1),"cover")
-    //val b = execute()
+    val s1 = cover("1","ANY",null,null,DS1(1))
+
+    materialize(s1(1),"cover")
+    val b = execute()
 
   }
 
