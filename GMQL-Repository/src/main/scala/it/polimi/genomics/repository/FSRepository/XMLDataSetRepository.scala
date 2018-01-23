@@ -322,13 +322,25 @@ trait XMLDataSetRepository extends GMQLRepository{
     val tabFields = List("chr","left","right","strand")
     val xmlFile = XML.load(fs.open(path))
     val cc = (xmlFile \\ "field")
-    val schemaList = cc.flatMap{ x => if(gtfFields.contains(x.text.trim)||tabFields.contains(x.text.trim)) None else Some(new GMQLSchemaField(x.text.trim, ParsingType.attType(x.attribute("type").get.head.text)))}.toList
+    val schemaList = cc.flatMap{ x => if(gtfFields.contains(x.text.trim)||tabFields.contains(x.text.trim)) None else Some(new GMQLSchemaField(x.text.trim, attType(x.attribute("type").get.head.text)))}.toList
     val schemaType = GMQLSchemaFormat.getType((xmlFile \\ "gmqlSchema" \ "@type").text)
     val schemaCoordinateSystem = GMQLSchemaCoordinateSystem.getType((xmlFile \\ "gmqlSchema" \ "@coordinate_system").text)
     val schemaname = (xmlFile \\ "gmqlSchemaCollection" \ "@name").text
     new GMQLSchema(schemaname,schemaType, schemaCoordinateSystem, schemaList)
   }
 
+
+  def attType(x: String): ParsingType.Value = x.toUpperCase match {
+    case "STRING" => ParsingType.STRING
+    case "CHAR" => ParsingType.STRING
+    case "CHARACTAR" => ParsingType.STRING
+    case "LONG" => ParsingType.DOUBLE
+    case "INTEGER" => ParsingType.INTEGER
+    case "INT" => ParsingType.INTEGER
+    case "BOOLEAN" => ParsingType.STRING
+    case "BOOL" => ParsingType.STRING
+    case _ => ParsingType.DOUBLE
+  }
   /**
     *
     * @param dataSet String of the dataset name
