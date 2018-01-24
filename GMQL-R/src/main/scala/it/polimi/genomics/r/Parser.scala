@@ -86,7 +86,7 @@ class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
       (List(x._1) ++ x._2).reduce((x, y) => x + " OR " + y)
   }
 
-
+/*
   val cover_exp:Parser[String] = "ALL" ~> "+" ~> wholeNumber ~ ( "/" ~> wholeNumber) ^^ {
     x => "(ALL + " + x._1.toInt + ")" +"/" + x._2.toInt } |
     "(" ~ "ALL" ~> "+" ~> wholeNumber ~ ")" ~ ( "/" ~> wholeNumber) ^^ {
@@ -94,6 +94,16 @@ class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
     wholeNumber ^^ { x => x} |
     "ALL" ~ "/" ~> wholeNumber ^^ {x => "ALL / "+x} |
     "ALL" ^^ {x => x} | "ANY" ^^ {x=> x}
+*/
+
+  val cover_exp:Parser[(String,Option[Int],Option[Int])] =  "ANY" ^^ {x => ("ANY",None,None)} |
+   "ALL" ~> "+" ~> wholeNumber ~ ( "/" ~> wholeNumber) ^^ {
+    x => ("ALLSUMDIV",Some(x._1.toInt),Some(x._2.toInt)) } |
+    "(" ~ "ALL" ~> "+" ~> wholeNumber ~ ")" ~ ( "/" ~> wholeNumber) ^^ {
+      x => ("ALLSUMDIV",Some(x._1._1.toInt),Some(x._2.toInt)) } |
+    wholeNumber ^^ { x => ("N",Some(x.toInt),None)} |
+    "ALL" ~ "/" ~> wholeNumber ^^ {x => ("ALLDIV",None,Some(x.toInt))} |  "ALL" ^^ {x => ("ALL",None,None)}
+
 
 
 
@@ -121,15 +131,15 @@ class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
     }
   }
 
-  def findAndChangeCover(input:String): String =
+  def findAndChangeCover(input:String): (String,Option[Int],Option[Int]) =
   {
     val param = parse(cover_exp, input)
 
     param match {
       case Success(result, next) => result
-      case NoSuccess(result, next) => "Invalid Syntax"
-      case Error(result, next) => "Invalid Syntax"
-      case Failure(result, next) => "Failure"
+      case NoSuccess(result, next) => ("Invalid Syntax",None,None)
+      case Error(result, next) => ("Invalid Syntax",None,None)
+      case Failure(result, next) => ("Failure",None,None)
     }
   }
 
@@ -167,6 +177,7 @@ class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
     }
 
   }
+  /*
   def parseCoverParam(input: String): (String,CoverParam) = {
 
     val coverParam = parse(cover_param, input)
@@ -177,7 +188,7 @@ class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
       case Failure(result, next) => (result, null)
     }
   }
-
+*/
   def refine_region_condition(rc: RegionCondition): RegionCondition = {
 
     rc match {

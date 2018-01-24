@@ -196,7 +196,7 @@ object Wrapper {
         }
         else {
           if (schema != null) {
-            parser = createParser(schema,coordSys,formatType).asInstanceOf[BedParser]
+            parser = createParser(schema,coordSys,formatType)
           }
           else
             return Array("1","No schema defined")
@@ -819,13 +819,19 @@ object Wrapper {
     val dataAsTheyAre = vv(input_dataset)
     var aggr_list: (String, List[RegionsToRegion]) = ("", List())
 
-    val paramMin = get_param(min)
-    if (paramMin._2 == null)
-      return (paramMin._1, null)
+    val parser = new Parser()
 
-    val paramMax = get_param(max)
-    if (paramMax._2 == null)
-      return (paramMax._1, null)
+    val pMin = parser.findAndChangeCover(min)
+    if(pMin._1 =="Invalid Syntax" || pMin._1 =="Failure")
+      return (pMin._1,null)
+
+    val CoverMin = CoverParameterManager.getCoverParam(pMin._1,pMin._2,pMin._3)
+
+    val pMax = parser.findAndChangeCover(max)
+    if(pMax._1 =="Invalid Syntax" || pMax._1 =="Failure")
+      return (pMax._1,null)
+
+    val CoverMax = CoverParameterManager.getCoverParam(pMax._1,pMax._2,pMax._3)
 
     if (aggregates != null) {
       aggr_list = RegionToRegionAggregates(aggregates, dataAsTheyAre)
@@ -835,7 +841,7 @@ object Wrapper {
 
     val groupList: Option[List[AttributeEvaluationStrategy]] = MetaAttributeEvaluationStrategyList(groupBy)
 
-    val variant = dataAsTheyAre.COVER(flag, paramMin._2, paramMax._2, aggr_list._2, groupList)
+    val variant = dataAsTheyAre.COVER(flag, CoverMin, CoverMax, aggr_list._2, groupList)
 
     ("OK", variant)
   }
@@ -917,36 +923,6 @@ object Wrapper {
   }
 
 
-  /*UTILS FUNCTION*/
-
-  def get_param(param: String): (String, CoverParam) = {
-    var covParam: CoverParam = null
-    var parser_res: (String, CoverParam)=null
-
-    val parameter = try {
-        param.toInt
-      }
-    catch {
-        case n: NumberFormatException => param
-      }
-
-    parameter match {
-      case parameter: Int => covParam = new N {
-          override val n: Int = parameter
-        }
-      case parameter: String => {
-        val parser = new Parser()
-        val p = parser.findAndChangeCover(parameter)
-        parser_res = parser.parseCoverParam(p)
-        if (parser_res._2 == null)
-          return ("No valid min or max input", parser_res._2)
-
-        covParam = parser_res._2
-      }
-    }
-
-    ("OK", covParam)
-  }
 
   def regionBuild(output: String): RegionBuilder = {
 
@@ -1373,15 +1349,15 @@ object Wrapper {
 
     val DS1 = readDataset(dataset2,"CUSTOMPARSER",false,true,schemagtf,null,"default","GTF")
 
-    val predicate = "patient_age < 70"
-    val s = select(predicate,null,null,DS1(1))
-    materialize(DS1(1),"pred")
-    execute()
+    //val predicate = "patient_age < 70"
+    //val s = select(predicate,null,null,DS1(1))
+    //materialize(DS1(1),"pred")
+    //execute()
 
     val groupBy = Array(Array("DEF","biosample_term_name"),
       Array("DEF","experiment_target"))
 
-    val s1 = cover("1","ANY",null,null,DS1(1))
+    val s1 = cover("1","ALL",null,null,DS1(1))
 
     materialize(s1(1),"cover")
     val b = execute()
