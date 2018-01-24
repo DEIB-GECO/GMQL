@@ -238,7 +238,8 @@ object Wrapper {
     val schemaList = new ListBuffer[(Int, ParsingType.PARSING_TYPE)]()
     val schemaList_name = new ListBuffer[(String, ParsingType.PARSING_TYPE)]()
 
-    for (i <- 0 until schema.length) {
+
+    for (i <- schema.indices) {
       var name = schema(i)(0).toLowerCase
       var parse_type = schema(i)(1)
       name match {
@@ -247,7 +248,7 @@ object Wrapper {
         case "end" | "right" | "stop" => end_index = i
         case "strand" => strand_index = i
         case _ => {
-          var pt = getParsingTypeFromString(parse_type)
+          val pt = getParsingTypeFromString(parse_type)
           schemaList += ((i, pt))
           schemaList_name += ((name,pt))
         }
@@ -323,7 +324,7 @@ object Wrapper {
     {
       for (elem <- datasetQueue)
       {
-        var remote = elem(1)
+        //var remote = elem(1)
         var local = elem(0)
         if(local!=null)
         {
@@ -341,7 +342,7 @@ object Wrapper {
       for (elem <- datasetQueue)
       {
         var remote = elem(1)
-        var local = elem(0)
+        //var local = elem(0)
         if(remote!=null)
         {
           val dir_out = data_output_path + "/" + remote +"/files"
@@ -690,6 +691,7 @@ object Wrapper {
     }
 
     val meta_list = meta_order_list(meta_order)
+
     var reg_ordering: (String, Option[List[(Int, Direction)]]) = ("", None)
     if (region_order != null) {
       reg_ordering = region_order_list(region_order, dataAsTheyAre)
@@ -1313,6 +1315,7 @@ object Wrapper {
 
   def main(args: Array[String]): Unit =
   {
+    /*
     initGMQL("GTF",true)
     rest_manager.service_token = "14ae473f-4c08-4da5-9339-606c7845056a"
     rest_manager.service_url = "http://genomic.deib.polimi.it/gmql-rest-test/"
@@ -1361,8 +1364,7 @@ object Wrapper {
 
     materialize(s1(1),"cover")
     val b = execute()
-
+*/
   }
-
 
 }
