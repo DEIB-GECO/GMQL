@@ -130,7 +130,7 @@ object Wrapper {
     format match {
       case "TAB" => GMQLSchemaFormat.TAB
       case "GTF" => GMQLSchemaFormat.GTF
-      //case "VCF" => GMQLSchemaFormat.VCF
+      case "VCF" => GMQLSchemaFormat.VCF
       case "COLLECT" => GMQLSchemaFormat.COLLECT
       case _ => GMQLSchemaFormat.TAB
     }
@@ -395,7 +395,6 @@ object Wrapper {
       {
         val dagW = DAGWrapper(GMQL_server.materializationList.toList)
         val base64DAG:String  = DAGSerializer.serializeDAG(dagW)
-        //val a = DAGSerializer.deserializeDAG(base64DAG)
         change_processing_possible = true
         GMQL_server.materializationList.clear()
         return Array("0",base64DAG)
