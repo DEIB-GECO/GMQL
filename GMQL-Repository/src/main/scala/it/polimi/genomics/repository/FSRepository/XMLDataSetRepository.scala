@@ -406,7 +406,7 @@ trait XMLDataSetRepository extends GMQLRepository{
     val schemaList = cc.map{ x =>
       val schemaFN = x.text.trim
       val schemaType = if(schemaFN.toUpperCase().equals("STOP") || schemaFN.toUpperCase().equals("RIGHT") || schemaFN.toUpperCase().equals("END") || schemaFN.toUpperCase().equals("START") || schemaFN.toUpperCase().equals("LEFT")) ParsingType.LONG
-      else ParsingType.attType(x.attribute("type").get.head.text)
+      else attType(x.attribute("type").get.head.text)
       new GMQLSchemaField(schemaFN, schemaType)
     }.toList
     val schemaType = GMQLSchemaFormat.getType((xmlFile \\ "gmqlSchema" \ "@type").text)
