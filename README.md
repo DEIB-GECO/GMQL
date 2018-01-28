@@ -1,6 +1,8 @@
 GenoMetric Query Language (GMQL) Engine
 =======================================
 
+[![Join the chat at https://gitter.im/DEIB-GECO/GMQL](https://badges.gitter.im/DEIB-GECO/GMQL.svg)](https://gitter.im/DEIB-GECO/GMQL?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 [![Build status](https://travis-ci.org/DEIB-GECO/GMQL.svg?branch=master)](https://travis-ci.org/DEIB-GECO)
 
 
