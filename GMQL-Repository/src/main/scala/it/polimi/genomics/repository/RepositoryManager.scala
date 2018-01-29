@@ -145,7 +145,7 @@ object RepositoryManager {
             i += 1; i
           }.toString))
         }
-        mr.importDs(dataSetName = args(2),userName = username, userClass = GDMSUserClass.PUBLIC, Samples = samples.asJava, schemaPath = args(2))
+        mr.importDs(dataSetName = args(1),userName = username, userClass = GDMSUserClass.PUBLIC, Samples = samples.asJava, schemaPath = args(2))
 
       //        }catch {
       //          case ex: Throwable => logger.error("trace: "+ex.getMessage)
