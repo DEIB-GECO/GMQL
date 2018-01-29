@@ -1312,10 +1312,19 @@ object Wrapper {
     rest_manager.service_url
   }
 
+
+  def outputMaterialize: String =
+  {
+    outputformat.toString
+  }
+
   def main(args: Array[String]): Unit =
   {
+
+    initGMQL("TAB",true)
+    val a = outputMaterialize
+    print(a)
     /*
-    initGMQL("GTF",true)
     rest_manager.service_token = "14ae473f-4c08-4da5-9339-606c7845056a"
     rest_manager.service_url = "http://genomic.deib.polimi.it/gmql-rest-test/"
     val dataset1 = "/Users/simone/Desktop/datasets/dataset_1/files"

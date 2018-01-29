@@ -475,7 +475,7 @@ trait GmqlParsers extends JavaTokenParsers {
 
   val join_distgreater: Parser[AtomicCondition] =
     (DISTANCE ~> (">=") ~> ("-" ~> wholeNumber) |
-      DISTEQGREATER ~> "(" ~> ("-" ~> wholeNumber) <~ ")") ^^ { x => DistGreater(-x.toLong + 1) } |
+      DISTEQGREATER ~> "(" ~> ("-" ~> wholeNumber) <~ ")") ^^ { x => DistGreater(-x.toLong - 1) } |
       (DISTANCE ~> (">") ~> ("-" ~> wholeNumber) |
         DISTGREATER ~> "(" ~> ("-" ~> wholeNumber) <~ ")") ^^ { x => DistGreater(-x.toLong) } |
       (DISTANCE ~> (">=") ~> wholeNumber |
