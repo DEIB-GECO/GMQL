@@ -19,6 +19,7 @@ import org.apache.hadoop.fs.{FileSystem, Path}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
+import scala.util.Try
 import scala.xml.{Elem, Node, NodeSeq, XML}
 
 
@@ -176,7 +177,9 @@ trait XMLDataSetRepository extends GMQLRepository{
     * @return
     */
   override def DSExists(dataSet: String, userName: String = General_Utilities().USERNAME): Boolean = {
-    new GMQLDataSetXML(dataSet,userName).exists()  || new GMQLDataSetXML(dataSet,"public").exists()
+    new GMQLDataSetXML(dataSet,userName).exists()  ||
+    //getOrElse there is no public user
+      Try( new GMQLDataSetXML(dataSet, "public").exists()).getOrElse(false)
   }
 
   /**
