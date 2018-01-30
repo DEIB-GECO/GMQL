@@ -126,7 +126,7 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
 
           val source = parseRegion(ParsingType.STRING, s(1))
           val feature = parseRegion(ParsingType.STRING, s(2))
-          val score = parseRegion(ParsingType.CHAR, s(5))
+          val score = parseRegion(ParsingType.DOUBLE, s(5))
           val frame = parseRegion(ParsingType.STRING, s(7))
 
 
