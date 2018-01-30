@@ -1321,15 +1321,16 @@ object Wrapper {
   def main(args: Array[String]): Unit =
   {
 
-    initGMQL("TAB",true)
-    val a = outputMaterialize
-    print(a)
-    /*
+    initGMQL("TAB",false)
+
+
     rest_manager.service_token = "14ae473f-4c08-4da5-9339-606c7845056a"
     rest_manager.service_url = "http://genomic.deib.polimi.it/gmql-rest-test/"
     val dataset1 = "/Users/simone/Desktop/datasets/dataset_1/files"
-    val dataset2 = "public.Example_Dataset_1"
+    val dataset2 = "/Users/simone/Desktop/datasets/dataset_2/files"
+    //val dataset2 = "public.Example_Dataset_1"
     val dataset1_schema = dataset1 + "/schema.schema"
+    val dataset2_schema = dataset2 + "/schema.schema"
 
     val schema = Array(
       Array("CHR",	"STRING"),
@@ -1358,21 +1359,24 @@ object Wrapper {
     Array("qvalue","DOUBLE"),
     Array("peak","DOUBLE"))
 
-    val DS1 = readDataset(dataset2,"CUSTOMPARSER",false,true,schemagtf,null,"default","GTF")
+    //val DS1 = readDataset(dataset2,"CUSTOMPARSER",false,true,schemagtf,null,"default","GTF")
+    val DS1 = readDataset(dataset1,"CUSTOMPARSER",true,true,null,dataset1_schema,"default","TAB")
+    val DS2 = readDataset(dataset2,"CUSTOMPARSER",true,true,null,dataset2_schema,"default","TAB")
 
-    //val predicate = "patient_age < 70"
-    //val s = select(predicate,null,null,DS1(1))
-    //materialize(DS1(1),"pred")
-    //execute()
+    val predicate = "chr == chr5"
+    val s = select(null,predicate,null,DS1(1))
+    val s2 = select(null,predicate,null,DS2(1))
 
+    /*
     val groupBy = Array(Array("DEF","biosample_term_name"),
       Array("DEF","experiment_target"))
 
     val s1 = cover("1","ALL",null,null,DS1(1))
-
-    materialize(s1(1),"cover")
-    val b = execute()
 */
+    val res = join(Array(Array("DL","0")), null,"INT",Array("score"),s(1),s2(1))
+    materialize(res(1),"/Users/simone/Desktop/")
+    val b = execute()
+
   }
 
 }
