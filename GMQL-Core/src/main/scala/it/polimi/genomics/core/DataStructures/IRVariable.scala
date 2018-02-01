@@ -195,7 +195,10 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
         this.regionDag, this.metaDag)
       else this.regionDag
 
-      new IRVariable(new_meta_dag, new_region_dag, List.empty)
+      new IRVariable(
+        new_meta_dag,
+        new_region_dag,
+        if (projected_meta.isDefined || extended_meta.isDefined) this.schema else List.empty)
 
     }
 

@@ -19,6 +19,7 @@ import org.apache.hadoop.fs.{FileSystem, Path}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
+import scala.util.Try
 import scala.xml.{Elem, Node, NodeSeq, XML}
 
 
@@ -176,7 +177,9 @@ trait XMLDataSetRepository extends GMQLRepository{
     * @return
     */
   override def DSExists(dataSet: String, userName: String = General_Utilities().USERNAME): Boolean = {
-    new GMQLDataSetXML(dataSet,userName).exists()  || new GMQLDataSetXML(dataSet,"public").exists()
+    new GMQLDataSetXML(dataSet,userName).exists()  ||
+    //getOrElse there is no public user
+      Try( new GMQLDataSetXML(dataSet, "public").exists()).getOrElse(false)
   }
 
   /**
@@ -406,7 +409,7 @@ trait XMLDataSetRepository extends GMQLRepository{
     val schemaList = cc.map{ x =>
       val schemaFN = x.text.trim
       val schemaType = if(schemaFN.toUpperCase().equals("STOP") || schemaFN.toUpperCase().equals("RIGHT") || schemaFN.toUpperCase().equals("END") || schemaFN.toUpperCase().equals("START") || schemaFN.toUpperCase().equals("LEFT")) ParsingType.LONG
-      else ParsingType.attType(x.attribute("type").get.head.text)
+      else attType(x.attribute("type").get.head.text)
       new GMQLSchemaField(schemaFN, schemaType)
     }.toList
     val schemaType = GMQLSchemaFormat.getType((xmlFile \\ "gmqlSchema" \ "@type").text)

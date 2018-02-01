@@ -28,10 +28,6 @@ object StoreTABRD {
     val regions = executor.implement_rd(value, sc)
     val meta = executor.implement_md(associatedMeta,sc)
 
-    val conf = new Configuration();
-    val dfsPath = new org.apache.hadoop.fs.Path(path);
-    val fs = FileSystem.get(dfsPath.toUri(), conf);
-
     val MetaOutputPath = path + "/meta/"
     val RegionOutputPath = path + "/exp/"
 
@@ -50,7 +46,8 @@ object StoreTABRD {
     val regionsPartitioner = new HashPartitioner(Ids.count.toInt)
 
     val keyedRDD =
-      regions.sortBy(s=>s._1).map{x =>
+      regions//.sortBy(s=>s._1) //disabled sorting
+        .map{x =>
         val newStart = if (coordinateSystem == GMQLSchemaCoordinateSystem.OneBased) (x._1._3 + 1) else x._1._3  //start: 0-based -> 1-based
         (outSample+"_"+ "%05d".format(newIDSbroad.value.get(x._1._1).getOrElse(x._1._1))+".gdm",
         x._1._2 + "\t" + newStart + "\t" + x._1._4 + "\t" + x._1._5 + { if(x._2.length > 0) "\t" + x._2.mkString("\t") else "" })}
