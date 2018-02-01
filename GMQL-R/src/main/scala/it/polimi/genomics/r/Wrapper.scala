@@ -1314,18 +1314,18 @@ object Wrapper {
 
   def main(args: Array[String]): Unit =
   {
-    /*
+
     initGMQL("GTF",true)
     rest_manager.service_token = "14ae473f-4c08-4da5-9339-606c7845056a"
     rest_manager.service_url = "http://genomic.deib.polimi.it/gmql-rest-test/"
     val dataset1 = "/Users/simone/Desktop/datasets/dataset_1/files"
-    val dataset2 = "public.Example_Dataset_1"
+    val dataset2 = "public.HG19_ENCODE_BROAD_NOV_2017"
     val dataset1_schema = dataset1 + "/schema.schema"
 
-    val schema = Array(
-      Array("CHR",	"STRING"),
+    val schematab = Array(
+      Array("chrom",	"STRING"),
       Array("start","LONG"),
-      Array("stop","LONG"),
+      Array("end","LONG"),
       Array("name",	"STRING"),
       Array("score","DOUBLE"),
       Array("strand","STRING"),
@@ -1349,21 +1349,20 @@ object Wrapper {
     Array("qvalue","DOUBLE"),
     Array("peak","DOUBLE"))
 
-    val DS1 = readDataset(dataset2,"CUSTOMPARSER",false,true,schemagtf,null,"default","GTF")
+    val DS1 = readDataset(dataset2,"CUSTOMPARSER",false,true,schematab,null,"default","TAB")
 
-    //val predicate = "patient_age < 70"
-    //val s = select(predicate,null,null,DS1(1))
+    val predicate = "biosample_phase == \"G1b\""
+    val s = select(predicate,null,null,DS1(1))
     //materialize(DS1(1),"pred")
     //execute()
 
     val groupBy = Array(Array("DEF","biosample_term_name"),
       Array("DEF","experiment_target"))
 
-    val s1 = cover("1","ALL",null,null,DS1(1))
+    val cov = cover("1","ALL+2/5",null,null,s(1))
 
-    materialize(s1(1),"cover")
+    materialize(cov(1),"cover")
     val b = execute()
-*/
   }
 
 }
