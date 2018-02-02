@@ -4,6 +4,7 @@ import java.io._
 import java.text.SimpleDateFormat
 import java.util.Date
 
+import collection.JavaConversions._
 import it.polimi.genomics.GMQLServer.{GmqlServer, Implementation}
 import it.polimi.genomics.compiler._
 import it.polimi.genomics.core.{DAGSerializer, DAGWrapper}
@@ -43,6 +44,9 @@ object GMQLExecuteCommand {
   private final val DEFAULT_SCHEMA_FILE:String = "/test.schema";
   private final val date = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
 
+
+  private var sparkPropObj: Option[Properties] =  None
+
   private final val usage = "GMQL-Submit " +
     " [-username USER] " +
     "[-exec FLINK|SPARK] [-binsize BIN_SIZE] [-jobid JOB_ID] " +
@@ -52,6 +56,7 @@ object GMQLExecuteCommand {
     "[-outputFormat GTF|TAB]" +
     "[-outputCoordinateSystem 0-based|1-based|default]" +
     "-scriptpath /where/gmql/script/is \n" +
+    "-sparkconffile /where/spark/comnf/is/spark-defaults.conf \n" +
     "\n" +
     "\n" +
     "Description:\n" +
@@ -78,7 +83,9 @@ object GMQLExecuteCommand {
     "\t\tThe default output coordinate system for GTF output format is 1-based, for TAB output format is 0-based." +
     "\n" +
     "\t-scriptpath /where/gmql/script/is/located\n" +
-    "\t\tManditory parameter, select the GMQL script to execute"
+    "\t\tMandatory parameter, select the GMQL script to execute" +
+    "\t-[sparkconffile /where/spark/comnf/is/spark-defaults.conf]\n" +
+    "\t\tUseful to override the default Spark properties when running the CLI without spark-submit"
 
   /**
     * CLI: Command Line Interface to control GMQL-Submit Command.
@@ -103,7 +110,8 @@ object GMQLExecuteCommand {
     var outputs = Map[String, String]()
     var logDir:String = null
     var verbose = false
-    var i = 0;
+    var sparkConfFile:String = null
+    var i = 0
 
     // DAG OPTIONS
     var dag : Option[DAGWrapper] = None
@@ -146,7 +154,11 @@ object GMQLExecuteCommand {
         };
         scriptPath = sFile.getPath
         logger.info("scriptpath set to: " + scriptPath)
-      } else if ("-logDir".equals(args(i))) {
+      } else if ("-sparkconffile".equals(args(i).toLowerCase())) {
+        sparkConfFile = args(i + 1)
+        logger.info("Spark configuration file path set to: " + sparkConfFile)
+        sparkPropObj = Some(new Properties(sparkConfFile))
+      }  else if ("-logDir".equals(args(i))) {
         logDir = args(i + 1)
         logger.info("Log Directory is set to: " + logDir)
 
@@ -208,7 +220,6 @@ object GMQLExecuteCommand {
         logger.info("DAG path set to: " + dagPath)
       } else {
         logger.warn("( "+ args(i) + " ) NOT A VALID COMMAND ... ")
-
       }
     }
 //    if(dagPath != null) {
@@ -295,7 +306,7 @@ object GMQLExecuteCommand {
 //    org.apache.log4j.Logger.getLogger("it.polimi.genomics.cli").setLevel(if (!verbose) org.apache.log4j.Level.INFO else org.apache.log4j.Level.INFO)
     org.apache.log4j.Logger.getLogger("org.apache.spark").setLevel(org.apache.log4j.Level.WARN)
     org.apache.log4j.Logger.getLogger("akka").setLevel(org.apache.log4j.Level.ERROR)
-//    org.apache.log4j.Logger.getLogger("it.polimi.genomics.spark.implementation.GMQLSparkExecutor").setLevel(org.apache.log4j.Level.INFO)
+    //    org.apache.log4j.Logger.getLogger("it.polimi.genomics.spark.implementation.GMQLSparkExecutor").setLevel(org.apache.log4j.Level.INFO)
 
 //    val root:ch.qos.logback.classic.Logger = org.slf4j.LoggerFactory.getLogger("org").asInstanceOf[ch.qos.logback.classic.Logger];
 //    root.setLevel(ch.qos.logback.classic.Level.WARN);
@@ -427,5 +438,16 @@ object GMQLExecuteCommand {
         (ds(0), DSdir)
       }.toMap
     else Map()
+  }
+
+  class Properties(path: String) {
+    val props: java.util.Properties = new java.util.Properties()
+    props.load(new FileInputStream(path))
+
+    def apply(key: String): Option[String] = Option(props.getProperty(key))
+  }
+
+  object Properties {
+    def apply(path: String) = new Properties(path)
   }
 }
