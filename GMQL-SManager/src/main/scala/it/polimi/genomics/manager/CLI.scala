@@ -142,7 +142,7 @@ object CLI {
         case x:IOException => x.printStackTrace();new GMQLScript("","")
       }
     //Default bin parameters
-    val binSize: BinSize = new BinSize(5000, 5000, 1000)
+    val binSize: BinSize = new BinSize()
 
     // Set the repository based on the global variables.
     val repository: XMLDataSetRepository = if(repo_Utilities().MODE == repo_Utilities().HDFS) new DFSRepository() else new LFSRepository()

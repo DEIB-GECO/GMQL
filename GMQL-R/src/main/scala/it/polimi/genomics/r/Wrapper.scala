@@ -1325,6 +1325,7 @@ object Wrapper {
   def main(args: Array[String]): Unit =
   {
 
+<<<<<<< HEAD
     initGMQL("TAB",false)
 
     rest_manager.service_token = "14ae473f-4c08-4da5-9339-606c7845056a"
@@ -1332,6 +1333,23 @@ object Wrapper {
     val dataset1 = "/Users/simone/Desktop/datasets/dataset_1/files"
     val dataset2 = "/Users/simone/Desktop/datasets/dataset_2/files"
     //val dataset2 = "public.Example_Dataset_1"
+=======
+
+    initGMQL("GTF",true)
+    rest_manager.service_token = "14ae473f-4c08-4da5-9339-606c7845056a"
+    rest_manager.service_url = "http://genomic.deib.polimi.it/gmql-rest-test/"
+    val dataset1 = "/Users/simone/Desktop/datasets/dataset_1/files"
+    val dataset2 = "public.HG19_ENCODE_BROAD_NOV_2017"
+//=======
+//    initGMQL("TAB",false)
+//
+//    rest_manager.service_token = "14ae473f-4c08-4da5-9339-606c7845056a"
+//    rest_manager.service_url = "http://genomic.deib.polimi.it/gmql-rest-test/"
+//    val dataset1 = "/Users/simone/Desktop/datasets/dataset_1/files"
+//    val dataset2 = "/Users/simone/Desktop/datasets/dataset_2/files"
+//    //val dataset2 = "public.Example_Dataset_1"
+//>>>>>>> 553d8d78e76ef2001b9148c8bfb7f2540545565d
+>>>>>>> 1505846a327da071c0599d8d3bac949fc4a9492b
     val dataset1_schema = dataset1 + "/schema.schema"
     val dataset2_schema = dataset2 + "/schema.schema"
     val dataset3 = "public.Example_Dataset_1"
@@ -1364,7 +1382,18 @@ object Wrapper {
     Array("qvalue","DOUBLE"),
     Array("peak","DOUBLE"))
 
+<<<<<<< HEAD
 
+=======
+////<<<<<<< HEAD
+//    val DS1 = readDataset(dataset2,"CUSTOMPARSER",false,true,schematab,null,"default","TAB")
+//
+//    val predicate = "biosample_phase == \"G1b\""
+//    val s = select(predicate,null,null,DS1(1))
+//    //materialize(DS1(1),"pred")
+//    //execute()
+////=======
+>>>>>>> 1505846a327da071c0599d8d3bac949fc4a9492b
     //val DS1 = readDataset(dataset2,"CUSTOMPARSER",false,true,schemagtf,null,"default","GTF")
     val DS1 = readDataset(dataset1,"CUSTOMPARSER",true,true,null,dataset1_schema,"default","TAB")
     val DS2 = readDataset(dataset2,"CUSTOMPARSER",true,true,null,dataset2_schema,"default","TAB")
@@ -1377,6 +1406,21 @@ object Wrapper {
     val s = select(null,predicate,null,DS1(1))
     val s2 = select(null,predicate,null,DS2(1))
 
+<<<<<<< HEAD
+=======
+    /*
+    val groupBy = Array(Array("DEF","biosample_term_name"),
+      Array("DEF","experiment_target"))
+
+
+    val cov = cover("1","ALL+2/5",null,null,s(1))
+
+    materialize(cov(1),"cover")
+    val b = execute()
+
+    val s1 = cover("1","ALL",null,null,DS1(1))
+*/
+>>>>>>> 1505846a327da071c0599d8d3bac949fc4a9492b
     val res = join(Array(Array("DL","0")), null,"INT",Array("score"),s(1),s2(1))
     materialize(res(1),"/Users/simone/Desktop")
     val b = execute()
