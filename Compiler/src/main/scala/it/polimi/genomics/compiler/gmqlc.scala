@@ -280,6 +280,7 @@ object gmqlc {
         case e: CompilerException => println(e.getMessage)
       }
 
+
       println("\n\nQuery" +"\n" + testOrderMD + "\n\n")
       // "open /Users/pietro/Desktop/test_gmql/output/".!
       //  Console.readLine()
