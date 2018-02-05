@@ -35,14 +35,17 @@ object GenometricMap71 {
   @throws[SelectFormatException]
   def execute(executor : GMQLSparkExecutor, grouping : OptionalMetaJoinOperator, aggregator : List[RegionAggregate.RegionsToRegion], ref: RDD[GRECORD], exp: RDD[GRECORD], BINNING_PARAMETER:Long, REF_PARALLILISM:Int,sc : SparkContext) : RDD[GRECORD] = {
     val groups = executor.implement_mjd(grouping, sc).flatMap{x=>x._2.map(s=>(x._1,s))}
+ 
+   implicit val orderGRECORD= Ordering.by { ar: GRECORD => ar._1 }
+   
+   val refGroups: Broadcast[collection.Map[Long, Iterable[Long]]] = sc.broadcast(groups.groupByKey().collectAsMap())
 
-    val refGroups: RDD[(Long, Long)] = groups
     val expDataPartitioner: Partitioner = exp.partitioner match {
       case (Some(p)) => p
       case (None) => new HashPartitioner(exp.partitions.length)
     }
     val expBinned = exp.binDS(BINNING_PARAMETER,aggregator)
-    val refBinnedRep = ref.binDS(BINNING_PARAMETER,refGroups,expDataPartitioner)
+    val refBinnedRep = ref.repartition(200).binDS(BINNING_PARAMETER,refGroups)
 
     val RefExpJoined: RDD[(Long, (GRecordKey, Array[GValue], Array[GValue], (Int, Array[Int])))] = refBinnedRep.cogroup(expBinned)
       .flatMap { (grouped: ((Long, String, Int), (Iterable[(Long, Long, Long, Char, Array[GValue])], Iterable[(Long, Long, Char, Array[GValue])]))) => val key: (Long, String, Int) = grouped._1;
@@ -185,17 +188,16 @@ object GenometricMap71 {
           }
       }
 
-    def binDS(bin: Long,Bgroups: RDD[(Long, Long)],partitioner: Partitioner ): RDD[((Long, String, Int), (Long, Long, Long, Char, Array[GValue]))] =
-        rdd.partitionBy(new HashPartitioner(1000)). keyBy(x=>x._1._1).join(Bgroups, partitioner).flatMap { x =>
-        if (bin > 0) {
-            val startbin = (x._2._1._1._3 / bin).toInt
-            val stopbin = (x._2._1._1._4 / bin).toInt
-              (startbin to stopbin).map(i =>
-                ((x._2._2, x._2._1._1._2, i), (x._2._1._1._1, x._2._1._1._3, x._2._1._1._4, x._2._1._1._5, x._2._1._2))
-              )
-        }else
-             Some((x._2._2, x._2._1._1._2, 0), (x._2._1._1._1, x._2._1._1._3, x._2._1._1._4, x._2._1._1._5, x._2._1._2))
-      }
+   def binDS(bin: Long,Bgroups:Broadcast[collection.Map[Long, Iterable[Long]]] ): RDD[((Long, String, Int), (Long, Long, Long, Char, Array[GValue]))] =
+         rdd.flatMap { x =>
+      val startbin = (x._1._3 / bin).toInt
+      val stopbin = (x._1._4 / bin).toInt
+
+      (startbin to stopbin).flatMap{i => Bgroups.value.get(x._1._1).getOrElse(Iterable[Long]())
+        .map(exp_id=>
+        ((exp_id, x._1._2, i), (x._1._1, x._1._3, x._1._4, x._1._5, x._2))
+      )}
+    }
 
   }
 
