@@ -6,6 +6,7 @@ import it.polimi.genomics.core.DataTypes._
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.core.{GDouble, GNull, GRecordKey, GValue}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
+import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{HashPartitioner, Partitioner, SparkContext}
 import org.slf4j.LoggerFactory
@@ -36,20 +37,49 @@ object GenometricMap71 {
   def execute(executor : GMQLSparkExecutor, grouping : OptionalMetaJoinOperator, aggregator : List[RegionAggregate.RegionsToRegion], ref: RDD[GRECORD], exp: RDD[GRECORD], BINNING_PARAMETER:Long, REF_PARALLILISM:Int,sc : SparkContext) : RDD[GRECORD] = {
     val groups = executor.implement_mjd(grouping, sc).flatMap{x=>x._2.map(s=>(x._1,s))}
 
-    val refGroups: RDD[(Long, Long)] = groups
+    val refGroups: Broadcast[collection.Map[Long, Iterable[Long]]] = sc.broadcast(groups.groupByKey().collectAsMap())
     val expDataPartitioner: Partitioner = exp.partitioner match {
       case (Some(p)) => p
       case (None) => new HashPartitioner(exp.partitions.length)
     }
+
+
+    implicit val orderGRECORD= Ordering.by { ar: GRECORD => ar._1 }
     val expBinned = exp.binDS(BINNING_PARAMETER,aggregator)
-    val refBinnedRep = ref.binDS(BINNING_PARAMETER,refGroups,expDataPartitioner)
+    val refBinnedRep = ref.repartition(200).binDS(BINNING_PARAMETER,refGroups)
+
 
     val RefExpJoined: RDD[(Long, (GRecordKey, Array[GValue], Array[GValue], (Int, Array[Int])))] = refBinnedRep.cogroup(expBinned)
-      .flatMap { (grouped: ((Long, String, Int), (Iterable[(Long, Long, Long, Char, Array[GValue])], Iterable[(Long, Long, Char, Array[GValue])]))) => val key: (Long, String, Int) = grouped._1;
-        val ref: Iterable[(Long, Long, Long, Char, Array[GValue])] = grouped._2._1.toList.sortBy(x=>(x._1,x._2,x._3));
-        val exp: Iterable[(Long, Long, Char, Array[GValue])] = grouped._2._2.toList.sortBy(x=>(x._1,x._2))
-        sweep(key,ref.iterator,exp.iterator,BINNING_PARAMETER)
-      } //.cache()
+      .flatMap { grouped: ((Long, String, Int), (Iterable[(Long, Long, Long, Char,  Array[GValue])], Iterable[(Long, Long, Char,  Array[GValue])])) =>
+      val key: (Long, String, Int) = grouped._1;
+      val ref: Iterable[(Long, Long, Long, Char, Array[GValue])] = grouped._2._1
+      val exp: Iterable[(Long, Long, Char, Array[GValue])] = grouped._2._2;
+
+      ref.flatMap {refRecord =>
+        val newID = Hashing.md5().newHasher().putLong(refRecord._1).putLong(key._1).hash().asLong;
+        val aggregation = Hashing.md5().newHasher().putString(newID + key._2 + refRecord._2 + refRecord._3 + refRecord._4 + refRecord._5.mkString("/"), java.nio.charset.Charset.defaultCharset()).hash().asLong()
+        if(exp.nonEmpty)
+        exp.map {expRecord =>
+          if ( /* space overlapping */
+            (refRecord._2 < expRecord._2 && expRecord._1 < refRecord._3)
+              && /* same strand */
+              (refRecord._4.equals('*') || expRecord._3.equals('*') || refRecord._4.equals(expRecord._3))
+              && /* first comparison (start bin of either the ref or exp)*/
+              ((refRecord._2 / BINNING_PARAMETER).toInt.equals(key._3) || (expRecord._1 / BINNING_PARAMETER).toInt.equals(key._3))
+          )
+
+          {
+
+            (aggregation ,( new GRecordKey(newID,key._2,refRecord._2, refRecord._3, refRecord._4), refRecord._5, expRecord._4,(1, expRecord._4.map(s=>if(s.isInstanceOf[GNull]) 0 else 1).iterator.toArray)))
+          }else{
+            (aggregation ,( new GRecordKey(newID,key._2,refRecord._2, refRecord._3, refRecord._4), refRecord._5, Array[GValue](), (0,Array(0))))  //Join operations on intersection
+          }
+        }else {
+          Array((aggregation ,( new GRecordKey(newID,key._2,refRecord._2, refRecord._3, refRecord._4), refRecord._5, Array[GValue](), (0,Array(0)))))
+        }
+      }
+    }
+
 
     val reduced  = RefExpJoined.reduceByKey{(l,r)=>
       val values: Array[GValue] =
@@ -65,100 +95,14 @@ object GenometricMap71 {
       (l._1,l._2,values,(l._4._1+r._4._1, l._4._2.zip(r._4._2).map(s=>s._1+s._2).iterator.toArray))
     }//cache()
 
-//    RefExpJoined.unpersist(true)
-    //Aggregate Exp Values (reduced)
-
     val output = reduced.map{res =>
       var i = -1;
       val newVal:Array[GValue] = aggregator.map{f=>i = i+1;val valList = if(res._2._3.size >0)res._2._3(i) else {GDouble(0.0000000000000001)}; f.funOut(valList,(res._2._4._1, if(res._2._3.size >0)res._2._4._2(i)else 0))}.toArray
       (res._2._1,(res._2._2 :+ GDouble(res._2._4._1)) ++ newVal )
     }
 
-//    reduced.unpersist()
 
     output
-  }
-
-  def sweep(key:(Long, String, Int),ref_regions:Iterator[(Long, Long, Long, Char, Array[GValue])],iExp:Iterator[(Long, Long, Char, Array[GValue])]
-                    ,bin:Long ):Iterator[(Long, (GRecordKey, Array[GValue], Array[GValue], (Int, Array[Int])))] = {
-
-    //init empty list for caching regions
-    var RegionCache= List[(Long, Long, Char, Array[GValue])]();
-    var temp = List[(Long, Long, Char, Array[GValue])]() ;
-    var intersectings = List[(Long, Long, Char, Array[GValue])]();
-
-    var exp_region:(Long, Long, Char, Array[GValue]) = (0l,0l,'*',Array[GValue]())
-    if(iExp.hasNext)
-      exp_region = iExp.next;
-    else
-      logger.debug(s"Experiment got empty while it was not !!!")
-
-    //println(ref_regions.size)
-    ref_regions.flatMap{ref_region =>
-      //clear the intersection list
-      intersectings = List.empty;
-      temp = List.empty;
-
-      //check the cache
-      RegionCache.map{cRegion=>
-        if (/* space overlapping */ref_region._2 < cRegion._2 && cRegion._1 < ref_region._3) {
-          if (/* space overlapping */
-            (ref_region._2 < cRegion._2 && cRegion._1 < ref_region._3)
-              && /* same strand */
-              (ref_region._4.equals('*') || cRegion._3.equals('*') || ref_region._4.equals(cRegion._3))
-              && /* first comparison */
-              checkBINCompatible(ref_region._2, cRegion._1 , bin,key._3))
-          {
-            intersectings ::=cRegion;
-          }
-          temp ::= cRegion;
-        } else if (!(cRegion._2 < ref_region._2)) {
-          temp ::= cRegion;
-        }
-      }
-
-      RegionCache = temp;
-
-      //iterate on exp regions. Break when no intersection
-      //is found or when we overcome the current reference
-      while (exp_region != null && ref_region._3  > exp_region._1) {
-        if (/* space overlapping */ref_region._2 < exp_region._2 && exp_region._1 < ref_region._3) {
-          //the region is inside, we process it
-          if (/* space overlapping */
-            (ref_region._2 < exp_region._2 && exp_region._1 < ref_region._3)
-              && /* same strand */
-              (ref_region._4.equals('*') || exp_region._3.equals('*') || ref_region._4.equals(exp_region._3))
-              && /* first comparison */
-              checkBINCompatible(ref_region._2,exp_region._1, bin,key._3)
-              )
-          {
-            intersectings ::=exp_region;
-          }
-          RegionCache ::= exp_region;
-        }
-
-        if (iExp.hasNext) {
-          // add to cache
-          exp_region = iExp.next();
-        } else {
-          exp_region = null;
-        }
-      }// end while on exp regions
-      val newID = Hashing.md5().newHasher().putLong(ref_region._1).putLong(key._1).hash().asLong()
-      val aggregation = Hashing.md5().newHasher().putString(newID + key._2 + ref_region._2 + ref_region._3 + ref_region._4 + ref_region._5.mkString("/"), java.nio.charset.Charset.defaultCharset()).hash().asLong()
-
-      if(intersectings.size >0 )intersectings.map(inter=>
-        (aggregation, (new GRecordKey(newID, key._2, ref_region._2, ref_region._3, ref_region._4), ref_region._5, inter._4, (1, inter._4.map(s=>if(s.isInstanceOf[GNull]) 0 else 1).iterator.toArray)))
-      )
-      else
-        List((aggregation, (new GRecordKey(newID, key._2, ref_region._2, ref_region._3, ref_region._4), ref_region._5, Array[GValue](), (0, Array(0)))))
-    }
-  }
-
-  def checkBINCompatible(rStart:Long,eStart:Long,binSize:Long,bin:Int): Boolean ={
-    if(binSize >0)
-      (rStart / binSize).toInt.equals(bin) || (eStart / binSize).toInt.equals(bin)
-    else true
   }
 
   implicit class Binning(rdd: RDD[GRECORD]) {
@@ -185,17 +129,27 @@ object GenometricMap71 {
           }
       }
 
-    def binDS(bin: Long,Bgroups: RDD[(Long, Long)],partitioner: Partitioner ): RDD[((Long, String, Int), (Long, Long, Long, Char, Array[GValue]))] =
-        rdd.partitionBy(new HashPartitioner(1000)). keyBy(x=>x._1._1).join(Bgroups, partitioner).flatMap { x =>
-        if (bin > 0) {
-            val startbin = (x._2._1._1._3 / bin).toInt
-            val stopbin = (x._2._1._1._4 / bin).toInt
-              (startbin to stopbin).map(i =>
-                ((x._2._2, x._2._1._1._2, i), (x._2._1._1._1, x._2._1._1._3, x._2._1._1._4, x._2._1._1._5, x._2._1._2))
-              )
-        }else
-             Some((x._2._2, x._2._1._1._2, 0), (x._2._1._1._1, x._2._1._1._3, x._2._1._1._4, x._2._1._1._5, x._2._1._2))
-      }
+    def binDS(bin: Long,Bgroups:Broadcast[collection.Map[Long, Iterable[Long]]] ): RDD[((Long, String, Int), (Long, Long, Long, Char, Array[GValue]))] =
+//        rdd.keyBy(x=>x._1._1).join(Bgroups).flatMap { x =>
+//        if (bin > 0) {
+//            val startbin = (x._2._1._1._3 / bin).toInt
+//            val stopbin = (x._2._1._1._4 / bin).toInt
+//              (startbin to stopbin).map(i =>
+//                ((x._2._2, x._2._1._1._2, i), (x._2._1._1._1, x._2._1._1._3, x._2._1._1._4, x._2._1._1._5, x._2._1._2))
+//              )
+//        }else
+//             Some((x._2._2, x._2._1._1._2, 0), (x._2._1._1._1, x._2._1._1._3, x._2._1._1._4, x._2._1._1._5, x._2._1._2))
+//      }
+    rdd.flatMap { x =>
+      val startbin = (x._1._3 / bin).toInt
+      val stopbin = (x._1._4 / bin).toInt
+
+      (startbin to stopbin).flatMap{i => Bgroups.value.get(x._1._1).getOrElse(Iterable[Long]())
+        .map(exp_id=>
+        ((exp_id, x._1._2, i), (x._1._1, x._1._3, x._1._4, x._1._5, x._2))
+      )}
+    }
+
 
   }
 
