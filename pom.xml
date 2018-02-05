@@ -10,7 +10,7 @@
         <module>GMQL-Server</module>
         <module>GMQL-Spark</module>
         <module>Compiler</module>
-        <module>GMQL-R</module>
+        <!--<module>GMQL-R</module>-->
         <module>GMQL-Repository</module>
         <module>GMQL-Profiler</module>
         <module>GMQL-SManager</module>
