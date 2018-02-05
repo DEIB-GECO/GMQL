@@ -46,7 +46,7 @@ object GenometricMap71 {
 
 
     implicit val orderGRECORD = Ordering.by { ar: GRECORD => ar._1 }
-    val expBinned = exp.binDS(BINNING_PARAMETER, aggregator)
+    val expBinned = exp.repartition(200).binDS(BINNING_PARAMETER, aggregator)
     val refBinnedRep = ref.repartition(200).binDS(BINNING_PARAMETER, refGroups)
 
 
@@ -60,9 +60,8 @@ object GenometricMap71 {
             // exp: Iterable[(Long, Long, Char, Array[GValue])] start, stop, strand, others
             val asd = Hashing.md5().newHasher()
             ref.flatMap { refRecord =>
-              val hash1 = Hashing.md5().newHasher().putLong(refRecord._1).putLong(key._1)
-              val newID = hash1.hash().asLong
-              val aggregation = hash1.putString(key._2 + refRecord._2 + refRecord._3 + refRecord._4 + refRecord._5.mkString("/"), java.nio.charset.Charset.defaultCharset()).hash().asLong()
+              val newID = Hashing.md5().newHasher().putLong(refRecord._1).putLong(key._1).hash().asLong
+              val aggregation =  Hashing.md5().newHasher().putString(newID + key._2 + refRecord._2 + refRecord._3 + refRecord._4 + refRecord._5.mkString("/"), java.nio.charset.Charset.defaultCharset()).hash().asLong()
 
               val expTemp = exp.flatMap { expRecord =>
                 if ( /* space overlapping */
