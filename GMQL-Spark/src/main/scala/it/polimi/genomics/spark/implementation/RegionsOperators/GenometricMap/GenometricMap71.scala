@@ -30,10 +30,11 @@ object GenometricMap71 {
     val exp: RDD[(GRecordKey, Array[GValue])] =
       executor.implement_rd(experiments, sc)
 
-    val binningParameter = BINNING_PARAMETER match {
-      case 0 => Long.MaxValue
-      case _ => BINNING_PARAMETER
-    }
+    val binningParameter =
+      if (BINNING_PARAMETER == 0)
+        Long.MaxValue
+      else
+        BINNING_PARAMETER
 
     execute(executor, grouping, aggregator, ref, exp, binningParameter, REF_PARALLILISM, sc)
   }
@@ -57,11 +58,18 @@ object GenometricMap71 {
         .flatMap {
           case (key: (Long, String, Int), (ref: Iterable[(Long, Long, Long, Char, Array[GValue])], exp: Iterable[(Long, Long, Char, Array[GValue])])) =>
             // key: (Long, String, Int) sampleId, chr, bin
-            // ref: Iterable[(Long, Long, Long, Char, Array[GValue])] sampleId, start, stop, strand, others
+            // ref: Iterable[(10, Long, Long, Char, Array[GValue])] sampleId, start, stop, strand, others
             // exp: Iterable[(Long, Long, Char, Array[GValue])] start, stop, strand, others
             ref.flatMap { refRecord =>
               val newID = Hashing.md5().newHasher().putLong(refRecord._1).putLong(key._1).hash().asLong
-              val aggregation = Hashing.md5().newHasher().putString(newID + key._2 + refRecord._2 + refRecord._3 + refRecord._4 + refRecord._5.mkString("/"), java.nio.charset.Charset.defaultCharset()).hash().asLong()
+              val aggregation = Hashing.md5().newHasher()
+                .putLong(newID)
+                .putString(key._2, java.nio.charset.Charset.defaultCharset())
+                .putLong(refRecord._2)
+                .putLong(refRecord._3)
+                .putChar(refRecord._4)
+                .putString(refRecord._5.mkString("/"), java.nio.charset.Charset.defaultCharset())
+                .hash().asLong()
 
               val expTemp = exp.flatMap { expRecord =>
                 if ( /* space overlapping */
