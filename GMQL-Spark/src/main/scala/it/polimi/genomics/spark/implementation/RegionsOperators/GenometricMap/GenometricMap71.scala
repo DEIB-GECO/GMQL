@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory
   * same as version 7 but with join on the ids for the reference and the regions and extra partitioner.
   */
 object GenometricMap71 {
-  private final val logger = LoggerFactory.getLogger(this.getClass);
+  private final val logger = LoggerFactory.getLogger(this.getClass)
   private final type groupType = Array[((Long, String), Array[Long])]
 
   @throws[SelectFormatException]
@@ -45,8 +45,9 @@ object GenometricMap71 {
     val refGroups: Broadcast[collection.Map[Long, Iterable[Long]]] = sc.broadcast(groups.groupByKey().collectAsMap())
 
 
-    implicit val orderGRECORD = Ordering.by { ar: GRECORD => ar._1 }
-    val expBinned = exp.repartition(200).binDS(BINNING_PARAMETER, aggregator)
+    implicit val orderGRECORD: Ordering[(GRecordKey, Array[GValue])] = Ordering.by { ar: GRECORD => ar._1 }
+
+    val expBinned = exp.binDS(BINNING_PARAMETER, aggregator)
     val refBinnedRep = ref.repartition(200).binDS(BINNING_PARAMETER, refGroups)
 
 
@@ -54,14 +55,13 @@ object GenometricMap71 {
       refBinnedRep
         .cogroup(expBinned)
         .flatMap {
-          case (key, (ref, exp: Iterable[(Long, Long, Char, Array[GValue])])) =>
+          case (key: (Long, String, Int), (ref: Iterable[(Long, Long, Long, Char, Array[GValue])], exp: Iterable[(Long, Long, Char, Array[GValue])])) =>
             // key: (Long, String, Int) sampleId, chr, bin
             // ref: Iterable[(Long, Long, Long, Char, Array[GValue])] sampleId, start, stop, strand, others
             // exp: Iterable[(Long, Long, Char, Array[GValue])] start, stop, strand, others
-            val asd = Hashing.md5().newHasher()
             ref.flatMap { refRecord =>
               val newID = Hashing.md5().newHasher().putLong(refRecord._1).putLong(key._1).hash().asLong
-              val aggregation =  Hashing.md5().newHasher().putString(newID + key._2 + refRecord._2 + refRecord._3 + refRecord._4 + refRecord._5.mkString("/"), java.nio.charset.Charset.defaultCharset()).hash().asLong()
+              val aggregation = Hashing.md5().newHasher().putString(newID + key._2 + refRecord._2 + refRecord._3 + refRecord._4 + refRecord._5.mkString("/"), java.nio.charset.Charset.defaultCharset()).hash().asLong()
 
               val expTemp = exp.flatMap { expRecord =>
                 if ( /* space overlapping */
@@ -157,7 +157,7 @@ object GenometricMap71 {
         val stopbin = (x._1._4 / bin).toInt
 
         (startbin to stopbin).flatMap { i =>
-          Bgroups.value.get(x._1._1).getOrElse(Iterable[Long]())
+          Bgroups.value.getOrElse(x._1._1, Iterable[Long]())
             .map(exp_id =>
               ((exp_id, x._1._2, i), (x._1._1, x._1._3, x._1._4, x._1._5, x._2))
             )
