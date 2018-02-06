@@ -34,7 +34,7 @@ object GenometricMap71 {
       if (BINNING_PARAMETER == 0)
         Long.MaxValue
       else
-        BINNING_PARAMETER
+        180 * 1000
 
     execute(executor, grouping, aggregator, ref, exp, binningParameter, REF_PARALLILISM, sc)
   }
@@ -49,7 +49,7 @@ object GenometricMap71 {
     implicit val orderGRECORD: Ordering[(GRecordKey, Array[GValue])] = Ordering.by { ar: GRECORD => ar._1 }
 
     val expBinned = exp.binDS(BINNING_PARAMETER, aggregator)
-    val refBinnedRep = ref.repartition(200).binDS(BINNING_PARAMETER, refGroups)
+    val refBinnedRep = ref.repartition(160).binDS(BINNING_PARAMETER, refGroups)
 
 
     val RefExpJoined: RDD[(Long, (GRecordKey, Array[GValue], Array[GValue], (Int, Array[Int])))] =
