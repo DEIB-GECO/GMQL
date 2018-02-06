@@ -61,17 +61,17 @@ object GenometricMap71 {
             // ref: Iterable[(10, Long, Long, Char, Array[GValue])] sampleId, start, stop, strand, others
             // exp: Iterable[(Long, Long, Char, Array[GValue])] start, stop, strand, others
             ref.flatMap { refRecord =>
-              val newID = Hashing.md5().newHasher().putLong(refRecord._1).putLong(key._1).hash().asLong
-              //val newID = key._1
-              //val aggregation:Long = newID+refRecord._2+refRecord._3+refRecord._5.mkString("/").hashCode
-              val aggregation = Hashing.md5().newHasher()
+              //val newID = Hashing.md5().newHasher().putLong(refRecord._1).putLong(key._1).hash().asLong
+              val newID = key._1
+              val aggregation:Long = newID+refRecord._2+refRecord._3+refRecord._5.mkString("/").hashCode
+              /*val aggregation = Hashing.md5().newHasher()
                 .putLong(newID)
                 .putString(key._2, java.nio.charset.Charset.defaultCharset())
                 .putLong(refRecord._2)
                 .putLong(refRecord._3)
                 .putChar(refRecord._4)
                 .putString(refRecord._5.mkString("/"), java.nio.charset.Charset.defaultCharset())
-                .hash().asLong()
+                .hash().asLong()*/
 
               val expTemp = exp.flatMap { expRecord =>
                 if ( /* space overlapping */
