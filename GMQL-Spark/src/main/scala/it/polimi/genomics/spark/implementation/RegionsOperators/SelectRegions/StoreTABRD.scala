@@ -19,8 +19,8 @@ import scala.collection.Map
   * Created by abdulrahman kaitoua on 25/05/15.
   */
 object StoreTABRD {
-  private final val logger = LoggerFactory.getLogger(StoreTABRD.getClass);
-  private final val ENCODING = "UTF-8"
+  private final val logger = LoggerFactory.getLogger(StoreTABRD.getClass)
+//  private final val ENCODING = "UTF-8"
 
   @throws[SelectFormatException]
   def apply(executor: GMQLSparkExecutor, path: String, value: RegionOperator, associatedMeta: MetaOperator, schema: List[(String, PARSING_TYPE)], coordinateSystem: GMQLSchemaCoordinateSystem.Value, sc: SparkContext): RDD[GRECORD] = {
@@ -49,7 +49,6 @@ object StoreTABRD {
       regions //.sortBy(s=>s._1) //disabled sorting
         .map { x =>
         val newStart = x._1._3 + offset
-        val others = if (x._2.length > 0) "\t" + x._2.mkString("\t") else ""
 
         val stringBuilder = new StringBuilder()
         stringBuilder
