@@ -59,8 +59,8 @@ object StoreTABRD {
           .append(x._1._4)
           .append("\t")
           .append(x._1._5)
-        x._2.foreach{stringBuilder.append("\t").append(_)}
 
+        x._2.foreach{stringBuilder.append("\t").append(_)}
 
         (
           newIDSbroad.value.getOrElse(x._1._1, s"ONLY_REGION_${x._1._1}.gdm"),
@@ -72,7 +72,7 @@ object StoreTABRD {
 
     val metaKeyValue = meta.sortBy(x => (x._1, x._2)).map { x =>
       (
-        newIDSbroad.value.get(x._1) + ".meta",
+        newIDSbroad.value(x._1) + ".meta",
         new StringBuilder().append(x._2._1).append("\t").append(x._2._2).toString()
       )
     }.partitionBy(regionsPartitioner)
