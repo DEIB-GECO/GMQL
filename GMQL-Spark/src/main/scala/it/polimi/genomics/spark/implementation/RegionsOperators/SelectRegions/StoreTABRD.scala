@@ -6,10 +6,9 @@ import it.polimi.genomics.core.GMQLSchemaCoordinateSystem
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
+import it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions.MacroConcat._
 import it.polimi.genomics.spark.implementation.loaders.writeMultiOutputFiles
 import it.polimi.genomics.spark.implementation.loaders.writeMultiOutputFiles.RDDMultipleTextOutputFormat
-import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.{FileSystem, Path, PathFilter}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{HashPartitioner, SparkContext}
 import org.slf4j.LoggerFactory
@@ -24,9 +23,9 @@ object StoreTABRD {
   private final val ENCODING = "UTF-8"
 
   @throws[SelectFormatException]
-  def apply(executor: GMQLSparkExecutor, path: String, value: RegionOperator, associatedMeta:MetaOperator, schema : List[(String, PARSING_TYPE)], coordinateSystem: GMQLSchemaCoordinateSystem.Value, sc: SparkContext): RDD[GRECORD] = {
+  def apply(executor: GMQLSparkExecutor, path: String, value: RegionOperator, associatedMeta: MetaOperator, schema: List[(String, PARSING_TYPE)], coordinateSystem: GMQLSchemaCoordinateSystem.Value, sc: SparkContext): RDD[GRECORD] = {
     val regions = executor.implement_rd(value, sc)
-    val meta = executor.implement_md(associatedMeta,sc)
+    val meta = executor.implement_md(associatedMeta, sc)
 
     val MetaOutputPath = path + "/meta/"
     val RegionOutputPath = path + "/exp/"
@@ -40,26 +39,35 @@ object StoreTABRD {
     val outSample = "S"
 
     val Ids = meta.keys.distinct()
-    val newIDS: Map[Long, Long] = Ids.zipWithIndex().collectAsMap()
+    val newIDS: Map[Long, String] = Ids.zipWithIndex().map(s => (s._1, s"${outSample}_%05d.gdm".format(s._2))).collectAsMap()
     val newIDSbroad = sc.broadcast(newIDS)
 
     val regionsPartitioner = new HashPartitioner(Ids.count.toInt)
-
+    val offset = if (coordinateSystem == GMQLSchemaCoordinateSystem.OneBased) 1 else 0 //start: 0-based -> 1-based
     val keyedRDD =
-      regions//.sortBy(s=>s._1) //disabled sorting
-        .map{x =>
-        val newStart = if (coordinateSystem == GMQLSchemaCoordinateSystem.OneBased) (x._1._3 + 1) else x._1._3  //start: 0-based -> 1-based
-        (outSample+"_"+ "%05d".format(newIDSbroad.value.get(x._1._1).getOrElse(x._1._1))+".gdm",
-          x._1._2 + "\t" + newStart + "\t" + x._1._4 + "\t" + x._1._5 + { if(x._2.length > 0) "\t" + x._2.mkString("\t") else "" })}
-        .partitionBy(regionsPartitioner)//.mapPartitions(x=>x.toList.sortBy{s=> val data = s._2.split("\t"); (data(0),data(1).toLong,data(2).toLong)}.iterator)
+      regions //.sortBy(s=>s._1) //disabled sorting
+        .map { x =>
+        val newStart = x._1._3 + offset
 
-    keyedRDD.saveAsHadoopFile(RegionOutputPath,classOf[String],classOf[String],classOf[RDDMultipleTextOutputFormat])
-    //    writeMultiOutputFiles.saveAsMultipleTextFiles(keyedRDD, RegionOutputPath)
 
-    val metaKeyValue = meta.sortBy(x=>(x._1,x._2)).map(x => (outSample+"_"+ "%05d".format(newIDSbroad.value.get(x._1).get) + ".gdm.meta", x._2._1 + "\t" + x._2._2)).partitionBy(regionsPartitioner)
+        val others = if (x._2.length > 0) "\t" + x._2.mkString("\t") else ""
 
-    //    writeMultiOutputFiles.saveAsMultipleTextFiles(metaKeyValue, MetaOutputPath)
-    metaKeyValue.saveAsHadoopFile(MetaOutputPath,classOf[String],classOf[String],classOf[RDDMultipleTextOutputFormat])
+        (
+          newIDSbroad.value.getOrElse(x._1._1, s"ONLY_REGION_${x._1._1}.gdm"),
+          sfi"${x._1._2}\t$newStart\t${x._1._4}\t${x._1._5}$others"
+        )
+      }.partitionBy(regionsPartitioner)
+
+    keyedRDD.saveAsHadoopFile(RegionOutputPath, classOf[String], classOf[String], classOf[RDDMultipleTextOutputFormat])
+
+    val metaKeyValue = meta.sortBy(x => (x._1, x._2)).map { x =>
+      (
+        newIDSbroad.value.get(x._1) + ".meta",
+        sfi"${x._2._1}\t${x._2._2}"
+      )
+    }.partitionBy(regionsPartitioner)
+
+    metaKeyValue.saveAsHadoopFile(MetaOutputPath, classOf[String], classOf[String], classOf[RDDMultipleTextOutputFormat])
     writeMultiOutputFiles.fixOutputMetaLocation(MetaOutputPath)
 
     regions
