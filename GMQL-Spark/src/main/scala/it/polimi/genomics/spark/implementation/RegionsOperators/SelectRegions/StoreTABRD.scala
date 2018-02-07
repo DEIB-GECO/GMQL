@@ -6,7 +6,7 @@ import it.polimi.genomics.core.GMQLSchemaCoordinateSystem
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
-import it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions.MacroConcat._
+
 import it.polimi.genomics.spark.implementation.loaders.writeMultiOutputFiles
 import it.polimi.genomics.spark.implementation.loaders.writeMultiOutputFiles.RDDMultipleTextOutputFormat
 import org.apache.spark.rdd.RDD
@@ -36,6 +36,7 @@ object StoreTABRD {
     logger.debug(meta.toDebugString)
 
 
+
     val outSample = "S"
 
     val Ids = meta.keys.distinct()
@@ -48,13 +49,23 @@ object StoreTABRD {
       regions //.sortBy(s=>s._1) //disabled sorting
         .map { x =>
         val newStart = x._1._3 + offset
-
-
         val others = if (x._2.length > 0) "\t" + x._2.mkString("\t") else ""
+
+        val stringBuilder = new StringBuilder()
+        stringBuilder
+          .append(x._1._2)
+          .append("\t")
+          .append(newStart)
+          .append("\t")
+          .append(x._1._4)
+          .append("\t")
+          .append(x._1._5)
+        x._2.foreach{stringBuilder.append("\t").append(_)}
+
 
         (
           newIDSbroad.value.getOrElse(x._1._1, s"ONLY_REGION_${x._1._1}.gdm"),
-          sfi"${x._1._2}\t$newStart\t${x._1._4}\t${x._1._5}$others"
+          stringBuilder.toString()
         )
       }.partitionBy(regionsPartitioner)
 
@@ -63,7 +74,7 @@ object StoreTABRD {
     val metaKeyValue = meta.sortBy(x => (x._1, x._2)).map { x =>
       (
         newIDSbroad.value.get(x._1) + ".meta",
-        sfi"${x._2._1}\t${x._2._2}"
+        new StringBuilder().append(x._2._1).append("\t").append(x._2._2).toString()
       )
     }.partitionBy(regionsPartitioner)
 
