@@ -39,6 +39,19 @@ object GenometricMap71 {
     execute(executor, grouping, aggregator, ref, exp, binningParameter, REF_PARALLILISM, sc)
   }
 
+  case class MapKey(sampleId: Long, refId: Long, chr: String, refStart: Long, refStop: Long, refStrand: Char, refValues: Array[GValue]) {
+    lazy val hash: Int = super.hashCode()
+
+    override def equals(obj: scala.Any): Boolean = {
+      if (this.## == obj.##)
+        super.equals(obj)
+      else
+        false
+    }
+
+    override def hashCode(): Int = hash
+  }
+
   @throws[SelectFormatException]
   def execute(executor: GMQLSparkExecutor, grouping: OptionalMetaJoinOperator, aggregator: List[RegionAggregate.RegionsToRegion], ref: RDD[GRECORD], exp: RDD[GRECORD], BINNING_PARAMETER: Long, REF_PARALLILISM: Int, sc: SparkContext): RDD[GRECORD] = {
     val groups = executor.implement_mjd(grouping, sc).flatMap { x => x._2.map(s => (x._1, s)) }
@@ -52,7 +65,7 @@ object GenometricMap71 {
     val refBinnedRep = ref.repartition(160).binDS(BINNING_PARAMETER, refGroups)
 
 
-    val RefExpJoined: RDD[(Long, (GRecordKey, Array[GValue], Array[GValue], (Int, Array[Int])))] =
+    val RefExpJoined =
       refBinnedRep
         .cogroup(expBinned)
         .flatMap {
@@ -61,68 +74,63 @@ object GenometricMap71 {
             // ref: Iterable[(10, Long, Long, Char, Array[GValue])] sampleId, start, stop, strand, others
             // exp: Iterable[(Long, Long, Char, Array[GValue])] start, stop, strand, others
             ref.flatMap { refRecord =>
-              val newID = Hashing.md5().newHasher().putLong(refRecord._1).putLong(key._1).hash().asLong
-              //val newID = key._1
-              //val aggregation:Long = newID+refRecord._2+refRecord._3+refRecord._5.mkString("/").hashCode
-              val aggregation = Hashing.md5().newHasher()
-                .putLong(newID)
-                .putString(key._2, java.nio.charset.Charset.defaultCharset())
-                .putLong(refRecord._2)
-                .putLong(refRecord._3)
-                .putChar(refRecord._4)
-                .putString(refRecord._5.mkString("/"), java.nio.charset.Charset.defaultCharset())
-                .hash().asLong()
+              val mapKey = MapKey(key._1, refRecord._1, key._2, refRecord._2, refRecord._3, refRecord._4, refRecord._5)
 
+              val refInStartBin = (refRecord._2 / BINNING_PARAMETER).toInt.equals(key._3)
+              val isRefStrandBoth = refRecord._4.equals('*')
               val expTemp = exp.flatMap { expRecord =>
-                if ( /* space overlapping */
+                if (
+                /* space overlapping */
                   (refRecord._2 < expRecord._2 && expRecord._1 < refRecord._3)
                     && /* same strand */
-                    (refRecord._4.equals('*') || expRecord._3.equals('*') || refRecord._4.equals(expRecord._3))
+                    (isRefStrandBoth || expRecord._3.equals('*') || refRecord._4.equals(expRecord._3))
                     && /* first comparison (start bin of either the ref or exp)*/
-                    ((refRecord._2 / BINNING_PARAMETER).toInt.equals(key._3) || (expRecord._1 / BINNING_PARAMETER).toInt.equals(key._3))
+                    (refInStartBin || (expRecord._1 / BINNING_PARAMETER).toInt.equals(key._3))
                 )
-                  Some((aggregation, (new GRecordKey(newID, key._2, refRecord._2, refRecord._3, refRecord._4), refRecord._5, expRecord._4, (1, expRecord._4.map(s => if (s.isInstanceOf[GNull]) 0 else 1).iterator.toArray))))
+                  Some((mapKey, (expRecord._4, 1, expRecord._4.map(s => if (s.isInstanceOf[GNull]) 0 else 1))))
                 else
                   None
               }
 
-              if (expTemp.isEmpty)
-                Some((aggregation, (new GRecordKey(newID, key._2, refRecord._2, refRecord._3, refRecord._4), refRecord._5, Array[GValue](), (0, Array(0)))))
-              else
+              if (expTemp.nonEmpty)
                 expTemp
+              else if (refInStartBin)
+                Some((mapKey, (Array.empty[GValue], 0, Array.empty[Int])))
+              else
+                None
             }
-
         }
 
-
-    //_3: exp others
-    val reduced = RefExpJoined.reduceByKey { (l: (GRecordKey, Array[GValue], Array[GValue], (Int, Array[Int])), r) =>
+    val reduced = RefExpJoined.reduceByKey { case ((leftValues, leftCount, leftCounts), (rightValues, rightCount, rightCounts)) =>
       val values: Array[GValue] =
-        if (l._3.nonEmpty && r._3.nonEmpty) {
+        if (leftValues.nonEmpty && rightValues.nonEmpty) {
           aggregator.zipWithIndex.map { case (a, i) =>
-            a.fun(List(l._3(i), r._3(i)))
+            a.fun(List(leftValues(i), rightValues(i)))
           }.toArray
-        } else if (r._3.nonEmpty)
-          r._3
+        } else if (rightValues.nonEmpty)
+          rightValues
         else
-          l._3
+          leftValues
 
-      (l._1, l._2, values, (l._4._1 + r._4._1, l._4._2.zip(r._4._2).map(s => s._1 + s._2).iterator.toArray))
-    } //cache()
-
-    val output = reduced.map { res: (Long, (GRecordKey, Array[GValue], Array[GValue], (Int, Array[Int]))) =>
-      val newVal: Array[GValue] = aggregator.zipWithIndex.map { case (f, i) =>
-        val valList =
-          if (res._2._3.nonEmpty)
-            res._2._3(i)
-          else
-            GDouble(0.0000000000000001)
-
-        f.funOut(valList, (res._2._4._1, if (res._2._3.nonEmpty) res._2._4._2(i) else 0))
-      }.toArray
-      (res._2._1, (res._2._2 :+ GDouble(res._2._4._1)) ++ newVal)
+      (values, leftCount + rightCount, leftCounts.zip(rightCounts).map(s => s._1 + s._2))
     }
 
+    val output = reduced.map { case ( mapKey ,(values, count, counts)) =>
+      val newVal: Array[GValue] = aggregator.zipWithIndex.map { case (f, i) =>
+        val value: GValue =
+          if (values.nonEmpty)
+            values(i)
+          else
+            GNull()
+        f.funOut(value, (count, if (counts.nonEmpty) counts(i) else 0))
+      }.toArray
+
+      val newID = Hashing.md5().newHasher().putLong(mapKey.refId).putLong(mapKey.sampleId).hash().asLong
+
+      val gRecordKey = GRecordKey(newID, mapKey.chr, mapKey.refStart, mapKey.refStop, mapKey.refStrand)
+
+      (gRecordKey, (mapKey.refValues :+ GDouble(count)) ++ newVal)
+    }
 
     output
   }
