@@ -50,7 +50,7 @@ object StoreTABRD {
         .map { x =>
         val newStart = x._1._3 + offset
 
-        val stringBuilder = new StringBuilder()
+        val stringBuilder = new StringBuilder(100)
         stringBuilder
           .append(x._1._2)
           .append("\t")
