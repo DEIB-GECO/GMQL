@@ -3,7 +3,7 @@
     <groupId>it.polimi.genomics</groupId>
     <artifactId>gmql</artifactId>
     <packaging>pom</packaging>
-    <version>1.0</version>
+    <version>1.1-SNAPSHOT</version>
     <modules>
         <module>GMQL-Core</module>
         <!--<module>GMQL-Cli</module>-->

@@ -4,10 +4,10 @@
     <parent>
         <artifactId>gmql</artifactId>
         <groupId>it.polimi.genomics</groupId>
-        <version>1.0</version>
+        <version>1.1-SNAPSHOT</version>
     </parent>
     <artifactId>GMQL-Repository</artifactId>
-    <version>1.0</version>
+    <version>1.1-SNAPSHOT</version>
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
@@ -28,7 +28,7 @@
         <dependency>
             <groupId>it.polimi.genomics</groupId>
             <artifactId>GMQL-Core</artifactId>
-            <version>2.0</version>
+            <version>2.1-SNAPSHOT</version>
         </dependency>
 
 
