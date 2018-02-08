@@ -54,7 +54,8 @@
         <connection>scm:git:git://github.com/DEIB-GECO/GMQL.git</connection>
         <developerConnection>scm:git:ssh://github.com/DEIB-GECO/GMQL.git</developerConnection>
         <url>http:///github.com/DEIB-GECO/GMQL</url>
-    </scm>
+      <tag>gmql-1.0</tag>
+  </scm>
 
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>

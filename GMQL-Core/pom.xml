@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <artifactId>gmql</artifactId>
         <groupId>it.polimi.genomics</groupId>
@@ -37,7 +35,8 @@
         <connection>scm:git:git://github.com/DEIB-GECO/GMQL.git</connection>
         <developerConnection>scm:git:ssh://github.com/DEIB-GECO/GMQL.git</developerConnection>
         <url>http:///github.com/DEIB-GECO/GMQL</url>
-    </scm>
+      <tag>gmql-1.0</tag>
+  </scm>
 
     <distributionManagement>
         <snapshotRepository>
@@ -55,15 +54,13 @@
 
 
         <!-- <resources>
-            </!- resource processsing with a different output directory
-                 for logback.xml -/>
+            </!- resource processsing with a different output directory for logback.xml - />
             <resource>
                 <directory>src/main/resources</directory>
                 <includes>
                     <include>logback.xml</include>
                 </includes>
-                </!- relative to target/classes
-                     i.e. ${project.build.outputDirectory} -/>
+                </!- relative to target/classes i.e. ${project.build.outputDirectory} - />
                 <targetPath>${project.build.outputDirectory}</targetPath>
             </resource>
         </resources> -->
