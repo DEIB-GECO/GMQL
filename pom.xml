@@ -3,10 +3,10 @@
     <groupId>it.polimi.genomics</groupId>
     <artifactId>gmql</artifactId>
     <packaging>pom</packaging>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0</version>
     <modules>
         <module>GMQL-Core</module>
-        <module>GMQL-Cli</module>
+        <!--<module>GMQL-Cli</module>-->
         <module>GMQL-Server</module>
         <module>GMQL-Spark</module>
         <module>Compiler</module>
@@ -14,28 +14,47 @@
         <module>GMQL-Repository</module>
         <module>GMQL-Profiler</module>
         <module>GMQL-SManager</module>
-        <module>WSC</module>
+        <!--<module>WSC</module>-->
         <module>GMQL-PythonAPI</module>
     </modules>
-    <name>${project.artifactId}</name>
+    <name>${project.groupId}:${project.artifactId}</name>
     <description>Polimi GMQL, Big Data processing for Genomics</description>
+    <url>http://genomic.elet.polimi.it/gmql-rest/</url>
     <inceptionYear>2015</inceptionYear>
 
     <distributionManagement>
-        <site>
-            <id>genomic.elet.polimi.it</id>
-            <url>scp://genomic.elet.polimi.it/gmql-rest/docs/</url>
-        </site>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
     </distributionManagement>
+
 
     <licenses>
         <license>
-            <name>My License</name>
-            <url>http://....</url>
-            <distribution>repo</distribution>
+            <name>MIT License</name>
+            <url>http://www.opensource.org/licenses/mit-license.php</url>
         </license>
     </licenses>
 
+    <developers>
+        <developer>
+            <name>Abdulrahman Kaitoua</name>
+            <email>abdulrahman.kaitoua@polimi.it</email>
+            <organization>Politecnico Di Milano University</organization>
+            <organizationUrl>https://github.com/akaitoua</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git://github.com/DEIB-GECO/GMQL.git</connection>
+        <developerConnection>scm:git:ssh://github.com/DEIB-GECO/GMQL.git</developerConnection>
+        <url>http:///github.com/DEIB-GECO/GMQL</url>
+    </scm>
 
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
@@ -166,8 +185,57 @@
                             </args>
                         </configuration>
                     </execution>
+
+                        <execution>
+                            <id>attach-javadocs</id>
+                            <goals>
+                                <goal>doc-jar</goal>
+                            </goals>
+                        </execution>
+
                 </executions>
             </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>1.5</version>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>2.5.3</version>
+                <configuration>
+                    <autoVersionSubmodules>true</autoVersionSubmodules>
+                    <useReleaseProfile>false</useReleaseProfile>
+                    <releaseProfiles>release</releaseProfiles>
+                    <goals>deploy</goals>
+                </configuration>
+            </plugin>
+
+
+            <plugin>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>nexus-staging-maven-plugin</artifactId>
+                <version>1.6.7</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <serverId>ossrh</serverId>
+                    <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                </configuration>
+            </plugin>
+
         </plugins>
     </build>
 

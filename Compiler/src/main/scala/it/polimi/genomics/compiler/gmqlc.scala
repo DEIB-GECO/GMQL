@@ -94,7 +94,7 @@ object gmqlc {
     val conf = new SparkConf()
       .setAppName("GMQL V2 Spark")
       //    .setSparkHome("/usr/local/Cellar/spark-1.5.2/")
-      .setMaster("local[*]")
+//      .setMaster("local[*]")
       //    .setMaster("yarn-client")
       //    .set("spark.executor.memory", "1g")
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
@@ -102,7 +102,7 @@ object gmqlc {
       .set("spark.driver.allowMultipleContexts","true")
 //      .set("spark.sql.tungsten.enabled", "true")
     val sc:SparkContext =new SparkContext(conf)
-    val server = new GmqlServer(new GMQLSparkExecutor(testingIOFormats = false,sc=sc,outputFormat = GMQLSchemaFormat.GTF), Some(1000)/*Some(args(3).toInt)*/)
+    val server = new GmqlServer(new GMQLSparkExecutor(testingIOFormats = false,sc=sc,outputFormat = GMQLSchemaFormat.TAB), Some(1000)/*Some(args(3).toInt)*/)
 //    val server = new GmqlServer(new FlinkImplementation(), Some(10000))
     val translator = new Translator(server, "/Users/pietro/Desktop/test_gmql/testout/")
 
@@ -266,13 +266,25 @@ object gmqlc {
     val testOrderMD = "DATASET = SELECT() /Users/abka02/Downloads/group_test;\n" +
       "RESULT = ORDER(biosample_term_name, region_count DESC; meta_topg: 1) DATASET;\n" +
       "MATERIALIZE RESULT INTO RESULT;"
+
+    val testPerformance = "HM_TF = SELECT(dataType == 'ChipSeq' AND view == 'Peaks') hdfs://genomic.elet.polimi.it:9000/user/token/regions/queryname_20180204_191742_HG_PEAKS/exp/; \n" +
+      "TSS = SELECT(annotation_type == 'TSS' AND provider == 'UCSC') hdfs://genomic.elet.polimi.it:9000/user/public/regions/home/canakoglu/hadoop_backup/user/public/regions/home/venco/hg19/;\n" +
+      "PROM = PROJECT(region_update: start AS start - 2000, stop AS stop + 1000) TSS;\n" +
+      "PROM_HM_TF = MAP() PROM HM_TF;\n" +
+      "MATERIALIZE PROM_HM_TF INTO hdfs://genomic.elet.polimi.it:9000/user/token/regions/PROM_HM_TF;"
+
+
+    val mappingNew =  "HM_TF = SELECT() /Users/abka02/Downloads/filename_20180205_001228_DATA_SET_VAR/files/; \n" +
+      "TSS = SELECT() /Users/abka02/Downloads/filename_20180205_001228_TSS/files/;\n" +
+      "PROM_HM_TF = MAP() TSS HM_TF;\n" +
+      "MATERIALIZE PROM_HM_TF INTO /Users/abka02/Desktop/output5/;"
 //    val execQuery = args(2) match {
 //      case "histo" => Histogram
 //      case "map" => Map_server
 //    }
     val test_double_select = ""
       try {
-        if (translator.phase2(translator.phase1(testOrderMD))) {
+        if (translator.phase2(translator.phase1(testPerformance))) {
           server.run()
           //server.getDotGraph()
         }
@@ -281,7 +293,7 @@ object gmqlc {
       }
 
 
-      println("\n\nQuery" +"\n" + testOrderMD + "\n\n")
+      println("\n\nQuery" +"\n" + testPerformance + "\n\n")
       // "open /Users/pietro/Desktop/test_gmql/output/".!
       //  Console.readLine()
   }
