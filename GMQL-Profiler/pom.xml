@@ -4,7 +4,7 @@
     <parent>
         <artifactId>gmql</artifactId>
         <groupId>it.polimi.genomics</groupId>
-        <version>1.0</version>
+        <version>1.0-SNAPSHOT</version>
     </parent>
 
     <groupId>it.polimi.genomics</groupId>
