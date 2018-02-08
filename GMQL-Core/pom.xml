@@ -3,7 +3,7 @@
     <parent>
         <artifactId>gmql</artifactId>
         <groupId>it.polimi.genomics</groupId>
-        <version>1.0-SNAPSHOT</version>
+        <version>1.0</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <version>2.0</version>
@@ -138,4 +138,8 @@
             
         </plugins>
     </build>
+
+  <scm>
+    <tag>gmql-1.0</tag>
+  </scm>
 </project>
