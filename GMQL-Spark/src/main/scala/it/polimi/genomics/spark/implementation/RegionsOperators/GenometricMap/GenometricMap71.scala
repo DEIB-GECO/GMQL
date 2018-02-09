@@ -11,6 +11,8 @@ import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import org.slf4j.LoggerFactory
 
+import scala.util.hashing.MurmurHash3
+
 
 /**
   * Created by abdulrahman kaitoua on 08/08/15.
@@ -39,17 +41,25 @@ object GenometricMap71 {
     execute(executor, grouping, aggregator, ref, exp, binningParameter, REF_PARALLILISM, sc)
   }
 
-  case class MapKey(sampleId: Long, refId: Long, chr: String, refStart: Long, refStop: Long, refStrand: Char, refValues: Array[GValue]) {
-    lazy val hash: Int = super.hashCode()
+  case class MapKey(sampleId: Long, refId: Long, refChr: String, refStart: Long, refStop: Long, refStrand: Char, refValues: Array[GValue]) {
 
     override def equals(obj: scala.Any): Boolean = {
-      if (this.## == obj.##)
-        super.equals(obj)
+      if (## == obj.##) {
+        val that = obj.asInstanceOf[MapKey]
+        //        val result = this.productIterator.zip(that.productIterator).map(x=>x._1 equals x._2).reduce(_ && _)
+        this.refStart == that.refStart &&
+          this.refStop == that.refStop &&
+          this.refStrand == that.refStrand &&
+          this.sampleId == that.sampleId &&
+          this.refId == that.refId &&
+          this.refChr == that.refChr &&
+          this.refValues.sameElements(that.refValues)
+      }
       else
         false
     }
 
-    override def hashCode(): Int = hash
+    @transient override lazy val hashCode: Int = MurmurHash3.productHash(this)
   }
 
   @throws[SelectFormatException]
@@ -74,7 +84,7 @@ object GenometricMap71 {
             // ref: Iterable[(10, Long, Long, Char, Array[GValue])] sampleId, start, stop, strand, others
             // exp: Iterable[(Long, Long, Char, Array[GValue])] start, stop, strand, others
             ref.flatMap { refRecord =>
-              val mapKey = MapKey(key._1, refRecord._1, key._2, refRecord._2, refRecord._3, refRecord._4, refRecord._5)
+              lazy val mapKey = MapKey(key._1, refRecord._1, key._2, refRecord._2, refRecord._3, refRecord._4, refRecord._5)
 
               val refInStartBin = (refRecord._2 / BINNING_PARAMETER).toInt.equals(key._3)
               val isRefStrandBoth = refRecord._4.equals('*')
@@ -87,14 +97,15 @@ object GenometricMap71 {
                     && /* first comparison (start bin of either the ref or exp)*/
                     (refInStartBin || (expRecord._1 / BINNING_PARAMETER).toInt.equals(key._3))
                 )
+                //if there is a overlapping on the same strand and one of the regions(ref or exp) starts at this bin
                   Some((mapKey, (expRecord._4, 1, expRecord._4.map(s => if (s.isInstanceOf[GNull]) 0 else 1))))
                 else
                   None
               }
 
-              if (expTemp.nonEmpty)
+              if (expTemp.nonEmpty) //if there is a match ref against exp
                 expTemp
-              else if (refInStartBin)
+              else if (refInStartBin) //if there is not match and in order to add one time ref we check if ref starts here
                 Some((mapKey, (Array.empty[GValue], 0, Array.empty[Int])))
               else
                 None
@@ -115,7 +126,7 @@ object GenometricMap71 {
       (values, leftCount + rightCount, leftCounts.zip(rightCounts).map(s => s._1 + s._2))
     }
 
-    val output = reduced.map { case ( mapKey ,(values, count, counts)) =>
+    val output = reduced.map { case (mapKey, (values, count, counts)) =>
       val newVal: Array[GValue] = aggregator.zipWithIndex.map { case (f, i) =>
         val value: GValue =
           if (values.nonEmpty)
@@ -127,7 +138,7 @@ object GenometricMap71 {
 
       val newID = Hashing.md5().newHasher().putLong(mapKey.refId).putLong(mapKey.sampleId).hash().asLong
 
-      val gRecordKey = GRecordKey(newID, mapKey.chr, mapKey.refStart, mapKey.refStop, mapKey.refStrand)
+      val gRecordKey = GRecordKey(newID, mapKey.refChr, mapKey.refStart, mapKey.refStop, mapKey.refStrand)
 
       (gRecordKey, (mapKey.refValues :+ GDouble(count)) ++ newVal)
     }
