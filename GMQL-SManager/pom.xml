@@ -35,7 +35,7 @@
         <dependency>
             <groupId>it.polimi.genomics</groupId>
             <artifactId>WSC</artifactId>
-            <version>1.0</version>
+            <version>1.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>
