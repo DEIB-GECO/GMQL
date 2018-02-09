@@ -8,9 +8,10 @@
     <property name = "LIB_DIR_HDFS">/user/repo/lib/</property>
     <property name = "SPARK_UI_PORT">4050</property>
 
-    <property name="GUEST_EXECUTORS">6</property>
-    <property name="BASIC_EXECUTORS">10</property>
-    <property name="PRO_EXECUTORS">15</property>
-    <property name="ADMIN_EXECUTORS">20</property>
-    <property name="PUBLIC_EXECUTORS">20</property>
+    <property name="SPARK_PROP_NAME">spark.cores.max</property>
+    <property name="GUEST_VALUE">6</property>
+    <property name="BASIC_VALUE">10</property>
+    <property name="PRO_VALUE">15</property>
+    <property name="ADMIN_VALUE">20</property>
+    <property name="PUBLIC_VALUE">20</property>
 </gmqlProperties>

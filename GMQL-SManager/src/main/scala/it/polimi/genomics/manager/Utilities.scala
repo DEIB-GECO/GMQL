@@ -19,8 +19,10 @@ class Utilities {
   var lib_dir_hdfs: String = it.polimi.genomics.repository.Utilities().HDFSRepoDir + "/lib/"
   var SPARK_UI_PORT:Int = 4040
 
-  // Maximum number of executors for each user class
-  var USER_EXECUTORS: Map[GDMSUserClass, Long] = Map()
+  // User-category-specific spark property
+  var USER_SPARK_PROP_NAME: String = "spark.cores.max"
+  var USER_SPARK_PROP_VAL:  Map[GDMSUserClass, Long] = Map()
+
 
   private val logger: Logger = LoggerFactory.getLogger(Utilities.getClass)
 
@@ -51,12 +53,13 @@ class Utilities {
           case Conf.LAUNCHER_MODE => LAUNCHER_MODE = value
 
           case Conf.SPARK_UI_PORT => SPARK_UI_PORT = value.toInt
+          case Conf.SPARK_PROP_NAME => USER_SPARK_PROP_NAME = value.toString
 
-          case Conf.GUEST_EXECUTORS  => USER_EXECUTORS += ( GDMSUserClass.GUEST  -> value.toLong)
-          case Conf.BASIC_EXECUTORS  => USER_EXECUTORS += ( GDMSUserClass.BASIC  -> value.toLong)
-          case Conf.PRO_EXECUTORS    => USER_EXECUTORS += ( GDMSUserClass.PRO    -> value.toLong)
-          case Conf.ADMIN_EXECUTORS  => USER_EXECUTORS += ( GDMSUserClass.ADMIN  -> value.toLong)
-          case Conf.PUBLIC_EXECUTORS => USER_EXECUTORS += ( GDMSUserClass.PUBLIC -> value.toLong)
+          case Conf.GUEST_VALUE  => USER_SPARK_PROP_VAL += ( GDMSUserClass.GUEST  -> value.toLong)
+          case Conf.BASIC_VALUE  => USER_SPARK_PROP_VAL += ( GDMSUserClass.BASIC  -> value.toLong)
+          case Conf.PRO_VALUE    => USER_SPARK_PROP_VAL += ( GDMSUserClass.PRO    -> value.toLong)
+          case Conf.ADMIN_VALUE  => USER_SPARK_PROP_VAL += ( GDMSUserClass.ADMIN  -> value.toLong)
+          case Conf.PUBLIC_VALUE => USER_SPARK_PROP_VAL += ( GDMSUserClass.PUBLIC -> value.toLong)
 
           case _ => logger.error(s"Not known configuration property: $x, $value")
         }
@@ -68,7 +71,7 @@ class Utilities {
 
     if (SPARK_HOME == null) logger.warn("SPARK_HOME is not set .. To use Spark on Yarn platform, you should set Spark Home in the configuration file or as Environment varialble")
 
-    if (USER_EXECUTORS.size == 0) logger.warn("Max executors not defined for any user category.")
+    if (USER_SPARK_PROP_VAL.size == 0) logger.warn("Custom Spark property not defined for any user category.")
   }
 
   /**
@@ -111,10 +114,12 @@ object Conf {
 
   val SPARK_UI_PORT = "SPARK_UI_PORT"
 
-  val GUEST_EXECUTORS = "GUEST_EXECUTORS"
-  val BASIC_EXECUTORS = "BASIC_EXECUTORS"
-  val PRO_EXECUTORS   = "PRO_EXECUTORS"
-  val ADMIN_EXECUTORS = "ADMIN_EXECUTORS"
-  val PUBLIC_EXECUTORS = "PUBLIC_EXECUTORS"
+  val SPARK_PROP_NAME = "SPARK_PROP_NAME"
+
+  val GUEST_VALUE  = "GUEST_VALUE"
+  val BASIC_VALUE  = "BASIC_VALUE"
+  val PRO_VALUE    = "PRO_VALUE"
+  val ADMIN_VALUE  = "ADMIN_VALUE"
+  val PUBLIC_VALUE = "PUBLIC_VALUE"
 
 }

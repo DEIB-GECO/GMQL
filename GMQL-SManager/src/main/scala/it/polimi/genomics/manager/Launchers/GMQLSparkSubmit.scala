@@ -124,8 +124,8 @@ class GMQLSparkSubmit(job:GMQLJob) {
 
 
     // Assign maximum number of executors according to the user category
-    if( Utilities().USER_EXECUTORS.contains(job.gMQLContext.userClass) ) {
-      d = d.setConf("spark.cores.max", Utilities().USER_EXECUTORS(job.gMQLContext.userClass).toString)
+    if( Utilities().USER_SPARK_PROP_VAL.contains(job.gMQLContext.userClass) ) {
+      d = d.setConf(Utilities().USER_SPARK_PROP_NAME, Utilities().USER_SPARK_PROP_VAL(job.gMQLContext.userClass).toString)
     }
 
     val b = d.setVerbose(true).startApplication()
