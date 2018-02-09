@@ -41,19 +41,19 @@ object GenometricMap71 {
     execute(executor, grouping, aggregator, ref, exp, binningParameter, REF_PARALLILISM, sc)
   }
 
-  case class MapKey(sampleId: Long, refId: Long, refChr: String, refStart: Long, refStop: Long, refStrand: Char, refValues: Array[GValue]) {
+  case class MapKey(sampleId: Long, refId: Long, refChr: String, refStart: Long, refStop: Long, refStrand: Char, refValues: List[GValue]) {
 
     override def equals(obj: scala.Any): Boolean = {
       if (## == obj.##) {
         val that = obj.asInstanceOf[MapKey]
-        //        val result = this.productIterator.zip(that.productIterator).map(x=>x._1 equals x._2).reduce(_ && _)
+        // val result = this.productIterator.zip(that.productIterator).map(x=>x._1 equals x._2).reduce(_ && _)
         this.refStart == that.refStart &&
           this.refStop == that.refStop &&
           this.refStrand == that.refStrand &&
           this.sampleId == that.sampleId &&
           this.refId == that.refId &&
           this.refChr == that.refChr &&
-          this.refValues.sameElements(that.refValues)
+          this.refValues == that.refValues
       }
       else
         false
@@ -84,7 +84,7 @@ object GenometricMap71 {
             // ref: Iterable[(10, Long, Long, Char, Array[GValue])] sampleId, start, stop, strand, others
             // exp: Iterable[(Long, Long, Char, Array[GValue])] start, stop, strand, others
             ref.flatMap { refRecord =>
-              lazy val mapKey = MapKey(key._1, refRecord._1, key._2, refRecord._2, refRecord._3, refRecord._4, refRecord._5)
+              lazy val mapKey = MapKey(key._1, refRecord._1, key._2, refRecord._2, refRecord._3, refRecord._4, refRecord._5.toList)
 
               val refInStartBin = (refRecord._2 / BINNING_PARAMETER).toInt.equals(key._3)
               val isRefStrandBoth = refRecord._4.equals('*')
@@ -127,20 +127,20 @@ object GenometricMap71 {
     }
 
     val output = reduced.map { case (mapKey, (values, count, counts)) =>
-      val newVal: Array[GValue] = aggregator.zipWithIndex.map { case (f, i) =>
+      val newVal = aggregator.zipWithIndex.map { case (f, i) =>
         val value: GValue =
           if (values.nonEmpty)
             values(i)
           else
             GNull()
         f.funOut(value, (count, if (counts.nonEmpty) counts(i) else 0))
-      }.toArray
+      }
 
       val newID = Hashing.md5().newHasher().putLong(mapKey.refId).putLong(mapKey.sampleId).hash().asLong
 
       val gRecordKey = GRecordKey(newID, mapKey.refChr, mapKey.refStart, mapKey.refStop, mapKey.refStrand)
 
-      (gRecordKey, (mapKey.refValues :+ GDouble(count)) ++ newVal)
+      (gRecordKey, ((mapKey.refValues :+ GDouble(count)) ++ newVal).toArray)
     }
 
     output
