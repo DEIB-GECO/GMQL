@@ -72,7 +72,7 @@ object GenometricMap71 {
     implicit val orderGRECORD: Ordering[(GRecordKey, Array[GValue])] = Ordering.by { ar: GRECORD => ar._1 }
 
     val expBinned = exp.binDS(BINNING_PARAMETER, aggregator)
-    val refBinnedRep = ref.repartition(160).binDS(BINNING_PARAMETER, refGroups)
+    val refBinnedRep = ref.binDS(BINNING_PARAMETER, refGroups)
 
 
     val RefExpJoined =
