@@ -42,7 +42,7 @@ object GenometricMap71 {
     execute(executor, grouping, aggregator, ref, exp, binningParameter, REF_PARALLILISM, sc)
   }
 
-  case class MapKey(/*sampleId: Long, */newId: Long, refChr: String, refStart: Long, refStop: Long, refStrand: Char, refValues: List[GValue]) {
+  case class MapKey(/*sampleId: Long, */ newId: Long, refChr: String, refStart: Long, refStop: Long, refStrand: Char, refValues: List[GValue]) {
 
     override def equals(obj: scala.Any): Boolean = {
       if (## == obj.##) {
@@ -51,7 +51,7 @@ object GenometricMap71 {
         this.refStart == that.refStart &&
           this.refStop == that.refStop &&
           this.refStrand == that.refStrand &&
-//          this.sampleId == that.sampleId &&
+          //  this.sampleId == that.sampleId &&
           this.newId == that.newId &&
           this.refChr == that.refChr &&
           this.refValues == that.refValues
@@ -75,7 +75,7 @@ object GenometricMap71 {
     implicit val orderGRECORD: Ordering[(GRecordKey, Array[GValue])] = Ordering.by { ar: GRECORD => ar._1 }
 
     val expBinned = exp.binDS(BINNING_PARAMETER, aggregator)
-    val refBinnedRep = ref.repartition(160).binDS(BINNING_PARAMETER, refGroups)
+    val refBinnedRep = ref.repartition(sc.defaultParallelism * 32 - 1).binDS(BINNING_PARAMETER, refGroups)
 
     val emptyArrayGValue = Array.empty[GValue]
     val emptyArrayInt = Array.empty[Int]
