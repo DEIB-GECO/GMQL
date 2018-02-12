@@ -73,7 +73,7 @@ object CombineMD {
       }
 
       val leftOut = left
-//        .filter { case (id: Long, _) => mapL.contains(id) }
+        .filter { case (id: Long, _) => mapL.contains(id) }
         .flatMap { case (leftId: Long, (att: String, value: String)) =>
           val taggedAtt = ltag + att
           mapL(leftId).map { newId =>
