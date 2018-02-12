@@ -81,8 +81,6 @@ object CombineMD {
           }
         }
 
-      leftOut.collect().foreach(println)
-
       val rightOut = right
         .filter { case (id: Long, _) => mapR.contains(id) }
         .flatMap { case (rightId: Long, (att: String, value: String)) =>
@@ -91,8 +89,6 @@ object CombineMD {
             (newId, (taggedAtt, value))
           }
         }
-      rightOut.collect().foreach(println)
-
 
       if (region_builder.isDefined)
         region_builder.get match {
