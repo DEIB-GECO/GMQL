@@ -175,20 +175,20 @@ class LFSRepository extends GMQLRepository with XMLDataSetRepository{
   override def getDsInfoStream(datasetName: String, userName: String): InputStream = ???
 
 
-  /**
+  /*
     * Returns information about the user disk quota usage
     *
     * @param userName
     * @param userClass
     * @return (occupied, user_quota) in KBs
     */
-  override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Long, Long) = {
+  /*override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Long, Long) = {
 
     var occupied   = getFileSize(General_Utilities().getRegionDir(userName)).toLong
     val user_quota = General_Utilities().getUserQuota(userClass)
 
     (occupied,user_quota)
-  }
+  }*/
 
   def getFileSize(path:String): Float = {
 

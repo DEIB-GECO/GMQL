@@ -3,6 +3,7 @@ package it.polimi.genomics.repository.FSRepository
 import java.io._
 import java.nio.file.{Files, Paths}
 import java.text.SimpleDateFormat
+import java.util
 import java.util.Date
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
@@ -575,6 +576,48 @@ trait XMLDataSetRepository extends GMQLRepository{
   override def isUserQuotaExceeded(username: String, userClass: GDMSUserClass): Boolean = {
     val info = getUserQuotaInfo(username, userClass)
     return info._1  > info._2
+  }
+
+  /**
+    * Returns information about the user disk quota usage
+    * @param userName
+    * @param userClass
+    * @return (occupied, user_quota) in KBs
+    */
+  override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Long, Long) = {
+
+    val userDatasets = listAllDSs(userName).asScala.toList
+    val dSMetaDir    = General_Utilities().getDSMetaDir(userName)
+    val values = userDatasets.map(x=> {
+
+      val file = dSMetaDir+"/"+x.position+".dsmeta"
+
+      try {
+        val dsXML = XML.loadFile(file)
+        val sizeEls = (dsXML \\ "dataset" \ "property").filter(x => (x.attribute("name").get.text == "Size"))
+
+        if (!sizeEls.isEmpty) {
+          sizeEls.head.text.split(" ").head.replace(",",".").toFloat
+        } else {
+          0
+        }
+      } catch {
+        case e: FileNotFoundException => {
+          0
+        }
+      }
+
+    })
+
+    var size = 0L // final size
+
+    if( !values.isEmpty ) {
+      size = values.reduce((a,b)=> a+b) * 1000 toLong // in KB
+    }
+
+    val user_quota = General_Utilities().getUserQuota(userClass)
+
+    (size,user_quota)
   }
 
   def storeDsMeta(meta:String, userName:String, dsname:String) = {

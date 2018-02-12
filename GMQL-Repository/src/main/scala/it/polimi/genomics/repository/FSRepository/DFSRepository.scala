@@ -320,21 +320,21 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     */
   override def getDsInfoStream(datasetName: String, userName: String): InputStream = ???
 
-  /**
+  /*
     * Returns information about the user disk quota usage
     *
     * @param userName
     * @param userClass
     * @return (occupied, user_quota) in KBs
     */
-  override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Long, Long) = {
+  /*override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Long, Long) = {
 
     val user_quota = General_Utilities().getUserQuota(userClass)
     val userDir    = General_Utilities().getHDFSUserDir(userName)
     val occupied   = getFileSize(userDir).toLong
 
-    (occupied,user_quota)
-  }
+    (occupied, user_quota)
+  }*/
 
 
   /**
