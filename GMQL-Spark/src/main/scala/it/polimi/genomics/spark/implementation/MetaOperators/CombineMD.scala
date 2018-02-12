@@ -67,19 +67,21 @@ object CombineMD {
         rights.foreach { right =>
           val hash = Hashing.md5().newHasher().putLong(left).putLong(right).hash().asLong
           //in each cycle, we added new hash id in to the left and right lists
-          mapL.getOrElse(left, mutable.Set.empty).add(hash)
-          mapR.getOrElse(right, mutable.Set.empty).add(hash)
+          mapL += left ->  (mapL.getOrElse(left, mutable.Set.empty) + hash)
+          mapR += right ->  (mapR.getOrElse(right, mutable.Set.empty) + hash)
         }
       }
 
       val leftOut = left
-        .filter { case (id: Long, _) => mapL.contains(id) }
+//        .filter { case (id: Long, _) => mapL.contains(id) }
         .flatMap { case (leftId: Long, (att: String, value: String)) =>
           val taggedAtt = ltag + att
           mapL(leftId).map { newId =>
             (newId, (taggedAtt, value))
           }
         }
+
+      leftOut.collect().foreach(println)
 
       val rightOut = right
         .filter { case (id: Long, _) => mapR.contains(id) }
@@ -89,6 +91,7 @@ object CombineMD {
             (newId, (taggedAtt, value))
           }
         }
+      rightOut.collect().foreach(println)
 
 
       if (region_builder.isDefined)
@@ -111,8 +114,8 @@ object CombineMD {
         rightIds.foreach { right =>
           val hash = Hashing.md5().newHasher().putLong(left).putLong(right).hash().asLong
           //in each cycle, we added new hash id in to the left and right lists
-          mapL.getOrElse(left, mutable.Set.empty).add(hash)
-          mapR.getOrElse(right, mutable.Set.empty).add(hash)
+          mapL += left ->  (mapL.getOrElse(left, mutable.Set.empty) + hash)
+          mapR += right ->  (mapR.getOrElse(right, mutable.Set.empty) + hash)
         }
       }
 
