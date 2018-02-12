@@ -36,12 +36,6 @@
 
         <dependency>
             <groupId>it.polimi.genomics</groupId>
-            <artifactId>WSC</artifactId>
-            <version>1.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>it.polimi.genomics</groupId>
             <artifactId>GMQL-Spark</artifactId>
             <version>4.0</version>
             <exclusions>

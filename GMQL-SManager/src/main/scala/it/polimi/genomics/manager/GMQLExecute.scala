@@ -8,7 +8,7 @@ import java.util.concurrent.{ExecutorService, Executors, TimeUnit}
 import it.polimi.genomics.core.GMQLScript
 import it.polimi.genomics.core.exception.UserExceedsQuota
 import it.polimi.genomics.manager.Exceptions.{InvalidGMQLJobException, NoJobsFoundException}
-import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLocalLauncher, GMQLRemoteLauncher, GMQLSparkLauncher}
+import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLocalLauncher, GMQLSparkLauncher}
 import it.polimi.genomics.repository.FSRepository.FS_Utilities
 import it.polimi.genomics.repository.GMQLExceptions.GMQLNotValidDatasetNameException
 import it.polimi.genomics.repository.{Utilities => General_Utilities}
@@ -196,9 +196,6 @@ class GMQLExecute (){
       if (launcher_mode equals Utilities().CLUSTER_LAUNCHER) {
         logger.info("Using Spark Launcher")
         new GMQLSparkLauncher(job)
-      } else if (launcher_mode equals Utilities().REMOTE_CLUSTER_LAUNCHER) {
-        logger.info("Using Remote Launcher")
-        new GMQLRemoteLauncher(job)
       } else if (launcher_mode equals Utilities().LOCAL_LAUNCHER) {
         logger.info("Using Local Launcher")
         new GMQLLocalLauncher(job)
@@ -236,11 +233,7 @@ class GMQLExecute (){
       if ( launcher_mode equals Utilities().CLUSTER_LAUNCHER ) {
         logger.info("Using Spark Launcher")
         new GMQLSparkLauncher(job)
-      } else
-      if ( launcher_mode equals Utilities().REMOTE_CLUSTER_LAUNCHER ) {
-        logger.info("Using Remote Launcher")
-        new GMQLRemoteLauncher(job)
-      } else
+      }  else
       if ( launcher_mode equals Utilities().LOCAL_LAUNCHER ) {
         logger.info("Using Local Launcher")
         new GMQLLocalLauncher(job)
