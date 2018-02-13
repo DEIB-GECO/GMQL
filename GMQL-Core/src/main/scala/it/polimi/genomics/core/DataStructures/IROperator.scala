@@ -1,46 +1,55 @@
 package it.polimi.genomics.core.DataStructures
 
+import it.polimi.genomics.core.DataStructures.OperatorType.OperatorType
 import scala.collection.mutable
 
 /**
- * It represent a generic Intermediate Representation Daga operator
+ * It represent a generic Intermediate Representation Dag operator
  */
-class IROperator extends Serializable {
+abstract class IROperator extends Serializable {
   val operatorName = this.getClass.getName.substring(this.getClass.getName.lastIndexOf('.')+1) + " " + this.hashCode()
 
   var intermediateResult : Option[AnyRef] = None
-
   override def toString = operatorName
 
-  /**
-    * Get the list of input operators for the current operator.
-    * */
-  def getOperatorList: List[IROperator] = {
-    val result = mutable.Set[IROperator]()
-    for (method <- this.getClass.getMethods) {
-      if (method.getParameterCount == 0 && classOf[IROperator].isAssignableFrom(method.getReturnType)) {
-        result.add(method.invoke(this).asInstanceOf[IROperator])
-      }
-    }
-    result.toList
+  def getChildren: List[IROperator]
+  def operatorType: OperatorType.OperatorType
+
+  def left: Option[IROperator] = None
+  def right: Option[IROperator] = None
+
+  def isRegionOperator: Boolean = {
+    this.operatorType == OperatorType.REGION_OPERATOR
   }
 
+  def isMetaOperator: Boolean = {
+    this.operatorType == OperatorType.META_OPERATOR
+  }
 
+  def getRegionChildren: List[IROperator] = this.getChildren.filter(p => p.isRegionOperator)
+  def getMetaChildren: List[IROperator] = this.getChildren.filter(p => p.isMetaOperator)
 }
 
 /** Indicates a IROperator which returns a metadata dataset */
-class MetaOperator extends IROperator
+abstract class MetaOperator extends IROperator {
+  override def operatorType: OperatorType = OperatorType.META_OPERATOR
+}
 
 /** Indicates a IROperator which returns a region dataset */
-class RegionOperator extends IROperator {
+abstract class RegionOperator extends IROperator {
   var binSize : Option[Long] = None
+  override def operatorType: OperatorType = OperatorType.REGION_OPERATOR
 }
 
 /** Indicates a IROperator which returns the result of a meta-group operation */
-class MetaGroupOperator extends IROperator
+abstract class MetaGroupOperator extends IROperator{
+  override def operatorType: OperatorType = OperatorType.META_GROUP_OPERATOR
+}
 
 /** Indicates a IROperator which returns the result of a meta-join operation*/
-class MetaJoinOperator extends IROperator
+abstract class MetaJoinOperator extends IROperator{
+  override def operatorType: OperatorType = OperatorType.META_JOIN_OPERATOR
+}
 
 
 /** Structures for specifying an Optional MetaJoinOperator **/

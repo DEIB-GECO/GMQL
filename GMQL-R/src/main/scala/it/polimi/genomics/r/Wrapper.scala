@@ -378,7 +378,7 @@ object Wrapper {
         }
       case _ =>
     }
-    dag.getOperatorList.map(operator => modify_DAG(operator, source, dest))
+    dag.getChildren.map(operator => modify_DAG(operator, source, dest))
   }
 
   def execute(): Array[String] =

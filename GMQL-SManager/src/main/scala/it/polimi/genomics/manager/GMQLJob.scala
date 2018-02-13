@@ -266,7 +266,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
       case _ =>
         None
     }
-    val tempRes = inp.getOperatorList.flatMap(operator => rec(operator))
+    val tempRes = inp.getChildren.flatMap(operator => rec(operator))
 
     tempRes ++ List(result).flatten
   }
