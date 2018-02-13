@@ -118,15 +118,18 @@ class GMQLSparkSubmit(job:GMQLJob) {
     //d=d.setConf("spark.executor.extraJavaOptions", "-Dlog4j.configuration=file:/Users/canakoglu/GMQL-sources/temp/GMQL/GMQL-Core/src/main/resources/logback.xml")
 
 
+    // Set user-category-dependent Spark properties, if any
+    if( Utilities().SPARK_CUSTOM.nonEmpty ) {
 
+       for( spark_property <- Utilities().SPARK_CUSTOM.keys ) {
 
-
-
-
-    // Assign maximum number of executors according to the user category
-    if( Utilities().USER_SPARK_PROP_VAL.contains(job.gMQLContext.userClass) ) {
-      d = d.setConf(Utilities().USER_SPARK_PROP_NAME, Utilities().USER_SPARK_PROP_VAL(job.gMQLContext.userClass).toString)
+         if( Utilities().SPARK_CUSTOM(spark_property).isDefinedAt(job.gMQLContext.userClass)) {
+           val spark_value =  Utilities().SPARK_CUSTOM(spark_property)(job.gMQLContext.userClass)
+           d = d.setConf(spark_property, spark_value)
+         }
+       }
     }
+
 
     val b = d.setVerbose(true).startApplication()
 
