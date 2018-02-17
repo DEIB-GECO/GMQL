@@ -16,25 +16,48 @@
         <module>GMQL-SManager</module>
         <module>GMQL-PythonAPI</module>
     </modules>
-    <name>${project.artifactId}</name>
+    <name>${project.groupId}:${project.artifactId}</name>
     <description>Polimi GMQL, Big Data processing for Genomics</description>
+    <url>http://genomic.elet.polimi.it/gmql-rest/</url>
     <inceptionYear>2015</inceptionYear>
 
     <distributionManagement>
-        <site>
-            <id>genomic.elet.polimi.it</id>
-            <url>scp://genomic.elet.polimi.it/gmql-rest/docs/</url>
-        </site>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
     </distributionManagement>
+
 
     <licenses>
         <license>
-            <name>My License</name>
-            <url>http://....</url>
-            <distribution>repo</distribution>
+            <name>MIT License</name>
+            <url>http://www.opensource.org/licenses/mit-license.php</url>
         </license>
     </licenses>
 
+    <developers>
+        <developer>
+            <name>Abdulrahman Kaitoua</name>
+            <email>abdulrahman.kaitoua@polimi.it</email>
+            <organization>Politecnico Di Milano University</organization>
+            <organizationUrl>https://github.com/akaitoua</organizationUrl>
+        </developer>
+
+        <developer>
+            <name>Luca Nanni</name>
+            <email>luca.nanni@polimi.it</email>
+            <organization>Politecnico Di Milano University</organization>
+            <organizationUrl>https://github.com/lucananni93</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git://github.com/DEIB-GECO/GMQL.git</connection>
+        <developerConnection>scm:git:ssh://github.com/DEIB-GECO/GMQL.git</developerConnection>
+        <url>http:///github.com/DEIB-GECO/GMQL</url>
+      <tag>gmql-1.0</tag>
+  </scm>
 
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
@@ -87,54 +110,58 @@
 
     </dependencies>
 
+    <profiles>
+        <profile>
+            <id>deploy</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>3.0.1</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>2.10.4</version>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.sonatype.plugins</groupId>
+                        <artifactId>nexus-staging-maven-plugin</artifactId>
+                        <version>1.6.7</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <serverId>ossrh</serverId>
+                            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                            <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                        </configuration>
+                    </plugin>
+
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>3.0.1</version>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.10.4</version>
-                <executions>
-                    <execution>
-                        <id>attach-javadocs</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <!--<plugin>-->
-            <!--<artifactId>maven-compiler-plugin</artifactId>-->
-            <!--<configuration>-->
-            <!--<source>1.7</source>-->
-            <!--<target>1.7</target>-->
-            <!--</configuration>-->
-            <!--</plugin>-->
-            <!--<plugin>-->
-            <!--<groupId>org.apache.maven.plugins</groupId>-->
-            <!--<artifactId>maven-jar-plugin</artifactId>-->
-            <!--<version>3.0.0</version>-->
-            <!--<configuration>-->
-            <!--<archive>-->
-            <!--<manifest>-->
-            <!--<mainClass>it.polimi.App</mainClass>-->
-            <!--</manifest>-->
-            <!--</archive>-->
-            <!--</configuration>-->
-            <!--</plugin>-->
-
             <plugin>
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
@@ -164,6 +191,12 @@
                                 <arg>${project.build.directory}/.scala_dependencies</arg>
                             </args>
                         </configuration>
+                    </execution>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>doc-jar</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>
