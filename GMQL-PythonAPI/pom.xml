@@ -156,7 +156,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>2.3</version>
+                <version>3.1.0</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -166,6 +166,8 @@
                     </execution>
                 </executions>
                 <configuration>
+                    <shadedArtifactAttached>true</shadedArtifactAttached>
+                    <shadedClassifierName>jackofall</shadedClassifierName> <!-- Any name that makes sense -->
                     <!--This is needed because GMQL-Repository and GMQL-Spark both use Hadoop configurations
                     therefore we need to merge the sources of Hadoop code-->
                     <transformers>
@@ -181,8 +183,6 @@
                             </excludes>
                         </filter>
                     </filters>
-                    <!--<finalName>uber-${project.artifactId}-${project.version}</finalName>-->
-                    <finalName>pythonAPI-0.0.8</finalName>
                 </configuration>
             </plugin>
             <plugin>
