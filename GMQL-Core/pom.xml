@@ -8,8 +8,8 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <version>2.0</version>
     <artifactId>GMQL-Core</artifactId>
+    <description>Core data structures</description>
 
     <build>
         <sourceDirectory>./src/main/scala</sourceDirectory>
