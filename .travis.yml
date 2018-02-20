@@ -1,4 +1,6 @@
 language: java
+install: mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V --quiet
+script: mvn test -B --quiet
 deploy:
   provider: script
   script: mvn clean deploy --settings settings.xml --quiet
