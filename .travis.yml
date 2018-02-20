@@ -1,7 +1,7 @@
 language: java
 deploy:
   provider: script
-  script: mvn clean deploy --settings settings.xml -Dorg.slf4j.simpleLogger.defaultLogLevel=error
+  script: mvn clean deploy --settings settings.xml --quiet
   skip_cleanup: true
   on:
     branch: master
