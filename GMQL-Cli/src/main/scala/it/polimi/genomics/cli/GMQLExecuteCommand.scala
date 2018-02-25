@@ -4,12 +4,9 @@ import java.io._
 import java.text.SimpleDateFormat
 import java.util.Date
 
-import collection.JavaConversions._
 import it.polimi.genomics.GMQLServer.{GmqlServer, Implementation}
 import it.polimi.genomics.compiler._
-import it.polimi.genomics.core.{DAGSerializer, DAGWrapper}
-//import it.polimi.genomics.core.DataStructures.IRVariable
-import it.polimi.genomics.core.{GMQLSchemaCoordinateSystem, GMQLSchemaFormat, ImplementationPlatform}
+import it.polimi.genomics.core._
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
@@ -26,32 +23,31 @@ import org.slf4j.LoggerFactory
 
 object GMQLExecuteCommand {
   private final val logger = LoggerFactory.getLogger(/*Logger.ROOT_LOGGER_NAME)*/ GMQLExecuteCommand.getClass);
-  try{
-     if(new File("GMQL-Core/src/main/resources/logback.xml").exists())
-        {
-          DOMConfigurator.configure("../conf/logback.xml")
-          val root:ch.qos.logback.classic.Logger = org.slf4j.LoggerFactory.getLogger("org").asInstanceOf[ch.qos.logback.classic.Logger];
-          root.setLevel(ch.qos.logback.classic.Level.WARN);
-          org.slf4j.LoggerFactory.getLogger("it.polimi.genomics.cli").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.INFO)
-        }
-  }catch{
-    case _:Throwable => logger.warn("log4j.xml is not found in conf")
+  try {
+    if (new File("GMQL-Core/src/main/resources/logback.xml").exists()) {
+      DOMConfigurator.configure("../conf/logback.xml")
+      val root: ch.qos.logback.classic.Logger = org.slf4j.LoggerFactory.getLogger("org").asInstanceOf[ch.qos.logback.classic.Logger];
+      root.setLevel(ch.qos.logback.classic.Level.WARN);
+      org.slf4j.LoggerFactory.getLogger("it.polimi.genomics.cli").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.INFO)
+    }
+  } catch {
+    case _: Throwable => logger.warn("log4j.xml is not found in conf")
   }
   val dateFormat = new SimpleDateFormat("yyyy-MM-dd");
   System.setProperty("current.date", dateFormat.format(new Date()));
 
   private final val SYSTEM_TMPE_DIR = System.getProperty("java.io.tmpdir")
-  private final val DEFAULT_SCHEMA_FILE:String = "/test.schema";
+  private final val DEFAULT_SCHEMA_FILE: String = "/test.schema";
   private final val date = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
 
 
-  private var sparkPropObj: Option[Properties] =  None
+  private var sparkPropObj: Option[Properties] = None
 
   private final val usage = "GMQL-Submit " +
     " [-username USER] " +
     "[-exec FLINK|SPARK] [-binsize BIN_SIZE] [-jobid JOB_ID] " +
-//    "[-script G = SELECT();MATERIALIZE G;] " +
-//    "[-inputs DS1:/location/on/HDFS/,DS2:/location/on/HDFS] " +
+    //    "[-script G = SELECT();MATERIALIZE G;] " +
+    //    "[-inputs DS1:/location/on/HDFS/,DS2:/location/on/HDFS] " +
     "[-verbose true|false] " +
     "[-outputFormat GTF|TAB]" +
     "[-outputCoordinateSystem 0-based|1-based|default]" +
@@ -68,8 +64,8 @@ object GMQLExecuteCommand {
     "\n" +
     "\t[-binsize BIN_SIZE]\n" +
     "\t\tBIN_SIZE is a Long value set for Genometric Map and Genometric Join operations. \n" +
-    "\t\tDense data needs smaller bin size. Default is 5000.\n"+
-    "\n"+
+    "\t\tDense data needs smaller bin size. Default is 5000.\n" +
+    "\n" +
     "\t[-jobid JOBID]\n" +
     "\t\tThe default JobID is the username concatenated with a time stamp and the script file name.\n" +
     "\n" +
@@ -89,6 +85,7 @@ object GMQLExecuteCommand {
 
   /**
     * CLI: Command Line Interface to control GMQL-Submit Command.
+    *
     * @param args
     */
   def main(args: Array[String]) {
@@ -108,14 +105,14 @@ object GMQLExecuteCommand {
     var schemata = Map[String, String]()
     var inputs = Map[String, String]()
     var outputs = Map[String, String]()
-    var logDir:String = null
+    var logDir: String = null
     var verbose = false
-    var sparkConfFile:String = null
+    var sparkConfFile: String = null
     var i = 0
 
     // DAG OPTIONS
-    var dag : Option[DAGWrapper] = None
-    var dagPath : String = null
+    var dag: Option[DAGWrapper] = None
+    var dagPath: String = null
 
     //Check the CLI options
     for (i <- 0 until args.length if (i % 2 == 0)) {
@@ -139,7 +136,7 @@ object GMQLExecuteCommand {
         logger.info("JobID set to: " + jobid)
 
       } else if ("-verbose".equals(args(i).toLowerCase())) {
-        if(args(i+1).equals("true"))verbose = true else verbose = false
+        if (args(i + 1).equals("true")) verbose = true else verbose = false
         logger.info("Output is set to Verbose: " + verbose)
 
       } else if ("-script".equals(args(i).toLowerCase())) {
@@ -147,10 +144,10 @@ object GMQLExecuteCommand {
         logger.info("Output Format set to: " + outputFormat)
 
       } else if ("-scriptpath".equals(args(i))) {
-        val sFile = new File (args(i + 1))
-        if(!sFile.exists()) {
+        val sFile = new File(args(i + 1))
+        if (!sFile.exists()) {
           logger.error(s"Script file not found $scriptPath")
-//          return 0
+          //          return 0
         };
         scriptPath = sFile.getPath
         logger.info("scriptpath set to: " + scriptPath)
@@ -158,16 +155,16 @@ object GMQLExecuteCommand {
         sparkConfFile = args(i + 1)
         logger.info("Spark configuration file path set to: " + sparkConfFile)
         sparkPropObj = Some(new Properties(sparkConfFile))
-      }  else if ("-logDir".equals(args(i))) {
+      } else if ("-logDir".equals(args(i))) {
         logDir = args(i + 1)
         logger.info("Log Directory is set to: " + logDir)
 
       } else if ("-outputformat".equals(args(i).toLowerCase())) {
         val out = args(i + 1).toLowerCase().trim
         outputFormat =
-          if(out == GMQLSchemaFormat.TAB.toString)
+          if (out == GMQLSchemaFormat.TAB.toString)
             GMQLSchemaFormat.TAB
-          else if(out == GMQLSchemaFormat.GTF.toString)
+          else if (out == GMQLSchemaFormat.GTF.toString)
             GMQLSchemaFormat.GTF
           else {
             logger.warn(s"Not knwon format $out, Setting the output format for ${GMQLSchemaFormat.TAB}")
@@ -201,13 +198,14 @@ object GMQLExecuteCommand {
       } else if ("-outputDirs".equals(args(i))) {
         outputs = extractDSDir(args(i + 1))
         logger.info("outputs set to: \n" + (outputs).mkString("\n"))
-      } else if ("-schemata".equals(args(i).toLowerCase())) {//List of [NAME:::schema] separated by comma
+      } else if ("-schemata".equals(args(i).toLowerCase())) {
+        //List of [NAME:::schema] separated by comma
         //Input datasets Schemata can be sent from the Server Manager a string separated by :::
-        schemata = extractInDSsSchema( args(i + 1))
+        schemata = extractInDSsSchema(args(i + 1))
         logger.info("Schema set to: " + args(i + 1))
       } else if ("-dag".equals(args(i).toLowerCase())) {
         // GMQLSubmit sent directly the DAG encoded as a string
-        val serializedDag = args(i+1)
+        val serializedDag = args(i + 1)
         if (!serializedDag.isEmpty) {
           // Deserialization of the DAG string to List[IRVariable]
           dag = Some(DAGSerializer.deserializeDAG(serializedDag))
@@ -219,17 +217,18 @@ object GMQLExecuteCommand {
         dag = Some(DAGSerializer.deserializeDAG(serializedDag))
         logger.info("DAG path set to: " + dagPath)
       } else {
-        logger.warn("( "+ args(i) + " ) NOT A VALID COMMAND ... ")
+        logger.warn("( " + args(i) + " ) NOT A VALID COMMAND ... ")
       }
     }
-//    if(dagPath != null) {
-//      // Deserialization of the DAG string saved in a File
-//      dag = Some(Utilities.deserializeDAG(new String(Files.readAllBytes(Paths.get(dagPath)))))
-//    }
+    //    if(dagPath != null) {
+    //      // Deserialization of the DAG string saved in a File
+    //      dag = Some(Utilities.deserializeDAG(new String(Files.readAllBytes(Paths.get(dagPath)))))
+    //    }
     //If the Script path is not set and the script is not loaded in the options
     // and no serialized DAG was submitted, close execution.
-    if (scriptPath == null && script == null && dag.isEmpty ) {
-      println(usage); sys.exit(9)
+    if (scriptPath == null && script == null && dag.isEmpty) {
+      println(usage);
+      sys.exit(9)
     }
 
     // In case scriptPath is empty then set the path to test.GMQL file,
@@ -239,7 +238,7 @@ object GMQLExecuteCommand {
 
     //read GMQL script
     val query: String =
-      if (dag.isDefined) ""  //If we have a serialized DAG we do not need the query
+      if (dag.isDefined) "" //If we have a serialized DAG we do not need the query
       else if (script != null) script
       else readScriptFile(scriptPath)
 
@@ -248,11 +247,11 @@ object GMQLExecuteCommand {
 
     //Set the logging file of this job to be stored either to /tmp folder
     // or to the user log directory in the repository.
-    setlogger(jobid, verbose,if(logDir!=null)logDir else SYSTEM_TMPE_DIR)
+    setlogger(jobid, verbose, if (logDir != null) logDir else SYSTEM_TMPE_DIR)
 
     logger.info("Start to execute GMQL Script..")
 
-    val implementation: Implementation = getImplemenation(executionType,jobid,outputFormat,outputCoordinateSystem)
+    val implementation: Implementation = getImplemenation(executionType, jobid, outputFormat, outputCoordinateSystem)
 
     val server = new GmqlServer(implementation, Some(1000))
     if (dag.isDefined) {
@@ -265,19 +264,19 @@ object GMQLExecuteCommand {
       val translator = new Translator(server, "/tmp/")
 
       val translation = /*if(!dag.isEmpty) dag else translator.phase1(readScriptFile(scriptPath))*/
-        compile(jobid, translator, query, inputs,outputs)
+        compile(jobid, translator, query, inputs, outputs)
 
       try {
         if (translator.phase2(translation)) {
           server.run()
-        }else{
+        } else {
           logger.error("Compile failed..")
           System.exit(0);
         }
       } catch {
-        case e: CompilerException => logger.error(e.getMessage) ; System.exit(0)
-        case ex:Exception => logger.error("exception: \t"+ex.getMessage);/*ex.printStackTrace();*/ System.exit(0)
-        case e : Throwable =>logger.error("Throwable: "+e.getMessage);/* e.printStackTrace(); */System.exit(0)
+        case e: CompilerException => logger.error(e.getMessage, e); System.exit(0)
+        case e: Exception => logger.error("exception: \t" + e.getMessage, e); /*ex.printStackTrace();*/ System.exit(0)
+        case e: Throwable => logger.error("Throwable: " + e.getMessage, e); /* e.printStackTrace(); */ System.exit(0)
       }
     }
 
@@ -285,11 +284,11 @@ object GMQLExecuteCommand {
 
   def generateJobId(scriptPath: String, username: String) = "job_" + new java.io.File(scriptPath).getName.substring(0, new java.io.File(scriptPath).getName.indexOf(".")) + username + "_" + date
 
-  def setlogger(jobId: String, verbose: Boolean, logDir:String): Unit = {
+  def setlogger(jobId: String, verbose: Boolean, logDir: String): Unit = {
     //    org.apache.log4j.Logger.getRootLogger().getLoggerRepository().resetConfiguration();
     val fa = new FileAppender();
     fa.setName("FileLogger");
-    val loggerFile = logDir +"/" +jobId.toLowerCase() + ".log"
+    val loggerFile = logDir + "/" + jobId.toLowerCase() + ".log"
     fa.setFile(loggerFile);
     logger.info("Logger is set to:\n" + loggerFile)
     fa.setLayout(new PatternLayout("%d %-5p [%c{1}] %m%n"));
@@ -299,17 +298,17 @@ object GMQLExecuteCommand {
 
     //add appender to any Logger (here is root)
     org.apache.log4j.Logger.getRootLogger().addAppender(fa)
-//    org.apache.log4j.Logger.getRootLogger().setLevel(org.apache.log4j.Level.INFO)
+    //    org.apache.log4j.Logger.getRootLogger().setLevel(org.apache.log4j.Level.INFO)
     org.apache.log4j.Logger.getLogger("org").setLevel(if (!verbose) org.apache.log4j.Level.WARN else org.apache.log4j.Level.INFO)
-//    org.apache.log4j.Logger.getLogger("it").setLevel(if (!verbose) org.apache.log4j.Level.WARN else org.apache.log4j.Level.DEBUG)
-    org.apache.log4j.Logger.getLogger("it.polimi.genomics.spark").setLevel( org.apache.log4j.Level.INFO)
-//    org.apache.log4j.Logger.getLogger("it.polimi.genomics.cli").setLevel(if (!verbose) org.apache.log4j.Level.INFO else org.apache.log4j.Level.INFO)
+    //    org.apache.log4j.Logger.getLogger("it").setLevel(if (!verbose) org.apache.log4j.Level.WARN else org.apache.log4j.Level.DEBUG)
+    org.apache.log4j.Logger.getLogger("it.polimi.genomics.spark").setLevel(org.apache.log4j.Level.INFO)
+    //    org.apache.log4j.Logger.getLogger("it.polimi.genomics.cli").setLevel(if (!verbose) org.apache.log4j.Level.INFO else org.apache.log4j.Level.INFO)
     org.apache.log4j.Logger.getLogger("org.apache.spark").setLevel(org.apache.log4j.Level.WARN)
     org.apache.log4j.Logger.getLogger("akka").setLevel(org.apache.log4j.Level.ERROR)
     //    org.apache.log4j.Logger.getLogger("it.polimi.genomics.spark.implementation.GMQLSparkExecutor").setLevel(org.apache.log4j.Level.INFO)
 
-//    val root:ch.qos.logback.classic.Logger = org.slf4j.LoggerFactory.getLogger("org").asInstanceOf[ch.qos.logback.classic.Logger];
-//    root.setLevel(ch.qos.logback.classic.Level.WARN);
+    //    val root:ch.qos.logback.classic.Logger = org.slf4j.LoggerFactory.getLogger("org").asInstanceOf[ch.qos.logback.classic.Logger];
+    //    root.setLevel(ch.qos.logback.classic.Level.WARN);
 
   }
 
@@ -321,7 +320,7 @@ object GMQLExecuteCommand {
     }
   }
 
-  def readFile(path: String) : String = {
+  def readFile(path: String): String = {
     val conf = new Configuration();
     val pathHadoop = new org.apache.hadoop.fs.Path(path);
     val fs = FileSystem.get(pathHadoop.toUri(), conf);
@@ -329,7 +328,7 @@ object GMQLExecuteCommand {
     scala.io.Source.fromInputStream(ifS).mkString
   }
 
-  def compile(id: String, translator: Translator, script: String, inputs: Map[String, String],outputs: Map[String, String]): List[Operator] = {
+  def compile(id: String, translator: Translator, script: String, inputs: Map[String, String], outputs: Map[String, String]): List[Operator] = {
     var operators: List[Operator] = List[Operator]()
     try {
       //compile the GMQL Code
@@ -342,14 +341,14 @@ object GMQLExecuteCommand {
           if (outputs.nonEmpty) {
             if (!d.store_path.isEmpty) {
               val path = id + "_" + d.store_path + "/"
-              logger.info(d.store_path+", generated: " + path )
+              logger.info(d.store_path + ", generated: " + path)
               d.store_path = outputs.get(d.store_path).getOrElse(path)
-              logger.info("outputs: "+outputs.mkString("\n"))
+              logger.info("outputs: " + outputs.mkString("\n"))
               d
             }
             else {
               val path = id + "/"
-              d.store_path = outputs.get(d.store_path).get//.getOrElse(path)
+              d.store_path = outputs.get(d.store_path).get //.getOrElse(path)
               d
             }
           }
@@ -359,8 +358,8 @@ object GMQLExecuteCommand {
           case p: VariableIdentifier => VariableIdentifier(inputs.get(p.IDName).getOrElse(p.IDName));
         };
 
-          SelectOperator(select.op_pos, dsinput, select.input2,select.output,select.parameters)
-          //new SelectOperator(select.op_pos, dsinput, select.input2, select.output, select.sj_condition, select.meta_condition, select.region_condition)
+          SelectOperator(select.op_pos, dsinput, select.input2, select.output, select.parameters)
+        //new SelectOperator(select.op_pos, dsinput, select.input2, select.output, select.sj_condition, select.meta_condition, select.region_condition)
         case s: Operator => s
       })
     } catch {
@@ -371,38 +370,39 @@ object GMQLExecuteCommand {
     operators
   }
 
-  def getImplemenation(executionType:String,jobid:String , outputFormat: GMQLSchemaFormat.Value, outputCoordinateSystem: GMQLSchemaCoordinateSystem.Value) ={
-//    if (executionType.equals(it.polimi.genomics.core.ImplementationPlatform.SPARK.toString.toLowerCase())) {
-      val conf = new SparkConf().setAppName("GMQL V2.1 Spark " + jobid)
-        .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "128")
-        .set("spark.driver.allowMultipleContexts","true")
-        .set("spark.sql.tungsten.enabled", "true")//.setMaster("local[*]")
-      val sc: SparkContext = new SparkContext(conf)
-//      sc.addSparkListener(new SparkListener() {
-//        override def onApplicationStart(applicationStart: SparkListenerApplicationStart) {
-//          logger.debug("Spark ApplicationStart: " + applicationStart.appName);
-//        }
-//
-//        override def onStageCompleted(stageCompleted: SparkListenerStageCompleted): Unit = {
-//          logger.debug("Number of tasks "+stageCompleted.stageInfo.numTasks+ "\tinfor:"+ stageCompleted.stageInfo.rddInfos.mkString("\n"))
-//          logger.debug("Spark Stage ended: " +stageCompleted.stageInfo.name+
-//            /*", with details ("+ stageCompleted.stageInfo.details+*/
-//            " ,execTime: "+ stageCompleted.stageInfo.completionTime.getOrElse(0));
-//        }
-//
-//        override def onApplicationEnd(applicationEnd: SparkListenerApplicationEnd) {
-//          logger.debug("Spark ApplicationEnd: " + applicationEnd.time);
-//        }
-//
-//      });
-      new GMQLSparkExecutor(testingIOFormats = false, sc = sc, outputFormat = outputFormat, outputCoordinateSystem = outputCoordinateSystem)
-//    }
-//    else /*if(executionType.equals(FLINK)) */ {
-//      new FlinkImplementation()
-//    }
+  def getImplemenation(executionType: String, jobid: String, outputFormat: GMQLSchemaFormat.Value, outputCoordinateSystem: GMQLSchemaCoordinateSystem.Value) = {
+    //    if (executionType.equals(it.polimi.genomics.core.ImplementationPlatform.SPARK.toString.toLowerCase())) {
+    val conf = new SparkConf().setAppName("GMQL V2.1 Spark " + jobid)
+      .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "128")
+      .set("spark.driver.allowMultipleContexts", "true")
+      .set("spark.sql.tungsten.enabled", "true")
+    //.setMaster("local[*]")
+    val sc: SparkContext = new SparkContext(conf)
+    //      sc.addSparkListener(new SparkListener() {
+    //        override def onApplicationStart(applicationStart: SparkListenerApplicationStart) {
+    //          logger.debug("Spark ApplicationStart: " + applicationStart.appName);
+    //        }
+    //
+    //        override def onStageCompleted(stageCompleted: SparkListenerStageCompleted): Unit = {
+    //          logger.debug("Number of tasks "+stageCompleted.stageInfo.numTasks+ "\tinfor:"+ stageCompleted.stageInfo.rddInfos.mkString("\n"))
+    //          logger.debug("Spark Stage ended: " +stageCompleted.stageInfo.name+
+    //            /*", with details ("+ stageCompleted.stageInfo.details+*/
+    //            " ,execTime: "+ stageCompleted.stageInfo.completionTime.getOrElse(0));
+    //        }
+    //
+    //        override def onApplicationEnd(applicationEnd: SparkListenerApplicationEnd) {
+    //          logger.debug("Spark ApplicationEnd: " + applicationEnd.time);
+    //        }
+    //
+    //      });
+    new GMQLSparkExecutor(testingIOFormats = false, sc = sc, outputFormat = outputFormat, outputCoordinateSystem = outputCoordinateSystem)
+    //    }
+    //    else /*if(executionType.equals(FLINK)) */ {
+    //      new FlinkImplementation()
+    //    }
   }
 
-  private def extractInDSsSchema(inputSchemata:String):Map[String, String] ={
+  private def extractInDSsSchema(inputSchemata: String): Map[String, String] = {
 
     val conf = new Configuration();
 
@@ -422,7 +422,7 @@ object GMQLExecuteCommand {
     else Map()
   }
 
-  private def extractDSDir(inDS:String):Map[String, String] = {
+  private def extractDSDir(inDS: String): Map[String, String] = {
     val DSs = inDS.split(",")
     if (DSs.nonEmpty)
       DSs.map { x =>
@@ -450,4 +450,5 @@ object GMQLExecuteCommand {
   object Properties {
     def apply(path: String) = new Properties(path)
   }
+
 }
