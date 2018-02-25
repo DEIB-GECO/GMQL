@@ -24,15 +24,19 @@ import org.slf4j.LoggerFactory
 object GMQLExecuteCommand {
   private final val logger = LoggerFactory.getLogger(/*Logger.ROOT_LOGGER_NAME)*/ GMQLExecuteCommand.getClass);
   try {
-    if (new File("GMQL-Core/src/main/resources/logback.xml").exists()) {
-      DOMConfigurator.configure("../conf/logback.xml")
-      val root: ch.qos.logback.classic.Logger = org.slf4j.LoggerFactory.getLogger("org").asInstanceOf[ch.qos.logback.classic.Logger];
-      root.setLevel(ch.qos.logback.classic.Level.WARN);
-      org.slf4j.LoggerFactory.getLogger("it.polimi.genomics.cli").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.INFO)
+    val LOGBACK_CONFIGURATION_FILES = List("GMQL-Core/src/main/resources/logback.xml", "../conf/logback.xml")
+    val fileNameOpt =LOGBACK_CONFIGURATION_FILES.collectFirst { case fileName if new File(fileName).exists() => fileName }
+    fileNameOpt match {
+      case Some(fileName) =>
+        DOMConfigurator.configure(fileName)
+        val root: ch.qos.logback.classic.Logger = org.slf4j.LoggerFactory.getLogger("org").asInstanceOf[ch.qos.logback.classic.Logger]
+        root.setLevel(ch.qos.logback.classic.Level.WARN)
+        org.slf4j.LoggerFactory.getLogger("it.polimi.genomics.cli").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.INFO)
     }
   } catch {
     case _: Throwable => logger.warn("log4j.xml is not found in conf")
   }
+
   val dateFormat = new SimpleDateFormat("yyyy-MM-dd");
   System.setProperty("current.date", dateFormat.format(new Date()));
 
