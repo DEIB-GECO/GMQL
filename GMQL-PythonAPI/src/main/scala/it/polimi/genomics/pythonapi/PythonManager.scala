@@ -321,7 +321,7 @@ object PythonManager {
         }
       case _ =>
     }
-    dag.getOperatorList.map(operator => modify_dag_source(operator, source, dest))
+    dag.getChildren.map(operator => modify_dag_source(operator, source, dest))
   }
 
   /*Spark context related*/
