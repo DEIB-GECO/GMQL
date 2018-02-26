@@ -1,9 +1,9 @@
 package it.polimi.genomics.profiling.Profilers
 
+import it.polimi.genomics.core.DataStructures.{Feature, GMQLDatasetProfile, GMQLSampleStats}
 import it.polimi.genomics.core.DataTypes._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.SparkContext
-import it.polimi.genomics.profiling.Profiles.{GMQLDatasetProfile, GMQLSampleStats}
 import org.slf4j.LoggerFactory
 
 import scala.collection.Map
@@ -242,14 +242,4 @@ object Profiler extends java.io.Serializable {
     averages
   }
 
-}
-
-
-object Feature extends Enumeration {
-  type Feature = Value
-  val NUM_SAMP:    Feature.Value = Value("num_samp")
-  val NUM_REG:     Feature.Value = Value("num_reg")
-  val AVG_REG_LEN: Feature.Value = Value("avg_reg_length")
-  val MIN_COORD:   Feature.Value = Value("min")
-  val MAX_COORD:   Feature.Value = Value("max")
 }

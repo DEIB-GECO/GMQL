@@ -1,11 +1,7 @@
-package it.polimi.genomics.profiling.Profiles
+package it.polimi.genomics.core.DataStructures
 
-
-
-import it.polimi.genomics.profiling.Profilers.Feature.Feature
-
+import it.polimi.genomics.core.DataStructures.Feature.Feature
 import scala.collection.Map
-
 
 /**
   *
@@ -22,7 +18,6 @@ case class GMQLDatasetProfile( samples:List[(GMQLSampleStats)] ) {
   }
 }
 
-
 /**
   *  GMQLSample is an abstraction  of the path of the sample and its metadata along with the ID
   * @param ID Integer of the id of the sample
@@ -36,4 +31,13 @@ case class GMQLSampleStats(ID:String) {
     val v = stats.get(feature.toString)
     if (v.isDefined)  v.get else "undefined"
   }
+}
+
+object Feature extends Enumeration {
+  type Feature = Value
+  val NUM_SAMP:    Feature.Value = Value("num_samp")
+  val NUM_REG:     Feature.Value = Value("num_reg")
+  val AVG_REG_LEN: Feature.Value = Value("avg_reg_length")
+  val MIN_COORD:   Feature.Value = Value("min")
+  val MAX_COORD:   Feature.Value = Value("max")
 }

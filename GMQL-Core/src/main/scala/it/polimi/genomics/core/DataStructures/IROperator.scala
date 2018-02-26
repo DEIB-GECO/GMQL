@@ -12,8 +12,14 @@ abstract class IROperator extends Serializable {
   var intermediateResult : Option[AnyRef] = None
   override def toString = operatorName
 
-  def getChildren: List[IROperator]
   def operatorType: OperatorType.OperatorType
+
+  def getChildren: List[IROperator]
+  def getRegionChildren: List[IROperator] = this.getChildren.filter(p => p.isRegionOperator)
+  def getMetaChildren: List[IROperator] = this.getChildren.filter(p => p.isMetaOperator)
+
+  var requiresOutputProfile: Boolean = false
+  var outputProfile: Option[GMQLDatasetProfile] = None
 
   def left: Option[IROperator] = None
   def right: Option[IROperator] = None
@@ -23,11 +29,11 @@ abstract class IROperator extends Serializable {
   }
 
   def isMetaOperator: Boolean = {
-    this.operatorType == OperatorType.META_OPERATOR
+    this.operatorType == OperatorType.META_OPERATOR ||
+      this.operatorType == OperatorType.META_GROUP_OPERATOR ||
+      this.operatorType == OperatorType.META_JOIN_OPERATOR
   }
 
-  def getRegionChildren: List[IROperator] = this.getChildren.filter(p => p.isRegionOperator)
-  def getMetaChildren: List[IROperator] = this.getChildren.filter(p => p.isMetaOperator)
 }
 
 /** Indicates a IROperator which returns a metadata dataset */

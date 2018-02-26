@@ -1,10 +1,10 @@
 package it.polimi.genomics.spark.utilities
 
 import com.google.common.hash.Hashing
+import it.polimi.genomics.core.DataStructures.GMQLDatasetProfile
 import it.polimi.genomics.core.DataTypes.{GRECORD, MetaType}
 import it.polimi.genomics.core.{DataTypes, GMQLLoader}
 import it.polimi.genomics.profiling.Profilers.Profiler
-import it.polimi.genomics.profiling.Profiles.GMQLDatasetProfile
 import it.polimi.genomics.spark.implementation.loaders.Loaders.Context
 import it.polimi.genomics.spark.implementation.loaders.{BasicParser, CustomParser, Loaders}
 import org.apache.hadoop.fs.{FileSystem, Path, PathFilter}
