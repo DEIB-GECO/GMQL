@@ -9,33 +9,33 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
     <artifactId>GMQL-R</artifactId>
-    <version>1.0</version>
-
+    <description>Interface to the R library</description>
+    <inceptionYear>2017</inceptionYear>
     <packaging>jar</packaging>
 
     <dependencies>
         <dependency>
             <groupId>it.polimi.genomics</groupId>
             <artifactId>GMQL-Core</artifactId>
-            <version>2.0</version>
+            <version>1.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>
             <groupId>it.polimi.genomics</groupId>
             <artifactId>GMQL-Server</artifactId>
-            <version>2.0</version>
+            <version>1.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>
             <groupId>it.polimi.genomics</groupId>
             <artifactId>GMQL-Spark</artifactId>
-            <version>4.0</version>
+            <version>1.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>
             <groupId>it.polimi.genomics</groupId>
             <artifactId>Compiler</artifactId>
-            <version>3.0</version>
+            <version>1.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>

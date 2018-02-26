@@ -5,9 +5,9 @@ import it.polimi.genomics.core.DataStructures.CoverParameters.CoverFlag.CoverFla
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.{ASC, DESC, Direction}
 import it.polimi.genomics.core.DataStructures.GroupMDParameters._
 import it.polimi.genomics.core.DataStructures.GroupRDParameters.{FIELD, GroupingParameter}
-import it.polimi.genomics.core.DataStructures.IRVariable
+import it.polimi.genomics.core.DataStructures.{IRVariable, MetaOperator}
 import it.polimi.genomics.core.DataStructures.JoinParametersRD._
-import it.polimi.genomics.core.DataStructures.MetaAggregate.{MetaAggregateStruct, MetaExtension}
+import it.polimi.genomics.core.DataStructures.MetaAggregate.{MetaAggregateFunction, MetaAggregateStruct, MetaExtension}
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
 import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition.{AttributeEvaluationStrategy, Default, MetaJoinCondition}
@@ -42,10 +42,12 @@ object OperatorManager {
   * SELECT
   * */
 
+  @deprecated
   def meta_select(index: Int, other: Int, metaCondition: MetadataCondition): Int = {
     meta_select(index, other, metaCondition, None)
   }
 
+  @deprecated
   def meta_select(index: Int, other: Int,  metaCondition : MetadataCondition,
                   metaJoinCondition: Option[MetaJoinCondition]) : Int = {
 
@@ -70,10 +72,12 @@ object OperatorManager {
     new_index
   }
 
+  @deprecated
   def reg_select(index: Int, other: Int, regionCondition: RegionCondition): Int = {
     reg_select(index, other, regionCondition, None)
   }
 
+  @deprecated
   def reg_select(index: Int, other: Int, regionCondition: RegionCondition,
                  metaJoinCondition: Option[MetaJoinCondition]) : Int = {
     // get the corresponding variable
@@ -94,6 +98,7 @@ object OperatorManager {
     new_index
   }
 
+  @deprecated
   def only_semi_select(index: Int, other:Int, metaJoinCondition: Option[MetaJoinCondition]): Int = {
     // get the corresponding variable
     val v = PythonManager.getVariable(index)
@@ -105,6 +110,18 @@ object OperatorManager {
     else {
       throw new IllegalArgumentException("other_index >= 0 && metaJoinCondition")
     }
+    // generate new index
+    val new_index = PythonManager.putNewVariable(nv)
+    new_index
+  }
+
+  def select(index: Int, other:Option[Int], semi_join_condition : Option[MetaJoinCondition],
+             meta_condition : Option[MetadataCondition], region_condition : Option[RegionCondition]): Int = {
+    val v = PythonManager.getVariable(index)
+    var ov: Option[MetaOperator] = None
+    if(other.isDefined)
+      ov = Some(PythonManager.getVariable(other.get).metaDag)
+    val nv = v.add_select_statement(ov, semi_join_condition, meta_condition, region_condition)
     // generate new index
     val new_index = PythonManager.putNewVariable(nv)
     new_index
@@ -183,21 +200,32 @@ object OperatorManager {
       case "flat" => CoverFlag.FLAT
       case "summit" => CoverFlag.SUMMIT
       case "histogram" => CoverFlag.HISTOGRAM
-      case _ => CoverFlag.COVER
+      case _ => throw new IllegalArgumentException(name + " is not a valid COVER type")
     }
   }
 
   def getCoverParam(p : String): CoverParam = {
-    p.toUpperCase match {
-      case "ALL" => new ALL{}
-      case "ANY" => new ANY{}
-      case _ =>
-        val number = p.toInt
-        new N {
-          override val n: Int = number
-
-      }
+    val coverParameterManager = CoverParameterManager
+    var number: Option[Int] = None
+    try {
+      number = Some(p.toInt)
+      coverParameterManager.getCoverParam("N", number)
+    } catch {
+      case _ => coverParameterManager.getCoverParam(p, None)
     }
+//    p.toUpperCase match {
+//      case "ALL" => new ALL{}
+//      case "ANY" => new ANY{}
+//      case _ =>
+//        try {
+//          val number = p.toInt
+//          new N {
+//            override val n: Int = number
+//          }
+//        } catch {
+//          case _ : Exception => throw new IllegalArgumentException(p + " is an invalid COVER parameter")
+//        }
+//    }
   }
 
   def cover(index: Int, coverFlag : CoverFlag, minAcc : CoverParam, maxAcc : CoverParam,
@@ -259,18 +287,14 @@ object OperatorManager {
     }
   }
 
-  def getMetaJoinCondition(metadataAttributeList : java.util.List[String]): Option[MetaJoinCondition] = {
+  def getMetaJoinCondition(metadataAttributeList : java.util.List[String]): MetaJoinCondition = {
     // TODO: enable different evaluation strategies
     var listAttributes = new ListBuffer[AttributeEvaluationStrategy]()
-
     for(m <- metadataAttributeList) {
       val att = Default(m)
       listAttributes += att
     }
-    if(listAttributes.size < 1)
-      None
-    else
-      Option(MetaJoinCondition(listAttributes.toList))
+    MetaJoinCondition(listAttributes.toList)
   }
 
   def getAttributeEvaluationStrategy(metadataAttributeList : List[String]): List[AttributeEvaluationStrategy] = {
@@ -279,18 +303,22 @@ object OperatorManager {
   }
 
   def getRegionBuilderJoin(builder: String) : RegionBuilder = {
-    builder match {
+    builder.toUpperCase match {
       case "LEFT" =>  RegionBuilder.LEFT
+      case "LEFT_DISTINCT" => RegionBuilder.LEFT_DISTINCT
       case "RIGHT" => RegionBuilder.RIGHT
-      case "INT" => RegionBuilder.INTERSECTION
+      case "RIGHT_DISTINCT" =>  RegionBuilder.RIGHT_DISTINCT
+      case "INTERSECTION" => RegionBuilder.INTERSECTION
       case "CONTIG" => RegionBuilder.CONTIG
+      case "BOTH" => RegionBuilder.BOTH
       case _ => throw new IllegalArgumentException(builder + " is not a region builder")
     }
   }
 
   def join(index: Int, other: Int, metaJoinCondition: Option[MetaJoinCondition],
            regionJoinCondition: List[JoinQuadruple], regionBuilder : RegionBuilder,
-           referenceName: String, experimentName: String): Int = {
+           referenceName: String, experimentName: String,
+           left_on : Option[java.util.List[String]], right_on : Option[java.util.List[String]]): Int = {
 
     var refName : Option[String] = None
     var expName : Option[String] = None
@@ -304,7 +332,29 @@ object OperatorManager {
     val v = PythonManager.getVariable(index)
     val other_v = PythonManager.getVariable(other)
 
-    val nv = v.JOIN(metaJoinCondition,regionJoinCondition,regionBuilder,other_v,refName,expName)
+    val join_on_attributes : Option[List[(Int, Int)]] = {
+      if(left_on.isDefined && right_on.isDefined){
+        val left_idxs = left_on.get.toList.map(x => {
+          val r = v.get_field_by_name(x)
+          if(r.isDefined)
+            r.get
+          else
+            throw new IllegalArgumentException("Region field " + x + " is not present")
+        })
+        val right_idxs = right_on.get.toList.map(x => {
+          val r = other_v.get_field_by_name(x)
+          if(r.isDefined)
+            r.get
+          else
+            throw new IllegalArgumentException("Region field " + x + " is not present")
+        })
+        Some(left_idxs.zip(right_idxs))
+      }
+      else
+        None
+    }
+
+    val nv = v.JOIN(metaJoinCondition,regionJoinCondition,regionBuilder,other_v,refName,expName, join_on_attributes)
     // generate new index
     val new_index = PythonManager.putNewVariable(nv)
     new_index
@@ -339,12 +389,13 @@ object OperatorManager {
   * ORDER
   * */
 
-  def getOrderTopParameter(paramName : String, k : String) : TopParameter = {
+  def getOrderTopParameter(paramName : String, k : Int) : TopParameter = {
     paramName.toUpperCase match {
-      case "TOP" => Top(k.toInt)
-      case "TOPG" => TopG(k.toInt)
-      case "TOPP" => TopP(k.toInt)
-      case _ => NoTop()
+      case "TOP" => Top(k)
+      case "TOPG" => TopG(k)
+      case "TOPP" => TopP(k)
+      case "NOTOP" => NoTop()
+      case _ => throw new IllegalArgumentException(paramName + " is not an ordering parameter")
     }
   }
 
@@ -356,61 +407,50 @@ object OperatorManager {
       DESC
   }
 
-  def order(index: Int, meta_ordering : java.util.List[String],
-            meta_ascending : java.util.List[Boolean],
-            metaTop : String, metaK : String,
-            region_ordering : java.util.List[String],
-            region_ascending: java.util.List[Boolean],
-            regionTop: String, regionK : String): Int = {
-    val metaTopParameter = getOrderTopParameter(metaTop, metaK)
-    val regionTopParameter = getOrderTopParameter(regionTop, regionK)
-
-    var metaOrdering : Option[List[(String,Direction)]] = None
-    var regionOrdering : Option[List[(Int,Direction)]] = None
+  def order(index: Int, metaOrdering: Option[java.util.List[String]],
+            metaAscending: Option[java.util.List[Boolean]],
+            metaTop: Option[String], metaK: Option[Int],
+            regionOrdering: Option[java.util.List[String]],
+            regionAscending: Option[java.util.List[Boolean]],
+            regionTop: Option[String], regionK: Option[Int]) : Int = {
 
     val v = PythonManager.getVariable(index)
-
-    if(meta_ordering.size() > 0){
-      val result = new ListBuffer[(String,Direction)]()
-      if(meta_ascending.size() > 0) {
-        for(i <- 0 to meta_ascending.size()){
-          val meta = meta_ordering.get(i)
-          val direction = getOrderDirection(meta_ascending.get(i))
-          result += Tuple2(meta, direction)
-        }
-      }
-      else {
-        for(i <- 0 to meta_ascending.size()){
-          val meta = meta_ordering.get(i)
-          val direction = getOrderDirection(true)
-          result += Tuple2(meta, direction)
-        }
-      }
-      metaOrdering = Option(result.toList)
-    }
-    if(region_ordering.size() > 0){
-      val result = new ListBuffer[(Int,Direction)]()
-      if(region_ascending.size() > 0) {
-        for(i <- 0 to region_ascending.size()){
-          val regionName = region_ordering.get(i)
-          val regionNumber = v.get_field_by_name(regionName).get
-          val direction = getOrderDirection(region_ascending.get(i))
-          result += Tuple2(regionNumber, direction)
-        }
-      }
-      else {
-        for(i <- 0 to region_ascending.size()){
-          val regionName = region_ordering.get(i)
-          val regionNumber = v.get_field_by_name(regionName).get
-          val direction = getOrderDirection(true)
-          result += Tuple2(regionNumber, direction)
-        }
-      }
-      regionOrdering = Option(result.toList)
+    val metaTopParameter = {
+      if(metaTop.isDefined &&  metaK.isDefined)
+        getOrderTopParameter(metaTop.get, metaK.get)
+      else
+        getOrderTopParameter("NOTOP", 0)
     }
 
-    val nv = v.ORDER(metaOrdering,"_group",metaTopParameter,regionOrdering,regionTopParameter)
+    val regionTopParameter = {
+      if(regionTop.isDefined &&  regionK.isDefined)
+        getOrderTopParameter(regionTop.get, regionK.get)
+      else
+        getOrderTopParameter("NOTOP", 0)
+    }
 
+    val metaOrderingP = {
+      if(metaOrdering.isDefined && metaAscending.isDefined){
+        Some(metaOrdering.get.toList.zip(metaAscending.get.toList.map(getOrderDirection)))
+      }
+      else
+        None
+    }
+
+    val regionOrderingP = {
+      if(regionOrdering.isDefined && regionAscending.isDefined){
+        Some(regionOrdering.get.toList.map(x => {
+          val r = v.get_field_by_name(x)
+          if(r.isDefined)
+            r.get
+          else
+            throw new IllegalArgumentException(x + " is not a valid region field")
+        }).zip(regionAscending.get.toList.map(getOrderDirection)))
+      }
+      else
+        None
+    }
+    val nv = v.ORDER(metaOrderingP,"_group",metaTopParameter,regionOrderingP,regionTopParameter)
     // generate new index
     val new_index = PythonManager.putNewVariable(nv)
     new_index
@@ -433,6 +473,46 @@ object OperatorManager {
         FIELD(fieldNum.get)
     })
   }
+
+  def group(index: Int, meta_keys : Option[java.util.List[String]],
+            meta_aggregates : Option[java.util.List[MetaAggregateFunction]],
+            meta_group_name : String,
+            region_keys: Option[java.util.List[String]],
+            region_aggregates : Option[java.util.List[RegionsToRegion]]) : Int = {
+    val v = PythonManager.getVariable(index)
+    val metaKeysP = {
+      if(meta_keys.isDefined)
+        Some(getMetaGroupByCondition(meta_keys.get.toList))
+      else
+        None
+    }
+
+    val metaAggregates = {
+      if(meta_aggregates.isDefined)
+        Some(meta_aggregates.get.toList)
+      else
+        None
+    }
+
+    val regionKeysP = {
+      if(region_keys.isDefined)
+        Some(getGroupingParameters(region_keys.get.toList, v))
+      else
+        None
+    }
+
+    val regionAggregates = {
+      if(region_aggregates.isDefined)
+        Some(region_aggregates.get.toList)
+      else
+        None
+    }
+
+    val nv = v GROUP(metaKeysP, metaAggregates, meta_group_name, regionKeysP, regionAggregates)
+    val new_index = PythonManager.putNewVariable(nv)
+    new_index
+  }
+
 
 //  def group(index: Int, meta_keys: Option[java.util.List[String]],
 //            meta_aggregates: Option[java.util.List[RegionsToMeta]], meta_group_name: String,

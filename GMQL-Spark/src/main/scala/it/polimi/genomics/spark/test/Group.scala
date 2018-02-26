@@ -1,6 +1,7 @@
 package it.polimi.genomics.spark.test
 
 import it.polimi.genomics.GMQLServer._
+import it.polimi.genomics.core.DataStructures.GroupRDParameters.FIELD
 import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition.Default
 import it.polimi.genomics.core.GMQLSchemaFormat
@@ -44,7 +45,9 @@ object Group {
 
         case 1 => {
           //GROUP RD
-          dataAsTheyAre.GROUP(None, None, "_group", None, Some(List(DefaultRegionsToRegionFactory.get("AVG", 1, Some("RScore")))))
+          val fun = DefaultRegionsToRegionFactory.get("Count", Some("count"))
+          fun.output_name = Some("count")
+          dataAsTheyAre.GROUP(None, None, "_group", Some(List(FIELD(0))),Some(List(fun)))
         }
 
       }

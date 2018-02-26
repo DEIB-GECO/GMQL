@@ -5,13 +5,13 @@ import java.io.{File, PrintWriter}
 import java.util
 import java.util.concurrent.{ExecutorService, Executors, TimeUnit}
 
-import it.polimi.genomics.core.DataStructures._
-import it.polimi.genomics.core.{BinSize, GMQLSchemaFormat, GMQLScript, ImplementationPlatform}
+import it.polimi.genomics.core.GMQLScript
 import it.polimi.genomics.core.exception.UserExceedsQuota
 import it.polimi.genomics.manager.Exceptions.{InvalidGMQLJobException, NoJobsFoundException}
-import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLocalLauncher, GMQLRemoteLauncher, GMQLSparkLauncher}
+import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLocalLauncher, GMQLSparkLauncher}
+import it.polimi.genomics.repository.FSRepository.FS_Utilities
+import it.polimi.genomics.repository.GMQLExceptions.GMQLNotValidDatasetNameException
 import it.polimi.genomics.repository.{Utilities => General_Utilities}
-import org.apache.spark.SparkContext
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
@@ -62,6 +62,9 @@ class GMQLExecute (){
     val jID: String = jobProfile._1
     val outDSs: List[String] = jobProfile._2
 
+    outDSs.foreach(dataSetName => FS_Utilities.checkDsName(dataSetName) )
+
+
     //query script of the dataset
     outDSs.foreach(saveScript)
 
@@ -97,6 +100,9 @@ class GMQLExecute (){
 
     /* PATH RENAMING */
     val (outDSs, newSerializedDAG): (List[String], String) = job.renameDAGPaths(script.dag)
+
+    outDSs.foreach(dataSetName => FS_Utilities.checkDsName(dataSetName) )
+
     //script.dag = newSerializedDAG
     script.dag = ""
 
@@ -190,9 +196,6 @@ class GMQLExecute (){
       if (launcher_mode equals Utilities().CLUSTER_LAUNCHER) {
         logger.info("Using Spark Launcher")
         new GMQLSparkLauncher(job)
-      } else if (launcher_mode equals Utilities().REMOTE_CLUSTER_LAUNCHER) {
-        logger.info("Using Remote Launcher")
-        new GMQLRemoteLauncher(job)
       } else if (launcher_mode equals Utilities().LOCAL_LAUNCHER) {
         logger.info("Using Local Launcher")
         new GMQLLocalLauncher(job)
@@ -230,11 +233,7 @@ class GMQLExecute (){
       if ( launcher_mode equals Utilities().CLUSTER_LAUNCHER ) {
         logger.info("Using Spark Launcher")
         new GMQLSparkLauncher(job)
-      } else
-      if ( launcher_mode equals Utilities().REMOTE_CLUSTER_LAUNCHER ) {
-        logger.info("Using Remote Launcher")
-        new GMQLRemoteLauncher(job)
-      } else
+      }  else
       if ( launcher_mode equals Utilities().LOCAL_LAUNCHER ) {
         logger.info("Using Local Launcher")
         new GMQLLocalLauncher(job)
@@ -276,7 +275,7 @@ class GMQLExecute (){
 
     logger.debug("queried job = "+jobId.trim)
     logger.debug ("jobs: ")
-    JOBID_TO_JOB_INSTANCE.foreach(x=>logger.debug(x._1,x._2) )
+    JOBID_TO_JOB_INSTANCE.foreach(x=>logger.debug(s"${x._2.jobId} (${x._2.status})") )
 
     val job = getJob(jobId.trim)
     if (!username.equals(job.username))

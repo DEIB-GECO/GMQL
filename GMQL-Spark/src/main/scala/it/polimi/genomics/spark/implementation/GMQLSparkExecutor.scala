@@ -31,7 +31,7 @@ import it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions.{R
 import it.polimi.genomics.spark.implementation.RegionsOperators._
 import it.polimi.genomics.spark.implementation.loaders._
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.hadoop.fs.{FileSystem, Path, PathFilter}
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.slf4j.LoggerFactory
@@ -162,6 +162,13 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
           }
         }
 
+        fs.deleteOnExit(new Path(RegionOutputPath+"_SUCCESS"))
+
+        fs.setVerifyChecksum(false)
+        fs.listStatus(new Path(RegionOutputPath),new PathFilter {
+          override def accept(path: Path): Boolean = {fs.delete(new Path(path.getParent.toString + "/."+path.getName +".crc"));true}
+        })
+
       }
     } catch {
       case e : SelectFormatException => {
@@ -195,11 +202,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
           case IRStoreMD(path, value,_) => StoreMD(this, path, value, sc)
           case IRReadMD(path, loader,_) => if (testingIOFormats)  TestingReadMD(path,loader,sc) else ReadMD(path, loader, sc)
           case IRReadMEMMD(metaRDD) => ReadMEMMD(metaRDD)
-          case IRSelectMD(metaCondition, inputDataset) =>
-            inputDataset match {
-              case IRReadMD(path, loader,_) => SelectIMDWithNoIndex(this, metaCondition, path, loader, sc)
-              case _ => SelectMD(this, metaCondition, inputDataset, sc)
-            }
+          case IRSelectMD(metaCondition, inputDataset) => SelectMD(this, metaCondition, inputDataset, sc)
           case IRPurgeMD(regionDataset, inputDataset) => inputDataset match{
 //            case IRSelectMD(metaCondition1, inputDataset1) => inputDataset1 match{
 //              case IRReadMD(path, loader,_) => SelectIMDWithNoIndex(this,metaCondition1,path,loader, sc)
@@ -246,13 +249,13 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
               case _ => SelectRD(this, regionCondition, filteredMeta, inputDataset, sc)
             }
           case IRPurgeRD(metaDataset: MetaOperator, inputDataset: RegionOperator) => PurgeRD(this, metaDataset, inputDataset, sc)
-          case irCover:IRRegionCover => GenometricCover(this, irCover.cover_flag, irCover.min, irCover.max, irCover.aggregates, irCover.groups, irCover.input_dataset,2000/*irCover.binSize.getOrElse(defaultBinSize)*/, sc)
+          case irCover:IRRegionCover => GenometricCover(this, irCover.cover_flag, irCover.min, irCover.max, irCover.aggregates, irCover.groups, irCover.input_dataset,binSize.Cover, sc)
           case IRUnionRD(schemaReformatting: List[Int], leftDataset: RegionOperator, rightDataset: RegionOperator) => UnionRD(this, schemaReformatting, leftDataset, rightDataset, sc)
           case IRMergeRD(dataset: RegionOperator, groups: Option[MetaGroupOperator]) => MergeRD(this, dataset, groups, sc)
           case IRGroupRD(groupingParameters: Option[List[GroupRDParameters.GroupingParameter]], aggregates: Option[List[RegionAggregate.RegionsToRegion]], regionDataset: RegionOperator) => GroupRD(this, groupingParameters, aggregates, regionDataset, sc)
           case IROrderRD(ordering: List[(Int, Direction)], topPar: TopParameter, inputDataset: RegionOperator) => OrderRD(this, ordering: List[(Int, Direction)], topPar, inputDataset, sc)
-          case irJoin:IRGenometricJoin => GenometricJoin4TopMin3(this, irJoin.metajoin_condition, irJoin.join_condition, irJoin.region_builder, irJoin.left_dataset, irJoin.right_dataset,irJoin.join_on_attributes,50000/*irJoin.binSize.getOrElse(defaultBinSize)*/,/*irJoin.binSize.getOrElse(defaultBinSize)**/maxBinDistance, sc)
-          case irMap:IRGenometricMap => GenometricMap71(this, irMap.grouping, irMap.aggregates, irMap.reference, irMap.samples,50000/*irMap.binSize.getOrElse(defaultBinSize)*/,REF_PARALLILISM, sc)
+          case irJoin:IRGenometricJoin => GenometricJoin4TopMin3(this, irJoin.metajoin_condition, irJoin.join_condition, irJoin.region_builder, irJoin.left_dataset, irJoin.right_dataset,irJoin.join_on_attributes,binSize.Join,maxBinDistance, sc)
+          case irMap:IRGenometricMap => GenometricMap71(this, irMap.grouping, irMap.aggregates, irMap.reference, irMap.samples,binSize.Map,REF_PARALLILISM, sc)
           case IRDifferenceRD(metaJoin: OptionalMetaJoinOperator, leftDataset: RegionOperator, rightDataset: RegionOperator,exact:Boolean) => GenometricDifference(this, metaJoin, leftDataset, rightDataset,exact, sc)
           case IRProjectRD(projectedValues: Option[List[Int]], tupleAggregator: Option[List[RegionExtension]], inputDataset: RegionOperator, inputDatasetMeta: MetaOperator) => ProjectRD(this, projectedValues, tupleAggregator, inputDataset,inputDatasetMeta, sc)
 

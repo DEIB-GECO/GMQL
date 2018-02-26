@@ -5,6 +5,7 @@ import java.nio.file.{FileSystems, Paths}
 import it.polimi.genomics.core.{GMQLSchemaFormat, ParsingType}
 import it.polimi.genomics.repository.{GMQLSample, Utilities => General_Utilities}
 import java.io._
+import javax.lang.model.SourceVersion
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, LocalFileSystem, Path}
@@ -36,7 +37,7 @@ object FS_Utilities {
     * @return
     */
   def validate(xmlFile: String): Boolean = {
-    val xsdFile =  General_Utilities().getConfDir() + "/gmqlSchemaCollection.xsd"
+    val xsdFile = General_Utilities().getConfDir() + "/gmqlSchemaCollection.xsd"
 
     try {
       val schemaLang: String = "http://www.w3.org/2001/XMLSchema"
@@ -45,7 +46,7 @@ object FS_Utilities {
       val validator: Validator = schema.newValidator()
       validator.validate(new StreamSource(xmlFile))
     } catch {
-      case ex: SAXException => logger.debug("XSD validate SAXException", ex);  throw ex
+      case ex: SAXException => logger.debug("XSD validate SAXException", ex); throw ex
       case ex: Exception => ex.printStackTrace()
     }
     true
@@ -53,14 +54,14 @@ object FS_Utilities {
 
   /**
     *
-    *  Give a list of [[ GMQLSample]] from a directory
+    * Give a list of [[ GMQLSample]] from a directory
     *
     * @param URL [[ String]] of the path to the directory to check the samples inside.
     * @throws it.polimi.genomics.repository.GMQLExceptions.GMQLNotValidDatasetNameException
     */
   @deprecated
   @throws(classOf[GMQLNotValidDatasetNameException])
-  def dirFiles( URL: String) {
+  def dirFiles(URL: String) {
     var fields = List[GMQLSample]()
     var i: Int = 0
     if ((new File(URL)).isDirectory) {
@@ -76,18 +77,24 @@ object FS_Utilities {
         logger.warn("The dataSet is empty.. \n\tCheck the files extensions. (i.e. sample.bed/sample.bed.meta)")
       }
       for (file <- files)
-        fields = fields :+ new GMQLSample(file.getAbsolutePath, {i += 1; i.toString})
+        fields = fields :+ new GMQLSample(file.getAbsolutePath, {
+          i += 1;
+          i.toString
+        })
     }
     else {
       val url: Array[String] = URL.split(",")
       for (u <- url)
-        fields =  fields :+ new GMQLSample(u, {i += 1; i.toString})
+        fields = fields :+ new GMQLSample(u, {
+          i += 1;
+          i.toString
+        })
     }
   }
 
   /**
     *
-    *   Return Hadoop Configuration File by reading Hadoop Core and HDFS config files
+    * Return Hadoop Configuration File by reading Hadoop Core and HDFS config files
     *
     * @return [[ Configuration]] Hadoop configurations
     */
@@ -103,23 +110,25 @@ object FS_Utilities {
 
   /**
     *
-    *  Return Hadoop Distributed File System handle
+    * Return Hadoop Distributed File System handle
     *
     * @return [[ FileSystem]]
     */
   def getFileSystem: FileSystem = {
-    val fs:FileSystem = null
+    val fs: FileSystem = null
     try {
       val fs = FileSystem.get(gethdfsConfiguration)
     }
-    catch{case e: IOException => e.printStackTrace()}
+    catch {
+      case e: IOException => e.printStackTrace()
+    }
     fs
   }
 
   /**
     *
-    *   Copy Files from HDFS to local
-    *   This will check if the file has meta file and if found, it will copy the meta file too
+    * Copy Files from HDFS to local
+    * This will check if the file has meta file and if found, it will copy the meta file too
     *
     * @param sourceHDFSUrl
     * @param distLocalUrl
@@ -127,7 +136,7 @@ object FS_Utilities {
     * @return
     */
   @throws(classOf[IOException])
-  def copyfiletoLocal(sourceHDFSUrl: String, distLocalUrl: String) :Boolean= {
+  def copyfiletoLocal(sourceHDFSUrl: String, distLocalUrl: String): Boolean = {
     val conf = gethdfsConfiguration
     val fs = FileSystem.get(conf)
     if (!fs.exists(new Path(sourceHDFSUrl))) {
@@ -138,7 +147,7 @@ object FS_Utilities {
       fs.copyToLocalFile(new Path(sourceHDFSUrl + ".meta"), new Path(distLocalUrl + ".meta"))
     }
     logger.debug("source:", sourceHDFSUrl)
-    logger.debug("Distination",distLocalUrl)
+    logger.debug("Distination", distLocalUrl)
     fs.copyToLocalFile(new Path(sourceHDFSUrl), new Path(distLocalUrl))
     val dist: File = new File(distLocalUrl)
     true
@@ -146,21 +155,21 @@ object FS_Utilities {
 
   /**
     *
-    *   Copy File from Local file system to Hadoop File system
-    *   TODO: make this function copy files in parallel using hadoop distcp command
+    * Copy File from Local file system to Hadoop File system
+    * TODO: make this function copy files in parallel using hadoop distcp command
     *
     * @param sourceUrl
     * @param distUrl
     * @throws java.io.IOException
     */
   @throws(classOf[IOException])
-  def copyfiletoHDFS(sourceUrl: String, distUrl: String)= {
+  def copyfiletoHDFS(sourceUrl: String, distUrl: String) = {
     val conf = gethdfsConfiguration
     val fs = FileSystem.get(conf)
     if (!fs.exists(new Path(Paths.get(distUrl).getParent.toString))) {
       logger.info(s"Folder ($distUrl) not found, creating directory..")
       fs.mkdirs(new Path(Paths.get(distUrl).getParent.toString))
-    }else {
+    } else {
       logger.debug(s"Directory ($distUrl) is found in DFS")
     }
     logger.debug(s"source: $sourceUrl")
@@ -175,8 +184,8 @@ object FS_Utilities {
 
   /**
     *
-    *   Delete sample from HDFS
-    *   If the sample has meta file, the meta file will be deleted too
+    * Delete sample from HDFS
+    * If the sample has meta file, the meta file will be deleted too
     *
     * @param url
     * @return
@@ -185,7 +194,9 @@ object FS_Utilities {
   @throws[IOException]
   def deleteDFSDir(url: String): Boolean = {
     def conf = gethdfsConfiguration
+
     def fs = FileSystem.get(conf)
+
     fs.delete(new Path(url), true)
     if (fs.exists(new Path(url + ".meta"))) fs.delete(new Path(url + ".meta"), true)
     true
@@ -193,7 +204,7 @@ object FS_Utilities {
 
   /**
     *
-    *   Delete file from local file system recuresivly
+    * Delete file from local file system recuresivly
     *
     * @param inputfile
     */
@@ -207,40 +218,50 @@ object FS_Utilities {
 
   /**
     *
-    *   Create directiry in HDFS
+    * Create directiry in HDFS
     *
     * @param url [[ String]] of the Directory location
     * @throws [[IOException]]
     * @return
     */
   @throws[IOException]
-  def createDFSDir(url: String):Boolean = {
+  def createDFSDir(url: String): Boolean = {
     val conf = new Configuration
     conf.addResource(new Path(General_Utilities().CoreConfigurationFiles))
     conf.addResource(new Path(General_Utilities().HDFSConfigurationFiles))
     conf.set("fs.hdfs.impl", classOf[DistributedFileSystem].getName)
     conf.set("fs.file.impl", classOf[LocalFileSystem].getName)
     val fs = FileSystem.get(conf)
-    if (fs.mkdirs(new Path(url)))  true else false
+    if (fs.mkdirs(new Path(url))) true else false
   }
 
   /**
-    *  Delete files from the local file system
+    * Delete files from the local file system
     *
     * @param dir
     */
-    def deleteFromLocalFSRecursive(dir: File) {
-      var files: Array[File] = null
-      if (dir.isDirectory) {
-        files = dir.listFiles
-        if (!(files == null)) {
-          for (file <- files) {
-            deleteFromLocalFSRecursive(file)
-          }
+  def deleteFromLocalFSRecursive(dir: File) {
+    var files: Array[File] = null
+    if (dir.isDirectory) {
+      files = dir.listFiles
+      if (!(files == null)) {
+        for (file <- files) {
+          deleteFromLocalFSRecursive(file)
         }
-        dir.delete
       }
-      else dir.delete
+      dir.delete
     }
+    else dir.delete
+  }
+
+
+  /**
+    * check if the dataset name is a valid or not, if it not valid then throws an exception
+    * @param datasetName name of the dataset
+    * @throws it.polimi.genomics.repository.GMQLExceptions.GMQLNotValidDatasetNameException throws the exception if with its message
+    */
+  @throws(classOf[GMQLNotValidDatasetNameException])
+  def checkDsName(datasetName: String): Unit = if (!SourceVersion.isIdentifier(datasetName)) throw new GMQLNotValidDatasetNameException(s"""Dataset name is not valid, "$datasetName". Please use standard Java varaible naming as defined below: \n"""" +
+    """A variable's name can be any legal identifier — an unlimited-length sequence of Unicode letters and digits, beginning with a letter, the dollar sign "$", or the underscore character "_". """)
 
 }

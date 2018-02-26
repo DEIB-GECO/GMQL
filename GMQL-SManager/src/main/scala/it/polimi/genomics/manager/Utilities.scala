@@ -3,15 +3,19 @@ package it.polimi.genomics.manager
 import java.io.File
 
 import it.polimi.genomics.core.GDMSUserClass
-import it.polimi.genomics.core.GDMSUserClass._
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.xml.{Elem, NodeSeq, XML}
+import scala.collection.mutable.Map
 
 /**
   * Created by abdulrahman on 08/02/2017.
   */
 class Utilities {
+
+  import Utilities.logger
+
+
   var SPARK_HOME: String = System.getenv("SPARK_HOME")
   var CLI_JAR: String = "GMQL-Cli-2.0-jar-with-dependencies.jar"
   var CLI_CLASS: String = "it.polimi.genomics.cli.GMQLExecuteCommand"
@@ -19,10 +23,8 @@ class Utilities {
   var lib_dir_hdfs: String = it.polimi.genomics.repository.Utilities().HDFSRepoDir + "/lib/"
   var SPARK_UI_PORT:Int = 4040
 
-  // Maximum number of executors for each user class
-  var USER_EXECUTORS: Map[GDMSUserClass, Long] = Map()
-
-  private val logger: Logger = LoggerFactory.getLogger(Utilities.getClass)
+  // User-category-specific spark property
+  var SPARK_CUSTOM: Map[String, Map[GDMSUserClass.Value, String]] = Map()
 
   //TODO: Acticvate the launcher modes
   var LAUNCHER_MODE: String =  LOCAL_LAUNCHER
@@ -51,13 +53,19 @@ class Utilities {
           case Conf.LAUNCHER_MODE => LAUNCHER_MODE = value
 
           case Conf.SPARK_UI_PORT => SPARK_UI_PORT = value.toInt
+          case Conf.SPARK_CUSTOM  => {
 
-          case Conf.GUEST_EXECUTORS  => USER_EXECUTORS += ( GDMSUserClass.GUEST  -> value.toLong)
-          case Conf.BASIC_EXECUTORS  => USER_EXECUTORS += ( GDMSUserClass.BASIC  -> value.toLong)
-          case Conf.PRO_EXECUTORS    => USER_EXECUTORS += ( GDMSUserClass.PRO    -> value.toLong)
-          case Conf.ADMIN_EXECUTORS  => USER_EXECUTORS += ( GDMSUserClass.ADMIN  -> value.toLong)
-          case Conf.PUBLIC_EXECUTORS => USER_EXECUTORS += ( GDMSUserClass.PUBLIC -> value.toLong)
+            val user_class = GDMSUserClass.withNameOpt(x.attribute("user-category").get.head.text)
+            val spark_property = x.attribute("spark-property").get.head.text
 
+            logger.info("Custom Spark property for "+user_class+": "+spark_property+"="+value)
+
+            if ( SPARK_CUSTOM.isDefinedAt(spark_property) ) {
+              SPARK_CUSTOM(spark_property) += (user_class -> value)
+            } else {
+              SPARK_CUSTOM += (spark_property -> Map(user_class -> value))
+            }
+          }
           case _ => logger.error(s"Not known configuration property: $x, $value")
         }
         logger.debug(s"XML config override environment variables. $att = $value ")
@@ -68,7 +76,7 @@ class Utilities {
 
     if (SPARK_HOME == null) logger.warn("SPARK_HOME is not set .. To use Spark on Yarn platform, you should set Spark Home in the configuration file or as Environment varialble")
 
-    if (USER_EXECUTORS.size == 0) logger.warn("Max executors not defined for any user category.")
+    if (SPARK_CUSTOM.size == 0) logger.warn("Custom Spark property not defined for any user category.")
   }
 
   /**
@@ -88,6 +96,8 @@ class Utilities {
 
 object Utilities {
   private var instance: Utilities = null
+
+  val logger: Logger = LoggerFactory.getLogger(Utilities.getClass)
 
   def apply(): Utilities = {
     if (instance == null) {
@@ -110,11 +120,5 @@ object Conf {
   val CLI_CLASS = "CLI_CLASS"
 
   val SPARK_UI_PORT = "SPARK_UI_PORT"
-
-  val GUEST_EXECUTORS = "GUEST_EXECUTORS"
-  val BASIC_EXECUTORS = "BASIC_EXECUTORS"
-  val PRO_EXECUTORS   = "PRO_EXECUTORS"
-  val ADMIN_EXECUTORS = "ADMIN_EXECUTORS"
-  val PUBLIC_EXECUTORS = "PUBLIC_EXECUTORS"
-
+  val SPARK_CUSTOM = "SPARK_CUSTOM"
 }

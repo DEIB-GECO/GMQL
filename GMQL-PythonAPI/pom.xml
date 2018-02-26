@@ -8,39 +8,29 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-
     <artifactId>GMQL-PythonAPI</artifactId>
     <packaging>jar</packaging>
+    <description>Interface to the Python library</description>
+    <inceptionYear>2017</inceptionYear>
 
-    <name>GMQL-PythonAPI</name>
-    <description>Polimi GMQL, Big Data processing for Genomics</description>
-    <inceptionYear>2014</inceptionYear>
-    <properties>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <encoding>UTF-8</encoding>
-        <scala.version>2.11.8</scala.version>
-        <scalaCompatVersion>2.11</scalaCompatVersion>
-        <maven.scala.checkConsistency>false</maven.scala.checkConsistency>
-    </properties>
 
     <dependencies>
         <dependency>
             <groupId>it.polimi.genomics</groupId>
             <artifactId>GMQL-Core</artifactId>
-            <version>2.0</version>
+            <version>1.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>
             <groupId>it.polimi.genomics</groupId>
             <artifactId>GMQL-Server</artifactId>
-            <version>2.0</version>
+            <version>1.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>
             <groupId>it.polimi.genomics</groupId>
             <artifactId>GMQL-Spark</artifactId>
-            <version>4.0</version>
+            <version>1.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 
@@ -166,7 +156,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>2.3</version>
+                <version>3.1.0</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -176,6 +166,8 @@
                     </execution>
                 </executions>
                 <configuration>
+                    <shadedArtifactAttached>true</shadedArtifactAttached>
+                    <shadedClassifierName>jackofall</shadedClassifierName> <!-- Any name that makes sense -->
                     <!--This is needed because GMQL-Repository and GMQL-Spark both use Hadoop configurations
                     therefore we need to merge the sources of Hadoop code-->
                     <transformers>
@@ -191,7 +183,6 @@
                             </excludes>
                         </filter>
                     </filters>
-                    <finalName>uber-${project.artifactId}-${project.version}</finalName>
                 </configuration>
             </plugin>
             <plugin>

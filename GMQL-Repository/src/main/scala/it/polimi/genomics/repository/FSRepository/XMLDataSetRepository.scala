@@ -3,7 +3,6 @@ package it.polimi.genomics.repository.FSRepository
 import java.io._
 import java.nio.file.{Files, Paths}
 import java.text.SimpleDateFormat
-import java.util
 import java.util.Date
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
@@ -11,15 +10,18 @@ import it.polimi.genomics.core.GDMSUserClass._
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core.exception.UserExceedsQuota
 import it.polimi.genomics.core.{GDMSUserClass, _}
+import it.polimi.genomics.repository.FSRepository.FS_Utilities.checkDsName
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
 import it.polimi.genomics.repository.GMQLExceptions._
-import it.polimi.genomics.repository.{DatasetOrigin, GMQLRepository, GMQLSample, GMQLStatistics, RepositoryType, Utilities => General_Utilities}
+import it.polimi.genomics.repository.{DatasetOrigin, GMQLRepository, GMQLSample, RepositoryType, Utilities => General_Utilities}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
+import scala.util.Try
 import scala.xml.{Elem, Node, NodeSeq, XML}
+
 
 /**
   * Created by abdulrahman on 16/01/2017.
@@ -72,6 +74,7 @@ trait XMLDataSetRepository extends GMQLRepository{
     */
   @throws(classOf[GMQLNotValidDatasetNameException])
   override def importDs(dataSetName: String, userName: String, userClass: GDMSUserClass = GDMSUserClass.PUBLIC, Samples: java.util.List[GMQLSample], schemaPath: String): Unit = {
+    checkDsName(dataSetName)
 
     if( isUserQuotaExceeded(userName, userClass) ) {
       throw new UserExceedsQuota()
@@ -174,7 +177,9 @@ trait XMLDataSetRepository extends GMQLRepository{
     * @return
     */
   override def DSExists(dataSet: String, userName: String = General_Utilities().USERNAME): Boolean = {
-    new GMQLDataSetXML(dataSet,userName).exists()  || new GMQLDataSetXML(dataSet,"public").exists()
+    new GMQLDataSetXML(dataSet,userName).exists()  ||
+    //getOrElse there is no public user
+      Try( new GMQLDataSetXML(dataSet, "public").exists()).getOrElse(false)
   }
 
   /**
@@ -320,13 +325,25 @@ trait XMLDataSetRepository extends GMQLRepository{
     val tabFields = List("chr","left","right","strand")
     val xmlFile = XML.load(fs.open(path))
     val cc = (xmlFile \\ "field")
-    val schemaList = cc.flatMap{ x => if(gtfFields.contains(x.text.trim)||tabFields.contains(x.text.trim)) None else Some(new GMQLSchemaField(x.text.trim, ParsingType.attType(x.attribute("type").get.head.text)))}.toList
+    val schemaList = cc.flatMap{ x => if(gtfFields.contains(x.text.trim)||tabFields.contains(x.text.trim)) None else Some(new GMQLSchemaField(x.text.trim, attType(x.attribute("type").get.head.text)))}.toList
     val schemaType = GMQLSchemaFormat.getType((xmlFile \\ "gmqlSchema" \ "@type").text)
     val schemaCoordinateSystem = GMQLSchemaCoordinateSystem.getType((xmlFile \\ "gmqlSchema" \ "@coordinate_system").text)
     val schemaname = (xmlFile \\ "gmqlSchemaCollection" \ "@name").text
     new GMQLSchema(schemaname,schemaType, schemaCoordinateSystem, schemaList)
   }
 
+
+  def attType(x: String): ParsingType.Value = x.toUpperCase match {
+    case "STRING" => ParsingType.STRING
+    case "CHAR" => ParsingType.STRING
+    case "CHARACTAR" => ParsingType.STRING
+    case "LONG" => ParsingType.DOUBLE
+    case "INTEGER" => ParsingType.INTEGER
+    case "INT" => ParsingType.INTEGER
+    case "BOOLEAN" => ParsingType.STRING
+    case "BOOL" => ParsingType.STRING
+    case _ => ParsingType.DOUBLE
+  }
   /**
     *
     * @param dataSet String of the dataset name
@@ -392,7 +409,7 @@ trait XMLDataSetRepository extends GMQLRepository{
     val schemaList = cc.map{ x =>
       val schemaFN = x.text.trim
       val schemaType = if(schemaFN.toUpperCase().equals("STOP") || schemaFN.toUpperCase().equals("RIGHT") || schemaFN.toUpperCase().equals("END") || schemaFN.toUpperCase().equals("START") || schemaFN.toUpperCase().equals("LEFT")) ParsingType.LONG
-      else ParsingType.attType(x.attribute("type").get.head.text)
+      else attType(x.attribute("type").get.head.text)
       new GMQLSchemaField(schemaFN, schemaType)
     }.toList
     val schemaType = GMQLSchemaFormat.getType((xmlFile \\ "gmqlSchema" \ "@type").text)
@@ -558,6 +575,48 @@ trait XMLDataSetRepository extends GMQLRepository{
   override def isUserQuotaExceeded(username: String, userClass: GDMSUserClass): Boolean = {
     val info = getUserQuotaInfo(username, userClass)
     return info._1  > info._2
+  }
+
+  /**
+    * Returns information about the user disk quota usage
+    * @param userName
+    * @param userClass
+    * @return (occupied, user_quota) in KBs
+    */
+  override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Long, Long) = {
+
+    val userDatasets = listAllDSs(userName).asScala.toList
+    val dSMetaDir    = General_Utilities().getDSMetaDir(userName)
+    val values = userDatasets.map(x=> {
+
+      val file = dSMetaDir+"/"+x.position+".dsmeta"
+
+      try {
+        val dsXML = XML.loadFile(file)
+        val sizeEls = (dsXML \\ "dataset" \ "property").filter(x => (x.attribute("name").get.text == "Size"))
+
+        if (!sizeEls.isEmpty) {
+          sizeEls.head.text.split(" ").head.replace(",",".").toFloat
+        } else {
+          0
+        }
+      } catch {
+        case e: FileNotFoundException => {
+          0
+        }
+      }
+
+    })
+
+    var size = 0L // final size
+
+    if( !values.isEmpty ) {
+      size = values.reduce((a,b)=> a+b) * 1000 toLong // in KB
+    }
+
+    val user_quota = General_Utilities().getUserQuota(userClass)
+
+    (size,user_quota)
   }
 
   def storeDsMeta(meta:String, userName:String, dsname:String) = {

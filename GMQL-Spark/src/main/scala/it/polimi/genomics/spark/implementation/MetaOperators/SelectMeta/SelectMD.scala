@@ -13,14 +13,23 @@ import org.slf4j.LoggerFactory
 created by abdulrahman Kaitoua on 05/05/15.
  */
 object SelectMD {
-  private final val logger = LoggerFactory.getLogger(SelectMD.getClass);
+  private final val logger = LoggerFactory.getLogger(SelectMD.getClass)
 
   @throws[SelectFormatException]
-  def apply(executor : GMQLSparkExecutor, metaCondition: MetadataCondition, inputDataset: MetaOperator, sc : SparkContext) : RDD[MetaType] = {
+  def apply(executor : GMQLSparkExecutor,
+            metaCondition: MetadataCondition,
+            inputDataset: MetaOperator,
+            sc : SparkContext) : RDD[MetaType] = {
+
     logger.info("----------------SELECTMD executing..")
 
     val input = executor.implement_md(inputDataset, sc).cache()
-    input.join(metaSelection.applyMetaSelect(metaCondition, input).map(x=>(x,0))).map(x=>(x._1,x._2._1)).cache()
+
+    input
+      .groupByKey()
+      .filter(x => metaSelection.build_set_filter(metaCondition)(x._2))
+      .flatMap(x=> for(p <- x._2) yield (x._1, p))
+      .cache()
 
   }
   object metaSelection extends MetaSelection

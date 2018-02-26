@@ -7,6 +7,4 @@ import it.polimi.genomics.core.DataStructures.MetaJoinCondition.AttributeEvaluat
  *
  * @param attributes is the list of attributes name to be used for the grouping.
  */
-case class MetaGroupByCondition(attributes : List[AttributeEvaluationStrategy]) {
-
-}
+case class MetaGroupByCondition(attributes : List[AttributeEvaluationStrategy])

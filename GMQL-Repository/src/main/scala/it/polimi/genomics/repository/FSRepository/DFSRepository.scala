@@ -2,19 +2,18 @@ package it.polimi.genomics.repository.FSRepository
 
 import java.io._
 import java.text.SimpleDateFormat
-import java.util
-import java.util.{Calendar, Date}
+import java.util.Date
 
 import it.polimi.genomics.core.DataStructures.IRDataSet
 import it.polimi.genomics.core.GDMSUserClass.GDMSUserClass
 import it.polimi.genomics.core.{GDMSUserClass, GMQLSchemaCoordinateSystem, GMQLSchemaField, GMQLSchemaFormat}
 import it.polimi.genomics.repository
+import it.polimi.genomics.repository.FSRepository.FS_Utilities.checkDsName
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
 import it.polimi.genomics.repository.GMQLExceptions._
-import it.polimi.genomics.repository.{GMQLRepository, GMQLSample, GMQLStatistics, Utilities => General_Utilities}
+import it.polimi.genomics.repository.{GMQLRepository, GMQLSample, Utilities => General_Utilities}
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.slf4j.LoggerFactory
-
 
 import scala.collection.JavaConverters._
 
@@ -93,6 +92,8 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     * @param schemaPath String of the path to the xml file of the dataset's schema.
     */
   override def importDs(dataSetName: String, userName: String, userClass: GDMSUserClass, Samples: java.util.List[GMQLSample], schemaPath: String): Unit = {
+    checkDsName(dataSetName)
+
     if (FS_Utilities.validate(schemaPath)) {
       val date = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
       val samples = Samples.asScala.map(x=> GMQLSample(ID = x.ID, name = dataSetName+"_"+date+ "/"+new File(x.name).getName,meta = x.meta) ).asJava
@@ -146,16 +147,21 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     val fs = FileSystem.get(conf)
     val hdfspath = conf.get("fs.defaultFS") + General_Utilities().getHDFSRegionDir(userName)
 
-    if (dataset.samples.length > 0) {
-      val regex       = "(/+)(exp(/+))?([^/]+)$".r
-      val ds_folder   =  regex.replaceFirstIn(hdfspath+dataset.samples(0).name, "")
+    if (dataset.samples.nonEmpty) {
+      val regex = "(/+)(exp(/+))?([^/]+)$".r
+      val ds_folder = regex.replaceFirstIn(hdfspath + dataset.samples.head.name, "")
       fs.delete(new Path(ds_folder), true)
-    } else {
-      logger.warn("Trying to delete a dataset with no samples.")
-    }
 
-    //Delete dataset XML files
-    dataset.Delete()
+      if (!fs.exists(new Path(ds_folder))) {
+        //Delete dataset XML files
+        dataset.Delete()
+      } else {
+        logger.error("Not able to delete HDFS folder.")
+        throw new IOException()
+      }
+    } else {
+      dataset.Delete()
+    }
   }
 
   /**
@@ -314,21 +320,21 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     */
   override def getDsInfoStream(datasetName: String, userName: String): InputStream = ???
 
-  /**
+  /*
     * Returns information about the user disk quota usage
     *
     * @param userName
     * @param userClass
     * @return (occupied, user_quota) in KBs
     */
-  override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Long, Long) = {
+  /*override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Long, Long) = {
 
     val user_quota = General_Utilities().getUserQuota(userClass)
     val userDir    = General_Utilities().getHDFSUserDir(userName)
     val occupied   = getFileSize(userDir).toLong
 
-    (occupied,user_quota)
-  }
+    (occupied, user_quota)
+  }*/
 
 
   /**

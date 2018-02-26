@@ -71,7 +71,7 @@ class GMQLSparkSubmit(job:GMQLJob) {
 
     val outDir = job.outputVariablesList.map{x=>
       val dir = job.renameOutputDirs(x)
-      x.substring(job.jobId.length+1)+":::"+dir }.mkString(",")
+      x.substring(job.generateResultName().length+1)+":::"+dir }.mkString(",")
 
 //    println(outDir)
 
@@ -118,15 +118,18 @@ class GMQLSparkSubmit(job:GMQLJob) {
     //d=d.setConf("spark.executor.extraJavaOptions", "-Dlog4j.configuration=file:/Users/canakoglu/GMQL-sources/temp/GMQL/GMQL-Core/src/main/resources/logback.xml")
 
 
+    // Set user-category-dependent Spark properties, if any
+    if( Utilities().SPARK_CUSTOM.nonEmpty ) {
 
+       for( spark_property <- Utilities().SPARK_CUSTOM.keys ) {
 
-
-
-
-    // Assign maximum number of executors according to the user category
-    if( Utilities().USER_EXECUTORS.contains(job.gMQLContext.userClass) ) {
-      d = d.setConf("spark.cores.max", Utilities().USER_EXECUTORS(job.gMQLContext.userClass).toString)
+         if( Utilities().SPARK_CUSTOM(spark_property).isDefinedAt(job.gMQLContext.userClass)) {
+           val spark_value =  Utilities().SPARK_CUSTOM(spark_property)(job.gMQLContext.userClass)
+           d = d.setConf(spark_property, spark_value)
+         }
+       }
     }
+
 
     val b = d.setVerbose(true).startApplication()
 
@@ -147,27 +150,4 @@ class GMQLSparkSubmit(job:GMQLJob) {
     val user = if(repository.DSExistsInPublic(DS))"public" else job.username
     Source.fromFile(General_Utilities().getSchemaDir(user)+DS+".schema").getLines().mkString("")
   }
-
-//  /**
-//    * Serialize GMQL DAG
-//    *
-//    * TODO: DAG serialization is Not used currently, instead we are sending the script as a parameter
-//    * @param dag input as a List of [[ Operator]]
-//    * @return String as the serialization of the DAG
-//    */
-//  def serializeDAG(dag: List[Operator]): String = {
-//    try {
-//      val mylist =  new java.util.ArrayList[Operator]
-//      for(i <- dag) mylist.add(i)
-//
-//      val byteArrayOutputStream = new ByteArrayOutputStream();
-//      val objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
-//      objectOutputStream.writeObject(mylist);
-//      objectOutputStream.close();
-//      new String(Base64.encode(byteArrayOutputStream.toByteArray()));
-//
-//    } catch {
-//      case io: IOException => io.printStackTrace(); "none"
-//    }
-//  }
 }

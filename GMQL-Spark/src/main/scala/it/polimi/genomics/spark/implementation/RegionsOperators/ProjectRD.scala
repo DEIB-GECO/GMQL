@@ -5,10 +5,9 @@ import it.polimi.genomics.core.DataStructures.RegionAggregate.{COORD_POS, Region
 import it.polimi.genomics.core.DataStructures.RegionCondition.MetaAccessor
 import it.polimi.genomics.core.DataStructures.{MetaOperator, RegionOperator}
 import it.polimi.genomics.core.DataTypes._
-import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.core._
+import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
-import it.polimi.genomics.spark.implementation.RegionsOperators.PredicateRD.executor
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.slf4j.LoggerFactory
@@ -47,7 +46,11 @@ object ProjectRD {
 
     if(projectedValues.isDefined)
       extended.map(a  => (a._1,  projectedValues.get.foldLeft(Array[GValue]())((Acc, b) => Acc :+ a._2(b)) ))
-    else extended
+    /*else extended*/
+    else if (tupleAggregator.isDefined)
+      extended
+    else
+      extended.map(a=> (a._1, new Array[GValue](0)))
   }
 
   def computeFunction(r : GRECORD, agg : RegionExtension,inputMeta:Array[(Long,(String,String))]) : GValue = {

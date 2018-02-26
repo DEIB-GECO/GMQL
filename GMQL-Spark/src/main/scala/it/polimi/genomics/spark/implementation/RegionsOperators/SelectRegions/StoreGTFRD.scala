@@ -66,7 +66,8 @@ object StoreGTFRD {
       val featureIndex = if (feature.size > 0) feature.head._2 else -1
       val frameIndex = if (frame.size > 0) frame.head._2 else -1
       implicit val caseInsensitiveOrdering = Ordering.by {s:(String,String)=>println(s);val data = s._1.split("\t"); (data(0),data(3).toLong,data(4).toLong)}
-      regions.sortBy(s=>s._1).map { x =>
+      regions//.sortBy(s=>s._1) //disabled sorting
+        .map { x =>
 
         val values = schema.zip(x._2).flatMap { s =>
           if (s._1._1.equals("score")||s._1._1.equals("source")||s._1._1.equals("feature")||s._1._1.equals("frame")) None

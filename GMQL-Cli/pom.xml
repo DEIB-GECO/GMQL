@@ -10,7 +10,7 @@
     </parent>
 
     <artifactId>GMQL-Cli</artifactId>
-    <version>2.0</version>
+    <description>Command line interface</description>
 
     <packaging>jar</packaging>
     <properties>
@@ -26,13 +26,13 @@
         <dependency>
             <groupId>it.polimi.genomics</groupId>
             <artifactId>GMQL-Server</artifactId>
-            <version>2.0</version>
+            <version>1.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>
             <groupId>it.polimi.genomics</groupId>
             <artifactId>GMQL-Core</artifactId>
-            <version>2.0</version>
+            <version>1.0-SNAPSHOT</version>
         </dependency>
 
         <!--<dependency>-->
@@ -44,7 +44,7 @@
         <dependency>
             <groupId>it.polimi.genomics</groupId>
             <artifactId>GMQL-Spark</artifactId>
-            <version>4.0</version>
+            <version>1.0-SNAPSHOT</version>
             <!--<exclusions>-->
                 <!--<exclusion>-->
                     <!--<groupId>com.google.guava</groupId>-->
@@ -56,7 +56,7 @@
         <dependency>
             <groupId>it.polimi.genomics</groupId>
             <artifactId>Compiler</artifactId>
-            <version>3.0</version>
+            <version>1.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>
@@ -81,6 +81,38 @@
 
         <sourceDirectory>./src/main/scala</sourceDirectory>
         <plugins>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>2.3</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <!--This is needed because GMQL-Repository and GMQL-Spark both use Hadoop configurations
+                    therefore we need to merge the sources of Hadoop code-->
+                    <transformers>
+                        <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                    </transformers>
+                    <filters>
+                        <filter>
+                            <artifact>*:*</artifact>
+                            <excludes>
+                                <exclude>META-INF/*.SF</exclude>
+                                <exclude>META-INF/*.DSA</exclude>
+                                <exclude>META-INF/*.RSA</exclude>
+                            </excludes>
+                        </filter>
+                    </filters>
+                    <finalName>uber-${project.artifactId}-${project.version}</finalName>
+                </configuration>
+            </plugin>
             <!--&lt;!&ndash;Builds the directory ./lib in which all the dependencies of CLI are put&ndash;&gt;-->
             <!--<plugin>-->
                 <!--<artifactId>maven-dependency-plugin</artifactId>-->

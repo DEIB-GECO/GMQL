@@ -49,7 +49,7 @@ case class GroupOperator(op_pos : Position,
     )
 
     if (parameters.unamed.isDefined) {
-      val key_list = parser_unnamed(metadata_attribute_list, None).get.map(Default(_))
+      val key_list = parser_unnamed(rich_metadata_attribute_list, None).get
       if (key_list.length <= 1)
         meta_keys = Some (
           MetaGroupByCondition(key_list)
@@ -162,26 +162,9 @@ case class GroupOperator(op_pos : Position,
 
   override def translate_operator(status : CompilerStatus):CompilerDefinedVariable = {
 
-
-    //check parameters validity
-    if (!meta_keys.isDefined &&
-        !refined_meta_aggregate_function_list.isDefined &&
-        !region_keys.isDefined &&
-        !refined_region_aggregate_function_list.isDefined) {
-      val msg = operator_name + " operator at line " + op_pos.line + ": " +
-        "empty parameters are not allowed for this operator."
-      throw new CompilerException(msg)
-    }
-
     if (!meta_keys.isDefined && refined_meta_aggregate_function_list.isDefined) {
       val msg = operator_name + " operator at line " + op_pos.line + ": " +
         "if metadata aggregate functions are provided, then metadata keys are required."
-      throw new CompilerException(msg)
-    }
-
-    if (!region_keys.isDefined && refined_region_aggregate_function_list.isDefined) {
-      val msg = operator_name + " operator at line " + op_pos.line + ": " +
-        "if region aggregate functions are provided, then region keys are required."
       throw new CompilerException(msg)
     }
 

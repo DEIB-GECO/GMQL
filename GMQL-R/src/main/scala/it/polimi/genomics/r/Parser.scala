@@ -28,53 +28,86 @@ class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
     this(null,null)
   }
   val value:Parser[String] = floatingPointNumber |
-    (stringLiteral ^^ {
-      x=> x
-        /*
-        if (x.startsWith("'")){
-          x.drop(1).dropRight(1).replace("\\'","'")
-        }
-        else{
-          x.drop(1).dropRight(1).replace("\\\"","\"")
-        }*/
-    } | """[a-zA-Z0-9_\\*\\+\\-]+""".r ^^{x => x} )
+    (stringLiteral ^^ {x=> x} | """[a-zA-Z0-9_\\*\\+\\-]+""".r ^^{x => x} )
 
-
-  val meta_attribute:Parser[String] = rep1sep(ident, ".") ^^ {_.mkString(".")}
-
-  val meta:Parser[String] = "META(" ~>  value <~ ")" ^^ { x => "META(" + x.drop(1).dropRight(1)+ ")"  }
+  //val meta_attribute:Parser[String] = rep1sep(ident, ".") ^^ {_.mkString(".")}
   val operator:Parser[String] = "==" | "!="  | ">=" | "<=" | ">" | "<"
   val attribute:Parser[String] = rep1sep(ident, ".") ^^ {_.mkString(".")}
-  val cond:Parser[String] = (attribute ~ operator ~ (value|meta)) ^^ {x => x._1._1 + x._1._2 + x._2}
-
+  val cond:Parser[String] = (attribute ~ operator ~ value ) ^^ {x => x._1._1 + x._1._2 + x._2}
   val factor: Parser[String] = "(" ~> expr <~ ")" ^^ {x=> "(" + x + ")"} |
     (("!" ~ "(" )~> expr <~ ")") ^^ { x => "NOT(" +x+ ")"  }  |
     ("!" ~> cond ) ^^ { x => "NOT(" +x+ ")"  } | cond
 
-
-  val term:Parser[String] = factor ~ (("AND" ~> factor)*) ^^ { x=>
+  val term:Parser[String] = factor ~ (("AND" ~> factor)*) ^^ { x =>
     if (x._2.isEmpty)
       x._1
-    else
-      x._1 + " AND " + x._2.mkString}
-
+    else {
+      (List(x._1) ++ x._2).reduce((x, y) => x + " AND " + y)
+    }
+  }
   val expr:Parser[String] = term ~ (("OR" ~> term)*) ^^ { x =>
     if (x._2.isEmpty)
       x._1
-    else
-      x._1 + " OR " + x._2.mkString
+    else {
+      (List(x._1) ++ x._2).reduce((x, y) => x + " OR " + y)
+    }
   }
 
+  val chr_cond:Parser[String] = CHR ~> "==" ~> """[a-zA-Z0-9_\\*\\+\\-]+""".r ^^ {x =>"chr == "+ x}
+  val left_cond:Parser[String] = LEFT ~> (operator ~ decimalNumber) ^^ {x=> "left" + x._1 + x._2.toLong}
+  val right_cond:Parser[String] = RIGHT ~> (operator ~ decimalNumber) ^^ {x=> "right" + x._1 + x._2.toLong}
+  val stop_cond:Parser[String] = STOP ~> (operator ~ decimalNumber) ^^ {x=> "stop" + x._1 + x._2.toLong}
+  val start_cond:Parser[String] = START ~> (operator ~ decimalNumber) ^^ {x=> "start" + x._1 + x._2.toLong}
+  val strand_cond:Parser[String] = STRAND ~> "==" ~> stringLiteral ^^ {x=> "strand" + "==" + x}
+  val schema_cond:Parser[String] = cond
 
+
+  val meta_cond:Parser[String] = (attribute ~ operator ~ ("META" ~> "(" ~>  value_reg <~ ")") )^^
+    { x => x._1._1 +x._1._2 + "META(" + x._2.drop(1).dropRight(1)+ ")" }
+  val value_reg:Parser[String] = """[a-zA-Z0-9_\\*\\+\\-]+""".r ^^{x => x} | floatingPointNumber|
+   stringLiteral ^^ {x=> x}
+  val cond_reg:Parser[String] = chr_cond | strand_cond | start_cond | stop_cond | left_cond | right_cond |
+    meta_cond | cond
+  val factor_reg: Parser[String] = "(" ~> expr_reg <~ ")" ^^ {x=> "(" + x + ")"} |
+    (("!" ~ "(" )~> expr_reg <~ ")") ^^ { x => "NOT(" +x+ ")"  }  |
+    ("!" ~> cond_reg ) ^^ { x => "NOT(" +x+ ")"  }  | cond_reg
+
+  val term_reg:Parser[String] = factor_reg ~ (("AND" ~> factor_reg)*) ^^ { x =>
+    if (x._2.isEmpty)
+      x._1
+    else {
+      (List(x._1) ++ x._2).reduce((x, y) => x + " AND " + y)
+    }
+  }
+  val expr_reg:Parser[String] = term_reg ~ (("OR" ~> term_reg)*) ^^ { x =>
+    if (x._2.isEmpty)
+      x._1
+    else
+      (List(x._1) ++ x._2).reduce((x, y) => x + " OR " + y)
+  }
+
+/*
   val cover_exp:Parser[String] = "ALL" ~> "+" ~> wholeNumber ~ ( "/" ~> wholeNumber) ^^ {
     x => "(ALL + " + x._1.toInt + ")" +"/" + x._2.toInt } |
+    "(" ~ "ALL" ~> "+" ~> wholeNumber ~ ")" ~ ( "/" ~> wholeNumber) ^^ {
+      x => "(ALL + " + x._1._1.toInt + ")" +"/" + x._2.toInt } |
     wholeNumber ^^ { x => x} |
     "ALL" ~ "/" ~> wholeNumber ^^ {x => "ALL / "+x} |
     "ALL" ^^ {x => x} | "ANY" ^^ {x=> x}
+*/
+
+  val cover_exp:Parser[(String,Option[Int],Option[Int])] =  "ANY" ^^ {x => ("ANY",None,None)} |
+   "ALL" ~> "+" ~> wholeNumber ~ ( "/" ~> wholeNumber) ^^ {
+    x => ("ALLSUMDIV",Some(x._1.toInt),Some(x._2.toInt)) } |
+    "(" ~ "ALL" ~> "+" ~> wholeNumber ~ ")" ~ ( "/" ~> wholeNumber) ^^ {
+      x => ("ALLSUMDIV",Some(x._1._1.toInt),Some(x._2.toInt)) } |
+    wholeNumber ^^ { x => ("N",Some(x.toInt),None)} |
+    "ALL" ~ "/" ~> wholeNumber ^^ {x => ("ALLDIV",None,Some(x.toInt))} |  "ALL" ^^ {x => ("ALL",None,None)}
 
 
 
-  def findAndChange(input:String): String =
+
+  def findAndChangeMeta(input:String): String =
   {
     val metadata = parse(expr, input)
 
@@ -86,16 +119,27 @@ class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
     }
   }
 
-  def findAndChangeCover(input:String): String =
+  def findAndChangeReg(input:String): String =
   {
-
-    val param = parse(cover_exp, input)
-
-    param match {
+    val region = parse(expr_reg, input)
+    //println(region)
+    region match {
       case Success(result, next) => result
       case NoSuccess(result, next) => "Invalid Syntax"
       case Error(result, next) => "Invalid Syntax"
       case Failure(result, next) => "Failure"
+    }
+  }
+
+  def findAndChangeCover(input:String): (String,Option[Int],Option[Int]) =
+  {
+    val param = parse(cover_exp, input)
+
+    param match {
+      case Success(result, next) => result
+      case NoSuccess(result, next) => ("Invalid Syntax",None,None)
+      case Error(result, next) => ("Invalid Syntax",None,None)
+      case Failure(result, next) => ("Failure",None,None)
     }
   }
 
@@ -133,6 +177,7 @@ class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
     }
 
   }
+  /*
   def parseCoverParam(input: String): (String,CoverParam) = {
 
     val coverParam = parse(cover_param, input)
@@ -143,7 +188,7 @@ class Parser(input_var: IRVariable, server: GmqlServer) extends GmqlParsers {
       case Failure(result, next) => (result, null)
     }
   }
-
+*/
   def refine_region_condition(rc: RegionCondition): RegionCondition = {
 
     rc match {

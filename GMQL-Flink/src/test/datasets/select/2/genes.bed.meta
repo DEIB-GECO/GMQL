@@ -1,7 +1,0 @@
-name	genes
-datasetname	genes
-source	hg19_promoter
-annotation_type	promoter
-provider	UCSC
-cell	1
-bert_value_meta	50

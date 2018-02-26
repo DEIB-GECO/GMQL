@@ -1,16 +1,17 @@
 package it.polimi.genomics.manager
 
+import java.io.File
 import java.nio.file.Paths
 import java.text.SimpleDateFormat
 import java.util.Date
 
 import it.polimi.genomics.GMQLServer.GmqlServer
-import it.polimi.genomics.core.DAGWrapper
 import it.polimi.genomics.compiler._
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLocalLauncher}
-import it.polimi.genomics.core.{DAGSerializer, DAGWrapper, GMQLSchemaCoordinateSystem, GMQLSchemaFormat, GMQLScript, Utilities => core_ut}
+import it.polimi.genomics.core.{DAGSerializer, DAGWrapper, GMQLSchemaCoordinateSystem, GMQLSchemaFormat, GMQLScript}
 import it.polimi.genomics.manager.Status._
+import it.polimi.genomics.repository.FSRepository.FS_Utilities.{deleteDFSDir, deleteFromLocalFSRecursive, logger}
 import it.polimi.genomics.repository.FSRepository.{FS_Utilities => FSR_Utilities}
 import it.polimi.genomics.repository.GMQLExceptions.GMQLNotValidDatasetNameException
 import it.polimi.genomics.repository.{DatasetOrigin, GMQLRepository, RepositoryType, Utilities => General_Utilities}
@@ -89,6 +90,8 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     status = Status.COMPILING
     General_Utilities().USERNAME = username
 
+    val res_name = generateResultName(queryName)
+
     val compileTimestamp = System.currentTimeMillis();
     try {
       //compile the GMQL Code phase 1
@@ -98,8 +101,8 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
       outputVariablesList = languageParserOperators.flatMap(x => x match {
         case d: MaterializeOperator =>
           if (!d.store_path.isEmpty)
-            Some(id + "_" + d.store_path.replace("/", "_"))
-          else Some(id)
+            Some( res_name + "_" + d.store_path.replace("/", "_"))
+          else Some(res_name)
         case _ => None
       })
 
@@ -172,13 +175,13 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
           if (!d.store_path.isEmpty){
             if (General_Utilities().MODE == General_Utilities().HDFS)
               d.store_path = fsRegDir + id + "_" + d.store_path + "/"
-            else d.store_path = id + "_" + d.store_path + "/"
+            else d.store_path = res_name + "_" + d.store_path + "/"
             d
           }
           else{
             if (General_Utilities().MODE == General_Utilities().HDFS)
               d.store_path = fsRegDir + id + "/"
-            else d.store_path = id + "/"
+            else d.store_path = res_name + "/"
             d
           }
         case s: Operator => s
@@ -215,7 +218,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     //Get the output Datasets names.
     outputVariablesList = outDss
 
-    (outDss, DAGSerializer.serializeToBase64(DAGWrapper(dagVars)))
+    (outDss, DAGSerializer.serializeDAG(DAGWrapper(dagVars)))
   }
 
 
@@ -253,11 +256,11 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
         x.paths = List(getInputDsPath(x.dataset.position))
         None
       case x: IRStoreRD =>
-        val outDsName = jobId + "_" + x.dataSet.position
+        val outDsName = generateResultName(queryName) + "_" + x.dataSet.position
         x.path = renameOutputDirs(outDsName)
         Some(outDsName)
       case x: IRStoreMD =>
-        val outDsName = jobId + "_" + x.dataSet.position
+        val outDsName = generateResultName(queryName) + "_" + x.dataSet.position
         x.path = renameOutputDirs(outDsName)
         Some(outDsName)
       case _ =>
@@ -356,10 +359,16 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
         elapsedTime.executionTime = System.currentTimeMillis() - timestamp
 
         logger.info(jobId+"\t"+getJobStatus)
+
         if(status == Status.EXEC_SUCCESS) {
           logger.info("Creating dataset..." + outputVariablesList)
           createds()
           logger.info("Creating dataset Done...")
+        }
+
+        if(status == Status.EXEC_STOPPED || status == Status.EXEC_FAILED ) {
+          logger.info("Execution stopped. Any residual dataset will be deleted.")
+          deleteResidualDs()
         }
 
       }
@@ -368,6 +377,46 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     logger.info("Execution Time: "+(elapsedTime.executionTime/1000))
 
     status
+  }
+
+  /**
+    * Delete any residual dataset created by a Failed or Stopped  execution
+    * @return
+    */
+  def deleteResidualDs(): Unit = {
+
+    if (outputVariablesList.nonEmpty) {
+
+      outputVariablesList.foreach(ds => {
+
+        logger.info("Removing residual dataset: "+ds)
+
+        try {
+
+          if( General_Utilities().GMQL_REPO_TYPE == General_Utilities().HDFS ) {
+
+            val path = General_Utilities().getHDFSRegionDir(username)+"/"+ds
+            deleteDFSDir(path)
+
+          } else if (General_Utilities().GMQL_REPO_TYPE == General_Utilities().LOCAL) {
+
+            val file = new File(General_Utilities().getRegionDir()+"/"+General_Utilities().getRegionDir(username))
+            if ( file.exists() )
+              deleteFromLocalFSRecursive(file)
+
+          } else {
+            logger.warn("No region folder deleted, repo type is unknown.")
+          }
+
+        } catch {
+          case ex: Exception => ex.printStackTrace()
+        }
+
+      })
+    } else {
+      logger.info("No residual dataset found.")
+    }
+
   }
 
   /**
@@ -488,6 +537,11 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     * @return GMQL Job ID as a string
     */
   def generateJobId(username: String, queryname: String): String = {
+    "job_"+username+"_"+generateResultName(queryname)
+  }
+
+
+  def generateResultName(queryname:String = queryName): String = {
     queryname.toLowerCase() +  "_" + date
   }
 

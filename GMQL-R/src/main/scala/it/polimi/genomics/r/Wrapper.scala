@@ -3,19 +3,21 @@ package it.polimi.genomics.r
 import java.io.FileNotFoundException
 import java.util.concurrent.atomic.AtomicLong
 
-import it.polimi.genomics.GMQLServer.{DefaultRegionsToMetaFactory, DefaultRegionsToRegionFactory, GmqlServer}
+import it.polimi.genomics.GMQLServer.{DefaultMetaAggregateFactory, DefaultRegionsToMetaFactory, DefaultRegionsToRegionFactory, GmqlServer}
 import it.polimi.genomics.core.DataStructures.CoverParameters._
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor.GMQL_DATASET
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.Direction
 import it.polimi.genomics.core.DataStructures.GroupMDParameters._
+import it.polimi.genomics.core.DataStructures.GroupRDParameters.{FIELD, GroupingParameter}
 import it.polimi.genomics.core.DataStructures.JoinParametersRD._
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
-import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaExtension
+import it.polimi.genomics.core.DataStructures.MetaAggregate.{MetaAggregateFunction, MetaExtension}
+import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
 import it.polimi.genomics.core.DataStructures.{IRDataSet, IROperator, IRReadMD, IRReadRD, IRVariable, MetaOperator, RegionOperator}
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition._
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
 import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionFunction, RegionsToMeta, RegionsToRegion}
-import it.polimi.genomics.core.DataStructures.RegionCondition.{ChrCondition, RegionCondition}
+import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
 import it.polimi.genomics.core.{GValue, _}
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
@@ -33,27 +35,26 @@ import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 object Wrapper {
 
   var GMQL_server: GmqlServer = _
-  //var GMQL_executor: GMQLSparkExecutor = _
   var Spark_context: SparkContext = _
   var change_processing_possible= true
   var remote_processing: Boolean = false
   var outputformat: GMQLSchemaFormat.Value = _
-  //thread safe counter for unique string pointer to dataset
-  //'cause we could have two pointer at the same dataset and we
-  //can not distinguish them
   var rest_manager = RESTManager
   var materialize_list: ListBuffer[IRVariable] = new ListBuffer[IRVariable]
 
-
-
+  //thread safe counter for unique string pointer to dataset
+  //'cause we could have two pointer at the same dataset and we
+  //can not distinguish them
   //example:
   // R shell
   //r = readDataset("/Users/simone/Downloads/job_filename_guest_new14_20170316_162715_DATA_SET_VAR")
   //r1 = readDataset("/Users/simone/Downloads/job_filename_guest_new14_20170316_162715_DATA_SET_VAR")
-  //are mapped in vv with the same key
+  //are mapped in vv with the same key but different in R
+
   var counter: AtomicLong = new AtomicLong(0)
   var dataset_index: AtomicLong = new AtomicLong(0)
 
+  // probably not needed use materialize_list.length()
   var materialize_count: AtomicLong = new AtomicLong(0)
 
   var mem_meta: Array[Array[String]] = _
@@ -99,10 +100,6 @@ object Wrapper {
     val executor = new GMQLSparkExecutor(sc = Spark_context, outputFormat = outputformat)
     GMQL_server = new GmqlServer(executor)
 
-    if (GMQL_server == null) {
-      println("GMQL Server is down")
-      return
-    }
     change_processing_possible=true
     remote_processing = remote_proc
     println("GMQL Server is up")
@@ -110,7 +107,7 @@ object Wrapper {
 
   def remote_processing(remote: Boolean): String = {
 
-    if(GMQL_server==null)
+    if(GMQL_server == null)
       return "invoke init_gmql() first"
 
     if(change_processing_possible)
@@ -133,37 +130,59 @@ object Wrapper {
     format match {
       case "TAB" => GMQLSchemaFormat.TAB
       case "GTF" => GMQLSchemaFormat.GTF
-      //case "VCF" => GMQLSchemaFormat.VCF
+      case "VCF" => GMQLSchemaFormat.VCF
       case "COLLECT" => GMQLSchemaFormat.COLLECT
+      case _ => GMQLSchemaFormat.TAB
     }
   }
 
-  def readDataset(data_input_path: String, parser_name: String, is_local: Boolean, is_GMQL:Boolean,
-                  schema: Array[Array[String]],path_schema_XML:String): Array[String] =
+  def coordSystem(coord: String): GMQLSchemaCoordinateSystem.Value = {
+    coord match {
+      case "default" => GMQLSchemaCoordinateSystem.Default
+      case "0-based" => GMQLSchemaCoordinateSystem.ZeroBased
+      case "1-based" => GMQLSchemaCoordinateSystem.OneBased
+      case _ => GMQLSchemaCoordinateSystem.Default
+    }
+  }
+
+  def stopGMQL(): Unit =
   {
+    if(GMQL_server!=null) {
+      Spark_context.stop()
+      GMQL_server = null
+    }
+    else
+      println("GMQL Server has not been initialized yet")
+  }
+
+  def readDataset(data_input_path: String, parser_name: String, is_local: Boolean, is_GMQL:Boolean,
+                  schema: Array[Array[String]],path_schema_XML:String,coordSys:String,
+                  formatType:String): Array[String] =
+  {
+    if(GMQL_server == null)
+      return Array("1","invoke init_gmql() first")
+
     var parser: BedParser = null
     var out_p = ""
-    var loc_path=""
-    var remote_path=""
+    var loc_path = ""
+    var remote_path = ""
     var data_path = data_input_path
-    //println(data_path)
 
     if (is_local && is_GMQL)
     {
-      var name_local:Array[String] = data_path.split("/")
-      var last_name = name_local(name_local.length-1)
+      val name_local:Array[String] = data_path.split("/")
+      val last_name = name_local(name_local.length-1)
       if(last_name != "files")
         data_path = data_path + "/files"
     }
-    //val parser = GMQL_executor.getParser(parser_name.toLowerCase,path_schema_XML).asInstanceOf[BedParser]
 
     parser_name match {
-      case "BEDPARSER" => parser = BedParser
-      case "ANNPARSER" => parser = ANNParser
-      case "BROADPROJPARSER" => parser = BroadProjParser
-      case "BASICPARSER" => parser = BasicParser
-      case "NARROWPEAKPARSER" => parser = NarrowPeakParser
-      case "RNASEQPARSER" => parser = RnaSeqParser
+      //case "BEDPARSER" => parser = BedParser.asInstanceOf[BedParser]
+      case "ANNPARSER" => parser = ANNParser.asInstanceOf[BedParser]
+      case "BROADPEAKPARSER" => parser = BroadPeaksParser.asInstanceOf[BedParser]
+      case "BASICPARSER" => parser = BasicParser.asInstanceOf[BedParser]
+      case "NARROWPEAKPARSER" => parser = NarrowPeakParser.asInstanceOf[BedParser]
+      case "RNASEQPARSER" => parser = RnaSeqParser.asInstanceOf[BedParser]
       case "CUSTOMPARSER" => {
         if (is_local)
         {
@@ -177,7 +196,7 @@ object Wrapper {
         }
         else {
           if (schema != null) {
-            parser = createParser(schema)
+            parser = createParser(schema,coordSys,formatType)
           }
           else
             return Array("1","No schema defined")
@@ -191,8 +210,12 @@ object Wrapper {
       remote_path = null
     }
     else {
+
       loc_path=null
-      remote_path=data_path
+      val owner_dataset:Array[String] = data_path.split("\\.")
+      val dataset = owner_dataset(owner_dataset.length-1)
+      remote_path = dataset
+      data_path = dataset
     }
 
     val dataAsTheyAre = GMQL_server.READ(data_path).USING(parser)
@@ -204,10 +227,9 @@ object Wrapper {
     this.datasetQueue += elem_map
 
     Array("0",out_p)
-
   }
 
-  def createParser(schema: Array[Array[String]]): BedParser = {
+  def createParser(schema: Array[Array[String]],cSystem:String,formatType:String): BedParser = {
 
     var chr_index = 0
     var start_index = 0
@@ -216,24 +238,38 @@ object Wrapper {
     val schemaList = new ListBuffer[(Int, ParsingType.PARSING_TYPE)]()
     val schemaList_name = new ListBuffer[(String, ParsingType.PARSING_TYPE)]()
 
-    for (i <- 0 until schema.length) {
-      var name = schema(i)(0)
+
+    for (i <- schema.indices) {
+      var name = schema(i)(0).toLowerCase
       var parse_type = schema(i)(1)
       name match {
-        case "seqnames" | "chr" => chr_index = i
+        case "seqname" | "seqnames" | "chr" | "chrom" => chr_index = i
         case "start" | "left" => start_index = i
-        case "end" | "right" => end_index = i
+        case "end" | "right" | "stop" => end_index = i
         case "strand" => strand_index = i
         case _ => {
-          var pt = getParsingTypeFromString(parse_type)
+          val pt = getParsingTypeFromString(parse_type)
           schemaList += ((i, pt))
           schemaList_name += ((name,pt))
         }
       }
     }
 
+
     val parser = new BedParser("\t", chr_index, start_index, end_index, Some(strand_index), Some(schemaList.toArray))
     parser.schema = schemaList_name.toList
+
+    val gType = outputFormat(formatType.toUpperCase)
+    parser.parsingType = gType
+
+    gType match{
+      case GMQLSchemaFormat.GTF =>
+        parser.calculateMapParameters(Some(schemaList_name.map(_._1).tail.tail.tail.tail))
+        parser.coordinateSystem = coordSystem(cSystem.toLowerCase)
+      case GMQLSchemaFormat.TAB =>
+        parser.coordinateSystem = coordSystem("0-based")
+    }
+
     parser
   }
 
@@ -251,27 +287,29 @@ object Wrapper {
       case "BOOL" => ParsingType.STRING
       case "FACTOR" => ParsingType.STRING
       case "NUMERIC" => ParsingType.DOUBLE
+      case "DOUBLE" => ParsingType.DOUBLE
       case _ => ParsingType.DOUBLE
     }
   }
 
-  def read(meta: Array[Array[String]], regions: Array[Array[String]], schema: Array[Array[String]]): String = {
+  def read(meta: Array[Array[String]], regions: Array[Array[String]],
+           schema: Array[Array[String]],coordSys:String, formatType:String): String = {
 
     val metaDS = Spark_context.parallelize(meta.map { x => (x(0).toLong, (x(1), x(2))) })
 
     val regionDS = Spark_context.parallelize(regions.map {
       x => (new GRecordKey(x(0).toLong, x(1), x(2).toLong, x(3).toLong, x(4).toCharArray.head), getGvalueArray(x.drop(4)))
     })
+    val parser = createParser(schema,coordSys,formatType)
 
-    val schemaDS = create_list_schema(schema)
 
-    val dataAsTheyAre = GMQL_server.READ("").USING(metaDS, regionDS, schemaDS)
+    val dataAsTheyAre = GMQL_server.READ("").USING(metaDS, regionDS, parser.schema)
 
     val index = counter.getAndIncrement()
     val out_p = "dataset" + index
     vv = vv + (out_p -> dataAsTheyAre)
-
     out_p
+
   }
 
   def materialize(data_to_materialize: String, data_output_path: String): Array[String] = {
@@ -286,12 +324,12 @@ object Wrapper {
     {
       for (elem <- datasetQueue)
       {
-        var remote = elem(1)
+        //var remote = elem(1)
         var local = elem(0)
         if(local!=null)
         {
-          var name_local:Array[String] = local.split("/")
-          var last_name = name_local(name_local.length-2)
+          val name_local:Array[String] = local.split("/")
+          val last_name = name_local(name_local.length-2)
           //upload
           modify_DAG(metaDAG,local,last_name)
           modify_DAG(regDAG,local,last_name)
@@ -304,7 +342,7 @@ object Wrapper {
       for (elem <- datasetQueue)
       {
         var remote = elem(1)
-        var local = elem(0)
+        //var local = elem(0)
         if(remote!=null)
         {
           val dir_out = data_output_path + "/" + remote +"/files"
@@ -315,8 +353,8 @@ object Wrapper {
         }
       }
     }
-    materialize_list += materialize
     GMQL_server setOutputPath data_output_path MATERIALIZE materialize
+    //materialize_list += materialize
     materialize_count.getAndIncrement()
     change_processing_possible=false
 
@@ -355,7 +393,10 @@ object Wrapper {
     {
       if(remote_processing)
       {
-        val base64DAG:String  = Utilities.serializeToBase64(materialize_list.toList)
+        val dagW = DAGWrapper(GMQL_server.materializationList.toList)
+        val base64DAG:String  = DAGSerializer.serializeDAG(dagW)
+        change_processing_possible = true
+        GMQL_server.materializationList.clear()
         return Array("0",base64DAG)
       }
       else
@@ -364,7 +405,7 @@ object Wrapper {
         materialize_count.set(0)
       }
       change_processing_possible = true
-      materialize_list.clear()
+      GMQL_server.materializationList.clear()
       Array("0","Executed")
     }
   }
@@ -428,10 +469,9 @@ object Wrapper {
 
     val dataAsTheyAre = vv(input_dataset)
 
-    /*
-    println(region_predicate)
-    println(predicate)
-    */
+    //println(region_predicate)
+    //println(predicate)
+
     var semiJoinDataAsTheyAre: IRVariable = null
     var semi_join_metaDag: Option[MetaOperator] = None
     var semi_join_list:Option[MetaJoinCondition]= None
@@ -441,14 +481,14 @@ object Wrapper {
     val parser = new Parser(dataAsTheyAre, GMQL_server)
 
     if (predicate != null) {
-      val str_predicate = parser.findAndChange(predicate)
+      val str_predicate = parser.findAndChangeMeta(predicate)
       selected_meta = parser.parseSelectMetadata(str_predicate)
       if (selected_meta._2.isEmpty)
         return Array("1",selected_meta._1)
     }
 
     if (region_predicate != null) {
-      val str_predicate = parser.findAndChange(region_predicate)
+      val str_predicate = parser.findAndChangeReg(region_predicate)
       selected_regions = parser.parseSelectRegions(str_predicate)
       if (selected_regions._2.isEmpty)
         return Array("1",selected_regions._1)
@@ -461,13 +501,13 @@ object Wrapper {
         return Array("1","No valid Data as semijoin")
 
       semiJoinDataAsTheyAre = vv(semijoin_data)
-      val not_in = semi_join(0)(1)
-      val semi_join_neg = not_in match{
+      val is_in = semi_join(0)(1)
+      val semi_join_neg = is_in match{
         case "TRUE" => true
         case "FALSE" => false
       }
       val semi_join_cond = semi_join.drop(1)
-      semi_join_list= MetaJoinConditionList_with_neg(semi_join_cond,semi_join_neg)
+      semi_join_list= MetaJoinConditionList_with_neg(semi_join_cond,!semi_join_neg)
       if (semi_join_list.isEmpty)
         return Array("1","No valid condition in semijoin")
 
@@ -498,10 +538,8 @@ object Wrapper {
     val dataAsTheyAre = vv(input_dataset)
     val parser = new Parser(dataAsTheyAre, GMQL_server)
 
-    /*
-    println(extended_meta)
-    println(extended_values)
-*/
+    //println(extended_meta)
+    //println(extended_values)
 
     val meta_list: Option[List[String]] = MetadataAttributesList(projected_meta)
 
@@ -579,6 +617,56 @@ object Wrapper {
     Array("0",out_p)
   }
 
+  def group(meta_keys:Array[Array[String]], meta_aggr:Array[Array[String]], region_keys:Array[String],
+            aggregates:Array[Array[String]], input_dataset: String): Array[String] = {
+
+    if (vv.get(input_dataset).isEmpty)
+      return Array("1","No valid Data as input")
+
+    var aggr_list: (String, List[RegionsToRegion]) = ("", List())
+    var aggr_list_opt: Option[List[RegionsToRegion]] = None
+    var meta_aggr_list: (String, Option[List[MetaAggregateFunction]]) = ("", None)
+    var group_reg_list:(String, Option[List[GroupingParameter]]) = ("", None)
+    val dataAsTheyAre = vv(input_dataset)
+    var metaGroupByList:Option[MetaGroupByCondition] = None
+
+    if(meta_keys!=null) {
+      val groupList: Option[List[AttributeEvaluationStrategy]] = MetaAttributeEvaluationStrategyList(meta_keys)
+      if (groupList.isDefined)
+        metaGroupByList = Some(MetaGroupByCondition(groupList.get))
+    }
+
+    if (aggregates != null) {
+      aggr_list = RegionToRegionAggregates(aggregates, dataAsTheyAre)
+      if (aggr_list._2.isEmpty)
+        return Array("1",aggr_list._1)
+
+      aggr_list_opt = Some(aggr_list._2)
+    }
+
+    if(region_keys !=null ) {
+      group_reg_list = groupingParam(region_keys, dataAsTheyAre)
+      if (group_reg_list._2.isEmpty)
+        return Array("1", group_reg_list._1)
+    }
+
+    if(meta_aggr !=null ) {
+      meta_aggr_list = MetaAggregates(meta_aggr, dataAsTheyAre)
+      if (meta_aggr_list._2.isEmpty)
+        return Array("1", meta_aggr_list._1)
+    }
+
+    val group = dataAsTheyAre.GROUP(metaGroupByList,meta_aggr_list._2,"_group",group_reg_list._2,aggr_list_opt)
+
+    val index = counter.getAndIncrement()
+    val out_p = input_dataset + "/group" + index
+    vv = vv + (out_p -> group)
+
+    Array("0",out_p)
+  }
+
+
+
   def order(meta_order: Array[Array[String]], meta_opt:String, meta_opt_value:Int, reg_opt:String, reg_opt_value:Int,
             region_order: Array[Array[String]], input_dataset: String): Array[String] = {
 
@@ -587,14 +675,14 @@ object Wrapper {
 
     val dataAsTheyAre = vv(input_dataset)
 
-    var m_top: TopParameter = meta_opt match{
+    val m_top: TopParameter = meta_opt match{
       case "mtop" =>  Top(meta_opt_value)
       case "mtopp" => TopP(meta_opt_value)
       case "mtopg" => TopG(meta_opt_value)
       case _ => NoTop()
     }
 
-    var r_top: TopParameter = reg_opt match{
+    val r_top: TopParameter = reg_opt match{
       case "rtop" =>  Top(reg_opt_value)
       case "rtopp" => TopP(reg_opt_value)
       case "rtopg" => TopG(reg_opt_value)
@@ -602,13 +690,14 @@ object Wrapper {
     }
 
     val meta_list = meta_order_list(meta_order)
+
     var reg_ordering: (String, Option[List[(Int, Direction)]]) = ("", None)
     if (region_order != null) {
       reg_ordering = region_order_list(region_order, dataAsTheyAre)
       if (reg_ordering._2.isEmpty)
         return Array("1",reg_ordering._1)
     }
-    val order = dataAsTheyAre.ORDER(meta_list, "_group", m_top, reg_ordering._2, r_top)
+    val order = dataAsTheyAre.ORDER(meta_list, "_order", m_top, reg_ordering._2, r_top)
 
     val index = counter.getAndIncrement()
     val out_p = input_dataset + "/order" + index
@@ -618,7 +707,7 @@ object Wrapper {
   }
 
   //we use "right" and "left" as prefixes
-  def union(right_dataset: String, left_dataset: String): Array[String] = {
+  def union(left_dataset: String, right_dataset: String): Array[String] = {
     if (vv.get(right_dataset).isEmpty)
       return Array("1","No valid right Data as input")
 
@@ -666,6 +755,7 @@ object Wrapper {
 
   def flat(min: String, max: String, groupBy: Array[Array[String]], aggregates: Array[Array[String]],
            input_dataset: String): Array[String] = {
+    //println("flat")
     val (error, flat) = doVariant(CoverFlag.FLAT, min, max, groupBy, aggregates, input_dataset)
     if (flat == null)
       return Array("1",error)
@@ -679,7 +769,9 @@ object Wrapper {
 
   def histogram(min: String, max: String, groupBy: Array[Array[String]], aggregates: Array[Array[String]],
                 input_dataset: String): Array[String] = {
-    val (error, histogram) = doVariant(CoverFlag.FLAT, min, max, groupBy, aggregates, input_dataset)
+    val (error, histogram) = doVariant(CoverFlag.HISTOGRAM, min, max, groupBy, aggregates, input_dataset)
+    //println("histogram")
+
     if (histogram == null)
       return Array("1",error)
 
@@ -692,6 +784,7 @@ object Wrapper {
 
   def summit(min: String, max: String, groupBy: Array[Array[String]], aggregates: Array[Array[String]],
              input_dataset: String): Array[String] = {
+    //println("summit")
     val (error, summit) = doVariant(CoverFlag.SUMMIT, min, max, groupBy, aggregates, input_dataset)
     if (summit == null)
       return Array("1",error)
@@ -705,6 +798,8 @@ object Wrapper {
 
   def cover(min: String, max: String, groupBy: Array[Array[String]], aggregates: Array[Array[String]],
             input_dataset: String): Array[String] = {
+    //println("cover")
+
     val (error, cover) = doVariant(CoverFlag.COVER, min, max, groupBy, aggregates, input_dataset)
     if (cover == null)
       return Array("1",error)
@@ -722,16 +817,22 @@ object Wrapper {
     if (vv.get(input_dataset).isEmpty)
       return ("No valid dataset as input", null)
 
-
     val dataAsTheyAre = vv(input_dataset)
     var aggr_list: (String, List[RegionsToRegion]) = ("", List())
-    var paramMin = get_param(min)
-    if (paramMin._2 == null)
-      return (paramMin._1, null)
 
-    var paramMax = get_param(max)
-    if (paramMax._2 == null)
-      return (paramMax._1, null)
+    val parser = new Parser()
+
+    val pMin = parser.findAndChangeCover(min)
+    if(pMin._1 =="Invalid Syntax" || pMin._1 =="Failure")
+      return (pMin._1,null)
+
+    val CoverMin = CoverParameterManager.getCoverParam(pMin._1,pMin._2,pMin._3)
+
+    val pMax = parser.findAndChangeCover(max)
+    if(pMax._1 =="Invalid Syntax" || pMax._1 =="Failure")
+      return (pMax._1,null)
+
+    val CoverMax = CoverParameterManager.getCoverParam(pMax._1,pMax._2,pMax._3)
 
     if (aggregates != null) {
       aggr_list = RegionToRegionAggregates(aggregates, dataAsTheyAre)
@@ -741,15 +842,15 @@ object Wrapper {
 
     val groupList: Option[List[AttributeEvaluationStrategy]] = MetaAttributeEvaluationStrategyList(groupBy)
 
-    val variant = dataAsTheyAre.COVER(flag, paramMin._2, paramMax._2, aggr_list._2, groupList)
+    val variant = dataAsTheyAre.COVER(flag, CoverMin, CoverMax, aggr_list._2, groupList)
 
     ("OK", variant)
   }
 
 
-  // we do not add left, right and count name: we set to None
+  // we do not add left, right: we set to None
   def map(condition: Array[Array[String]], aggregates: Array[Array[String]],
-          right_dataset: String, left_dataset: String): Array[String] = {
+          count_name:String, left_dataset: String, right_dataset: String): Array[String] = {
     if (vv.get(right_dataset).isEmpty)
       return Array("1","No valid right Data as input")
 
@@ -766,10 +867,15 @@ object Wrapper {
       if (aggr_list._2.isEmpty)
         return Array("1",aggr_list._1)
     }
-
     val condition_list: Option[MetaJoinCondition] = MetaJoinConditionList(condition)
 
-    val map = leftDataAsTheyAre.MAP(condition_list, aggr_list._2, rightDataAsTheyAre, None, None, None)
+    var c_name = Option("")
+    if(count_name!=null)
+      c_name = Option(count_name)
+    else
+      c_name = None
+
+    val map = leftDataAsTheyAre.MAP(condition_list, aggr_list._2, rightDataAsTheyAre, None,None, c_name)
 
     val index = counter.getAndIncrement()
     val out_p = left_dataset + "/map" + index
@@ -780,8 +886,12 @@ object Wrapper {
 
 
   // we do not add ref and exp name: we set to None
-  def join(region_join: Array[Array[String]], meta_join: Array[Array[String]], output: String,
-           right_dataset: String, left_dataset: String): Array[String] = {
+  def join(genometric: Array[Array[String]], meta_join: Array[Array[String]], output: String,
+           attributes: Array[String], left_dataset: String, right_dataset: String): Array[String] = {
+
+    if(GMQL_server == null)
+      return Array("1","invoke init_gmql() first")
+
     if (vv.get(right_dataset).isEmpty)
       return Array("1","No valid right Data as input")
 
@@ -790,13 +900,20 @@ object Wrapper {
 
     val leftDataAsTheyAre = vv(left_dataset)
     val rightDataAsTheyAre = vv(right_dataset)
+    var attr_list: (String, Option[List[(Int, Int)]]) = ("",None)
 
+    if (attributes != null) {
+      attr_list = joinRegAttributeList(attributes, leftDataAsTheyAre,rightDataAsTheyAre)
+      if (attr_list._2.isEmpty)
+        return Array("1",attr_list._1)
+    }
     val meta_join_list: Option[MetaJoinCondition] = MetaJoinConditionList(meta_join)
-    val region_join_list: List[JoinQuadruple] = RegionQuadrupleList(region_join)
+    val region_join_list: List[JoinQuadruple] = RegionQuadrupleList(genometric)
 
     val reg_out = regionBuild(output)
 
-    val join = leftDataAsTheyAre.JOIN(meta_join_list, region_join_list, reg_out, rightDataAsTheyAre, None, None)
+    val join = leftDataAsTheyAre.JOIN(meta_join_list, region_join_list, reg_out,
+      rightDataAsTheyAre, None, None, attr_list._2)
 
     val index = counter.getAndIncrement()
     // val out_p = left_dataset+right_dataset+"/join"+index
@@ -807,46 +924,38 @@ object Wrapper {
   }
 
 
-  /*UTILS FUNCTION*/
-
-  def get_param(param: String): (String, CoverParam) = {
-    var covParam: CoverParam = null
-    var parser_res: (String, CoverParam)=null
-
-    var parameter = try {
-        param.toInt
-      }
-    catch {
-        case n: NumberFormatException => param
-      }
-
-    parameter match {
-      case parameter: Int => covParam = new N {
-          override val n: Int = parameter
-        }
-      case parameter: String => {
-        val parser = new Parser()
-        val p = parser.findAndChangeCover(parameter)
-        parser_res = parser.parseCoverParam(p)
-        if (parser_res._2 == null)
-          return ("No valid min or max input", parser_res._2)
-
-        covParam = parser_res._2
-      }
-    }
-
-    ("OK", covParam)
-  }
 
   def regionBuild(output: String): RegionBuilder = {
 
     output match {
       case "LEFT" => RegionBuilder.LEFT
       case "RIGHT" => RegionBuilder.RIGHT
-      case "CONTIG" => RegionBuilder.CONTIG
-      case "INTERSECTION" => RegionBuilder.INTERSECTION
+      case "CAT" => RegionBuilder.CONTIG
+      case "INT" => RegionBuilder.INTERSECTION
+      case "BOTH" => RegionBuilder.BOTH
+      case "LEFT_DIST" => RegionBuilder.LEFT_DISTINCT
+      case "RIGHT_DIST" => RegionBuilder.RIGHT_DISTINCT
     }
 
+  }
+
+
+  def groupingParam(params: Array[String],data: IRVariable): (String, Option[List[GroupingParameter]]) =
+  {
+    var group_List: Option[List[GroupingParameter]] = None
+    var temp_list = new ListBuffer[GroupingParameter]()
+    for (elem <- params) {
+      val field = data.get_field_by_name(elem)
+      if (field.isEmpty) {
+        val error = "No value " + elem(2) + " from this schema"
+        return (error, group_List) //empty list
+      }
+      var pos = field.get
+      temp_list += FIELD(pos)
+    }
+    group_List = Some(temp_list.toList)
+
+    ("OK",group_List)
   }
 
 
@@ -858,15 +967,20 @@ object Wrapper {
       case aggregates: Array[Array[String]] => {
 
         for (elem <- aggregates) {
-          if (elem(1).equalsIgnoreCase("COUNT"))
-            temp_list += DefaultRegionsToMetaFactory.get(elem(1), Some(elem(0)))
+          if (elem(1).equalsIgnoreCase("COUNT")) {
+            var res = DefaultRegionsToMetaFactory.get(elem(1), Some(elem(0)))
+            res.output_attribute_name = elem(0)
+            temp_list += res
+          }
           else {
             val field = data.get_field_by_name(elem(2))
             if (field.isEmpty) {
               val error = "No value " + elem(2) + " from this schema"
               return (error, region_meta_list) //empty list
             }
-            temp_list += DefaultRegionsToMetaFactory.get(elem(1), field.get, Some(elem(0)))
+            var res = DefaultRegionsToMetaFactory.get(elem(1), field.get, Some(elem(0)))
+            res.output_attribute_name = elem(0)
+            temp_list += res
           }
         }
         region_meta_list = temp_list.toList
@@ -884,14 +998,20 @@ object Wrapper {
 
         for (elem <- aggregates) {
           if (elem(1).equalsIgnoreCase("COUNT"))
-            temp_list += DefaultRegionsToRegionFactory.get(elem(1), Some(elem(0)))
+          {
+            var res = DefaultRegionsToRegionFactory.get(elem(1), Some(elem(0)))
+            res.output_name = Some(elem(0))
+            temp_list += res
+          }
           else {
             val field = data.get_field_by_name(elem(2))
             if (field.isEmpty) {
               val error = "No value " + elem(2) + " from this schema"
               return (error, aggr_list) //empty list
             }
-            temp_list += DefaultRegionsToRegionFactory.get(elem(1), field.get, Some(elem(0)))
+            var res = DefaultRegionsToRegionFactory.get(elem(1), field.get, Some(elem(0)))
+            res.output_name = Some(elem(0))
+            temp_list += res
           }
         }
         aggr_list = temp_list.toList
@@ -899,6 +1019,39 @@ object Wrapper {
     }
     ("OK", aggr_list) // not empty list
   }
+
+  def MetaAggregates(aggregates: Any, data: IRVariable): (String, Option[List[MetaAggregateFunction]]) = {
+    var meta_aggr_list: List[MetaAggregateFunction] = List()
+    val temp_list = new ListBuffer[MetaAggregateFunction]()
+
+    aggregates match
+    {
+      case aggregates: Array[Array[String]] => {
+
+        for (elem <- aggregates) {
+          try {
+            if (elem(1).equalsIgnoreCase("COUNTSAMP")) {
+              var res = DefaultMetaAggregateFactory.get(elem(1), Some(elem(0)))
+              //res.output_name = Some(elem(0))
+              temp_list += res
+            }
+            else {
+              var res = DefaultMetaAggregateFactory.get(elem(1), elem(2), Some(elem(0)))
+              //res.output_name = Some(elem(0))
+              temp_list += res
+            }
+          }
+          catch {
+            case fe: Exception => return (fe.getMessage, None)
+          }
+        }
+      }
+        meta_aggr_list = temp_list.toList
+    }
+
+    ("OK", Some(meta_aggr_list)) // not empty list
+  }
+
 
 
   def MetadataAttributesList(group_by: Array[String]): Option[List[String]] = {
@@ -945,13 +1098,13 @@ object Wrapper {
     val joinList = new ListBuffer[AttributeEvaluationStrategy]()
 
     if (join_by == null  ) {
-      //println("null")
       return join_by_list
     }
-   // println("not null")
 
     for (elem <- join_by) {
       val attribute = elem(0)
+     // print(elem(0), elem(1))
+
       attribute match {
         case "DEF" => joinList += Default(elem(1))
         case "FULL" => joinList += FullName(elem(1))
@@ -1052,7 +1205,6 @@ object Wrapper {
     order_list
   }
 
-
   def region_order_list(order_matrix: Any, data: IRVariable): (String, Option[List[(Int, Direction)]]) = {
 
     var order_list: Option[List[(Int, Direction)]] = None
@@ -1083,40 +1235,64 @@ object Wrapper {
   }
 
 
-  def RegionQuadrupleList(quad_join_list: Any): List[JoinQuadruple] = {
+  def RegionQuadrupleList(quad_join: Array[Array[String]]): List[JoinQuadruple] = {
 
     var quad_list: List[JoinQuadruple] = null
-    val temp_list = new ListBuffer[JoinQuadruple]()
+    val temp_list = new ListBuffer[Option[AtomicCondition]]()
 
-    if (quad_join_list == null)
+    if (quad_join == null) {
       return quad_list
-
-
-    quad_join_list match {
-      case quad_matrix: Array[Array[String]] => {
-        for (elem <- quad_matrix) {
-          temp_list += JoinQuadruple(first = atomic_cond(elem(0), elem(1)),
-            atomic_cond(elem(2), elem(3)), atomic_cond(elem(4), elem(5)),
-            atomic_cond(elem(6), elem(7)))
-        }
-        quad_list = temp_list.toList
-      }
     }
 
-    quad_list
+    val len = quad_join.length
+
+    for (elem <- quad_join) {
+      //print(elem(0), elem(1))
+      temp_list += atomic_cond(elem(0), elem(1))
+    }
+    if(len < 4)
+      for(i <- 0 until 4-len)
+        temp_list += None
+
+    val quadruple = JoinQuadruple(temp_list.head,temp_list(1),temp_list(2),temp_list(3))
+    List(quadruple)
+
+  }
+
+  def joinRegAttributeList(reg_attributes: Array[String], data_left: IRVariable, data_right: IRVariable): (String, Option[List[(Int, Int)]]) = {
+    var attributeList: Option[List[(Int, Int)]] = None
+    val temp_list = new ListBuffer[(Int, Int)]()
+
+    for (elem <- reg_attributes) {
+      val field = data_left.get_field_by_name(elem)
+      if (field.isEmpty) {
+        val error = "No value " + elem + " from this schema"
+        return (error, attributeList) //empty list
+      }
+
+      val field2 = data_right.get_field_by_name(elem)
+      if (field.isEmpty) {
+        val error = "No value " + elem + " from this schema"
+        return (error, attributeList) //empty list
+      }
+
+      temp_list += ((field.get, field2.get))
+    }
+    attributeList = Some(temp_list.toList)
+    ("OK", attributeList)
   }
 
 
   def atomic_cond(cond: String, value: String): Option[AtomicCondition] = {
     cond match {
-      case "DGE" => Some(DistGreater(value.toInt - 1))
-      case "DLE" => Some(DistLess(value.toInt + 1))
-      case "DG" => Some(DistGreater(value.toInt))
+      case "DGE" => Some(DistGreater(value.toLong - 1))
+      case "DLE" => Some(DistLess(value.toLong + 1))
+      case "DG" => Some(DistGreater(value.toLong))
       case "DL" => Some(DistLess(value.toLong))
       case "UP" => Some(Upstream())
       case "DOWN" => Some(DownStream())
       case "MD" => Some(MinDistance(value.toInt))
-      case "NA" => None
+      case _ => None
     }
   }
 
@@ -1140,40 +1316,115 @@ object Wrapper {
     rest_manager.service_url
   }
 
-  def main(args: Array[String]): Unit =
+
+  def outputMaterialize: String =
   {
-    rest_manager.service_token = "cd754c8f-edce-4849-8506-6294604a33b4"
-
-    initGMQL("GTF",false)
-
-    /*var schema = Array(Array("chr","STRING"),
-      Array("left","LONG"),
-      Array("right","LONG"),
-      Array("name","STRING"),
-      Array("score","DOUBLE"),
-      Array("strand","STRING"))
-    var TSS = select(null, "chr == 2",null,r(1));
-*/
-
-    val dataset  = "/Users/simone/Desktop/Example_Dataset_1-2/Example_Dataset_2"
-    val schemaXML  = "/Users/simone/Desktop/Example_Dataset_1-2/Example_Dataset_2/files/dataset_2.schema"
-    val dir_out = "/Users/simone/Downloads"
-    val parser = (new CustomParser).setSchema(schemaXML)
-    //val r = GMQL_server.READ(dataset).USING(parser)
-
-    val r = readDataset(dataset,"CUSTOMPARSER",true,true,null,schemaXML)
-
-    val s = select(null,"chr == chr2 AND strand == . ",null,r(1))
-
-    //val s = r1.SELECT(reg_cond)
-    materialize(s(1),dir_out)
-    //GMQL_server setOutputPath dir_out MATERIALIZE s
-    //materialize_count.getAndIncrement()
-    execute()
-
-
-
+    outputformat.toString
   }
 
+  def main(args: Array[String]): Unit =
+  {
+
+<<<<<<< HEAD
+    initGMQL("TAB",false)
+
+    rest_manager.service_token = "14ae473f-4c08-4da5-9339-606c7845056a"
+    rest_manager.service_url = "http://genomic.deib.polimi.it/gmql-rest-test/"
+    val dataset1 = "/Users/simone/Desktop/datasets/dataset_1/files"
+    val dataset2 = "/Users/simone/Desktop/datasets/dataset_2/files"
+    //val dataset2 = "public.Example_Dataset_1"
+=======
+
+    initGMQL("GTF",true)
+    rest_manager.service_token = "14ae473f-4c08-4da5-9339-606c7845056a"
+    rest_manager.service_url = "http://genomic.deib.polimi.it/gmql-rest-test/"
+    val dataset1 = "/Users/simone/Desktop/datasets/dataset_1/files"
+    val dataset2 = "public.HG19_ENCODE_BROAD_NOV_2017"
+//=======
+//    initGMQL("TAB",false)
+//
+//    rest_manager.service_token = "14ae473f-4c08-4da5-9339-606c7845056a"
+//    rest_manager.service_url = "http://genomic.deib.polimi.it/gmql-rest-test/"
+//    val dataset1 = "/Users/simone/Desktop/datasets/dataset_1/files"
+//    val dataset2 = "/Users/simone/Desktop/datasets/dataset_2/files"
+//    //val dataset2 = "public.Example_Dataset_1"
+//>>>>>>> 553d8d78e76ef2001b9148c8bfb7f2540545565d
+>>>>>>> 1505846a327da071c0599d8d3bac949fc4a9492b
+    val dataset1_schema = dataset1 + "/schema.schema"
+    val dataset2_schema = dataset2 + "/schema.schema"
+    val dataset3 = "public.Example_Dataset_1"
+    val dataset4 = "public.Example_Dataset_2"
+
+    val schematab = Array(
+      Array("chrom",	"STRING"),
+      Array("start","LONG"),
+      Array("end","LONG"),
+      Array("name",	"STRING"),
+      Array("score","DOUBLE"),
+      Array("strand","STRING"),
+      Array("signal","DOUBLE"),
+      Array("pvalue","DOUBLE"),
+      Array("qvalue","DOUBLE"))
+
+
+    val schemagtf = Array(
+      Array("seqname",	"STRING"),
+      Array("source","STRING"),
+      Array("feature","STRING"),
+      Array("start",	"LONG"),
+      Array("end","LONG"),
+      Array("score","DOUBLE"),
+    Array("strand","STRING"),
+      Array("frame","STRING"),
+      Array("name","STRING"),
+    Array("signal","DOUBLE"),
+      Array("pvalue","DOUBLE"),
+    Array("qvalue","DOUBLE"),
+    Array("peak","DOUBLE"))
+
+<<<<<<< HEAD
+
+=======
+////<<<<<<< HEAD
+//    val DS1 = readDataset(dataset2,"CUSTOMPARSER",false,true,schematab,null,"default","TAB")
+//
+//    val predicate = "biosample_phase == \"G1b\""
+//    val s = select(predicate,null,null,DS1(1))
+//    //materialize(DS1(1),"pred")
+//    //execute()
+////=======
+>>>>>>> 1505846a327da071c0599d8d3bac949fc4a9492b
+    //val DS1 = readDataset(dataset2,"CUSTOMPARSER",false,true,schemagtf,null,"default","GTF")
+    val DS1 = readDataset(dataset1,"CUSTOMPARSER",true,true,null,dataset1_schema,"default","TAB")
+    val DS2 = readDataset(dataset2,"CUSTOMPARSER",true,true,null,dataset2_schema,"default","TAB")
+
+    //val DS1 = readDataset(dataset3,"CUSTOMPARSER",false,true,schemagtf,null,"default","GTF")
+    //val DS2 = readDataset(dataset4,"CUSTOMPARSER",false,true,schemagtf,null,"default","GTF")
+
+
+    val predicate = "chr == chr5"
+    val s = select(null,predicate,null,DS1(1))
+    val s2 = select(null,predicate,null,DS2(1))
+
+<<<<<<< HEAD
+=======
+    /*
+    val groupBy = Array(Array("DEF","biosample_term_name"),
+      Array("DEF","experiment_target"))
+
+
+    val cov = cover("1","ALL+2/5",null,null,s(1))
+
+    materialize(cov(1),"cover")
+    val b = execute()
+
+    val s1 = cover("1","ALL",null,null,DS1(1))
+*/
+>>>>>>> 1505846a327da071c0599d8d3bac949fc4a9492b
+    val res = join(Array(Array("DL","0")), null,"INT",Array("score"),s(1),s2(1))
+    materialize(res(1),"/Users/simone/Desktop")
+    val b = execute()
+
+  }
 
 }

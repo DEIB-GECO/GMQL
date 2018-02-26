@@ -8,7 +8,7 @@ import java.io.File
 
 import it.polimi.genomics.core.GDMSUserClass
 import it.polimi.genomics.core.GDMSUserClass.GDMSUserClass
-import it.polimi.genomics.repository.FSRepository.{DFSRepository, FS_Utilities, LFSRepository, RFSRepository}
+import it.polimi.genomics.repository.FSRepository.{DFSRepository, FS_Utilities, LFSRepository}
 import org.slf4j.{Logger, LoggerFactory}
 
 
@@ -339,7 +339,6 @@ class Utilities() {
     GMQL_REPO_TYPE match {
       case this.LOCAL  => new LFSRepository()
       case this.HDFS   => new DFSRepository()
-      case this.REMOTE => new RFSRepository()
     }
   }
 
