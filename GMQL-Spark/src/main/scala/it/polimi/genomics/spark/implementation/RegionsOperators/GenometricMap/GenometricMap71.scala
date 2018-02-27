@@ -37,7 +37,7 @@ object GenometricMap71 {
       if (BINNING_PARAMETER == 0)
         Long.MaxValue
       else
-        180 * 1000
+        1800 * 1000
 
     execute(executor, grouping, aggregator, ref, exp, binningParameter, REF_PARALLILISM, sc)
   }
@@ -107,7 +107,11 @@ object GenometricMap71 {
             // ref: Iterable[(Long, Long, Long, Char, Array[GValue])] newSampleId, start, stop, strand, others
             // exp: Iterable[(Long, Long, Char, Array[GValue])] start, stop, strand, others
 
-            ref
+            val refSorted = ref.toList.sortBy(_._2)
+            var expSorted = exp.toList.sortBy(_._1)
+
+
+            refSorted
               .iterator
               .map { refRecord =>
                 val mapKey = MapKey(/*key._1,*/ refRecord._1, key._2, refRecord._2, refRecord._3, refRecord._4, refRecord._5.toList)
@@ -115,16 +119,24 @@ object GenometricMap71 {
                 val refInStartBin = (refRecord._2 / BINNING_PARAMETER).toInt.equals(key._3)
                 val isRefStrandBoth = refRecord._4.equals('*')
 
-                val expFiltered = exp
-                  .iterator
+
+                while (expSorted.nonEmpty && expSorted.head._2 <= refRecord._2) {
+                  expSorted = expSorted.tail
+                }
+
+
+                val expFiltered = expSorted.
+                  iterator.
+                  takeWhile(expRecord => expRecord._1 < refRecord._3)
                   .filter(expRecord =>
-                    (/*space overlapping*/
-                      refRecord._2 < expRecord._2 && expRecord._1 < refRecord._3) &&
+                    /*space overlapping*/
+                    refRecord._2 < expRecord._2 &&
                       /* same strand */
                       (isRefStrandBoth || expRecord._3.equals('*') || refRecord._4.equals(expRecord._3)) &&
                       /* first comparison (start bin of either the ref or exp)*/
                       (refInStartBin || (expRecord._1 / BINNING_PARAMETER).toInt.equals(key._3))
                   )
+
 
                 if (expFiltered.nonEmpty) { //if there is a match ref against exp
                   val expReduced: (Array[GValue], Int, Array[Int]) = expFiltered
