@@ -13,5 +13,7 @@ object GDMSUserClass extends Enumeration {
     val ADMIN:  GDMSUserClass.Value     = Value("ADMIN")
     val PUBLIC: GDMSUserClass.Value     = Value("PUBLIC")
 
+    val ALL:    GDMSUserClass.Value     = Value("ALL")
+
     def withNameOpt(s: String): Value = values.find(_.toString == s).getOrElse(BASIC)
 }
