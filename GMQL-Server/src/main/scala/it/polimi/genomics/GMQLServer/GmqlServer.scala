@@ -1,5 +1,6 @@
 package it.polimi.genomics.GMQLServer
 
+import it.polimi.genomics.GMQLServer.optimization.{DefaultOptimizer, GMQLOptimizer, MetaFirstOptimizer}
 import it.polimi.genomics.core.GMQLLoader
 import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
 import it.polimi.genomics.core.DataStructures._

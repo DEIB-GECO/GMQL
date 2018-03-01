@@ -1,6 +1,7 @@
-package it.polimi.genomics.GMQLServer
+package it.polimi.genomics.GMQLServer.optimization
+
 import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
-import it.polimi.genomics.core.DataStructures.{IROperator, IRVariable}
+import it.polimi.genomics.core.DataStructures.IRVariable
 
 /**
   * Created by Luca Nanni on 16/11/17.

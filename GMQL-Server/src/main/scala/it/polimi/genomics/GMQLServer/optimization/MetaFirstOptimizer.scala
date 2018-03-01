@@ -1,4 +1,5 @@
-package it.polimi.genomics.GMQLServer
+package it.polimi.genomics.GMQLServer.optimization
+
 import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
 import it.polimi.genomics.core.DataStructures._
 
