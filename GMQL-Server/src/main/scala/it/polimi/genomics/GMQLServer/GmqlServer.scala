@@ -8,9 +8,14 @@ import it.polimi.genomics.core.ParsingType.{PARSING_TYPE, _}
 import scala.collection.mutable
 
 /**
- *
- */
-class GmqlServer(var implementation : Implementation, binning_size : Option[Long] = None) {
+  * The manager of the reading, materialization and optimization of the IRVariable.
+  *
+  * @param implementation: the implementation that we want to use
+  * @param binning_size: parameter of the binning algorithm
+  * @param gmqlOptimizer: optimizer of the DAG
+  */
+class GmqlServer(var implementation : Implementation, binning_size : Option[Long] = None,
+                 gmqlOptimizer: GMQLOptimizer = new MetaFirstOptimizer(new DefaultOptimizer)) {
 
   implicit val binning_parameter = BinningParameter(binning_size)
   var meta_output_path : Option[String] = None
@@ -18,8 +23,7 @@ class GmqlServer(var implementation : Implementation, binning_size : Option[Long
   var materializationList : mutable.MutableList[IRVariable] = mutable.MutableList()
 
   def run(graph : Boolean = false)={
-    implementation.to_be_materialized ++= materializationList
-    optimise()
+    implementation.to_be_materialized ++= optimise(materializationList.toList)
     implementation.go()
   }
 
@@ -46,14 +50,12 @@ class GmqlServer(var implementation : Implementation, binning_size : Option[Long
 
   def COLLECT(iRVariable: IRVariable): Any =
   {
-    optimise()
-    implementation.collect(iRVariable)
+    implementation.collect(optimise(List(iRVariable)).head)
   }
 
   def TAKE(iRVariable: IRVariable, n: Int): Any =
   {
-    optimise()
-    implementation.take(iRVariable, n)
+    implementation.take(optimise(List(iRVariable)).head, n)
   }
 
   def MATERIALIZE(variable : IRVariable) = {
@@ -134,12 +136,13 @@ class GmqlServer(var implementation : Implementation, binning_size : Option[Long
   }
 
 
-  def optimise() = {
-    println("[OPTIM] variabili da materializzare: " + materializationList.size)
-  }
-
-  def meta_first_optimisation() = {
-
+  /**
+    * Optimizes the DAG (materialization list) using the specified optimizer in GMQLServer
+    * @param materializationList: list of IRVariable
+    * @return the optimized List of IRVariable
+    */
+  def optimise(materializationList: List[IRVariable]): List[IRVariable] = {
+    this.gmqlOptimizer.optimize(materializationList)
   }
 
 }
