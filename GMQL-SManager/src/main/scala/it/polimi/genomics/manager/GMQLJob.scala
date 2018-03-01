@@ -1,5 +1,6 @@
 package it.polimi.genomics.manager
 
+import java.io.File
 import java.nio.file.Paths
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -10,6 +11,7 @@ import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLocalLauncher}
 import it.polimi.genomics.core.{DAGSerializer, DAGWrapper, GMQLSchemaCoordinateSystem, GMQLSchemaFormat, GMQLScript}
 import it.polimi.genomics.manager.Status._
+import it.polimi.genomics.repository.FSRepository.FS_Utilities.{deleteDFSDir, deleteFromLocalFSRecursive, logger}
 import it.polimi.genomics.repository.FSRepository.{FS_Utilities => FSR_Utilities}
 import it.polimi.genomics.repository.GMQLExceptions.GMQLNotValidDatasetNameException
 import it.polimi.genomics.repository.{DatasetOrigin, GMQLRepository, RepositoryType, Utilities => General_Utilities}
@@ -216,7 +218,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     //Get the output Datasets names.
     outputVariablesList = outDss
 
-    (outDss, DAGSerializer.serializeToBase64(DAGWrapper(dagVars)))
+    (outDss, DAGSerializer.serializeDAG(DAGWrapper(dagVars)))
   }
 
 
@@ -357,10 +359,16 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
         elapsedTime.executionTime = System.currentTimeMillis() - timestamp
 
         logger.info(jobId+"\t"+getJobStatus)
+
         if(status == Status.EXEC_SUCCESS) {
           logger.info("Creating dataset..." + outputVariablesList)
           createds()
           logger.info("Creating dataset Done...")
+        }
+
+        if(status == Status.EXEC_STOPPED || status == Status.EXEC_FAILED ) {
+          logger.info("Execution stopped. Any residual dataset will be deleted.")
+          deleteResidualDs()
         }
 
       }
@@ -369,6 +377,46 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     logger.info("Execution Time: "+(elapsedTime.executionTime/1000))
 
     status
+  }
+
+  /**
+    * Delete any residual dataset created by a Failed or Stopped  execution
+    * @return
+    */
+  def deleteResidualDs(): Unit = {
+
+    if (outputVariablesList.nonEmpty) {
+
+      outputVariablesList.foreach(ds => {
+
+        logger.info("Removing residual dataset: "+ds)
+
+        try {
+
+          if( General_Utilities().GMQL_REPO_TYPE == General_Utilities().HDFS ) {
+
+            val path = General_Utilities().getHDFSRegionDir(username)+"/"+ds
+            deleteDFSDir(path)
+
+          } else if (General_Utilities().GMQL_REPO_TYPE == General_Utilities().LOCAL) {
+
+            val file = new File(General_Utilities().getRegionDir()+"/"+General_Utilities().getRegionDir(username))
+            if ( file.exists() )
+              deleteFromLocalFSRecursive(file)
+
+          } else {
+            logger.warn("No region folder deleted, repo type is unknown.")
+          }
+
+        } catch {
+          case ex: Exception => ex.printStackTrace()
+        }
+
+      })
+    } else {
+      logger.info("No residual dataset found.")
+    }
+
   }
 
   /**

@@ -400,7 +400,7 @@ object GMQLExecuteCommand {
      	 .set("spark.hadoop.fs.gs.project.id",projId)
 
     val sc: SparkContext = new SparkContext(conf)
- 
+
       new GMQLSparkExecutor(testingIOFormats = false, sc = sc, outputFormat = outputFormat, outputCoordinateSystem = outputCoordinateSystem)
   }
 

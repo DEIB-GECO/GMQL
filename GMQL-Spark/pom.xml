@@ -8,13 +8,14 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <version>4.0</version>
+
     <artifactId>GMQL-Spark</artifactId>
     <packaging>jar</packaging>
 
     <name>GMQL-Spark</name>
-    <description>Polimi GMQL, Big Data processing for Genomics</description>
+    <description>Spark implementation of GMQL operators</description>
     <inceptionYear>2014</inceptionYear>
+
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
@@ -29,13 +30,13 @@
         <dependency>
             <groupId>it.polimi.genomics</groupId>
             <artifactId>GMQL-Core</artifactId>
-            <version>2.0</version>
+            <version>1.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>
             <groupId>it.polimi.genomics</groupId>
             <artifactId>GMQL-Server</artifactId>
-            <version>2.0</version>
+            <version>1.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>

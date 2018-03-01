@@ -189,7 +189,16 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
 
     } else {
 
-      new IRVariable(new_meta_dag, this.regionDag, this.schema)
+      val new_region_dag = if (!(projected_meta.isDefined || extended_meta.isDefined)) IRProjectRD(
+        projected_values,
+        extended_values,
+        this.regionDag, this.metaDag)
+      else this.regionDag
+
+      new IRVariable(
+        new_meta_dag,
+        new_region_dag,
+        if (projected_meta.isDefined || extended_meta.isDefined) this.schema else List.empty)
 
     }
 
@@ -374,6 +383,17 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
            reference_name: Option[String] = None,
            experiment_name: Option[String] = None,
            join_on_attributes: Option[List[(Int, Int)]] = None): IRVariable = {
+
+    if(region_join_condition.isEmpty &&
+      !(region_builder == RegionBuilder.LEFT_DISTINCT ||
+        region_builder == RegionBuilder.LEFT ||
+        region_builder == RegionBuilder.RIGHT_DISTINCT ||
+        region_builder == RegionBuilder.RIGHT ||
+        region_builder == RegionBuilder.BOTH)){
+      throw new Exception("JOIN operator: if a join condition on distance is not provided, " +
+        "then neither INTERSECTION nor CONCATENATION are allowed as output region builder.")
+      sys.exit(1)
+    }
 
     val new_meta_join_result = if (meta_join.isDefined) {
       SomeMetaJoinOperator(IRJoinBy(meta_join.get, this.metaDag, right_dataset.metaDag))

@@ -1,10 +1,10 @@
 package it.polimi.genomics.repository.FSRepository
 
 import java.io._
-import java.util
 
 import it.polimi.genomics.core.GDMSUserClass.GDMSUserClass
 import it.polimi.genomics.core.{GDMSUserClass, GMQLSchemaField}
+import it.polimi.genomics.repository.FSRepository.FS_Utilities.checkDsName
 import it.polimi.genomics.repository.FSRepository.datasets.GMQLDataSetXML
 import it.polimi.genomics.repository.GMQLExceptions.{GMQLDSException, GMQLNotValidDatasetNameException, GMQLSampleNotFound, GMQLUserNotFound}
 import it.polimi.genomics.repository.{Utilities => General_Utilities, _}
@@ -12,7 +12,6 @@ import org.apache.commons.io.FileUtils
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
-import FS_Utilities.isValidDsName
 
 /**
   * Created by abdulrahman on 12/04/16.
@@ -36,8 +35,7 @@ class LFSRepository extends GMQLRepository with XMLDataSetRepository{
   @throws(classOf[GMQLUserNotFound])
   @throws(classOf[Exception])
   override def importDs(dataSetName: String, userName: String, userClass: GDMSUserClass = GDMSUserClass.PUBLIC, Samples: java.util.List[GMQLSample], schemaPath: String): Unit = {
-    if(!isValidDsName(dataSetName))
-      throw new GMQLNotValidDatasetNameException(s"Dataset name is not valid, $dataSetName")
+    checkDsName(dataSetName)
 
     //Check if the dataset schema is valid otherwise return an exception
     if (FS_Utilities.validate(schemaPath)) {
@@ -177,20 +175,20 @@ class LFSRepository extends GMQLRepository with XMLDataSetRepository{
   override def getDsInfoStream(datasetName: String, userName: String): InputStream = ???
 
 
-  /**
+  /*
     * Returns information about the user disk quota usage
     *
     * @param userName
     * @param userClass
     * @return (occupied, user_quota) in KBs
     */
-  override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Long, Long) = {
+  /*override def getUserQuotaInfo(userName: String, userClass: GDMSUserClass): (Long, Long) = {
 
     var occupied   = getFileSize(General_Utilities().getRegionDir(userName)).toLong
     val user_quota = General_Utilities().getUserQuota(userClass)
 
     (occupied,user_quota)
-  }
+  }*/
 
   def getFileSize(path:String): Float = {
 

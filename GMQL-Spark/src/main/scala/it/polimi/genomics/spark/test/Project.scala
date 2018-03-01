@@ -5,9 +5,9 @@ package it.polimi.genomics.spark.test
   */
 
 
-import it.polimi.genomics.GMQLServer.{DefaultMetaExtensionFactory, GmqlServer}
+import it.polimi.genomics.GMQLServer.{DefaultMetaExtensionFactory, DefaultRegionExtensionFactory, GmqlServer}
 import it.polimi.genomics.core.DataStructures.MetaAggregate._
-import it.polimi.genomics.core.DataStructures.RegionAggregate.RegionExtension
+import it.polimi.genomics.core.DataStructures.RegionAggregate.{REStringConstant, RegionExtension}
 import it.polimi.genomics.core.DataStructures.RegionCondition.{MetaAccessor, Predicate, REG_OP}
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core._
@@ -44,7 +44,7 @@ object Project {
     val dataAsTheyAre = server READ "" USING(metaDS,regionDS,List[(String, PARSING_TYPE)](("score",ParsingType.DOUBLE)))
     val optionalDS = server READ ex_data_path_optional USING BedScoreParser
 
-//    val what = 1 // project MD
+//    val what = 4 // project MD (empty)
      val what = 1 // project MD and aggregate something
 //     val what = 3 // project MD RD and extends tuple
     // val what = 2 // project MD RD and aggregate something
@@ -101,6 +101,9 @@ object Project {
           }
 
           dataAsTheyAre.PROJECT(None,extended_values = Some(List(fun)))
+        }
+        case 4 => {
+          dataAsTheyAre.PROJECT(Some(List("a","b")),/*Some(List(DefaultMetaExtensionFactory.get(MEStringConstant("bla"), "test")))*/None,false,/*Some(List(0))*/None,/*Some(List("score"))*/None,Some(List(DefaultRegionExtensionFactory.get(REStringConstant("test"), Left("new")))))
         }
 
       }

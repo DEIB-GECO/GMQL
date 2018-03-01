@@ -4,13 +4,7 @@ package it.polimi.genomics.manager.Launchers
   * @author ABDULRAHMAN KAITOUA
   */
 
-import java.io.{ByteArrayOutputStream, IOException, ObjectOutputStream}
-import java.util
-
-import com.sun.jersey.core.util.Base64
-import it.polimi.genomics.compiler.Operator
-import it.polimi.genomics.core.DataStructures.IRDataSet
-import it.polimi.genomics.core.ParsingType.PARSING_TYPE
+import it.polimi.genomics.core.GDMSUserClass
 import it.polimi.genomics.manager.{GMQLJob, Utilities}
 import org.apache.spark.launcher.{SparkAppHandle, SparkLauncher}
 
@@ -29,7 +23,6 @@ class GMQLSparkSubmit(job:GMQLJob) {
   val HADOOP_CONF_DIR = General_Utilities().HADOOP_CONF_DIR
   val YARN_CONF_DIR =  General_Utilities().HADOOP_CONF_DIR
   val GMQL_HOME = General_Utilities().GMQLHOME
-  val SPARK_UI_PORT = Utilities().SPARK_UI_PORT
 
 
   final val GMQLjar:String = Utilities().CLI_JAR_local()
@@ -79,7 +72,6 @@ class GMQLSparkSubmit(job:GMQLJob) {
       .setSparkHome(SPARK_HOME)
       .setAppResource(GMQLjar)
       .setMainClass(MASTER_CLASS)
-      .setConf("spark.ui.port", SPARK_UI_PORT.toString)
       .setConf("spark.driver.extraClassPath", Utilities().lib_dir_local + "/libs/*")
       //.setConf("spark.executor.extraClassPath", Utilities().lib_dir_local + "/*")
       .addAppArgs("-username", job.username,
@@ -118,15 +110,24 @@ class GMQLSparkSubmit(job:GMQLJob) {
     //d=d.setConf("spark.executor.extraJavaOptions", "-Dlog4j.configuration=file:/Users/canakoglu/GMQL-sources/temp/GMQL/GMQL-Core/src/main/resources/logback.xml")
 
 
+    // Set user-category-dependent Spark properties, if any
+    if( Utilities().SPARK_CUSTOM.nonEmpty ) {
 
+       for( spark_property <- Utilities().SPARK_CUSTOM.keys ) {
 
+         val userClass = job.gMQLContext.userClass
+         val allClass  = GDMSUserClass.ALL
+         val property  =  Utilities().SPARK_CUSTOM(spark_property)
 
-
-
-    // Assign maximum number of executors according to the user category
-    if( Utilities().USER_EXECUTORS.contains(job.gMQLContext.userClass) ) {
-      d = d.setConf("spark.cores.max", Utilities().USER_EXECUTORS(job.gMQLContext.userClass).toString)
+         // Note: A property set for a specific user class overrides the same property possibly defined for all classes
+         if ( property.isDefinedAt(userClass) ) {
+           d = d.setConf(spark_property, property(userClass))
+         } else if( property.isDefinedAt(allClass)  ) {
+           d = d.setConf(spark_property, property(allClass))
+         }
+       }
     }
+
 
     val b = d.setVerbose(true).startApplication()
 
@@ -147,27 +148,4 @@ class GMQLSparkSubmit(job:GMQLJob) {
     val user = if(repository.DSExistsInPublic(DS))"public" else job.username
     Source.fromFile(General_Utilities().getSchemaDir(user)+DS+".schema").getLines().mkString("")
   }
-
-//  /**
-//    * Serialize GMQL DAG
-//    *
-//    * TODO: DAG serialization is Not used currently, instead we are sending the script as a parameter
-//    * @param dag input as a List of [[ Operator]]
-//    * @return String as the serialization of the DAG
-//    */
-//  def serializeDAG(dag: List[Operator]): String = {
-//    try {
-//      val mylist =  new java.util.ArrayList[Operator]
-//      for(i <- dag) mylist.add(i)
-//
-//      val byteArrayOutputStream = new ByteArrayOutputStream();
-//      val objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
-//      objectOutputStream.writeObject(mylist);
-//      objectOutputStream.close();
-//      new String(Base64.encode(byteArrayOutputStream.toByteArray()));
-//
-//    } catch {
-//      case io: IOException => io.printStackTrace(); "none"
-//    }
-//  }
 }

@@ -5,11 +5,21 @@ package it.polimi.genomics.core
  * Email: abdulrahman.kaitoua@polimi.it
  *
  */
-class GRecordKey (val id:Long, val chrom:String,val start:Long,val stop:Long,val strand:Char)
-  extends Tuple5(id,chrom,start,stop,strand)
-  with Ordered[GRecordKey]
+case class GRecordKey (id:Long, chrom:String, start:Long, stop:Long, strand:Char)
+  extends Ordered[GRecordKey]
   with Serializable
 {
+
+  def _1: Long = id
+
+  def _2: String = chrom
+
+  def _3: Long = start
+
+  def _4: Long = stop
+
+  def _5: Char = strand
+
   def this()= this(0,"chr",0,0,'.')
 
   def compare(o: GRecordKey): Int = {
@@ -30,4 +40,5 @@ class GRecordKey (val id:Long, val chrom:String,val start:Long,val stop:Long,val
     //      case _: Array[Any] => return reg+"\t"+values.iterator.mkString("\t");
     //    }
     reg
-  }}
+  }
+}

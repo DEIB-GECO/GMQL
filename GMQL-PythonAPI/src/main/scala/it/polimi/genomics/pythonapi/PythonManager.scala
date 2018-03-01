@@ -267,7 +267,7 @@ object PythonManager {
 
   def get_serialized_materialization_list(): String = {
     val materializationList = this.server.materializationList.toList
-    DAGSerializer.serializeToBase64(DAGWrapper(materializationList))
+    DAGSerializer.serializeDAG(DAGWrapper(materializationList))
   }
 
   def execute(): Unit = {
@@ -296,7 +296,7 @@ object PythonManager {
 
   def serializeVariable(index: Int): String = {
     val variableToSerialize = this.getVariable(index)
-    DAGSerializer.serializeToBase64(DAGWrapper(List(variableToSerialize)))
+    DAGSerializer.serializeDAG(DAGWrapper(List(variableToSerialize)))
   }
 
   def modify_dag_source(index: Int, source: String, dest: String) : Unit = {

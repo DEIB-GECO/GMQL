@@ -66,6 +66,12 @@ class GMQLSparkLauncher(sparkJob:GMQLJob) extends GMQLLauncher(sparkJob){
   {
     try{
       launcherHandler.stop()
+      while(launcherHandler.getState != SparkAppHandle.State.KILLED)
+        Thread.sleep(500)
+
+      launcherHandler.kill()
+
+
     }catch {
       case e: IllegalStateException =>
         e.getMessage() match{

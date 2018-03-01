@@ -49,7 +49,9 @@ object ProjectMD {
           }
       }.reduce(_ union _)
 
-      filteredInput.union(ext)
+      val atts = metaAggregator.get.map(_.newAttributeName)
+      filteredInput. filter( in => !atts.foldLeft(false)(_ | in._2._1.endsWith(_))).union(ext)
+
     } else {
       filteredInput
     }
