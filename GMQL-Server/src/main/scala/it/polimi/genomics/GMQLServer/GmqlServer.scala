@@ -12,19 +12,23 @@ import scala.collection.mutable
   *
   * @param implementation: the implementation that we want to use
   * @param binning_size: parameter of the binning algorithm
-  * @param gmqlOptimizer: optimizer of the DAG
   */
-class GmqlServer(var implementation : Implementation, binning_size : Option[Long] = None,
-                 gmqlOptimizer: GMQLOptimizer = new MetaFirstOptimizer(new DefaultOptimizer)) {
+class GmqlServer(var implementation : Implementation, binning_size : Option[Long] = None) {
 
   implicit val binning_parameter = BinningParameter(binning_size)
   var meta_output_path : Option[String] = None
   var region_output_path : Option[String] = None
   var materializationList : mutable.MutableList[IRVariable] = mutable.MutableList()
 
+  var gmqlOptimizer: GMQLOptimizer = new MetaFirstOptimizer(new DefaultOptimizer)
+
   def run(graph : Boolean = false)={
     implementation.to_be_materialized ++= optimise(materializationList.toList)
     implementation.go()
+  }
+
+  def setOptimizer(optimizer: GMQLOptimizer): Unit = {
+    this.gmqlOptimizer = optimizer
   }
 
   def setMetaPath (path : String) = {

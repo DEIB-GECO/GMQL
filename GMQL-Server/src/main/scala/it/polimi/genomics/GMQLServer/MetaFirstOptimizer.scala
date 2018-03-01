@@ -1,4 +1,5 @@
 package it.polimi.genomics.GMQLServer
+import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
 import it.polimi.genomics.core.DataStructures._
 
 /**
@@ -13,6 +14,7 @@ import it.polimi.genomics.core.DataStructures._
   */
 class MetaFirstOptimizer(decoratedOptimizer: GMQLOptimizer)
   extends GMQLOptimizerDecorator(decoratedOptimizer) {
+  var binS: Option[BinningParameter] = None
 
   /**
     * Performs the optimization
@@ -31,7 +33,7 @@ class MetaFirstOptimizer(decoratedOptimizer: GMQLOptimizer)
     * @return the new IRVariable
     */
   private def optimizeMetaFirst(dag: IRVariable): IRVariable = {
-    val newDag = dag.copy()
+    val newDag = dag.copy()(this.binS.get)
     if(!isMetaSeparable(newDag)) {
       // if the query is not meta-separable, just return the old dag
       println("NOT META-SEPARABLE")
@@ -46,7 +48,7 @@ class MetaFirstOptimizer(decoratedOptimizer: GMQLOptimizer)
         }
       }
       val newRegionDag = applyMetaPatch(newDag.regionDag, metaDAGBeforeStore)
-      newDag.copy(regionDag = newRegionDag)
+      newDag.copy(regionDag = newRegionDag)(this.binS.get)
     }
   }
 
