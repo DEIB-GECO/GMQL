@@ -1,4 +1,4 @@
-package it.polimi.genomics.optimizations
+package optimizations
 
 import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.core.DataStructures.CoverParameters.{ALL, CoverFlag}

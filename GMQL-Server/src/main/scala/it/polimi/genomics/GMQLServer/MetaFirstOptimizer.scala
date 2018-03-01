@@ -11,7 +11,8 @@ import it.polimi.genomics.core.DataStructures._
   * "Metadata Management for Scientific Databases" by Pietro Pinoli,
   * Stefano Ceri, Davide Martinenghi and Luca Nanni
   */
-class MetaFirstOptimizer(decoratedOptimizer: GMQLOptimizer) extends GMQLOptimizerDecorator(decoratedOptimizer) {
+class MetaFirstOptimizer(decoratedOptimizer: GMQLOptimizer)
+  extends GMQLOptimizerDecorator(decoratedOptimizer) {
 
   /**
     * Performs the optimization
@@ -30,16 +31,27 @@ class MetaFirstOptimizer(decoratedOptimizer: GMQLOptimizer) extends GMQLOptimize
     * @return the new IRVariable
     */
   private def optimizeMetaFirst(dag: IRVariable): IRVariable = {
-    if(!isMetaSeparable(dag)) {
+    val newDag = dag.copy()
+    if(!isMetaSeparable(newDag)) {
       // if the query is not meta-separable, just return the old dag
       println("NOT META-SEPARABLE")
       dag
     }
     else {
       println("META-SEPARABLE")
-      dag
-      //TODO: finish
+      val metaDAGBeforeStore: MetaOperator = {
+        newDag.metaDag match {
+          case x: IRStoreMD => x.father
+          case _ => throw new IllegalStateException("MetaDAG is malformed. IRSTOREMD not last operator")
+        }
+      }
+      val newRegionDag = applyMetaPatch(newDag.regionDag, metaDAGBeforeStore)
+      newDag.copy(regionDag = newRegionDag)
     }
+  }
+
+  private def applyMetaPatch(regionDag: RegionOperator, metaPatch: MetaOperator): RegionOperator = {
+    regionDag
   }
 
   /**
@@ -55,23 +67,19 @@ class MetaFirstOptimizer(decoratedOptimizer: GMQLOptimizer) extends GMQLOptimize
     * @return a boolean saying True if the query is meta-separable and False if not
     */
   private def isMetaSeparable(dag: IRVariable): Boolean = {
-    val metaDAG = dag.metaDag
+    checkMetaToRegion(dag.metaDag) && checkMetaToRegion(dag.regionDag)
+  }
 
-    def checkSingle(operator: IROperator): Boolean = {
-      operator match {
-        case IRPurgeMD(_,_) | IRGroupMD(_,_,_,_,_) | IRAggregateRD(_,_) => false
-        case _ => true
-      }
-    }
-
-    def check(operator : IROperator) : Boolean = {
-      val metaOperations = operator.getOperatorList
-      if(metaOperations.isEmpty)
-        checkSingle(operator)
-      else
-        checkSingle(operator) && metaOperations.forall(check)
-    }
-    check(metaDAG)
+  private def checkMetaToRegion(op: IROperator): Boolean = {
+    // The node is META and has a REGION children --> not meta-separable
+    if(op.isMetaOperator && op.getRegionChildren.nonEmpty)
+      false
+    // there are some children --> recursion
+    else if(op.getChildren.nonEmpty)
+      op.getChildren.map(checkMetaToRegion).forall(identity)
+    else
+    // there are no children --> True
+      true
   }
 
 }
