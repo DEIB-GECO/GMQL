@@ -95,7 +95,7 @@ object OrderMD {
           val matchedValues: Seq[(Long, (String, String))] = g._2.filter(m => m._2._1.equals(k))
 
           val head: String =
-            if (matchedValues.size < 1) {
+            if (matchedValues.isEmpty) {
               "ZZ_GMQL_null_element"
             } else {
               ordering.filter(o => o._1.equals(matchedValues.head._2._1)).head._2 match {
@@ -165,6 +165,14 @@ object OrderMD {
         valueList.toList.sortWith{(a,b) =>
             comparator(a,b)
           }.map(_._1)*/
+
+      val listSize = valueListDouble.toList.map(_._2.length).distinct
+      if (listSize.lengthCompare(1) > 0)
+        logger.error("Multiple array size: " + listSize, new Exception())
+
+      if (listSize.headOption.getOrElse(0) != ordering.size)
+        logger.error("List size is not equal to ordering size: '" + listSize + "'~'" + ordering + "'", new Exception())
+
       val sortedSamplesDouble: List[Long] = valueListDouble.toList.sortWith { (a, b) => comparator(a, b) }.map(_._1)
 
       val sortedSamplesString: List[Long] = valueListString.toList.sortWith { (a, b) => comparator(a, b) }.map(_._1)
