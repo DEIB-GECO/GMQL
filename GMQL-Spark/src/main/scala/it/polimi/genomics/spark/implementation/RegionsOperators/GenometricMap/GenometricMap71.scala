@@ -123,18 +123,18 @@ object GenometricMap71 {
               }
 
               val array = ref.toArray
-              java.util.Arrays.sort(array, ord.asInstanceOf[Ordering[Object]])
+              java.util.Arrays.sort(array, ord)
               array
             }
 
             val expSorted = {
-              val ord = new Ordering[(Long, Long, Long, Char, Array[GValue])] {
-                override def compare(x: (Long, Long, Long, Char, Array[GValue]), y: (Long, Long, Long, Char, Array[GValue])): Int =
+              val ord = new Ordering[(Long, Long, Char, Array[GValue])] {
+                override def compare(x: (Long, Long, Char, Array[GValue]), y: (Long, Long, Char, Array[GValue])): Int =
                   x._1 compare y._1
               }
 
               val array = exp.toArray
-              java.util.Arrays.sort(array, ord.asInstanceOf[Ordering[Object]])
+              java.util.Arrays.sort(array, ord)
               array
             }
 
