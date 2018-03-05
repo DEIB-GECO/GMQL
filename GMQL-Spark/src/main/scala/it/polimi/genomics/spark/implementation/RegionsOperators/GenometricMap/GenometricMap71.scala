@@ -12,7 +12,6 @@ import org.apache.spark.rdd.RDD
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable.ArrayBuffer
-import scala.math.Ordering
 import scala.util.hashing.MurmurHash3
 
 
@@ -108,50 +107,40 @@ object GenometricMap71 {
             // ref: Iterable[(Long, Long, Long, Char, Array[GValue])] newSampleId, start, stop, strand, others
             // exp: Iterable[(Long, Long, Char, Array[GValue])] start, stop, strand, others
 
+            val refSorted = ref.toList.sortBy(_._2)
+            val expSorted = exp.toList.sortBy(_._1).toVector
+            var firstIndex : Int = 0
 
-//            val refSorted2 = {
-//              implicit def orderingStart[A <: (Long, Long, Long, Char, Array[GValue])]: Ordering[A] = Ordering.by(_._2)
-//
-//              val refArray = ref.toArray
-//              scala.util.Sorting.quickSort(refArray)
-//              refArray
-//            }.toSeq
-//
-//
-//            var expSorted2 = {
-//              implicit def orderingStart[A <: (Long, Long, Char, Array[GValue])]: Ordering[A] =
-//                Ordering.by(e => e._1)
-//
-//              val expArray = exp.toArray
-//              scala.util.Sorting.quickSort(expArray)
-//              expArray
-//            }.toStream
-
-            val refSorted = ref.toSeq.sortBy(_._2)
-            var expSorted = exp.toStream.sortBy(_._1)
 
             refSorted
               .iterator
               .map { refRecord =>
-                val mapKey = MapKey(refRecord._1, key._2, refRecord._2, refRecord._3, refRecord._4, refRecord._5.toList)
+                val mapKey = MapKey(/*key._1,*/ refRecord._1, key._2, refRecord._2, refRecord._3, refRecord._4, refRecord._5.toList)
 
                 val refInStartBin = (refRecord._2 / BINNING_PARAMETER).toInt.equals(key._3)
                 val isRefStrandBoth = refRecord._4.equals('*')
 
-                while (expSorted.nonEmpty && expSorted.head._2 <= refRecord._2) {
-                  expSorted = expSorted.tail
+
+                while (firstIndex < expSorted.size  && expSorted(firstIndex)._2 <= refRecord._2) {
+                  firstIndex += 1
                 }
 
-                val expFiltered = expSorted.
-                  takeWhile(expRecord => expRecord._1 < refRecord._3)
-                  .filter(expRecord =>
-                    //space overlapping: (refRecord._2 < expRecord._2 && expRecord._1 < refRecord._3) &&
-                    refRecord._2 < expRecord._2 &&
+                var index = firstIndex
+                var expFiltered : List[(Long, Long, Char, Array[GValue])] = Nil
+
+                while (index < expSorted.size && expSorted(index)._1 < refRecord._3){
+                  if (/*space overlapping*/
+                    refRecord._2 < expSorted(index)._2 &&
                       /* same strand */
-                      (isRefStrandBoth || expRecord._3.equals('*') || refRecord._4.equals(expRecord._3)) &&
+                      (isRefStrandBoth || expSorted(index)._3.equals('*') || refRecord._4.equals(expSorted(index)._3)) &&
                       /* first comparison (start bin of either the ref or exp)*/
-                      (refInStartBin || (expRecord._1 / BINNING_PARAMETER).toInt.equals(key._3))
-                  )
+                      (refInStartBin || (expSorted(index)._1 / BINNING_PARAMETER).toInt.equals(key._3))){
+                    expFiltered = expSorted(index) :: expFiltered
+
+                  }
+                  index += index +1
+                }
+
 
                 if (expFiltered.nonEmpty) { //if there is a match ref against exp
                   val expReduced: (Array[GValue], Int, Array[Int]) = expFiltered
