@@ -67,17 +67,19 @@ object GenometricMap71 {
 
   @throws[SelectFormatException]
   def execute(executor: GMQLSparkExecutor, grouping: OptionalMetaJoinOperator, aggregator: List[RegionAggregate.RegionsToRegion], ref: RDD[GRECORD], exp: RDD[GRECORD], BINNING_PARAMETER: Long, REF_PARALLILISM: Int, sc: SparkContext): RDD[GRECORD] = {
-    val groups = executor.implement_mjd(grouping, sc).flatMap { x => x._2.map(s => (x._1, s)) }
 
-    val refGroups = sc.broadcast(groups.groupByKey().collectAsMap())
-
-    val refNewIds = refGroups.value.map { case (refId: Long, expIds: Iterable[Long]) =>
-      val newIds = expIds.map { expId =>
-        val newId = Hashing.md5().newHasher().putLong(refId).putLong(expId).hash().asLong
-        (expId, newId)
-      }
-      (refId, newIds)
-    }.toMap
+    val refNewIds = {
+      val groups = executor.implement_mjd(grouping, sc).flatMap { x => x._2.map(s => (x._1, s)) }
+      val refGroups = sc.broadcast(groups.groupByKey().collectAsMap())
+      val refNewIds = refGroups.value.map { case (refId: Long, expIds: Iterable[Long]) =>
+        val newIds = expIds.map { expId =>
+          val newId = Hashing.md5().newHasher().putLong(refId).putLong(expId).hash().asLong
+          (expId, newId)
+        }
+        (refId, newIds)
+      }.toMap
+      refNewIds
+    }
 
 
     implicit val orderGRECORD: Ordering[(GRecordKey, Array[GValue])] = Ordering.by { ar: GRECORD => ar._1 }
@@ -119,19 +121,16 @@ object GenometricMap71 {
             // ref: Iterable[(Long, Long, Long, Char, Array[GValue])] newSampleId, start, stop, strand, others
             // exp: Iterable[(Long, Long, Char, Array[GValue])] start, stop, strand, others
 
-
-            val refSorted = ref.toList.sortBy(_._2)
+            // ref is a seq so to seq doesn't do any operation
+            val refSorted = ref.toSeq.sortBy(_._2)
             val expSorted = exp.toArray.sortBy(_._1)
             var firstIndex: Int = 0
-
 
             refSorted
               .iterator
               .map { refRecord =>
-
                 val refInStartBin = (refRecord._2 / BINNING_PARAMETER).toInt.equals(key._3)
                 val isRefStrandBoth = refRecord._4.equals('*')
-
 
                 while (firstIndex < expSorted.length && expSorted(firstIndex)._2 <= refRecord._2) {
                   firstIndex += 1
@@ -203,7 +202,7 @@ object GenometricMap71 {
             x._2(f.index)
           }).toArray
 
-        (startBin to stopBin).map(i => ((x._1._1, x._1._2, i), (x._1._3, x._1._4, x._1._5, newVal)))
+        (startBin to stopBin).iterator.map(i => ((x._1._1, x._1._2, i), (x._1._3, x._1._4, x._1._5, newVal)))
       }
 
     def binDS(bin: Long, refNewIds: Map[Long, Iterable[(Long, Long)]]): RDD[((Long, String, Int), (Long, Long, Long, Char, Array[GValue]))] =
@@ -211,9 +210,17 @@ object GenometricMap71 {
         val startBin = (x._1._3 / bin).toInt
         val stopBin = (x._1._4 / bin).toInt
 
-        refNewIds.getOrElse(x._1._1, Iterable.empty).flatMap { case (expId, newId) =>
-          (startBin to stopBin).map { i =>
-            ((expId, x._1._2, i), (newId, x._1._3, x._1._4, x._1._5, x._2))
+        //optimization if the element is only in a single bin, then
+        if (startBin == stopBin) {
+          refNewIds.getOrElse(x._1._1, Iterable.empty).iterator.map { case (expId, newId) =>
+            ((expId, x._1._2, startBin), (newId, x._1._3, x._1._4, x._1._5, x._2))
+          }
+        }
+        else {
+          refNewIds.getOrElse(x._1._1, Iterable.empty).iterator.flatMap { case (expId, newId) =>
+            (startBin to stopBin).iterator.map { bin =>
+              ((expId, x._1._2, bin), (newId, x._1._3, x._1._4, x._1._5, x._2))
+            }
           }
         }
       }
