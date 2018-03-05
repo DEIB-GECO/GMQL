@@ -7,7 +7,6 @@ import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.core.{GDouble, GNull, GRecordKey, GValue}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
-import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import org.slf4j.LoggerFactory
 
@@ -69,13 +68,22 @@ object GenometricMap71 {
   def execute(executor: GMQLSparkExecutor, grouping: OptionalMetaJoinOperator, aggregator: List[RegionAggregate.RegionsToRegion], ref: RDD[GRECORD], exp: RDD[GRECORD], BINNING_PARAMETER: Long, REF_PARALLILISM: Int, sc: SparkContext): RDD[GRECORD] = {
     val groups = executor.implement_mjd(grouping, sc).flatMap { x => x._2.map(s => (x._1, s)) }
 
-    val refGroups: Broadcast[collection.Map[Long, Iterable[Long]]] = sc.broadcast(groups.groupByKey().collectAsMap())
+    val refGroups = sc.broadcast(groups.groupByKey().collectAsMap())
+
+    val refNewIds = refGroups.value.map { case ( refId:Long, expIds: Iterable[Long]) =>
+      val newIds = expIds.map{expId =>
+        val newId= Hashing.md5().newHasher().putLong(refId).putLong(expId).hash().asLong
+        (expId, newId)
+      }
+      (refId, newIds)
+    }.toMap
+
 
 
     implicit val orderGRECORD: Ordering[(GRecordKey, Array[GValue])] = Ordering.by { ar: GRECORD => ar._1 }
 
     val expBinned = exp.binDS(BINNING_PARAMETER, aggregator)
-    val refBinnedRep = ref.repartition(sc.defaultParallelism * 32 - 1).binDS(BINNING_PARAMETER, refGroups)
+    val refBinnedRep = ref.repartition(sc.defaultParallelism * 32 - 1).binDS(BINNING_PARAMETER, refNewIds)
 
     val emptyArrayGValue = Array.empty[GValue]
     val emptyArrayInt = Array.empty[Int]
@@ -188,7 +196,6 @@ object GenometricMap71 {
   implicit class Binning(rdd: RDD[GRECORD]) {
     def binDS(bin: Long, aggregator: List[RegionAggregate.RegionsToRegion]): RDD[((Long, String, Int), (Long, Long, Char, Array[GValue]))] =
       rdd.flatMap { x =>
-        //        if (bin > 0) {
         val startBin = (x._1._3 / bin).toInt
         val stopBin = (x._1._4 / bin).toInt
 
@@ -200,23 +207,17 @@ object GenometricMap71 {
         (startBin to stopBin).map(i => ((x._1._1, x._1._2, i), (x._1._3, x._1._4, x._1._5, newVal)))
       }
 
-    def binDS(bin: Long, Bgroups: Broadcast[collection.Map[Long, Iterable[Long]]]): RDD[((Long, String, Int), (Long, Long, Long, Char, Array[GValue]))] =
+    def binDS(bin: Long, refNewIds: Map[Long, Iterable[(Long, Long)]]): RDD[((Long, String, Int), (Long, Long, Long, Char, Array[GValue]))] =
       rdd.flatMap { x =>
         val startBin = (x._1._3 / bin).toInt
         val stopBin = (x._1._4 / bin).toInt
 
-
-        Bgroups.value.getOrElse(x._1._1, Iterable[Long]()).flatMap { exp_id =>
-          val newID = Hashing.md5().newHasher().putLong(x._1._1).putLong(exp_id).hash().asLong
-
+        refNewIds.getOrElse(x._1._1, Iterable.empty).flatMap { case (expId,newId) =>
           (startBin to stopBin).map { i =>
-            ((exp_id, x._1._2, i), (newID, x._1._3, x._1._4, x._1._5, x._2))
+            ((expId, x._1._2, i), (newId, x._1._3, x._1._4, x._1._5, x._2))
           }
         }
-
       }
-
-
   }
 
 }
