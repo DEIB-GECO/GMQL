@@ -88,11 +88,8 @@ object GenometricMap71 {
     val refBinnedRep = ref.repartition(sc.defaultParallelism * 32 - 1).binDS(BINNING_PARAMETER, refNewIds)
 
 
-    val emptyReduced = {
-      val emptyArrayGValue = Array.empty[GValue]
-      val emptyArrayInt = Array.empty[Int]
-      (emptyArrayGValue, 0, emptyArrayInt)
-    }
+    val zeroReduced = (Array.empty[GValue], 0, Array.empty[Int])
+
 
 
     val indexedAggregator = aggregator.zipWithIndex
@@ -137,7 +134,7 @@ object GenometricMap71 {
                 }
 
                 var index = firstIndex
-                var expFilteredReduced = emptyReduced
+                var expFilteredReduced = zeroReduced
 
                 while (index < expSorted.length && expSorted(index)._1 < refRecord._3) {
                   val expRecord = expSorted(index)
@@ -158,7 +155,7 @@ object GenometricMap71 {
                   (mapKey, expFilteredReduced)
                 }
                 else
-                  (null, emptyReduced)
+                  (null, zeroReduced)
               }.filter(_._1 != null)
         }
 
