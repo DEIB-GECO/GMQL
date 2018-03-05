@@ -107,12 +107,7 @@ object GenometricMap71 {
             // ref: Iterable[(Long, Long, Long, Char, Array[GValue])] newSampleId, start, stop, strand, others
             // exp: Iterable[(Long, Long, Char, Array[GValue])] start, stop, strand, others
 
-            val refSorted = ref.toList.sortBy(_._2)
-            val expSorted = exp.toList.sortBy(_._1).toVector
-            var firstIndex : Int = 0
-
-
-            refSorted
+            ref
               .iterator
               .map { refRecord =>
                 val mapKey = MapKey(/*key._1,*/ refRecord._1, key._2, refRecord._2, refRecord._3, refRecord._4, refRecord._5.toList)
@@ -120,27 +115,16 @@ object GenometricMap71 {
                 val refInStartBin = (refRecord._2 / BINNING_PARAMETER).toInt.equals(key._3)
                 val isRefStrandBoth = refRecord._4.equals('*')
 
-
-                while (firstIndex < expSorted.size  && expSorted(firstIndex)._2 <= refRecord._2) {
-                  firstIndex += 1
-                }
-
-                var index = firstIndex
-                var expFiltered : List[(Long, Long, Char, Array[GValue])] = Nil
-
-                while (index < expSorted.size && expSorted(index)._1 < refRecord._3){
-                  if (/*space overlapping*/
-                    refRecord._2 < expSorted(index)._2 &&
+                val expFiltered = exp
+                  .iterator
+                  .filter(expRecord =>
+                    (/*space overlapping*/
+                      refRecord._2 < expRecord._2 && expRecord._1 < refRecord._3) &&
                       /* same strand */
-                      (isRefStrandBoth || expSorted(index)._3.equals('*') || refRecord._4.equals(expSorted(index)._3)) &&
+                      (isRefStrandBoth || expRecord._3.equals('*') || refRecord._4.equals(expRecord._3)) &&
                       /* first comparison (start bin of either the ref or exp)*/
-                      (refInStartBin || (expSorted(index)._1 / BINNING_PARAMETER).toInt.equals(key._3))){
-                    expFiltered = expSorted(index) :: expFiltered
-
-                  }
-                    index += index +1
-                }
-
+                      (refInStartBin || (expRecord._1 / BINNING_PARAMETER).toInt.equals(key._3))
+                  )
 
                 if (expFiltered.nonEmpty) { //if there is a match ref against exp
                   val expReduced: (Array[GValue], Int, Array[Int]) = expFiltered
