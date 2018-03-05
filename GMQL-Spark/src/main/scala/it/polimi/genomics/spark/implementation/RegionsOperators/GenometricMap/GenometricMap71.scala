@@ -85,8 +85,12 @@ object GenometricMap71 {
     val expBinned = exp.binDS(BINNING_PARAMETER, aggregator)
     val refBinnedRep = ref.repartition(sc.defaultParallelism * 32 - 1).binDS(BINNING_PARAMETER, refNewIds)
 
-    val emptyArrayGValue = Array.empty[GValue]
-    val emptyArrayInt = Array.empty[Int]
+
+    val emptyReduced = {
+      val emptyArrayGValue = Array.empty[GValue]
+      val emptyArrayInt = Array.empty[Int]
+      (emptyArrayGValue, 0, emptyArrayInt)
+    }
 
 
     val indexedAggregator = aggregator.zipWithIndex
@@ -124,45 +128,39 @@ object GenometricMap71 {
             refSorted
               .iterator
               .map { refRecord =>
-                val mapKey = MapKey(/*key._1,*/ refRecord._1, key._2, refRecord._2, refRecord._3, refRecord._4, refRecord._5.toList)
 
                 val refInStartBin = (refRecord._2 / BINNING_PARAMETER).toInt.equals(key._3)
                 val isRefStrandBoth = refRecord._4.equals('*')
 
 
-                while (firstIndex < expSorted.size && expSorted(firstIndex)._2 <= refRecord._2) {
+                while (firstIndex < expSorted.length && expSorted(firstIndex)._2 <= refRecord._2) {
                   firstIndex += 1
                 }
 
                 var index = firstIndex
-                var expFiltered: List[(Long, Long, Char, Array[GValue])] = Nil
+                var expFilteredReduced = emptyReduced
 
-                while (index < expSorted.size && expSorted(index)._1 < refRecord._3) {
+                while (index < expSorted.length && expSorted(index)._1 < refRecord._3) {
+                  val expRecord = expSorted(index)
                   if ( /*space overlapping*/
-                    refRecord._2 < expSorted(index)._2 &&
+                    refRecord._2 < expRecord._2 &&
                       /* same strand */
-                      (isRefStrandBoth || expSorted(index)._3.equals('*') || refRecord._4.equals(expSorted(index)._3)) &&
+                      (isRefStrandBoth || expRecord._3.equals('*') || refRecord._4.equals(expRecord._3)) &&
                       /* first comparison (start bin of either the ref or exp)*/
-                      (refInStartBin || (expSorted(index)._1 / BINNING_PARAMETER).toInt.equals(key._3))) {
-                    expFiltered = expSorted(index) :: expFiltered
-
+                      (refInStartBin || (expRecord._1 / BINNING_PARAMETER).toInt.equals(key._3))) {
+                    expFilteredReduced = reduceFunc(expFilteredReduced, (expRecord._4, 1, expRecord._4.map(s => if (s.isInstanceOf[GNull]) 0 else 1)))
                   }
                   index += index + 1
                 }
 
 
-                if (expFiltered.nonEmpty) { //if there is a match ref against exp
-                  val expReduced: (Array[GValue], Int, Array[Int]) = expFiltered
-                    .map(expRecord => (expRecord._4, 1, expRecord._4.map(s => if (s.isInstanceOf[GNull]) 0 else 1)))
-                    .reduce(reduceFunc)
-                  (mapKey, expReduced)
+                if (refInStartBin || expFilteredReduced._2 != 0) { //if there is a match ref against exp or if there is not match and in order to add one time ref we check if ref starts here
+                  val mapKey = MapKey(refRecord._1, key._2, refRecord._2, refRecord._3, refRecord._4, refRecord._5.toList)
+                  (mapKey, expFilteredReduced)
                 }
-                else if (refInStartBin) //if there is not match and in order to add one time ref we check if ref starts here
-                  (mapKey, (emptyArrayGValue, 0, emptyArrayInt))
                 else
-                  (mapKey, (emptyArrayGValue, -1, emptyArrayInt))
-
-              }.filter(_._2._2 != -1)
+                  (null, emptyReduced)
+              }.filter(_._1 != null)
         }
 
     val reduced = RefExpJoined.reduceByKey(reduceFunc)
