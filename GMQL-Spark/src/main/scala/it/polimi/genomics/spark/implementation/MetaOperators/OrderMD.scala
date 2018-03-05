@@ -6,13 +6,14 @@ import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.Direct
 import it.polimi.genomics.core.DataStructures.GroupMDParameters._
 import it.polimi.genomics.core.DataStructures.MetaOperator
 import it.polimi.genomics.core.exception.SelectFormatException
-import it.polimi.genomics.core.{GDouble, GString, GValue}
+import it.polimi.genomics.core.{GDouble, GNull, GString, GValue}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.slf4j.LoggerFactory
 
 import scala.collection.immutable.HashMap
+import scala.util.{Failure, Success, Try}
 
 /**
   * Created by abdulrahman kaitoua on 09/06/15.
@@ -96,7 +97,7 @@ object OrderMD {
 
           val head: String =
             if (matchedValues.isEmpty) {
-              "ZZ_GMQL_null_element"
+              null
             } else {
               ordering.filter(o => o._1.equals(matchedValues.head._2._1)).head._2 match {
                 case Direction.ASC => matchedValues.sortWith((a, b) => a._2._2.compareTo(b._2._2) < 0).head._2._2
@@ -110,21 +111,17 @@ object OrderMD {
       }
 
 
-    val valueListDouble: Map[Long, List[GDouble]] = valueList.flatMap { g =>
-      try {
-        Some(g._1, List(new GDouble(g._2.head.toDouble)))
-      } catch {
-        case e: Throwable => None
+    val valueListBoth: Map[Long, List[GValue]] = valueList.map { g =>
+      val inputs = g._2.map { inp =>
+        Try(inp.toDouble) match {
+          case Success(v) => GDouble(v)
+          case Failure(_) => Try(inp.toString) match {
+            case Success(v) => GString(v)
+            case Failure(_) => GNull()
+          }
+        }
       }
-    }
-
-    val valueListString: Map[Long, List[GString]] = valueList.flatMap { g =>
-      try {
-        g._2.head.toDouble
-        None
-      } catch {
-        case e: Throwable => Some(g._1, List(new GString(g._2.head.toString)))
-      }
+      (g._1, inputs)
     }
 
 
@@ -143,41 +140,34 @@ object OrderMD {
         sortedGroups1.map(x => (x._1, x._2.size * top / 100))
       } else HashMap[Long, Int]()
 
-      sortedGroups1.map { g =>
+      sortedGroups1.flatMap { g =>
         //TOPG
         val gFiltered: List[Long] =
           if (top == 0) {
             g._2.map(_._1).toList
           } else {
-            g._2.map(_._1).take(percentages1.get(g._1).getOrElse(top)).toList
+            g._2.map(_._1).take(percentages1.getOrElse(g._1, top)).toList
           }
         //create metadata
         assignPosition(Some(g._1), gFiltered, 1, newAttribute, List())
-      }.flatMap(x => x).toList
+      }.toList
 
     } else {
       val comparator: ((Long, List[GValue]), (Long, List[GValue])) => Boolean =
         metaSampleComparator(ordering)
 
-      //sort the list of sample by all the fields and take only the sampleId
-      //OrderedList[SampleId]
-      /*val sortedSamples : List[Long] =
-        valueList.toList.sortWith{(a,b) =>
-            comparator(a,b)
-          }.map(_._1)*/
+      println(valueList)
+      println(valueListBoth)
+      if (true) {
+        val listSize = valueListBoth.toList.map(_._2.length).distinct
+        if (listSize.lengthCompare(1) > 0)
+          logger.error("Multiple array size: " + listSize, new Exception())
 
-      val listSize = valueListDouble.toList.map(_._2.length).distinct
-      if (listSize.lengthCompare(1) > 0)
-        logger.error("Multiple array size: " + listSize, new Exception())
+        if (listSize.headOption.getOrElse(0) != ordering.size)
+          logger.error("List size is not equal to ordering size: '" + listSize + "'~'" + ordering + "'", new Exception())
+      }
 
-      if (listSize.headOption.getOrElse(0) != ordering.size)
-        logger.error("List size is not equal to ordering size: '" + listSize + "'~'" + ordering + "'", new Exception())
-
-      val sortedSamplesDouble: List[Long] = valueListDouble.toList.sortWith { (a, b) => comparator(a, b) }.map(_._1)
-
-      val sortedSamplesString: List[Long] = valueListString.toList.sortWith { (a, b) => comparator(a, b) }.map(_._1)
-
-      val sortedSamples: List[Long] = sortedSamplesDouble ++ sortedSamplesString
+      val sortedSamples: List[Long] = valueListBoth.toList.sortWith { (a, b) => comparator(a, b) }.map(_._1)
 
       //TOP
       val filteredSortedSamples: List[Long] =
