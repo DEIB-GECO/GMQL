@@ -116,32 +116,8 @@ object GenometricMap71 {
             // exp: Iterable[(Long, Long, Char, Array[GValue])] start, stop, strand, others
 
 
-            val refSorted = {
-              val ord = new Ordering[(Long, Long, Long, Char, Array[GValue])] {
-                override def compare(x: (Long, Long, Long, Char, Array[GValue]), y: (Long, Long, Long, Char, Array[GValue])): Int =
-                  x._2 compare y._2
-              }
-
-              val array = ref.toArray
-              java.util.Arrays.sort(array, ord)
-              array
-            }
-
-            val expSorted = {
-              val ord = new Ordering[(Long, Long, Char, Array[GValue])] {
-                override def compare(x: (Long, Long, Char, Array[GValue]), y: (Long, Long, Char, Array[GValue])): Int =
-                  x._1 compare y._1
-              }
-
-              val array = exp.toArray
-              java.util.Arrays.sort(array, ord)
-              array
-            }
-
-
-
-//            val refSorted2 = ref.toList.sortBy(_._2)
-//            val expSorted2 = exp.toList.sortBy(_._1).toVector
+            val refSorted = ref.toList.sortBy(_._2)
+            val expSorted = exp.toArray.sortBy(_._1)
             var firstIndex: Int = 0
 
 
