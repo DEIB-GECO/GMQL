@@ -156,6 +156,17 @@ object OrderMD {
       val comparator: ((Long, List[GValue]), (Long, List[GValue])) => Boolean =
         metaSampleComparator(ordering)
 
+      println(valueList)
+      println(valueListBoth)
+      if (true) {
+        val listSize = valueListBoth.toList.map(_._2.length).distinct
+        if (listSize.lengthCompare(1) > 0)
+          logger.error("Multiple array size: " + listSize, new Exception())
+
+        if (listSize.headOption.getOrElse(0) != ordering.size)
+          logger.error("List size is not equal to ordering size: '" + listSize + "'~'" + ordering + "'", new Exception())
+      }
+
       val sortedSamples: List[Long] = valueListBoth.toList.sortWith { (a, b) => comparator(a, b) }.map(_._1)
 
       //TOP
