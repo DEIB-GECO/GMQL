@@ -17,7 +17,7 @@ import scala.util.hashing.MurmurHash3
 
 /**
   * Created by abdulrahman kaitoua on 08/08/15.
-  * The main bottle neck is in line 191, takes hours to repliocate the reference for every experiment
+  * The main bottle neck is in line 191, takes hours to replicate the reference for every experiment
   * same as version 7 but with join on the ids for the reference and the regions and extra partitioner.
   */
 object GenometricMap71 {
@@ -25,7 +25,7 @@ object GenometricMap71 {
   private final type groupType = Array[((Long, String), Array[Long])]
 
   @throws[SelectFormatException]
-  def apply(executor: GMQLSparkExecutor, grouping: OptionalMetaJoinOperator, aggregator: List[RegionAggregate.RegionsToRegion], reference: RegionOperator, experiments: RegionOperator, BINNING_PARAMETER: Long, REF_PARALLILISM: Int, sc: SparkContext): RDD[GRECORD] = {
+  def apply(executor: GMQLSparkExecutor, grouping: OptionalMetaJoinOperator, aggregator: List[RegionAggregate.RegionsToRegion], reference: RegionOperator, experiments: RegionOperator, BINNING_PARAMETER: Long, REF_PARALLELISM: Int, sc: SparkContext): RDD[GRECORD] = {
     logger.info("----------------MAP71 executing -------------")
     //creating the datasets
     val ref: RDD[(GRecordKey, Array[GValue])] =
@@ -39,7 +39,7 @@ object GenometricMap71 {
       else
         BINNING_PARAMETER
 
-    execute(executor, grouping, aggregator, ref, exp, binningParameter, REF_PARALLILISM, sc)
+    execute(executor, grouping, aggregator.toArray, ref, exp, binningParameter, REF_PARALLELISM, sc)
   }
 
   case class MapKey(/*sampleId: Long, */ newId: Long, refChr: String, refStart: Long, refStop: Long, refStrand: Char, refValues: List[GValue]) {
@@ -66,7 +66,7 @@ object GenometricMap71 {
   //possible solution is generate GRecordKey and add the others as list
 
   @throws[SelectFormatException]
-  def execute(executor: GMQLSparkExecutor, grouping: OptionalMetaJoinOperator, aggregator: List[RegionAggregate.RegionsToRegion], ref: RDD[GRECORD], exp: RDD[GRECORD], BINNING_PARAMETER: Long, REF_PARALLILISM: Int, sc: SparkContext): RDD[GRECORD] = {
+  def execute(executor: GMQLSparkExecutor, grouping: OptionalMetaJoinOperator, aggregator: Array[RegionAggregate.RegionsToRegion], ref: RDD[GRECORD], exp: RDD[GRECORD], BINNING_PARAMETER: Long, REF_PARALLELISM: Int, sc: SparkContext): RDD[GRECORD] = {
 
     val refNewIds = {
       val groups = executor.implement_mjd(grouping, sc).flatMap { x => x._2.map(s => (x._1, s)) }
@@ -91,7 +91,6 @@ object GenometricMap71 {
     val zeroReduced = (Array.empty[GValue], 0, Array.empty[Int])
 
 
-
     val indexedAggregator = aggregator.zipWithIndex
 
     val reduceFunc: ((Array[GValue], Int, Array[Int]), (Array[GValue], Int, Array[Int])) => (Array[GValue], Int, Array[Int]) = {
@@ -100,7 +99,7 @@ object GenometricMap71 {
           if (leftValues.nonEmpty && rightValues.nonEmpty) {
             indexedAggregator.map { case (a, i) =>
               a.fun(List(leftValues(i), rightValues(i)))
-            }.toArray
+            }
           } else if (rightValues.nonEmpty)
             rightValues
           else
@@ -171,7 +170,7 @@ object GenometricMap71 {
         f.funOut(value, (count, if (counts.nonEmpty) counts(i) else 0))
       }
 
-      val newID = mapKey.newId //Hashing.md5().newHasher().putLong(mapKey.refId).putLong(mapKey.sampleId).hash().asLong
+      val newID = mapKey.newId
 
       val gRecordKey = GRecordKey(newID, mapKey.refChr, mapKey.refStart, mapKey.refStop, mapKey.refStrand)
 
@@ -189,7 +188,7 @@ object GenometricMap71 {
   }
 
   implicit class Binning(rdd: RDD[GRECORD]) {
-    def binDS(bin: Long, aggregator: List[RegionAggregate.RegionsToRegion]): RDD[((Long, String, Int), (Long, Long, Char, Array[GValue]))] =
+    def binDS(bin: Long, aggregator: Array[RegionAggregate.RegionsToRegion]): RDD[((Long, String, Int), (Long, Long, Char, Array[GValue]))] =
       rdd.flatMap { x =>
         val startBin = (x._1._3 / bin).toInt
         val stopBin = (x._1._4 / bin).toInt
@@ -197,9 +196,9 @@ object GenometricMap71 {
         val newVal: Array[GValue] = aggregator
           .map((f: RegionAggregate.RegionsToRegion) => {
             x._2(f.index)
-          }).toArray
+          })
 
-        (startBin to stopBin).iterator.map(i => ((x._1._1, x._1._2, i), (x._1._3, x._1._4, x._1._5, newVal)))
+        (startBin to stopBin).iterator.map(bin => ((x._1._1, x._1._2, bin), (x._1._3, x._1._4, x._1._5, newVal)))
       }
 
     def binDS(bin: Long, refNewIds: Map[Long, Iterable[(Long, Long)]]): RDD[((Long, String, Int), (Long, Long, Long, Char, Array[GValue]))] =
