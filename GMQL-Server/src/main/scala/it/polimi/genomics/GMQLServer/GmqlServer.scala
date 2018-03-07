@@ -1,6 +1,6 @@
 package it.polimi.genomics.GMQLServer
 
-import it.polimi.genomics.GMQLServer.optimization.{DefaultOptimizer, GMQLOptimizer, MetaFirstOptimizer}
+import it.polimi.genomics.GMQLServer.optimization.{BinningPreOptimizer, DefaultOptimizer, GMQLOptimizer, MetaFirstOptimizer}
 import it.polimi.genomics.core.GMQLLoader
 import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
 import it.polimi.genomics.core.DataStructures._
@@ -21,7 +21,7 @@ class GmqlServer(var implementation : Implementation, binning_size : Option[Long
   var region_output_path : Option[String] = None
   var materializationList : mutable.MutableList[IRVariable] = mutable.MutableList()
 
-  var gmqlOptimizer: GMQLOptimizer = new MetaFirstOptimizer(new DefaultOptimizer)
+  var gmqlOptimizer: GMQLOptimizer = new BinningPreOptimizer(new MetaFirstOptimizer(new DefaultOptimizer))
 
   def run(graph : Boolean = false)={
     implementation.to_be_materialized ++= optimise(materializationList.toList)

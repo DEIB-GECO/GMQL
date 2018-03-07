@@ -77,7 +77,10 @@ class DAG (val raw: List[IROperator]) {
     * @param nodeClass
     * @return
     */
-  def markDown( nodeClass : Class[_] ): Unit = { subDAG(nodeClass).raw.map(_markDown) }
+  def markDown( nodeClass : Class[_] ): DAG = {
+    subDAG(nodeClass).raw.map(_markDown)
+    this
+  }
 
 
   def getLeaves(): DAG = ???
