@@ -4,11 +4,9 @@ import java.io._
 import java.text.SimpleDateFormat
 import java.util.Date
 
-import collection.JavaConversions._
 import it.polimi.genomics.GMQLServer.{GmqlServer, Implementation}
 import it.polimi.genomics.compiler._
-import it.polimi.genomics.core.{DAGSerializer, DAGWrapper}
-//import it.polimi.genomics.core.DataStructures.IRVariable
+import it.polimi.genomics.core.DAG.{DAGSerializer, DAGWrapper}
 import it.polimi.genomics.core.{GMQLSchemaCoordinateSystem, GMQLSchemaFormat, ImplementationPlatform}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.hadoop.conf.Configuration

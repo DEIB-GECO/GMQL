@@ -4,6 +4,7 @@ import java.io.FileNotFoundException
 import java.util.concurrent.atomic.AtomicLong
 
 import it.polimi.genomics.GMQLServer.{DefaultMetaAggregateFactory, DefaultRegionsToMetaFactory, DefaultRegionsToRegionFactory, GmqlServer}
+import it.polimi.genomics.core.DAG.{DAGSerializer, DAGWrapper}
 import it.polimi.genomics.core.DataStructures.CoverParameters._
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor.GMQL_DATASET
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.Direction

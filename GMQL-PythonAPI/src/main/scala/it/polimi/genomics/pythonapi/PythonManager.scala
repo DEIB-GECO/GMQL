@@ -4,6 +4,7 @@ import java.io.{File, FileFilter}
 import java.util.concurrent.atomic.AtomicInteger
 
 import it.polimi.genomics.GMQLServer.GmqlServer
+import it.polimi.genomics.core.DAG.{DAGSerializer, DAGWrapper}
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core._
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE

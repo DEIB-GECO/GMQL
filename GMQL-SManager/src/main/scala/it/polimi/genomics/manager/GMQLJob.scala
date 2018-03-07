@@ -7,9 +7,10 @@ import java.util.Date
 
 import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.compiler._
+import it.polimi.genomics.core.DAG.{DAGSerializer, DAGWrapper}
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLocalLauncher}
-import it.polimi.genomics.core.{DAGSerializer, DAGWrapper, GMQLSchemaCoordinateSystem, GMQLSchemaFormat, GMQLScript}
+import it.polimi.genomics.core.{GMQLSchemaCoordinateSystem, GMQLSchemaFormat, GMQLScript}
 import it.polimi.genomics.manager.Status._
 import it.polimi.genomics.repository.FSRepository.FS_Utilities.{deleteDFSDir, deleteFromLocalFSRecursive, logger}
 import it.polimi.genomics.repository.FSRepository.{FS_Utilities => FSR_Utilities}
