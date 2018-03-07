@@ -85,7 +85,7 @@ object GenometricMap71 {
     implicit val orderGRECORD: Ordering[(GRecordKey, Array[GValue])] = Ordering.by { ar: GRECORD => ar._1 }
 
     val expBinned = exp.binDS(BINNING_PARAMETER, aggregator)
-    val refBinnedRep = ref.repartition(sc.defaultParallelism *  32 * 4 -1 ).binDS(BINNING_PARAMETER, refNewIds)
+    val refBinnedRep = ref.repartition(sc.defaultParallelism *  32 -1 ).binDS(BINNING_PARAMETER, refNewIds)
 
 
     val zeroReduced = (Array.empty[GValue], 0, Array.empty[Int])
@@ -112,15 +112,24 @@ object GenometricMap71 {
       refBinnedRep
         .cogroup(expBinned)
         .flatMap {
-          case (key: (Long, String, Int), (ref: Iterable[(Long, Long, Long, Char, Array[GValue])], exp: Iterable[(Long, Long, Char, Array[GValue])])) =>
+          case (key: (Long, String, Int), (ref: Iterable[Iterable[(Long, Long, Long, Char, Array[GValue])]], exp: Iterable[(Long, Long, Char, Array[GValue])])) =>
             // key: (Long, String, Int) sampleId, chr, bin
             // ref: Iterable[(Long, Long, Long, Char, Array[GValue])] newSampleId, start, stop, strand, others
             // exp: Iterable[(Long, Long, Char, Array[GValue])] start, stop, strand, others
 
             // ref is a seq so to seq doesn't do any operation
-            val refSorted = ref.toSeq.sortBy(_._2)
+            val refSorted = if (ref.isEmpty) Seq.empty else ref.head
             val expSorted = exp.toArray.sortBy(_._1)
             var firstIndex: Int = 0
+            if (key._2.equals("chr5")) {
+              println()
+              println()
+              println(refSorted.map(x => (x._2,x._3,x._4)))
+              println(expSorted.toSeq.map(x => (x._1,x._2,x._3)))
+              println()
+              println()
+
+            }
 
             refSorted
               .iterator
@@ -132,11 +141,11 @@ object GenometricMap71 {
                   firstIndex += 1
                 }
 
-                var index = firstIndex
+                var index = 0
                 var expFilteredReduced = zeroReduced
 
-                while (index < expSorted.length && expSorted(index)._1 < refRecord._3) {
-                  val expRecord = expSorted(index)
+                while ((firstIndex + index) < expSorted.length && expSorted((firstIndex + index))._1 < refRecord._3) {
+                  val expRecord = expSorted((firstIndex + index))
                   if ( /*space overlapping*/
                     refRecord._2 < expRecord._2 &&
                       /* same strand */
@@ -201,8 +210,27 @@ object GenometricMap71 {
         (startBin to stopBin).iterator.map(bin => ((x._1._1, x._1._2, bin), (x._1._3, x._1._4, x._1._5, newVal)))
       }
 
-    def binDS(bin: Long, refNewIds: Map[Long, Iterable[(Long, Long)]]): RDD[((Long, String, Int), (Long, Long, Long, Char, Array[GValue]))] =
-      rdd.flatMap { x =>
+    def binDS(bin: Long, refNewIds: Map[Long, Iterable[(Long, Long)]])
+    : RDD[((Long, String, Int), Seq[(Long, Long, Long, Char, Array[GValue])])] ={
+      rdd
+        .filter(x => refNewIds.contains(x._1._1))
+        .flatMap { x =>
+          val startBin = (x._1._3 / bin).toInt
+          val stopBin = (x._1._4 / bin).toInt
+          (startBin to stopBin).iterator.map(bin => ((x._1.id, x._1.chrom, bin), (x._1.start, x._1.stop, x._1.strand, x._2)))
+        }
+        .groupByKey()
+        .flatMap{
+          case ((id, chrom, bin), coordinates) =>{
+            val sorted_coordinates = coordinates.toSeq.sortBy(x => x._1)
+            refNewIds(id).iterator.map {
+              case (expId, newId) =>
+                ((expId, chrom, bin), sorted_coordinates.map(x => (newId, x._1, x._2, x._3, x._4)))
+            }
+          }
+        }
+
+      /*rdd.flatMap { x =>
         val startBin = (x._1._3 / bin).toInt
         val stopBin = (x._1._4 / bin).toInt
 
@@ -219,6 +247,7 @@ object GenometricMap71 {
             }
           }
         }
+      }*/
       }
   }
 
