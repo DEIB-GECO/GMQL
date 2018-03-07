@@ -121,15 +121,6 @@ object GenometricMap71 {
             val refSorted = if (ref.isEmpty) Seq.empty else ref.head
             val expSorted = exp.toArray.sortBy(_._1)
             var firstIndex: Int = 0
-            if (key._2.equals("chr5")) {
-              println()
-              println()
-              println(refSorted.map(x => (x._2,x._3,x._4)))
-              println(expSorted.toSeq.map(x => (x._1,x._2,x._3)))
-              println()
-              println()
-
-            }
 
             refSorted
               .iterator
@@ -141,11 +132,11 @@ object GenometricMap71 {
                   firstIndex += 1
                 }
 
-                var index = 0
+                var index = firstIndex
                 var expFilteredReduced = zeroReduced
 
-                while ((firstIndex + index) < expSorted.length && expSorted((firstIndex + index))._1 < refRecord._3) {
-                  val expRecord = expSorted((firstIndex + index))
+                while (index < expSorted.length && expSorted(index)._1 < refRecord._3) {
+                  val expRecord = expSorted(index)
                   if ( /*space overlapping*/
                     refRecord._2 < expRecord._2 &&
                       /* same strand */
@@ -154,7 +145,7 @@ object GenometricMap71 {
                       (refInStartBin || (expRecord._1 / BINNING_PARAMETER).toInt.equals(key._3))) {
                     expFilteredReduced = reduceFunc(expFilteredReduced, (expRecord._4, 1, expRecord._4.map(s => if (s.isInstanceOf[GNull]) 0 else 1)))
                   }
-                  index += index + 1
+                  index += 1
                 }
 
 
