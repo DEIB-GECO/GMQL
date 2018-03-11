@@ -103,6 +103,11 @@ sealed trait GValue extends Serializable /*with Comparable[GValue]*/ with Ordere
   }
 }
 
+object GValue{
+  val emptyArray = Array.empty[GValue]
+  val emptyList = List.empty[GValue]
+}
+
 /**
   * Represents a @GValue that contains an integer
   *
