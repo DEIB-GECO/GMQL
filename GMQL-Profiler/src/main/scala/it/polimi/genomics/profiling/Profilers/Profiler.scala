@@ -1,14 +1,12 @@
 package it.polimi.genomics.profiling.Profilers
 
 import it.polimi.genomics.core.DataTypes._
-import org.apache.spark.rdd.RDD
-import org.apache.spark.SparkContext
 import it.polimi.genomics.profiling.Profiles.{GMQLDatasetProfile, GMQLSampleStats}
-import org.apache.commons.math.stat.descriptive.summary.SumOfSquares
+import org.apache.spark.SparkContext
+import org.apache.spark.rdd.RDD
 import org.slf4j.LoggerFactory
 
 import scala.collection.Map
-import scala.collection.mutable.ListBuffer
 import scala.xml.Elem
 
 /**
@@ -56,9 +54,9 @@ object Profiler extends java.io.Serializable {
       {profile.stats.map(x => <feature name={x._1}>{x._2}</feature>)}
       <samples>
         { profile.samples.sortBy(x => x.name).map(y =>
-        <sample id={y.ID} name={y.name}>
-          {y.stats.map(z => <feature name={z._1}>{z._2}</feature>)}
-        </sample>)
+        <sample id={y.ID} name={y.name}>{
+          y.stats.map(z => <feature name={z._1}>{z._2}</feature>)
+        }</sample>)
         }
       </samples>
     </dataset>
@@ -97,31 +95,19 @@ object Profiler extends java.io.Serializable {
     * @param sc Spark Contxt
     * @return the profile object
     */
+  //TODO remove meta and make name mandatory
   def profile(regions: RDD[GRECORD], meta: RDD[(Long, (String, String))], sc: SparkContext, namesOpt: Option[Map[Long, String]] = None): GMQLDatasetProfile = {
 
-    // GRECORD    =  (GRecordKey,Array[GValue])
-    // GRecordKey =  (id, chrom, start, stop, strand)
-    // data       =  (id , (chr, width, start, stop, strand) )
-
-
-    //    val outSample = s"S_%05d.gdm"
-    //
-    //    val Ids = meta.keys.distinct()
-    //    val newIDS: Map[Long, String] = Ids.zipWithIndex().map(s => (s._1, outSample.format(s._2))).collectAsMap()
-    //    val newIDSbroad = sc.broadcast(newIDS)
-
+    //TODO move to profile function
     val names = {
       namesOpt.getOrElse {
         val outSample = s"S_%05d.gdm"
-        val Ids = meta.keys.distinct()
-        val newIDS: Map[Long, String] = Ids.zipWithIndex().map(s => (s._1, outSample.format(s._2))).collectAsMap()
-        val newIDSbroad = {
-          val bc = sc.broadcast(newIDS)
-          val res = bc.value
-          bc.unpersist()
-          res
-        }
-        newIDSbroad
+        val ids: Array[Long] = meta.keys.distinct().collect().sorted
+        val newIDS: Map[Long, String] = ids.zipWithIndex.map(s => (s._1, outSample.format(s._2))).toMap
+        val bc = sc.broadcast(newIDS)
+        val res = bc.value
+        bc.unpersist()
+        res
       }
     }
 
@@ -129,11 +115,8 @@ object Profiler extends java.io.Serializable {
       logger.warn("Samples set is empty, returning.")
       GMQLDatasetProfile(List())
     } else {
-
-
       //remove the one that doesn't have corresponding meta
       val filtered = regions.filter(x => names.contains(x._1.id))
-
 
       //if we need chromosome
       val mappedSampleChrom = filtered
@@ -160,6 +143,7 @@ object Profiler extends java.io.Serializable {
       val resultSamplesToSave = resultSamples.map { inp => (inp._1, calculateResult(inp._2)) }
 
 
+
       val resultDsToSave = calculateResult(resultSamples.values.reduce(reduceFunc))
 
 
@@ -178,6 +162,8 @@ object Profiler extends java.io.Serializable {
         val sample = GMQLSampleStats(ID = sampleId.toString)
         sample.name = names(sampleId)
 
+        sample.stats_num += Feature.NUM_SAMP.toString -> 1.0
+
         sample.stats_num += Feature.NUM_REG.toString -> profile.count
         sample.stats_num += Feature.AVG_REG_LEN.toString -> profile.avgLength
         sample.stats_num += Feature.MIN_COORD.toString -> profile.leftMost
@@ -192,27 +178,20 @@ object Profiler extends java.io.Serializable {
         sample
       }
 
-      val dsprofile = GMQLDatasetProfile(samples = sampleProfiles.toList)
-//
-//
-//      val totReg = resultDsToSave.count
-////        sampleProfiles.map(x => x.stats_num.get(Feature.NUM_REG.toString).get).reduce((x, y) => x + y)
-//      val sumAvg = sampleProfiles.map(x => x.stats_num.get(Feature.AVG_REG_LEN.toString).get).reduce((x, y) => x + y)
-//
-//
-//      val totAvg = sumAvg / samples.size
+      val dsProfile = GMQLDatasetProfile(samples = sampleProfiles.toList)
 
+      dsProfile.stats += Feature.NUM_SAMP.toString -> names.size.toString
 
-      dsprofile.stats += Feature.NUM_REG.toString -> numToString(resultDsToSave.count)
-      dsprofile.stats += Feature.AVG_REG_LEN.toString -> numToString(resultDsToSave.avgLength)
-      dsprofile.stats += Feature.MIN_COORD.toString -> numToString(resultDsToSave.leftMost)
-      dsprofile.stats += Feature.MAX_COORD.toString -> numToString(resultDsToSave.rightMost)
+      dsProfile.stats += Feature.NUM_REG.toString -> numToString(resultDsToSave.count)
+      dsProfile.stats += Feature.AVG_REG_LEN.toString -> numToString(resultDsToSave.avgLength)
+      dsProfile.stats += Feature.MIN_COORD.toString -> numToString(resultDsToSave.leftMost)
+      dsProfile.stats += Feature.MAX_COORD.toString -> numToString(resultDsToSave.rightMost)
 
-      dsprofile.stats += Feature.MIN_LENGTH.toString -> numToString(resultDsToSave.minLength)
-      dsprofile.stats += Feature.MAX_LENGTH.toString -> numToString(resultDsToSave.maxLength)
-      dsprofile.stats += Feature.VARIANCE_LENGTH.toString -> numToString(resultDsToSave.varianceLength)
+      dsProfile.stats += Feature.MIN_LENGTH.toString -> numToString(resultDsToSave.minLength)
+      dsProfile.stats += Feature.MAX_LENGTH.toString -> numToString(resultDsToSave.maxLength)
+      dsProfile.stats += Feature.VARIANCE_LENGTH.toString -> numToString(resultDsToSave.varianceLength)
 
-      dsprofile
+      dsProfile
 
     }
 
@@ -232,5 +211,4 @@ object Feature extends Enumeration {
   val MIN_LENGTH: Feature.Value = Value("min_length")
   val MAX_LENGTH: Feature.Value = Value("max_length")
   val VARIANCE_LENGTH: Feature.Value = Value("variance_length")
-
 }
