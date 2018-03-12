@@ -1,13 +1,12 @@
 package it.polimi.genomics.profiling.Profilers
 
 import it.polimi.genomics.core.DataTypes._
-import org.apache.spark.rdd.RDD
-import org.apache.spark.SparkContext
 import it.polimi.genomics.profiling.Profiles.{GMQLDatasetProfile, GMQLSampleStats}
+import org.apache.spark.SparkContext
+import org.apache.spark.rdd.RDD
 import org.slf4j.LoggerFactory
 
 import scala.collection.Map
-import scala.collection.mutable.ListBuffer
 import scala.xml.Elem
 
 /**
@@ -20,10 +19,11 @@ object Profiler extends java.io.Serializable {
 
   /**
     * Get an XML representation of the profile for the web interface (partial features)
+    *
     * @param profile
     * @return
     */
-  def profileToWebXML(profile:GMQLDatasetProfile) : Elem = {
+  def profileToWebXML(profile: GMQLDatasetProfile): Elem = {
 
     <dataset>
       <feature name="Number of samples">{profile.get(Feature.NUM_SAMP)}</feature>
@@ -44,10 +44,11 @@ object Profiler extends java.io.Serializable {
 
   /**
     * Get an XML representation of the profile for optimization (full features)
+    *
     * @param profile
     * @return
     */
-  def profileToOptXML(profile: GMQLDatasetProfile) : Elem = {
+  def profileToOptXML(profile: GMQLDatasetProfile): Elem = {
 
     <dataset>
       {profile.stats.map(x => <feature name={x._1}>{x._2}</feature>)}
@@ -62,184 +63,138 @@ object Profiler extends java.io.Serializable {
 
   }
 
+  case class ProfilerValue(leftMost: Long, rightMost: Long, minLength: Long, maxLength: Long, sumLength: Long, sumLengthOfSquares: Long, count: Long)
+
+  case class ProfilerResult(leftMost: Long, rightMost: Long, minLength: Long, maxLength: Long, count: Long, avgLength: Double, varianceLength: Double)
+
+
+  val reduceFunc: ((ProfilerValue, ProfilerValue) => ProfilerValue) = {
+    case (l: ProfilerValue, r: ProfilerValue) =>
+      ProfilerValue(
+        math.min(l.leftMost, r.leftMost),
+        math.max(l.rightMost, r.rightMost),
+        math.min(l.minLength, r.minLength),
+        math.max(l.maxLength, r.maxLength),
+        l.sumLength + r.sumLength,
+        l.sumLengthOfSquares + r.sumLengthOfSquares,
+        l.count + r.count
+      )
+  }
+
+  val calculateResult: (ProfilerValue => ProfilerResult) = { profile =>
+    val mean = profile.sumLength.toDouble / profile.count
+    val variance = profile.sumLengthOfSquares.toDouble / profile.count - mean * mean
+    ProfilerResult(profile.leftMost, profile.rightMost, profile.minLength, profile.maxLength, profile.count, mean, variance)
+  }
 
   /**
     * Profile a dataset providing the RDD representation of
+    *
     * @param regions
     * @param meta
     * @param sc Spark Contxt
     * @return the profile object
     */
-  def profile(regions:RDD[GRECORD], meta:RDD[(Long, (String, String))], sc: SparkContext, names:Option[Map[Long,String]] = None): GMQLDatasetProfile = {
+  //TODO remove meta and make name mandatory
+  def profile(regions: RDD[GRECORD], meta: RDD[(Long, (String, String))], sc: SparkContext, namesOpt: Option[Map[Long, String]] = None): GMQLDatasetProfile = {
 
-    // GRECORD    =  (GRecordKey,Array[GValue])
-    // GRecordKey =  (id, chrom, start, stop, strand)
-    // data       =  (id , (chr, width, start, stop, strand) )
+    //TODO move to profile function
+    val names = {
+      namesOpt.getOrElse {
+        val outSample = s"S_%05d"
+        val ids: Array[Long] = meta.keys.distinct().collect().sorted
+        val newIDS: Map[Long, String] = ids.zipWithIndex.map(s => (s._1, outSample.format(s._2))).toMap
+        val bc = sc.broadcast(newIDS)
+        val res = bc.value
+        bc.unpersist()
+        res
+      }
+    }
 
-    val data: RDD[ ( Long, (String, Long, Long, Long, Char) ) ] =
-      regions.map(
-        x => (x._1._1, (x._1._2, x._1._4 - x._1._3, x._1._3, x._1._4, x._1._5))
-      )
-
-    val samples:List[Long] = data.keys.distinct().collect().toList
-
-
-    if( samples.isEmpty ) {
+    if (names.isEmpty) {
       logger.warn("Samples set is empty, returning.")
-      return new GMQLDatasetProfile(List())
-    }
+      GMQLDatasetProfile(List())
+    } else {
+      //remove the one that doesn't have corresponding meta
+      val filtered = regions.filter(x => names.contains(x._1.id))
 
-    val Ids = meta.keys.distinct()
-    val newIDS: Map[Long, Long] = Ids.zipWithIndex().collectAsMap()
-    val newIDSbroad = sc.broadcast(newIDS)
-
-    // Counting regions in each sample
-    val counts: Map[Long, Long] = getRegionsCount(data)
-
-    // Averaging region length
-    val avg: Map[Long, Double] = getRegionsAvgWidth(data)
-
-
-    val minmax = getMinMax(data)
+      //if we need chromosome
+      val mappedSampleChrom = filtered
+        .map { x =>
+          val gRecordKey = x._1
+          val distance = gRecordKey.stop - gRecordKey.start
+          val profiler = ProfilerValue(gRecordKey.start, gRecordKey.stop, distance, distance, distance, distance * distance, 1)
+          ((gRecordKey.id, gRecordKey.chrom), profiler)
+        }
 
 
-    var sampleProfiles: ListBuffer[GMQLSampleStats] = ListBuffer[GMQLSampleStats]()
+      val reducedSampleChrom = mappedSampleChrom.reduceByKey(reduceFunc)
+
+      val mappedSample = reducedSampleChrom
+        .map { x: ((Long, String), ProfilerValue) =>
+          (x._1._1, x._2)
+        }
+
+      val reducedSample = mappedSample.reduceByKey(reduceFunc)
 
 
-    def numToString(x:Double): String = {
-      if(x%1==0) {
-        return "%.0f".format(x)
-      } else {
-        return "%.2f".format(x)
+      val resultSamples: Map[Long, ProfilerValue] = reducedSample.collectAsMap()
+
+      val resultSamplesToSave = resultSamples.map { inp => (inp._1, calculateResult(inp._2)) }
+
+
+
+      val resultDsToSave = calculateResult(resultSamples.values.reduce(reduceFunc))
+
+
+      def numToString(x: Double): String = {
+        if (x % 1 == 0) {
+          "%.0f".format(x)
+        } else {
+          "%.2f".format(x)
+        }
       }
-    }
 
-    logger.info("Profiling "+samples.length+" samples.")
+      logger.info("Profiling " + names.size + " samples.")
 
-    samples.foreach( x => {
+      val sampleProfiles = resultSamplesToSave.map { case (sampleId: Long, profile: ProfilerResult) =>
 
-      val sample = GMQLSampleStats(ID = x.toString)
-      if( !names.isDefined ) {
-        sample.name = "S_" + "%05d".format(newIDSbroad.value.get(x).getOrElse(x))
-      } else {
-        sample.name = names.get.get(x).get
+        val sample = GMQLSampleStats(ID = sampleId.toString)
+        sample.name = names(sampleId)
+
+        sample.stats_num += Feature.NUM_SAMP.toString -> 1.0
+
+        sample.stats_num += Feature.NUM_REG.toString -> profile.count
+        sample.stats_num += Feature.AVG_REG_LEN.toString -> profile.avgLength
+        sample.stats_num += Feature.MIN_COORD.toString -> profile.leftMost
+        sample.stats_num += Feature.MAX_COORD.toString -> profile.rightMost
+
+        sample.stats_num += Feature.MIN_LENGTH.toString -> profile.minLength
+        sample.stats_num += Feature.MAX_LENGTH.toString -> profile.maxLength
+        sample.stats_num += Feature.VARIANCE_LENGTH.toString -> profile.varianceLength
+
+        sample.stats = sample.stats_num.map(x => (x._1, numToString(x._2)))
+
+        sample
       }
 
-      val minmax_ = minmax(x)
-      sample.stats_num   += Feature.NUM_REG.toString      -> counts(x)
-      sample.stats_num   += Feature.AVG_REG_LEN.toString  -> avg(x)
-      sample.stats_num   += Feature.MIN_COORD.toString    -> minmax_._1
-      sample.stats_num   += Feature.MAX_COORD.toString    -> minmax_._2
+      val dsProfile = GMQLDatasetProfile(samples = sampleProfiles.toList)
 
-      sample.stats = sample.stats_num.map(x => (x._1, numToString(x._2)))
+      dsProfile.stats += Feature.NUM_SAMP.toString -> names.size.toString
 
-      sampleProfiles += sample
+      dsProfile.stats += Feature.NUM_REG.toString -> numToString(resultDsToSave.count)
+      dsProfile.stats += Feature.AVG_REG_LEN.toString -> numToString(resultDsToSave.avgLength)
+      dsProfile.stats += Feature.MIN_COORD.toString -> numToString(resultDsToSave.leftMost)
+      dsProfile.stats += Feature.MAX_COORD.toString -> numToString(resultDsToSave.rightMost)
 
-    })
+      dsProfile.stats += Feature.MIN_LENGTH.toString -> numToString(resultDsToSave.minLength)
+      dsProfile.stats += Feature.MAX_LENGTH.toString -> numToString(resultDsToSave.maxLength)
+      dsProfile.stats += Feature.VARIANCE_LENGTH.toString -> numToString(resultDsToSave.varianceLength)
 
-    val dsprofile    = new GMQLDatasetProfile(samples = sampleProfiles.toList)
+      dsProfile
 
-
-    val totReg = sampleProfiles.map(x=>x.stats_num.get(Feature.NUM_REG.toString).get).reduce((x,y)=>x+y)
-    val sumAvg = sampleProfiles.map(x=>x.stats_num.get(Feature.AVG_REG_LEN.toString).get).reduce((x,y)=>x+y)
-
-
-    val totAvg = sumAvg/samples.size
-
-
-    dsprofile.stats += Feature.NUM_SAMP.toString     -> samples.size.toString
-    dsprofile.stats += Feature.NUM_REG.toString      -> numToString(totReg)
-    dsprofile.stats += Feature.AVG_REG_LEN.toString  -> numToString(totAvg)
-
-    dsprofile
-
-  }
-
-  /**
-    * Returns the number of regions for each sample
-    * @param data  (id  , ( chr, width , strand) )
-    * @return
-    */
-  private def getRegionsCount(data:RDD[(Long,(String,Long,Long, Long,Char))])  : Map[Long, Long]  = data.countByKey()
-
-  /**
-    * Get, for each sample, the average length of the regions contained in it
-    * @param data
-    * @return
-    */
-  private def getRegionsAvgWidth( data: RDD[(Long,(String,Long,Long, Long,Char))]) : Map[Long, Double] =
-  {
-
-
-    // (sample_id, (chr, width, start, stop, str)) = data
-
-    val pair: RDD[(Long, Long)] = data.map(x => (x._1, x._2._2))
-
-
-    val createSumsCombiner: (Long) => (Double, Long) = (width: Long) => (1, width)
-
-    val sumCombiner = ( collector: (Double, Long),  width: Long) => {
-      val (numberElems, totalSum) = collector
-      //println("total sum :"+totalSum+" number:"+numberElems);
-      (numberElems + 1, totalSum + width)
     }
 
-    val sumMerger   = ( collector1: (Double, Long), collector2: (Double, Long)) => {
-      val (numSums1, totalSums1) = collector1
-      //print("num1: "+numSums1+" total1: "+totalSums1)
-
-      val (numSums2, totalSums2) = collector2
-      //print("num1: "+numSums2+" total1: "+totalSums2)
-
-      (numSums1 + numSums2, totalSums1 + totalSums2)
-    }
-
-    val averagingFunction = (regionSum: (Long, (Double, Long)) ) => {
-      val (id, (numberScores, totalScore)) = regionSum
-      //println("finalnum: "+numberScores+" finaltotal: "+totalScore)
-      (id, totalScore / numberScores)
-    }
-
-    val scores = pair.combineByKey(createSumsCombiner, sumCombiner, sumMerger)
-
-    val averages: Map[Long, Double] = scores.collectAsMap().map(averagingFunction)
-
-    averages
-
-  }
-
-  /**
-    * Get, for each sample, minimum and maximum region coordinates
-    * @param data
-    * @return
-    */
-  private def getMinMax( data: RDD[ (Long,(String,Long,Long,Long,Char))] ) : Map[Long, (Long, Long)] =
-  {
-
-    val pair: RDD[(Long, (Long, Long))] = data.map(x => (x._1, (x._2._3, x._2._4)))
-
-    val createSumsCombiner: ((Long, Long)) => (Long, Long) =
-      x => (x._1, x._2)
-
-    val sumCombiner = (collector: (Long, Long), coords: (Long, Long)) => {
-      val (min, max) = collector
-      //println("min :"+min+" max:"+max);
-      (math.min(min, coords._1), math.max(max, coords._2))
-    }
-
-    val sumMerger = (collector1: (Long, Long), collector2: (Long, Long)) => {
-      val (min1, max1) = collector1
-      val (min2, max2) = collector2
-
-      (math.min(min1, min2), math.max(max1, max2))
-    }
-
-
-    val scores = pair.combineByKey(createSumsCombiner, sumCombiner, sumMerger)
-
-    val averages: Map[Long, (Long, Long)] = scores.collectAsMap()
-
-    averages
   }
 
 }
@@ -247,9 +202,13 @@ object Profiler extends java.io.Serializable {
 
 object Feature extends Enumeration {
   type Feature = Value
-  val NUM_SAMP:    Feature.Value = Value("num_samp")
-  val NUM_REG:     Feature.Value = Value("num_reg")
+  val NUM_SAMP: Feature.Value = Value("num_samp")
+  val NUM_REG: Feature.Value = Value("num_reg")
   val AVG_REG_LEN: Feature.Value = Value("avg_reg_length")
-  val MIN_COORD:   Feature.Value = Value("min")
-  val MAX_COORD:   Feature.Value = Value("max")
+  val MIN_COORD: Feature.Value = Value("min")
+  val MAX_COORD: Feature.Value = Value("max")
+
+  val MIN_LENGTH: Feature.Value = Value("min_length")
+  val MAX_LENGTH: Feature.Value = Value("max_length")
+  val VARIANCE_LENGTH: Feature.Value = Value("variance_length")
 }
