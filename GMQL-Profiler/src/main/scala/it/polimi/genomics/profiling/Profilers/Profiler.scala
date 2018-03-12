@@ -54,9 +54,9 @@ object Profiler extends java.io.Serializable {
       {profile.stats.map(x => <feature name={x._1}>{x._2}</feature>)}
       <samples>
         { profile.samples.sortBy(x => x.name).map(y =>
-        <sample id={y.ID} name={y.name}>{
-          y.stats.map(z => <feature name={z._1}>{z._2}</feature>)
-        }</sample>)
+        <sample id={y.ID} name={y.name}>
+          {y.stats.map(z => <feature name={z._1}>{z._2}</feature>)}
+        </sample>)
         }
       </samples>
     </dataset>
@@ -101,7 +101,7 @@ object Profiler extends java.io.Serializable {
     //TODO move to profile function
     val names = {
       namesOpt.getOrElse {
-        val outSample = s"S_%05d.gdm"
+        val outSample = s"S_%05d"
         val ids: Array[Long] = meta.keys.distinct().collect().sorted
         val newIDS: Map[Long, String] = ids.zipWithIndex.map(s => (s._1, outSample.format(s._2))).toMap
         val bc = sc.broadcast(newIDS)
