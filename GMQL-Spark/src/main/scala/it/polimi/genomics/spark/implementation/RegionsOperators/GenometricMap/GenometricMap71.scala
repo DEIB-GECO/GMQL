@@ -132,81 +132,44 @@ object GenometricMap71 {
             // exp: Iterable[(Long, Long, Char, Array[GValue])] start, stop, strand, others
 
 
-            def sweepArray = {
-              var firstIndex: Int = 0
+            var firstIndex: Int = 0
 
-              refSorted
-                .iterator
-                .map { refRecord =>
-                  val refInStartBin = (refRecord._2 / BINNING_PARAMETER).toInt.equals(key._3)
-                  val isRefStrandBoth = refRecord._4.equals('*')
+            refSorted
+              .iterator
+              .map { refRecord =>
+                val refInStartBin = (refRecord._2 / BINNING_PARAMETER).toInt.equals(key._3)
+                val isRefStrandBoth = refRecord._4.equals('*')
 
-                  while (firstIndex < expSorted.length && expSorted(firstIndex)._2 <= refRecord._2) {
-                    firstIndex += 1
+                while (firstIndex < expSorted.length && expSorted(firstIndex)._2 <= refRecord._2) {
+                  firstIndex += 1
+                }
+
+                var index = firstIndex
+
+                var expFilteredReduced = zeroReduced
+
+                while (index < expSorted.length && expSorted(index)._1 < refRecord._3) {
+                  val expRecord = expSorted(index)
+                  if ( /*space overlapping*/
+                    refRecord._2 < expRecord._2 &&
+                      /* same strand */
+                      (isRefStrandBoth || expRecord._3.equals('*') || refRecord._4.equals(expRecord._3)) &&
+                      /* first comparison (start bin of either the ref or exp)*/
+                      (refInStartBin || (expRecord._1 / BINNING_PARAMETER).toInt.equals(key._3))) {
+                    expFilteredReduced = reduceFunc(expFilteredReduced, (expRecord._4, 1, expRecord._4.map(s => if (s.isInstanceOf[GNull]) 0 else 1)))
                   }
-
-                  var index = firstIndex
-                  var expFilteredReduced = zeroReduced
-
-                  while (index < expSorted.length && expSorted(index)._1 < refRecord._3) {
-                    val expRecord = expSorted(index)
-                    if ( /*space overlapping*/
-                      refRecord._2 < expRecord._2 &&
-                        /* same strand */
-                        (isRefStrandBoth || expRecord._3.equals('*') || refRecord._4.equals(expRecord._3)) &&
-                        /* first comparison (start bin of either the ref or exp)*/
-                        (refInStartBin || (expRecord._1 / BINNING_PARAMETER).toInt.equals(key._3))) {
-                      expFilteredReduced = reduceFunc(expFilteredReduced, (expRecord._4, 1, expRecord._4.map(s => if (s.isInstanceOf[GNull]) 0 else 1)))
-                    }
-                    index += 1
-                  }
+                  index += 1
+                }
 
 
-                  if (refInStartBin || expFilteredReduced._2 != 0) { //if there is a match ref against exp or if there is not match and in order to add one time ref we check if ref starts here
-                    val mapKey = MapKey(refRecord._1, key._2, refRecord._2, refRecord._3, refRecord._4, refRecord._5.toList)
-                    (mapKey, expFilteredReduced)
-                  }
-                  else
-                    (null, zeroReduced)
-                }.filter(_._1 != null)
-            }
-
-            def sweepStream = {
-              var expStream = expSorted.toStream
-              refSorted
-                .iterator
-                .map { refRecord =>
-                  val refInStartBin = (refRecord._2 / BINNING_PARAMETER).toInt.equals(key._3)
-                  val isRefStrandBoth = refRecord._4.equals('*')
-
-                  while (expStream.nonEmpty && expStream.head._2 <= refRecord._2) {
-                    expStream = expStream.tail
-                  }
-
-                  val expReducedOption = expStream.
-                    takeWhile(expRecord => expRecord._1 < refRecord._3)
-                    .filter(expRecord =>
-                      //space overlapping: (refRecord._2 < expRecord._2 && expRecord._1 < refRecord._3) &&
-                      refRecord._2 < expRecord._2 &&
-                        /* same strand */
-                        (isRefStrandBoth || expRecord._3.equals('*') || refRecord._4.equals(expRecord._3)) &&
-                        /* first comparison (start bin of either the ref or exp)*/
-                        (refInStartBin || (expRecord._1 / BINNING_PARAMETER).toInt.equals(key._3))
-                    ).reduceOption(reduceFunc)
-
-
-                  if (refInStartBin || expReducedOption.isDefined) {
-                    val mapKey = MapKey(refRecord._1, key._2, refRecord._2, refRecord._3, refRecord._4, refRecord._5.toList)
-                    (mapKey, expReducedOption.getOrElse(zeroReduced))
-                  }
-                  else
-                    (null, zeroReduced)
-                }.filter(_._1 != null)
-            }
-
-
-            sweepArray
-
+                if (refInStartBin || expFilteredReduced._2 != 0) { //if there is a match ref against exp or if there is not match and in order to add one time ref we check if ref starts here
+                  val mapKey = MapKey(refRecord._1, key._2, refRecord._2, refRecord._3, refRecord._4, refRecord._5.toList)
+                  (mapKey, expFilteredReduced)
+                }
+                else
+                  (null, zeroReduced)
+              }
+              .filter(_._1 != null) //if ref is not in startbin(left join) or there is no match with exp, then there is no result
         }
 
     val reduced = RefExpJoined.reduceByKey(reduceFunc)
