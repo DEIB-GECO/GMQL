@@ -1,6 +1,7 @@
 package it.polimi.genomics.core.DataStructures
 
 import it.polimi.genomics.core.DataStructures.Feature.Feature
+
 import scala.collection.Map
 
 /**
@@ -36,9 +37,14 @@ case class GMQLSampleStats(ID:String) {
 
 object Feature extends Enumeration {
   type Feature = Value
-  val NUM_SAMP:    Feature.Value = Value("num_samp")
-  val NUM_REG:     Feature.Value = Value("num_reg")
+
+  val NUM_SAMP: Feature.Value = Value("num_samp")
+  val NUM_REG: Feature.Value = Value("num_reg")
   val AVG_REG_LEN: Feature.Value = Value("avg_reg_length")
-  val MIN_COORD:   Feature.Value = Value("min")
-  val MAX_COORD:   Feature.Value = Value("max")
+  val MIN_COORD: Feature.Value = Value("min")
+  val MAX_COORD: Feature.Value = Value("max")
+
+  val MIN_LENGTH: Feature.Value = Value("min_length")
+  val MAX_LENGTH: Feature.Value = Value("max_length")
+  val VARIANCE_LENGTH: Feature.Value = Value("variance_length")
 }

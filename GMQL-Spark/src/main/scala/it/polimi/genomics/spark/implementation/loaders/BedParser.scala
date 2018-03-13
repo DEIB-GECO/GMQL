@@ -104,7 +104,7 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
     * Parser of String to GMQL Spark GRECORD
     *
     * @param t [[Tuple2]] of the ID and the [[String]] line to be parsed.
-    * @return [[GRecord]] as GMQL record representation.
+    * @return [[DataTypes.GRECORD]] as GMQL record representation.
     */
   override def region_parser(t: (Long, String)): Option[DataTypes.GRECORD] = {
     import BedParserHelper._

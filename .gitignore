@@ -39,4 +39,6 @@ build.log
 
 #SHITTY output not in target directory
 build.log
+
+#OSX
 .DS_Store

@@ -39,11 +39,11 @@ object StoreTABRD {
 
     val outSample = "S"
 
-    val Ids = meta.keys.distinct()
-    val newIDS: Map[Long, Long] = Ids.zipWithIndex().collectAsMap()
+    val ids = meta.keys.distinct().collect().sorted
+    val newIDS = ids.zipWithIndex.toMap
     val newIDSbroad = sc.broadcast(newIDS)
 
-    val regionsPartitioner = new HashPartitioner(Ids.count.toInt)
+    val regionsPartitioner = new HashPartitioner(ids.length)
 
     val keyedRDD =
       regions//.sortBy(s=>s._1) //disabled sorting
