@@ -5,6 +5,7 @@ import it.polimi.genomics.core.DataStructures.{IROperator, IRVariable}
 class DAG (val raw: List[IROperator]) {
 
   private val depthWidth: collection.mutable.Map[Int, Int] = collection.mutable.Map[Int, Int]()
+  private var view : Option[DAGView] = None
 
   // Auxiliary constructor
   def this(raw: => List[IRVariable]) =  this( raw.flatMap(x=>  List[IROperator](x.regionDag, x.metaDag)) )
@@ -78,7 +79,7 @@ class DAG (val raw: List[IROperator]) {
     * @return
     */
   def markDown( nodeClass : Class[_] ): DAG = {
-    subDAG(nodeClass).raw.map(_markDown)
+    subDAG(nodeClass).raw.foreach(_.getChildren.foreach(_markDown))
     this
   }
 
@@ -112,9 +113,24 @@ class DAG (val raw: List[IROperator]) {
     depthWidth.keys.max
   }
 
+  // Graphical
+
   def plot(title:String) = {
 
-    new DAGView(this, title)
+    view = Some(new DAGView(this, title))
+
+  }
+
+  def startMonitoring(title: String) = {
+
+    if ( view.isEmpty ) view = Some(new DAGView(this, title))
+    view.get.startWatching()
+
+  }
+
+  def stopMonitoring() = {
+
+    if( view.isDefined ) view.get.stopWatching()
 
   }
 

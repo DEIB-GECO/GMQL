@@ -16,6 +16,7 @@ case class GMQLDatasetProfile( samples:List[(GMQLSampleStats)] ) {
     val v = stats.get(feature.toString)
     if (v.isDefined)  v.get else "undefined"
   }
+
 }
 
 /**

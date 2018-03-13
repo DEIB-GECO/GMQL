@@ -6,7 +6,7 @@ import com.google.common.base.Charsets
 import com.google.common.hash.Hashing
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.Direction
 import it.polimi.genomics.core.DataStructures.GroupMDParameters._
-import it.polimi.genomics.core.DataStructures.RegionOperator
+import it.polimi.genomics.core.DataStructures.{IROperator, RegionOperator}
 import it.polimi.genomics.core.DataTypes._
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.core.{GDouble, GNull, GRecordKey, GValue}
@@ -24,7 +24,7 @@ object OrderRD {
   private final val logger = LoggerFactory.getLogger(this.getClass);
 
   @throws[SelectFormatException]
-  def apply(executor : GMQLSparkExecutor, ordering : List[(Int, Direction)], topParameter : TopParameter, inputDataset : RegionOperator, sc : SparkContext) : RDD[GRECORD] = {
+  def apply(operator: IROperator, executor : GMQLSparkExecutor, ordering : List[(Int, Direction)], topParameter : TopParameter, inputDataset : RegionOperator, sc : SparkContext) : RDD[GRECORD] = {
     logger.info("----------------OrderRD executing..")
 
     val ds:RDD[GRECORD] =

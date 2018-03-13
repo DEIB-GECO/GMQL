@@ -1,6 +1,6 @@
 package it.polimi.genomics.spark.implementation.RegionsOperators
 
-import it.polimi.genomics.core.DataStructures.{MetaGroupOperator, RegionOperator}
+import it.polimi.genomics.core.DataStructures.{IROperator, MetaGroupOperator, RegionOperator}
 import it.polimi.genomics.core.DataTypes._
 import it.polimi.genomics.core.GRecordKey
 import it.polimi.genomics.core.exception.SelectFormatException
@@ -17,7 +17,7 @@ object MergeRD {
   private final val logger = LoggerFactory.getLogger(this.getClass);
 
   @throws[SelectFormatException]
-  def apply(executor : GMQLSparkExecutor, dataset : RegionOperator, groups : Option[MetaGroupOperator], sc : SparkContext) : RDD[GRECORD] = {
+  def apply(operator: IROperator, executor : GMQLSparkExecutor, dataset : RegionOperator, groups : Option[MetaGroupOperator], sc : SparkContext) : RDD[GRECORD] = {
     logger.info("----------------Merge executing..")
 
     val ds : RDD[GRECORD] =

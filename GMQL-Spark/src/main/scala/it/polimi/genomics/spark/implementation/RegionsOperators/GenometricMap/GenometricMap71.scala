@@ -25,7 +25,7 @@ object GenometricMap71 {
   private final type groupType = Array[((Long, String), Array[Long])]
 
   @throws[SelectFormatException]
-  def apply(executor: GMQLSparkExecutor, grouping: OptionalMetaJoinOperator, aggregator: List[RegionAggregate.RegionsToRegion], reference: RegionOperator, experiments: RegionOperator, BINNING_PARAMETER: Long, REF_PARALLILISM: Int, sc: SparkContext): RDD[GRECORD] = {
+  def apply(operator: IROperator, executor: GMQLSparkExecutor, grouping: OptionalMetaJoinOperator, aggregator: List[RegionAggregate.RegionsToRegion], reference: RegionOperator, experiments: RegionOperator, BINNING_PARAMETER: Long, REF_PARALLILISM: Int, sc: SparkContext): RDD[GRECORD] = {
     logger.info("----------------MAP71 executing -------------")
     //creating the datasets
     val ref: RDD[(GRecordKey, Array[GValue])] =

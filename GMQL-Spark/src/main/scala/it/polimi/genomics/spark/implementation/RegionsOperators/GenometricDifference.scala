@@ -1,7 +1,7 @@
 package it.polimi.genomics.spark.implementation.RegionsOperators
 
 import com.google.common.hash.Hashing
-import it.polimi.genomics.core.DataStructures.{OptionalMetaJoinOperator, RegionOperator}
+import it.polimi.genomics.core.DataStructures.{IROperator, OptionalMetaJoinOperator, RegionOperator}
 import it.polimi.genomics.core.DataTypes.GRECORD
 import it.polimi.genomics.core.{GRecordKey, GValue}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
@@ -20,7 +20,7 @@ object GenometricDifference {
   private final val BINNING_PARAMETER = 50000
   private final val logger = LoggerFactory.getLogger(this.getClass);
 
-  def apply(executor: GMQLSparkExecutor, grouping: OptionalMetaJoinOperator, leftDataset: RegionOperator, rightDataset: RegionOperator, exact:Boolean, sc: SparkContext): RDD[GRECORD] = {
+  def apply(operator: IROperator, executor: GMQLSparkExecutor, grouping: OptionalMetaJoinOperator, leftDataset: RegionOperator, rightDataset: RegionOperator, exact:Boolean, sc: SparkContext): RDD[GRECORD] = {
     logger.info("----------------Differnce executing..")
 
     //creating the datasets

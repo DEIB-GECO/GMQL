@@ -18,6 +18,9 @@ abstract class IROperator extends Serializable {
   def getRegionChildren: List[IROperator] = this.getChildren.filter(p => p.isRegionOperator)
   def getMetaChildren: List[IROperator] = this.getChildren.filter(p => p.isMetaOperator)
 
+  var isRunning: Boolean = false
+  var isCompleted: Boolean = false
+
   var requiresOutputProfile: Boolean = false
   var outputProfile: Option[GMQLDatasetProfile] = None
 

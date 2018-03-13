@@ -3,7 +3,7 @@ package it.polimi.genomics.spark.implementation.RegionsOperators.GenometricCover
 import it.polimi.genomics.core.DataStructures.CoverParameters.CoverFlag.CoverFlag
 import it.polimi.genomics.core.DataStructures.CoverParameters._
 import it.polimi.genomics.core.DataStructures.RegionAggregate.RegionsToRegion
-import it.polimi.genomics.core.DataStructures.{MetaGroupOperator, RegionOperator}
+import it.polimi.genomics.core.DataStructures.{IROperator, MetaGroupOperator, RegionOperator}
 import it.polimi.genomics.core.DataTypes._
 import it.polimi.genomics.core.{GDouble, GValue}
 import it.polimi.genomics.core.exception.SelectFormatException
@@ -27,7 +27,7 @@ object GenometricCover {
   private final val logger = LoggerFactory.getLogger(GenometricCover.getClass);
 
   @throws[SelectFormatException]
-  def apply(executor : GMQLSparkExecutor, coverFlag : CoverFlag, min : CoverParam, max : CoverParam, aggregators : List[RegionsToRegion], grouping : Option[MetaGroupOperator], inputDataset : RegionOperator, binSize : Long, sc : SparkContext) : RDD[GRECORD] = {
+  def apply(operator: IROperator, executor : GMQLSparkExecutor, coverFlag : CoverFlag, min : CoverParam, max : CoverParam, aggregators : List[RegionsToRegion], grouping : Option[MetaGroupOperator], inputDataset : RegionOperator, binSize : Long, sc : SparkContext) : RDD[GRECORD] = {
     logger.info("----------------Cover executing..")
 
     // CREATE DATASET RECURSIVELY

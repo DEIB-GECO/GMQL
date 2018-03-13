@@ -1,6 +1,8 @@
 package it.polimi.genomics.manager
 import java.io.File
 
+import it.polimi.genomics.manager.CLI.logger
+
 import scala.collection.JavaConversions._
 import it.polimi.genomics.profiling.Profilers.Profiler
 import it.polimi.genomics.repository.FSRepository.{DFSRepository, FS_Utilities}
@@ -30,18 +32,15 @@ object ProfilerLauncher {
   def main(args: Array[String]): Unit = {
 
     try{
-      if(new File("GMQL-Core/src/main/resources/logback.xml").exists())
-      {
-        DOMConfigurator.configure("../conf/logback.xml")
-        val root:ch.qos.logback.classic.Logger = org.slf4j.LoggerFactory.getLogger("org").asInstanceOf[ch.qos.logback.classic.Logger];
-        root.setLevel(ch.qos.logback.classic.Level.WARN);
-        org.slf4j.LoggerFactory.getLogger("it.polimi.genomics.manager").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.WARN)
-      }
+      //    DOMConfigurator.configure("GMQL-Core/logback.xml")
+      val root:ch.qos.logback.classic.Logger = org.slf4j.LoggerFactory.getLogger("org.apache.spark").asInstanceOf[ch.qos.logback.classic.Logger];
+      root.setLevel(ch.qos.logback.classic.Level.WARN);
+      //      org.slf4j.LoggerFactory.getLogger("it.polimi.genomics.manager").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.INFO)
     }catch{
       case _:Throwable => logger.warn("log4j.xml is not found in conf")
     }
 
-    var username: Option[String] = Some("agulino")
+    var username: Option[String] = Some("public")
     var dataset: Option[String] = None
     var configFolder = "./config/"
 

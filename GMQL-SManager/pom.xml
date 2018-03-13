@@ -111,7 +111,7 @@
                     </descriptorRefs>
                     <archive>
                         <manifestEntries>
-                            <Main-Class>it.polimi.genomics.manager.CLI</Main-Class>
+                            <Main-Class>it.polimi.genomics.manager.ProfilerLauncher</Main-Class>
                         </manifestEntries>
                     </archive>
                 </configuration>

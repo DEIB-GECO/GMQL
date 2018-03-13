@@ -3,7 +3,7 @@ package it.polimi.genomics.spark.implementation.RegionsOperators
 import java.nio.charset.StandardCharsets
 
 import com.google.common.hash.Hashing
-import it.polimi.genomics.core.DataStructures.MetaOperator
+import it.polimi.genomics.core.DataStructures.{IROperator, MetaOperator}
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
 import it.polimi.genomics.core.DataTypes._
 import it.polimi.genomics.core.GMQLLoader
@@ -28,7 +28,8 @@ object SelectIRD {
   var executor: GMQLSparkExecutor = null
 
   @throws[SelectFormatException]
-  def apply(executor: GMQLSparkExecutor, regionCondition: Option[RegionCondition], filteredMeta: Option[MetaOperator], loader: GMQLLoader[Any, Any, Any, Any], URIs: List[String], repo: Option[String], sc: SparkContext): RDD[GRECORD] = {
+  def apply(operator: IROperator, executor: GMQLSparkExecutor, regionCondition: Option[RegionCondition], filteredMeta: Option[MetaOperator], loader: GMQLLoader[Any, Any, Any, Any], URIs: List[String], repo: Option[String], sc: SparkContext): RDD[GRECORD] = {
+
     PredicateRD.executor = executor
     val optimized_reg_cond = if (regionCondition.isDefined) Some(PredicateRD.optimizeConditionTree(regionCondition.get, false, filteredMeta, sc))
     else {
@@ -62,11 +63,32 @@ object SelectIRD {
 
     def parser(x: (Long, String)) = loader.asInstanceOf[GMQLLoader[(Long, String), Option[GRECORD], (Long, String), Option[MetaType]]].region_parser(x)
 
+    val result =
     if (selectedURIs.size > 0)
       sc forPath (selectedURIs.mkString(",")) LoadRegionsCombineFiles(parser, PredicateRD.applyRegionSelect, optimized_reg_cond) cache
     else {
       logger.warn("One input select is empty..")
       sc.emptyRDD[GRECORD]
     }
+
+    // Profile Estimation: load stored profile and filter meta
+    val datasetFolder = (new Path(selectedURIs.head)).getParent.toString
+
+    if (operator.requiresOutputProfile) {
+
+
+
+      //if( selectedURIs.nonEmpty )
+      //val profile =  (new Path(selectedURIs.head) getParent) + "/" + "profile.xml"
+
+
+
+      // Load Profile
+    }
+
+
+
+    result
+
   }
 }

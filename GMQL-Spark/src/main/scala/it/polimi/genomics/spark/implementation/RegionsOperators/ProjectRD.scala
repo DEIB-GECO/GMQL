@@ -3,7 +3,7 @@ package it.polimi.genomics.spark.implementation.RegionsOperators
 
 import it.polimi.genomics.core.DataStructures.RegionAggregate.{COORD_POS, RegionExtension}
 import it.polimi.genomics.core.DataStructures.RegionCondition.MetaAccessor
-import it.polimi.genomics.core.DataStructures.{MetaOperator, RegionOperator}
+import it.polimi.genomics.core.DataStructures.{IROperator, MetaOperator, RegionOperator}
 import it.polimi.genomics.core.DataTypes._
 import it.polimi.genomics.core._
 import it.polimi.genomics.core.exception.SelectFormatException
@@ -19,7 +19,7 @@ object ProjectRD {
   private final val logger = LoggerFactory.getLogger(this.getClass);
 
   @throws[SelectFormatException]
-  def apply(executor : GMQLSparkExecutor, projectedValues : Option[List[Int]], tupleAggregator : Option[List[RegionExtension]], inputDataset : RegionOperator, inputMeta: MetaOperator, env : SparkContext) : RDD[GRECORD] = {
+  def apply(operator: IROperator, executor : GMQLSparkExecutor, projectedValues : Option[List[Int]], tupleAggregator : Option[List[RegionExtension]], inputDataset : RegionOperator, inputMeta: MetaOperator, env : SparkContext) : RDD[GRECORD] = {
     logger.info("----------------ProjectRD executing..")
 
     val input = executor.implement_rd(inputDataset, env)

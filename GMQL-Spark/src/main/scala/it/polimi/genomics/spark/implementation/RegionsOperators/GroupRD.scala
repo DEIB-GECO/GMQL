@@ -2,7 +2,7 @@ package it.polimi.genomics.spark.implementation.RegionsOperators
 
 import com.google.common.hash.Hashing
 import it.polimi.genomics.core.DataStructures.GroupRDParameters.FIELD
-import it.polimi.genomics.core.DataStructures.{GroupRDParameters, RegionAggregate, RegionOperator}
+import it.polimi.genomics.core.DataStructures.{GroupRDParameters, IROperator, RegionAggregate, RegionOperator}
 import it.polimi.genomics.core.DataTypes.GRECORD
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.core.{GNull, GValue}
@@ -19,7 +19,7 @@ object GroupRD {
 
 
   @throws[SelectFormatException]
-  def apply(executor : GMQLSparkExecutor, groupingParameters : Option[List[GroupRDParameters.GroupingParameter]], aggregates : Option[List[RegionAggregate.RegionsToRegion]], regionDataset : RegionOperator, sc : SparkContext) : RDD[GRECORD] = {
+  def apply(operator: IROperator, executor : GMQLSparkExecutor, groupingParameters : Option[List[GroupRDParameters.GroupingParameter]], aggregates : Option[List[RegionAggregate.RegionsToRegion]], regionDataset : RegionOperator, sc : SparkContext) : RDD[GRECORD] = {
     logger.info("----------------GroupRD executing..")
 
     val ds = executor.implement_rd(regionDataset, sc)

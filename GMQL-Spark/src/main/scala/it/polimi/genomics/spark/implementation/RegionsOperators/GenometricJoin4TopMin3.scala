@@ -5,7 +5,7 @@ import com.google.common.hash.Hashing
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
 import it.polimi.genomics.core.DataStructures.JoinParametersRD._
 import it.polimi.genomics.core.DataStructures.RegionAggregate.COORD_POS
-import it.polimi.genomics.core.DataStructures.{OptionalMetaJoinOperator, RegionOperator}
+import it.polimi.genomics.core.DataStructures.{IROperator, OptionalMetaJoinOperator, RegionOperator}
 import it.polimi.genomics.core.DataTypes._
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.core.{GDouble, GRecordKey, GString, GValue}
@@ -22,7 +22,7 @@ object GenometricJoin4TopMin3 {
   private final val logger = LoggerFactory.getLogger(this.getClass);
 
   @throws[SelectFormatException]
-  def apply(executor : GMQLSparkExecutor, metajoinCondition : OptionalMetaJoinOperator, distanceJoinCondition : List[JoinQuadruple], regionBuilder : RegionBuilder, leftDataset : RegionOperator, rightDataset : RegionOperator,join_on_attributes:Option[List[(Int,Int)]], BINNING_PARAMETER:Long, MAXIMUM_DISTANCE:Long, sc : SparkContext) : RDD[GRECORD] = {
+  def apply(operator: IROperator, executor : GMQLSparkExecutor, metajoinCondition : OptionalMetaJoinOperator, distanceJoinCondition : List[JoinQuadruple], regionBuilder : RegionBuilder, leftDataset : RegionOperator, rightDataset : RegionOperator,join_on_attributes:Option[List[(Int,Int)]], BINNING_PARAMETER:Long, MAXIMUM_DISTANCE:Long, sc : SparkContext) : RDD[GRECORD] = {
     // load datasets
     val ref : RDD[GRECORD] =
       executor.implement_rd(leftDataset, sc)

@@ -7,9 +7,9 @@ import com.mxgraph.swing.mxGraphComponent
 import javax.swing.{JFrame, WindowConstants}
 import java.awt.Dimension
 import java.awt.Toolkit
+import java.util.concurrent.{ScheduledFuture, ScheduledThreadPoolExecutor, TimeUnit}
 
 import scala.collection.JavaConversions._
-
 import it.polimi.genomics.core.DataStructures.IROperator
 
 class DAGView(val dag: DAG,  val name:String) extends JFrame {
@@ -25,6 +25,8 @@ class DAGView(val dag: DAG,  val name:String) extends JFrame {
   val ORANGE = "#f89610"
   val ORANGE1 = "#eb7b27"
   val WHITE = "#FFFFFF"
+  val GREEN = "#40ce33"
+  val GREY = "#eff0f1"
 
   // Create a centered window
   setPreferredSize(new Dimension(700, 500))
@@ -46,6 +48,44 @@ class DAGView(val dag: DAG,  val name:String) extends JFrame {
   // Start graph editing
   graph.getModel.beginUpdate
 
+  // Thread
+  var f: Option[ScheduledFuture[_]] = None
+
+  private def updateDAG() = {
+
+    println("Updating DAG")
+
+    for( (operator, vertex) <- mapping ) {
+      val style =
+        if (operator.isRunning) {
+          "fillColor="+GREEN
+        } else {
+          if (operator.isMetaOperator)
+            "fillColor="+ORANGE
+          else if (operator.isCompleted)
+            "fillColor="+GREY
+          else
+            "fillColor="+BLUE
+        }
+      graph.setCellStyle(style, Array(vertex))
+    }
+    graph.refresh()
+  }
+
+
+  def startWatching() = {
+    val ex = new ScheduledThreadPoolExecutor(1)
+    val task = new Runnable {
+      def run() = updateDAG()
+    }
+    f = Some(ex.scheduleAtFixedRate(task, 1, 1, TimeUnit.SECONDS))
+  }
+
+  def stopWatching() = {
+    if( f.isDefined ){
+      f.get.cancel(false)
+    }
+  }
 
   // Recursive function used to generate the graph
   def generateDAG(cur: IROperator, cur_vertex: AnyRef, depth: Int, fatherX: Double): Unit = {

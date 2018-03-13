@@ -1,5 +1,6 @@
 package it.polimi.genomics.spark.implementation.RegionsOperators
 
+import it.polimi.genomics.core.DataStructures.IROperator
 import it.polimi.genomics.core.DataTypes.{GRECORD, MetaType}
 import it.polimi.genomics.core.GMQLLoader
 import it.polimi.genomics.spark.implementation.loaders.Loaders._
@@ -16,8 +17,10 @@ object ReadRD {
 
   private final val logger = LoggerFactory.getLogger(SelectRD.getClass);
 
-  def apply(paths: List[String], loader: GMQLLoader[Any, Any, Any, Any], sc: SparkContext): RDD[GRECORD] = {
+  def apply(operator: IROperator , paths: List[String], loader: GMQLLoader[Any, Any, Any, Any], sc: SparkContext): RDD[GRECORD] = {
     def parser(x: (Long, String)) = loader.asInstanceOf[GMQLLoader[(Long, String), Option[GRECORD], (Long, String), Option[MetaType]]].region_parser(x)
+
+    operator.isRunning = true
 
     val conf = new Configuration();
     val path = new org.apache.hadoop.fs.Path(paths.head);
@@ -31,7 +34,23 @@ object ReadRD {
         }).map(x => x.getPath.toString).toList;
       else List(dirInput)
     }
-    sc.forPath(files.mkString(",")).LoadRegionsCombineFiles(parser)
 
+
+    // Profile Estimation
+    if (operator.requiresOutputProfile) {
+
+      if(paths.nonEmpty) {
+        logger.info("\n\n\n Path "+paths.head)
+      }
+
+      // Load Profile
+    }
+
+    val result = sc.forPath(files.mkString(",")).LoadRegionsCombineFiles(parser)
+
+    operator.isRunning = false
+    operator.isCompleted = true
+    println("\n\n\n\n READ COMPLEATED ")
+    result
   }
 }

@@ -1,7 +1,7 @@
 package it.polimi.genomics.spark.implementation.RegionsOperators
 
 import com.google.common.hash.Hashing
-import it.polimi.genomics.core.DataStructures.RegionOperator
+import it.polimi.genomics.core.DataStructures.{IROperator, RegionOperator}
 import it.polimi.genomics.core.DataTypes.GRECORD
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.core.{GNull, GRecordKey, GValue}
@@ -17,7 +17,7 @@ object UnionRD {
   private final val logger = LoggerFactory.getLogger(this.getClass);
 
   @throws[SelectFormatException]
-  def apply(executor: GMQLSparkExecutor, schemaReformatting: List[Int], leftDataset: RegionOperator, rightDataset: RegionOperator, sc: SparkContext) = {
+  def apply(operator: IROperator, executor: GMQLSparkExecutor, schemaReformatting: List[Int], leftDataset: RegionOperator, rightDataset: RegionOperator, sc: SparkContext) = {
     logger.info("----------------UnionRD executing..")
 
     //create the datasets
