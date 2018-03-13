@@ -9,6 +9,7 @@ package it.polimi.genomics.spark.implementation
 import java.io.{BufferedWriter, OutputStreamWriter}
 
 import it.polimi.genomics.GMQLServer.Implementation
+import it.polimi.genomics.core.DAG.DAG
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.Direction
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.TopParameter
 import it.polimi.genomics.core.DataStructures.MetaAggregate.{MetaAggregateFunction, MetaExtension}
@@ -109,6 +110,8 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
   def implementation(): Unit = {
 
     try {
+
+      new DAG(to_be_materialized.toList) plot ("Query")
       for (variable <- to_be_materialized) {
 
         val metaRDD = implement_md(variable.metaDag, sc)
@@ -237,27 +240,27 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
       val res =
         ro match {
           case IRStoreRD(path, value,meta,schema,_) => if(outputFormat == GMQLSchemaFormat.GTF) StoreGTFRD(this, path, value,meta,schema,outputCoordinateSystem,sc) else if(outputFormat == GMQLSchemaFormat.TAB) StoreTABRD(this,path, value,meta,schema,outputCoordinateSystem,sc) else StoreRD(this, path, value, sc)
-          case IRReadRD(path, loader,_) => if (testingIOFormats) TestingReadRD(path, loader, sc) else ReadRD(path, loader, sc)
-          case IRReadMEMRD(metaRDD) => ReadMEMRD(metaRDD)
+          case IRReadRD(path, loader,_) => if (testingIOFormats) TestingReadRD(ro, path, loader, sc) else ReadRD(ro,path, loader, sc)
+          case IRReadMEMRD(metaRDD) => ReadMEMRD(ro, metaRDD)
           case IRSelectRD(regionCondition: Option[RegionCondition], filteredMeta: Option[MetaOperator], inputDataset: RegionOperator) =>
             inputDataset match {
               case IRReadRD(path, loader,_) =>
                 if(filteredMeta.isDefined) {
-                  SelectIRD(this, regionCondition, filteredMeta, loader,path,None, sc)
+                  SelectIRD(ro, this, regionCondition, filteredMeta, loader,path,None, sc)
                 }
-                else SelectRD(this, regionCondition, filteredMeta, inputDataset, sc)
-              case _ => SelectRD(this, regionCondition, filteredMeta, inputDataset, sc)
+                else SelectRD(ro, this, regionCondition, filteredMeta, inputDataset, sc)
+              case _ => SelectRD(ro, this, regionCondition, filteredMeta, inputDataset, sc)
             }
-          case IRPurgeRD(metaDataset: MetaOperator, inputDataset: RegionOperator) => PurgeRD(this, metaDataset, inputDataset, sc)
-          case irCover:IRRegionCover => GenometricCover(this, irCover.cover_flag, irCover.min, irCover.max, irCover.aggregates, irCover.groups, irCover.input_dataset,binSize.Cover, sc)
-          case IRUnionRD(schemaReformatting: List[Int], leftDataset: RegionOperator, rightDataset: RegionOperator) => UnionRD(this, schemaReformatting, leftDataset, rightDataset, sc)
-          case IRMergeRD(dataset: RegionOperator, groups: Option[MetaGroupOperator]) => MergeRD(this, dataset, groups, sc)
-          case IRGroupRD(groupingParameters: Option[List[GroupRDParameters.GroupingParameter]], aggregates: Option[List[RegionAggregate.RegionsToRegion]], regionDataset: RegionOperator) => GroupRD(this, groupingParameters, aggregates, regionDataset, sc)
-          case IROrderRD(ordering: List[(Int, Direction)], topPar: TopParameter, inputDataset: RegionOperator) => OrderRD(this, ordering: List[(Int, Direction)], topPar, inputDataset, sc)
-          case irJoin:IRGenometricJoin => GenometricJoin4TopMin3(this, irJoin.metajoin_condition, irJoin.join_condition, irJoin.region_builder, irJoin.left_dataset, irJoin.right_dataset,irJoin.join_on_attributes,binSize.Join,maxBinDistance, sc)
-          case irMap:IRGenometricMap => GenometricMap71(this, irMap.grouping, irMap.aggregates, irMap.reference, irMap.samples,binSize.Map,REF_PARALLILISM, sc)
-          case IRDifferenceRD(metaJoin: OptionalMetaJoinOperator, leftDataset: RegionOperator, rightDataset: RegionOperator,exact:Boolean) => GenometricDifference(this, metaJoin, leftDataset, rightDataset,exact, sc)
-          case IRProjectRD(projectedValues: Option[List[Int]], tupleAggregator: Option[List[RegionExtension]], inputDataset: RegionOperator, inputDatasetMeta: MetaOperator) => ProjectRD(this, projectedValues, tupleAggregator, inputDataset,inputDatasetMeta, sc)
+          case IRPurgeRD(metaDataset: MetaOperator, inputDataset: RegionOperator) => PurgeRD(ro, this, metaDataset, inputDataset, sc)
+          case irCover:IRRegionCover => GenometricCover(ro, this, irCover.cover_flag, irCover.min, irCover.max, irCover.aggregates, irCover.groups, irCover.input_dataset,binSize.Cover, sc)
+          case IRUnionRD(schemaReformatting: List[Int], leftDataset: RegionOperator, rightDataset: RegionOperator) => UnionRD(ro, this, schemaReformatting, leftDataset, rightDataset, sc)
+          case IRMergeRD(dataset: RegionOperator, groups: Option[MetaGroupOperator]) => MergeRD(ro, this, dataset, groups, sc)
+          case IRGroupRD(groupingParameters: Option[List[GroupRDParameters.GroupingParameter]], aggregates: Option[List[RegionAggregate.RegionsToRegion]], regionDataset: RegionOperator) => GroupRD(ro, this, groupingParameters, aggregates, regionDataset, sc)
+          case IROrderRD(ordering: List[(Int, Direction)], topPar: TopParameter, inputDataset: RegionOperator) => OrderRD(ro, this, ordering: List[(Int, Direction)], topPar, inputDataset, sc)
+          case irJoin:IRGenometricJoin => GenometricJoin4TopMin3(ro, this, irJoin.metajoin_condition, irJoin.join_condition, irJoin.region_builder, irJoin.left_dataset, irJoin.right_dataset,irJoin.join_on_attributes,binSize.Join,maxBinDistance, sc)
+          case irMap:IRGenometricMap => GenometricMap71(ro, this, irMap.grouping, irMap.aggregates, irMap.reference, irMap.samples,binSize.Map,REF_PARALLILISM, sc)
+          case IRDifferenceRD(metaJoin: OptionalMetaJoinOperator, leftDataset: RegionOperator, rightDataset: RegionOperator,exact:Boolean) => GenometricDifference(ro, this, metaJoin, leftDataset, rightDataset,exact, sc)
+          case IRProjectRD(projectedValues: Option[List[Int]], tupleAggregator: Option[List[RegionExtension]], inputDataset: RegionOperator, inputDatasetMeta: MetaOperator) => ProjectRD(ro, this, projectedValues, tupleAggregator, inputDataset,inputDatasetMeta, sc)
 
         }
       ro.intermediateResult = Some(res)
