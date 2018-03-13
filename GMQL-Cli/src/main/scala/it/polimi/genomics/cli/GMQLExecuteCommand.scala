@@ -2,6 +2,7 @@ package it.polimi.genomics.cli
 
 import java.io._
 import java.text.SimpleDateFormat
+import java.util
 import java.util.Date
 
 import it.polimi.genomics.GMQLServer.{GmqlServer, Implementation}
@@ -15,6 +16,8 @@ import org.apache.log4j.xml.DOMConfigurator
 import org.apache.log4j.{FileAppender, Level, PatternLayout}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.slf4j.LoggerFactory
+
+import collection.JavaConversions._
 
 /**
   * Created by Abdulrahman Kaitoua on 10/09/15.
@@ -371,10 +374,24 @@ object GMQLExecuteCommand {
 
   def getImplemenation(executionType:String,jobid:String , outputFormat: GMQLSchemaFormat.Value, outputCoordinateSystem: GMQLSchemaCoordinateSystem.Value) ={
 //    if (executionType.equals(it.polimi.genomics.core.ImplementationPlatform.SPARK.toString.toLowerCase())) {
-      val conf = new SparkConf().setAppName("GMQL V2.1 Spark " + jobid)
+      var conf = new SparkConf().setAppName("GMQL V2.1 Spark " + jobid)
         .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "128")
         .set("spark.driver.allowMultipleContexts","true")
         .set("spark.sql.tungsten.enabled", "true")//.setMaster("local[*]")
+
+
+
+      if ( sparkPropObj.isDefined ) {
+        val props =  sparkPropObj.get.props.asInstanceOf[java.util.Map[String, String]]
+        val keys: util.Set[String] = props.keySet()
+        for( key <- keys) {
+          logger.info("Setting Spark property  " + key + " to " + props.get(key))
+          conf.set(key, props.get(key))
+        }
+      }
+
+
+
       val sc: SparkContext = new SparkContext(conf)
 //      sc.addSparkListener(new SparkListener() {
 //        override def onApplicationStart(applicationStart: SparkListenerApplicationStart) {
