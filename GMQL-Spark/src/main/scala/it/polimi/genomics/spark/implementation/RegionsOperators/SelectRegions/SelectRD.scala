@@ -1,11 +1,12 @@
 package it.polimi.genomics.spark.implementation.RegionsOperators
 
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
-import it.polimi.genomics.core.DataStructures.{GMQLDatasetProfile, IROperator, MetaOperator, RegionOperator}
+import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.DataTypes._
 import it.polimi.genomics.core.{GRecordKey, GValue}
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
+import it.polimi.genomics.spark.implementation.RegionsOperators.SelectIRD.logger
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
@@ -41,6 +42,8 @@ object SelectRD {
     if (operator.requiresOutputProfile && regionCondition.isEmpty && inputDataset.outputProfile.isDefined) {
       val sampProfiles = inputDataset.outputProfile.get.samples.filter(x => metaIdList.contains(x.ID) )
       operator.outputProfile = Some(new GMQLDatasetProfile(sampProfiles))
+
+      println("\n\n Resulting Profile has: " + operator.outputProfile.get.get(Feature.NUM_SAMP) )
     }
 
     result

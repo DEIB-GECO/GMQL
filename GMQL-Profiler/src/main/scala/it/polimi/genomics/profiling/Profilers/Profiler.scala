@@ -26,14 +26,14 @@ object Profiler extends java.io.Serializable {
   def profileToWebXML(profile: GMQLDatasetProfile): Elem = {
 
     <dataset>
-      <feature name="Number of samples">{profile.get(Feature.NUM_SAMP)}</feature>
-      <feature name="Number of regions">{profile.get(Feature.NUM_REG)}</feature>
-      <feature name="Average region length">{profile.get(Feature.AVG_REG_LEN)}</feature>
+      <feature name="Number of samples">{profile.getString(Feature.NUM_SAMP)}</feature>
+      <feature name="Number of regions">{profile.getString(Feature.NUM_REG)}</feature>
+      <feature name="Average region length">{profile.getString(Feature.AVG_REG_LEN)}</feature>
       <samples>
         { profile.samples.sortBy(x => x.name).map(y =>
         <sample name={y.name}>
-          <feature name="Number of regions">{y.get(Feature.NUM_REG)}</feature>
-          <feature name="Average region length">{y.get(Feature.AVG_REG_LEN)}</feature>
+          <feature name="Number of regions">{y.getString(Feature.NUM_REG)}</feature>
+          <feature name="Average region length">{y.getString(Feature.AVG_REG_LEN)}</feature>
         </sample>
       )
         }
@@ -51,11 +51,11 @@ object Profiler extends java.io.Serializable {
   def profileToOptXML(profile: GMQLDatasetProfile): Elem = {
 
     <dataset>
-      {profile.stats.map(x => <feature name={x._1}>{x._2}</feature>)}
+      {profile.statsString.map(x => <feature name={x._1.toString}>{x._2}</feature>)}
       <samples>
         { profile.samples.sortBy(x => x.name).map(y =>
-        <sample id={y.ID} name={y.name}>
-          {y.stats.map(z => <feature name={z._1}>{z._2}</feature>)}
+        <sample id={y.ID.toString} name={y.name}>
+          {y.statsString.map(z => <feature name={z._1.toString}>{z._2}</feature>)}
         </sample>)
         }
       </samples>
@@ -113,7 +113,7 @@ object Profiler extends java.io.Serializable {
 
     if (names.isEmpty) {
       logger.warn("Samples set is empty, returning.")
-      GMQLDatasetProfile(List())
+      GMQLDatasetProfile.getEmpty
     } else {
       //remove the one that doesn't have corresponding meta
       val filtered = regions.filter(x => names.contains(x._1.id))
@@ -130,12 +130,18 @@ object Profiler extends java.io.Serializable {
 
       val reducedSampleChrom = mappedSampleChrom.reduceByKey(reduceFunc)
 
+      val resultSampleChrom: Map[(Long, String), ProfilerValue] = reducedSampleChrom.collectAsMap()
+
+
+      val resultSampleChromToSave: Map[(Long, String), ProfilerResult] = resultSampleChrom.map { inp => (inp._1, calculateResult(inp._2)) }
+
+
       val mappedSample = reducedSampleChrom
         .map { x: ((Long, String), ProfilerValue) =>
           (x._1._1, x._2)
         }
 
-      val reducedSample = mappedSample.reduceByKey(reduceFunc)
+      val reducedSample: RDD[(Long, ProfilerValue)] = mappedSample.reduceByKey(reduceFunc)
 
 
       val resultSamples: Map[Long, ProfilerValue] = reducedSample.collectAsMap()
@@ -147,52 +153,34 @@ object Profiler extends java.io.Serializable {
       val resultDsToSave = calculateResult(resultSamples.values.reduce(reduceFunc))
 
 
-      def numToString(x: Double): String = {
-        if (x % 1 == 0) {
-          "%.0f".format(x)
-        } else {
-          "%.2f".format(x)
-        }
-      }
-
       logger.info("Profiling " + names.size + " samples.")
 
       val sampleProfiles = resultSamplesToSave.map { case (sampleId: Long, profile: ProfilerResult) =>
 
-        val sample = GMQLSampleStats(ID = sampleId.toString)
-        sample.name = names(sampleId)
+        val sample = new GMQLSampleStats(sampleId)
+        sample.setName(names(sampleId))
 
-        sample.stats_num += Feature.NUM_SAMP.toString -> 1.0
+        sample.set( Feature.NUM_SAMP, 1)
+              .set( Feature.NUM_REG, profile.count)
+              .set( Feature.AVG_REG_LEN, profile.avgLength)
+              .set( Feature.MIN_COORD, profile.leftMost)
+              .set( Feature.MAX_COORD , profile.rightMost)
+              .set( Feature.MIN_LENGTH, profile.minLength)
+              .set( Feature.MAX_LENGTH, profile.maxLength)
+              .set( Feature.VARIANCE_LENGTH, profile.varianceLength)
 
-        sample.stats_num += Feature.NUM_REG.toString -> profile.count
-        sample.stats_num += Feature.AVG_REG_LEN.toString -> profile.avgLength
-        sample.stats_num += Feature.MIN_COORD.toString -> profile.leftMost
-        sample.stats_num += Feature.MAX_COORD.toString -> profile.rightMost
-
-        sample.stats_num += Feature.MIN_LENGTH.toString -> profile.minLength
-        sample.stats_num += Feature.MAX_LENGTH.toString -> profile.maxLength
-        sample.stats_num += Feature.VARIANCE_LENGTH.toString -> profile.varianceLength
-
-        sample.stats = sample.stats_num.map(x => (x._1, numToString(x._2)))
-
-        sample
       }
 
-      val dsProfile = GMQLDatasetProfile(samples = sampleProfiles.toList)
+      val dsProfile = new GMQLDatasetProfile(sampleProfiles.toList)
 
-      dsProfile.stats += Feature.NUM_SAMP.toString -> names.size.toString
-
-      dsProfile.stats += Feature.NUM_REG.toString -> numToString(resultDsToSave.count)
-      dsProfile.stats += Feature.AVG_REG_LEN.toString -> numToString(resultDsToSave.avgLength)
-      dsProfile.stats += Feature.MIN_COORD.toString -> numToString(resultDsToSave.leftMost)
-      dsProfile.stats += Feature.MAX_COORD.toString -> numToString(resultDsToSave.rightMost)
-
-      dsProfile.stats += Feature.MIN_LENGTH.toString -> numToString(resultDsToSave.minLength)
-      dsProfile.stats += Feature.MAX_LENGTH.toString -> numToString(resultDsToSave.maxLength)
-      dsProfile.stats += Feature.VARIANCE_LENGTH.toString -> numToString(resultDsToSave.varianceLength)
-
-      dsProfile
-
+      dsProfile.set( Feature.NUM_SAMP, names.size)
+               .set( Feature.NUM_REG, resultDsToSave.count)
+               .set( Feature.AVG_REG_LEN, resultDsToSave.avgLength)
+               .set( Feature.MIN_COORD, resultDsToSave.leftMost)
+               .set( Feature.MAX_COORD, resultDsToSave.rightMost)
+               .set( Feature.MIN_LENGTH, resultDsToSave.minLength)
+               .set( Feature.MAX_LENGTH, resultDsToSave.maxLength)
+               .set( Feature.VARIANCE_LENGTH, resultDsToSave.varianceLength)
     }
 
   }

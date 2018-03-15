@@ -3,21 +3,20 @@ package it.polimi.genomics.spark.implementation.RegionsOperators
 import java.nio.charset.StandardCharsets
 
 import com.google.common.hash.Hashing
-import it.polimi.genomics.core.DataStructures.{IROperator, MetaOperator}
+import it.polimi.genomics.core.DataStructures.{Feature, GMQLDatasetProfile, IROperator, MetaOperator}
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
 import it.polimi.genomics.core.DataTypes._
 import it.polimi.genomics.core.GMQLLoader
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
-//import it.polimi.genomics.repository.{Utilities => General_Utilities}
-//import it.polimi.genomics.repository.FSRepository.{LFSRepository, Utilities => FSR_Utilities}
-import org.apache.hadoop.fs.{FileSystem, Path, PathFilter}
-//import org.apache.lucene.store.FSDirectory
+import org.apache.hadoop.fs.{FSDataInputStream, FileSystem, Path, PathFilter}
 import it.polimi.genomics.spark.implementation.loaders.Loaders._
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.slf4j.LoggerFactory
+
+import scala.xml.{Elem, XML}
 
 /**
   * Created by Abdulrahman Kaitoua on 25/05/15.
@@ -54,10 +53,11 @@ object SelectIRD {
       }
 
 
-    val inputURIs = files.map { x =>
+    val inputURIs: Map[Long, String] = files.map { x =>
       val uri = x //.substring(x.indexOf(":") + 1, x.size).replaceAll("/", "");
       Hashing.md5().newHasher().putString(new Path(uri).getName, StandardCharsets.UTF_8).hash().asLong() -> x
     }.toMap
+
     val metaIdList = executor.implement_md(filteredMeta.get, sc).keys.distinct.collect
     val selectedURIs = metaIdList.map(x => inputURIs.get(x).get)
 
@@ -76,17 +76,26 @@ object SelectIRD {
 
     if (operator.requiresOutputProfile) {
 
+      val profileFile = datasetFolder + "/profile.xml"
 
+      logger.info("Reading "+profileFile)
 
-      //if( selectedURIs.nonEmpty )
-      //val profile =  (new Path(selectedURIs.head) getParent) + "/" + "profile.xml"
+      val xmlStream: FSDataInputStream = fs.open(new Path(profileFile))
+      val xml = XML.load(xmlStream)
 
+      // generate (id, sample_name_no_format)
+      val mapping = inputURIs.map( pair => {
+        val sample_path = pair._2
+        val fileName = new Path(sample_path) .getName
+        (fileName.substring(0, fileName.lastIndexOf(".")),pair._1)
+      })
 
+      val profile = GMQLDatasetProfile.fromXML(xml, mapping)
 
-      // Load Profile
+      logger.info("\n\n Resulting Profile has: " + profile.get(Feature.AVG_REG_LEN) )
+
+      operator.outputProfile = Some(profile)
     }
-
-
 
     result
 
