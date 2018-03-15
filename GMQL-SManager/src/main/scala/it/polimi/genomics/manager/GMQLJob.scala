@@ -4,6 +4,7 @@ import java.io.File
 import java.nio.file.Paths
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.concurrent.TimeUnit
 
 import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.compiler._
@@ -430,7 +431,12 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
 
 
         // Compute some execution-related dataset metadata
-        val dsmeta = Map( "Query name"->this.queryName)
+        val hours   =  TimeUnit.MILLISECONDS.toHours(elapsedTime.executionTime)
+        val minutes =  TimeUnit.MILLISECONDS.toMinutes(elapsedTime.executionTime) - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(elapsedTime.executionTime))
+        val seconds =  TimeUnit.MILLISECONDS.toSeconds(elapsedTime.executionTime) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(elapsedTime.executionTime))
+        val execTime = "%02d:%02d:%02d".format(hours,minutes,seconds)
+
+        val dsmeta = Map( "Query name"->this.queryName, "Execution Time"->execTime)
 
         outputVariablesList.map { ds =>
 
