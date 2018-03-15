@@ -436,7 +436,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
         val seconds =  TimeUnit.MILLISECONDS.toSeconds(elapsedTime.executionTime) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(elapsedTime.executionTime))
         val execTime = "%02d:%02d:%02d".format(hours,minutes,seconds)
 
-        val dsmeta = Map( "Query name"->this.queryName, "Execution Time"->execTime)
+        val dsmeta = Map( "Query name"->this.queryName, "Execution time"->execTime)
 
         outputVariablesList.map { ds =>
 
