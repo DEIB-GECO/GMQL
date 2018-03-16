@@ -100,8 +100,8 @@ object CombineMD {
         leftOut.union(rightOut)
 
     } else { //not grouping.isInstanceOf[SomeMetaJoinOperator]
-      val leftIds = left.keys.distinct().collect()
-      val rightIds = right.keys.distinct().collect()
+      val leftIds = sc.broadcast(left.keys.distinct().collect()).value
+      val rightIds = sc.broadcast(right.keys.distinct().collect()).value
 
       val mapL = collection.mutable.HashMap[Long, mutable.Set[Long]]()
       val mapR = collection.mutable.HashMap[Long, mutable.Set[Long]]()
