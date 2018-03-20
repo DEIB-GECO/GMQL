@@ -53,6 +53,7 @@ object GMQLDatasetProfile {
 
   /**
     * Parse profile.xml, possibly filtering by sample id
+    * DS stats will be empty
     * @param xml
     * @param samples
     * @return

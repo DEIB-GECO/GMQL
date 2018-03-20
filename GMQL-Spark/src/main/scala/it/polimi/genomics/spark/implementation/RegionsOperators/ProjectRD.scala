@@ -44,6 +44,7 @@ object ProjectRD {
     }.cache()
     else input
 
+    val result =
     if(projectedValues.isDefined)
       extended.map(a  => (a._1,  projectedValues.get.foldLeft(Array[GValue]())((Acc, b) => Acc :+ a._2(b)) ))
     /*else extended*/
@@ -51,6 +52,13 @@ object ProjectRD {
       extended
     else
       extended.map(a=> (a._1, new Array[GValue](0)))
+
+    // Profile Estimation
+    if( operator.requiresOutputProfile && inputDataset.outputProfile.isDefined) {
+      operator.outputProfile = inputDataset.outputProfile
+    }
+
+    result
   }
 
   def computeFunction(r : GRECORD, agg : RegionExtension,inputMeta:Array[(Long,(String,String))]) : GValue = {

@@ -71,20 +71,19 @@ object SelectIRD {
       sc.emptyRDD[GRECORD]
     }
 
-    // Profile Estimation: load stored profile and filter meta
-    val datasetFolder = (new Path(selectedURIs.head)).getParent.toString
 
-    if (operator.requiresOutputProfile) {
+    // Profile loader
+    if (operator.requiresOutputProfile && regionCondition.isEmpty) {
 
+      val datasetFolder = (new Path(selectedURIs.head)).getParent.toString
       val profileFile = datasetFolder + "/profile.xml"
-
-      logger.info("Reading "+profileFile)
 
       val xmlStream: FSDataInputStream = fs.open(new Path(profileFile))
       val xml = XML.load(xmlStream)
 
       // generate (id, sample_name_no_format)
-      val mapping = inputURIs.map( pair => {
+      val filteredURIs = inputURIs.filter(x=>metaIdList.contains(x._1))
+      val mapping = filteredURIs.map( pair => {
         val sample_path = pair._2
         val fileName = new Path(sample_path) .getName
         (fileName.substring(0, fileName.lastIndexOf(".")),pair._1)
@@ -92,7 +91,7 @@ object SelectIRD {
 
       val profile = GMQLDatasetProfile.fromXML(xml, mapping)
 
-      logger.info("\n\n Resulting Profile has: " + profile.get(Feature.AVG_REG_LEN) )
+      logger.info("Loaded profile with "+profile.samples.length+" samples.")
 
       operator.outputProfile = Some(profile)
     }

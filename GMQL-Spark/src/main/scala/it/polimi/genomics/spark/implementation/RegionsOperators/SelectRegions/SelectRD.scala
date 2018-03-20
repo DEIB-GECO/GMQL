@@ -38,14 +38,6 @@ object SelectRD {
       filteredRegion
     }
 
-    // Profile Estimation: empty if regionCondition, filtered if metaCondition
-    if (operator.requiresOutputProfile && regionCondition.isEmpty && inputDataset.outputProfile.isDefined) {
-      val sampProfiles = inputDataset.outputProfile.get.samples.filter(x => metaIdList.contains(x.ID) )
-      operator.outputProfile = Some(new GMQLDatasetProfile(sampProfiles))
-
-      println("\n\n Resulting Profile has: " + operator.outputProfile.get.get(Feature.NUM_SAMP) )
-    }
-
     result
   }
 }

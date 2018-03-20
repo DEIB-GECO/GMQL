@@ -99,6 +99,12 @@ object OrderRD {
           }.iterator
         }
       }
+
+    val hasTop = topParameter match { case NoTop() => false ; case _ => true}
+    if( operator.requiresOutputProfile && inputDataset.outputProfile.isDefined && !hasTop ) {
+      operator.outputProfile = inputDataset.outputProfile
+    }
+
     sortedGroupsOfRegions
   }
 
