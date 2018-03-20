@@ -67,8 +67,8 @@ object CombineMD {
         rights.foreach { right =>
           val hash = Hashing.md5().newHasher().putLong(left).putLong(right).hash().asLong
           //in each cycle, we added new hash id in to the left and right lists
-          mapL += left ->  (mapL.getOrElse(left, mutable.Set.empty) + hash)
-          mapR += right ->  (mapR.getOrElse(right, mutable.Set.empty) + hash)
+          mapL += left -> (mapL.getOrElse(left, mutable.Set.empty) + hash)
+          mapR += right -> (mapR.getOrElse(right, mutable.Set.empty) + hash)
         }
       }
 
@@ -100,8 +100,8 @@ object CombineMD {
         leftOut.union(rightOut)
 
     } else { //not grouping.isInstanceOf[SomeMetaJoinOperator]
-      val leftIds = left.keys.distinct().collect()
-      val rightIds = right.keys.distinct().collect()
+      val leftIds = sc.broadcast(left.keys.distinct().collect()).value
+      val rightIds = sc.broadcast(right.keys.distinct().collect()).value
 
       val mapL = collection.mutable.HashMap[Long, mutable.Set[Long]]()
       val mapR = collection.mutable.HashMap[Long, mutable.Set[Long]]()
@@ -110,12 +110,13 @@ object CombineMD {
         rightIds.foreach { right =>
           val hash = Hashing.md5().newHasher().putLong(left).putLong(right).hash().asLong
           //in each cycle, we added new hash id in to the left and right lists
-          mapL += left ->  (mapL.getOrElse(left, mutable.Set.empty) + hash)
-          mapR += right ->  (mapR.getOrElse(right, mutable.Set.empty) + hash)
+          mapL += left -> (mapL.getOrElse(left, mutable.Set.empty) + hash)
+          mapR += right -> (mapR.getOrElse(right, mutable.Set.empty) + hash)
         }
       }
 
       val leftOut = left
+        .filter { case (id: Long, _) => mapL.contains(id) }
         .flatMap { case (leftId: Long, (att: String, value: String)) =>
           val taggedAtt = ltag + att
           mapL(leftId).map { newId =>
@@ -124,6 +125,7 @@ object CombineMD {
         }
 
       val rightOut = right
+        .filter { case (id: Long, _) => mapR.contains(id) }
         .flatMap { case (rightId: Long, (att: String, value: String)) =>
           val taggedAtt = rtag + att
           mapR(rightId).map { newId =>
