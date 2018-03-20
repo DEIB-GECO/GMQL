@@ -191,16 +191,23 @@ class ExpressionBuilder(index : Int) {
 
   }
 
-  def getRegionsToMeta(functionName: String, newAttrName: String, argument: String): RegionsToMeta = {
+  def getRegionsToMeta(functionName: String, newAttrName: String, argument: Option[String]): RegionsToMeta = {
     val regionsToMetaFactory = PythonManager.getServer.implementation.extendFunctionFactory
     val variable = PythonManager.getVariable(this.index)
-    val field_number = variable.get_field_by_name(argument)
-    if(field_number.isDefined) {
-      val res = regionsToMetaFactory.get(functionName, field_number.get, Option(newAttrName))
-      res
+    if(argument.isDefined){
+      //unary function
+      val field_number = variable.get_field_by_name(argument.get)
+      if(field_number.isDefined) {
+        val res = regionsToMetaFactory.get(functionName, field_number.get, Some(newAttrName))
+        res
+      }
+      else
+        throw new IllegalArgumentException("The field " + argument + " does not exists!")
     }
-    else
-      throw new IllegalArgumentException("The field " + argument + " does not exists!")
+    else{
+      //nullary function
+      regionsToMetaFactory.get(functionName, Some(newAttrName))
+    }
   }
 
   /**
