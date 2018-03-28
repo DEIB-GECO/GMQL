@@ -40,8 +40,36 @@
         <developer>
             <name>Abdulrahman Kaitoua</name>
             <email>abdulrahman.kaitoua@polimi.it</email>
-            <organization>Politecnico Di Milano University</organization>
+            <organization>Politecnico di Milano</organization>
             <organizationUrl>https://github.com/akaitoua</organizationUrl>
+        </developer>
+
+        <developer>
+            <name>Pietro Pinoli</name>
+            <email>pietro.pinoli@polimi.it</email>
+            <organization>Politecnico di Milano</organization>
+            <organizationUrl>https://github.com/pp86</organizationUrl>
+        </developer>
+
+        <developer>
+            <name>Arif Canakoglu</name>
+            <email>arif.canakoglu@polimi.it</email>
+            <organization>Politecnico di Milano</organization>
+            <organizationUrl>https://github.com/acanakoglu</organizationUrl>
+        </developer>
+
+        <developer>
+            <name>Andrea Gulino</name>
+            <email>andrea.gulino@polimi.it</email>
+            <organization>Politecnico di Milano</organization>
+            <organizationUrl>https://github.com/andreagulino</organizationUrl>
+        </developer>
+
+        <developer>
+            <name>Olha Horlova</name>
+            <email>olha.horlova@polimi.it</email>
+            <organization>Politecnico di Milano</organization>
+            <organizationUrl>https://github.com/OlgaGorlova</organizationUrl>
         </developer>
 
         <developer>
