@@ -8,7 +8,7 @@ import it.polimi.genomics.core.GMQLLoaderBase
   * Created by Luca Nanni on 16/05/17.
   * Email: luca.nanni@mail.polimi.it
   */
-class StubExecutor extends Implementation{
+class StubExecutor extends Implementation {
   /** Starts the execution */
   override def go(): Unit = ???
 

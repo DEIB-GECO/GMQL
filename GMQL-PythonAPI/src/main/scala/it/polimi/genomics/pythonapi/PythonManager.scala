@@ -5,17 +5,16 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.core.DataStructures._
-import it.polimi.genomics.core._
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
-import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
-import org.apache.spark.SparkContext
+import it.polimi.genomics.core._
+import it.polimi.genomics.pythonapi.EntryPoint.logger
 import it.polimi.genomics.pythonapi.operators.{ExpressionBuilder, OperatorManager}
+import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.loaders._
+import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
-import org.slf4j.LoggerFactory
-
 import scala.collection.mutable.ListBuffer
 
 /**
@@ -29,8 +28,6 @@ import scala.collection.mutable.ListBuffer
   */
 object PythonManager {
 
-  private val logger = LoggerFactory.getLogger(this.getClass)
-
   /*
   * This data structure stores in memory the variables used by the programmer.
   * The variables are allocated with a counter (Int)
@@ -41,29 +38,30 @@ object PythonManager {
   * scala map above
   * */
   private val counter: AtomicInteger = new AtomicInteger(0)
-  private var server : GmqlServer = _
-  private var sparkContext : Option[SparkContext] = None
-
+  private var server: GmqlServer = _
+  private var sparkContext: Option[SparkContext] = None
+  private var sparkConfigs: Option[SparkConf] = None
 
   /*
   * GMQLServer related stuff
   * */
-  def setSparkContext(sc : SparkContext): Unit =
-  {
+
+  def setSparkConfiguration(sc: SparkConf): Unit = {
+    this.sparkConfigs = Some(sc)
+  }
+
+  def setSparkContext(sc: SparkContext): Unit = {
     this.sparkContext = Some(sc)
   }
 
-  def startEngine(): Unit =
-  {
+  def startEngine(): Unit = {
     // set the server and the executor
     this.server = new GmqlServer(new StubExecutor())
-    this.logger.info("GMQL Server started")
   }
 
-  def stopEngine(): Unit =
-  {
+  def stopEngine(): Unit = {
     // get the spark context and kill it
-    if(this.sparkContext.isDefined)
+    if (this.sparkContext.isDefined)
       this.sparkContext.get.stop()
   }
 
@@ -76,12 +74,11 @@ object PythonManager {
   /*
   * VARIABLES
   * */
-  def getVariable(index : Int) : IRVariable = {
-    this.variables.get(index).get
+  def getVariable(index: Int): IRVariable = {
+    this.variables(index)
   }
 
-  def putNewVariable(variable : IRVariable): Int =
-  {
+  def putNewVariable(variable: IRVariable): Int = {
     val index = this.counter.getAndIncrement()
     this.variables(index) = variable
     index
@@ -97,14 +94,14 @@ object PythonManager {
 
   def getVariableSchemaNames(index: Int): java.util.List[String] = {
     val variable = this.getVariable(index)
-    val result = variable.schema.map({case (a,b) => a})
+    val result = variable.schema.map({ case (a, b) => a })
     result.asJava
   }
 
   /*
   * MANAGEMENT
   * */
-  def getServer : GmqlServer = {
+  def getServer: GmqlServer = {
     this.server
   }
 
@@ -114,7 +111,7 @@ object PythonManager {
     op
   }
 
-  def getNewExpressionBuilder(index: Int) : ExpressionBuilder = {
+  def getNewExpressionBuilder(index: Int): ExpressionBuilder = {
     val expressionBuilder = new ExpressionBuilder(index)
     expressionBuilder
   }
@@ -125,21 +122,21 @@ object PythonManager {
 
   @deprecated
   def read_dataset(dataset_path: String): Int = {
-    val parser : CustomParser = new CustomParser()
+    val parser: CustomParser = new CustomParser()
     parser.setSchema(findSchemaFile(dataset_path))
     read_dataset(dataset_path, parser)
   }
 
   @deprecated
-  def findSchemaFile(dataset_path: String) : String = {
+  def findSchemaFile(dataset_path: String): String = {
     val dir = new File(dataset_path)
     if (dir.isDirectory) {
-      val files = dir.listFiles( new FileFilter {
+      val files = dir.listFiles(new FileFilter {
         override def accept(pathname: File): Boolean = {
           pathname.getPath.endsWith(".schema")
         }
       })
-      if(files.size > 1)
+      if (files.size > 1)
         throw new IllegalStateException("There is more than one schema file in the directory")
       files(0).getAbsolutePath //take the first schema file
     }
@@ -147,15 +144,13 @@ object PythonManager {
       throw new IllegalArgumentException("The dataset path must be a directory!")
   }
 
-  def read_dataset(dataset_path: String, parserName: String): Int =
-  {
-    val parser : BedParser = this.getParser(parserName = parserName)
+  def read_dataset(dataset_path: String, parserName: String): Int = {
+    val parser: BedParser = this.getParser(parserName = parserName)
     read_dataset(dataset_path, parser)
   }
 
-  def read_dataset(dataset_path: String, parser: BedParser): Int =
-  {
-    val dataset : IRVariable = this.server READ dataset_path USING parser
+  def read_dataset(dataset_path: String, parser: BedParser): Int = {
+    val dataset: IRVariable = this.server READ dataset_path USING parser
     //putting the new variable in the map
     val index = this.counter.getAndIncrement()
     this.variables(index) = dataset
@@ -163,8 +158,7 @@ object PythonManager {
     index
   }
 
-  def getParser(parserName: String) : BedParser =
-  {
+  def getParser(parserName: String): BedParser = {
     parserName.toLowerCase match {
       case "narrowpeakparser" => NarrowPeakParser.asInstanceOf[BedParser]
       case "basicparser" => BasicParser.asInstanceOf[BedParser]
@@ -180,7 +174,7 @@ object PythonManager {
     val cSystem = GMQLSchemaCoordinateSystem.getType(coordinateSystem)
     var schema: List[(String, PARSING_TYPE)] = List()
     var convertedOtherPos: Option[Array[(Int, ParsingType.PARSING_TYPE)]] = None
-    if(otherPos.isDefined) {
+    if (otherPos.isDefined) {
       val otherPosAll: Array[(Int, String, ParsingType.PARSING_TYPE)] = {
         otherPos.get.map(x => {
           val xAsList = x.asScala.toList
@@ -204,17 +198,16 @@ object PythonManager {
 
   @deprecated
   def buildParser_old(delimiter: String, chrPos: Int, startPos: Int, stopPos: Int, strandPos: Int,
-                  otherPos: java.util.List[java.util.List[String]]) : BedParser =
-  {
-    var strandPos_real :Option[Int] = None
-    if(strandPos>=0) {
+                      otherPos: java.util.List[java.util.List[String]]): BedParser = {
+    var strandPos_real: Option[Int] = None
+    if (strandPos >= 0) {
       strandPos_real = Option(strandPos)
     }
-    var otherPosOptionList : Option[Array[(Int, ParsingType.PARSING_TYPE)]] = None
+    var otherPosOptionList: Option[Array[(Int, ParsingType.PARSING_TYPE)]] = None
     val schemaList = new ListBuffer[(String, ParsingType.PARSING_TYPE)]()
-    if(otherPos.size() > 0) {
+    if (otherPos.size() > 0) {
       var otherPosList = Array[(Int, ParsingType.PARSING_TYPE)]()
-      for(e <- otherPos) {
+      for (e <- otherPos) {
         val pos = e.get(0).toInt
         val name = e.get(1)
         val t = getParseTypeFromString(e.get(2))
@@ -224,7 +217,7 @@ object PythonManager {
       otherPosOptionList = Option(otherPosList)
     }
 
-    val bedparser = new BedParser(delimiter,chrPos,startPos,stopPos,strandPos_real,otherPosOptionList)
+    val bedparser = new BedParser(delimiter, chrPos, startPos, stopPos, strandPos_real, otherPosOptionList)
     bedparser.schema = schemaList.toList
     bedparser
   }
@@ -234,11 +227,11 @@ object PythonManager {
   * TYPES
   * */
 
-  def getParseTypeFromString(typeString : String) : PARSING_TYPE = {
+  def getParseTypeFromString(typeString: String): PARSING_TYPE = {
     ParsingType.attType(typeString)
   }
 
-  def getStringFromParsingType(parsingType: PARSING_TYPE) : String = {
+  def getStringFromParsingType(parsingType: PARSING_TYPE): String = {
     parsingType match {
       case ParsingType.DOUBLE => "double"
       case ParsingType.INTEGER => "int"
@@ -258,8 +251,7 @@ object PythonManager {
   * Materialization
   * */
 
-  def materialize(index : Int, outputPath : String): Unit =
-  {
+  def materialize(index: Int, outputPath: String): Unit = {
     // get the variable from the map
     val variableToMaterialize = this.variables.get(index)
     this.server setOutputPath outputPath MATERIALIZE variableToMaterialize.get
@@ -278,7 +270,7 @@ object PythonManager {
     this.server.clearMaterializationList()
   }
 
-  def collect(index : Int) : CollectedResult = {
+  def collect(index: Int): CollectedResult = {
     this.checkSparkContext()
 
     val variableToCollect = this.variables.get(index)
@@ -299,7 +291,7 @@ object PythonManager {
     DAGSerializer.serializeDAG(DAGWrapper(List(variableToSerialize)))
   }
 
-  def modify_dag_source(index: Int, source: String, dest: String) : Unit = {
+  def modify_dag_source(index: Int, source: String, dest: String): Unit = {
     val variable = this.getVariable(index)
     modify_dag_source(variable.metaDag, source, dest)
     modify_dag_source(variable.regionDag, source, dest)
@@ -307,14 +299,14 @@ object PythonManager {
 
   def modify_dag_source(dag: IROperator, source: String, dest: String): Unit = {
     dag match {
-      case x: IRReadMD[_,_,_,_] =>
-        if(x.dataset.position == source) {
+      case x: IRReadMD[_, _, _, _] =>
+        if (x.dataset.position == source) {
           val newDataset = IRDataSet(dest, x.dataset.schema)
           x.dataset = newDataset
           x.paths = List(dest)
         }
-      case x: IRReadRD[_,_,_,_] =>
-        if(x.dataset.position == source) {
+      case x: IRReadRD[_, _, _, _] =>
+        if (x.dataset.position == source) {
           val newDataset = IRDataSet(dest, x.dataset.schema)
           x.dataset = newDataset
           x.paths = List(dest)
@@ -328,11 +320,15 @@ object PythonManager {
 
   def checkSparkContext(): Unit = {
     /*Check if there is an instantiated spark context*/
-    if(this.sparkContext.isEmpty){
-      val sc = EntryPoint.startSparkContext()
-      this.server.implementation = new GMQLSparkExecutor(sc=sc, stopContext = false)
+    if (this.sparkContext.isEmpty) {
+      val sc = this.startSparkContext()
+      this.server.implementation = new GMQLSparkExecutor(sc = sc, stopContext = false)
       this.setSparkContext(sc)
     }
+  }
+
+  def startSparkContext(): SparkContext = {
+    SparkContext.getOrCreate(this.sparkConfigs.get)
   }
 
   def stopSparkContext(): Unit = {
@@ -346,5 +342,21 @@ object PythonManager {
 
   def setHadoopHomeDir(dir: String): Unit = {
     System.setProperty("hadoop.home.dir", dir)
+  }
+
+  def setSparkConfiguration(appName: String, master: String,
+                            conf: java.util.Map[String, String]): Unit = {
+    this.sparkConfigs = Some(
+      new SparkConf()
+      .setAppName(appName)
+      .setMaster(master)
+      .setAll(conf)
+    )
+  }
+
+  def setSystemConfiguration(conf: java.util.Map[String, String]): Unit = {
+    val properties = System.getProperties
+    properties.putAll(conf)
+    System.setProperties(properties)
   }
 }
