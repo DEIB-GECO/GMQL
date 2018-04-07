@@ -53,6 +53,8 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
 
   private final val logger: Logger = LoggerFactory.getLogger(this.getClass);
   final val loggerPath = General_Utilities().getLogDir(username)+jobId.toLowerCase()+".log"
+  final val userLoggerPath = General_Utilities().getUserLogDir(username)+jobId.toLowerCase()+".log"
+  final val devLoggerPath = General_Utilities().getDevLogDir(username)+jobId.toLowerCase()+".log"
   val jobOutputMessages: StringBuilder = new StringBuilder
 
   //  var script = fixFileFormat(scriptPath)

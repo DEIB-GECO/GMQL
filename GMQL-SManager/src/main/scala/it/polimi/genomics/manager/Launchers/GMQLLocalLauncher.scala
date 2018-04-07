@@ -54,7 +54,7 @@ class GMQLLocalLauncher(localJob: GMQLJob) extends GMQLLauncher(localJob) {
     */
   override def getLog(): List[String] = {
     import scala.io.Source
-    Source.fromFile(job.loggerPath).getLines().toList
+    Source.fromFile(job.userLoggerPath).getLines().toList
 
   }
 }
