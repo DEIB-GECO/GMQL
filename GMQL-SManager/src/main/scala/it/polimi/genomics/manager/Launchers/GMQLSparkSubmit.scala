@@ -84,7 +84,9 @@ class GMQLSparkSubmit(job:GMQLJob) {
         "-outputFormat",job.gMQLContext.outputFormat.toString,
         "-outputCoordinateSystem", job.gMQLContext.outputCoordinateSystem.toString,
         //"-outputDirs", outDir,
-        "-logDir",General_Utilities().getLogDir(job.username))
+        "-logDir",General_Utilities().getLogDir(job.username),
+        "-userLogDir", General_Utilities().getUserLogDir(job.username),
+        "-devLogDir", General_Utilities().getDevLogDir(job.username))
       .setConf("spark.app.id", APPID)
     if(job.script.script != null && job.script.script != "") {
       d = d.addAppArgs("-script", job.script.script)
