@@ -110,6 +110,8 @@ object GMQLExecuteCommand {
     var inputs = Map[String, String]()
     var outputs = Map[String, String]()
     var logDir: String = null
+    var userLogDir: String = null
+    var devLogDir: String = null
     var verbose = false
     var sparkConfFile: String = null
     var i = 0
@@ -152,7 +154,7 @@ object GMQLExecuteCommand {
         if (!sFile.exists()) {
           logger.error(s"Script file not found $scriptPath")
           //          return 0
-        };
+        }
         scriptPath = sFile.getPath
         logger.info("scriptpath set to: " + scriptPath)
       } else if ("-sparkconffile".equals(args(i).toLowerCase())) {
@@ -162,6 +164,14 @@ object GMQLExecuteCommand {
       } else if ("-logDir".equals(args(i))) {
         logDir = args(i + 1)
         logger.info("Log Directory is set to: " + logDir)
+
+      } else if ("-userLogDir".equals(args(i))) {
+        userLogDir = args(i + 1)
+        logger.info("User Log Directory is set to: " + userLogDir)
+
+      } else if ("-devLogDir".equals(args(i))) {
+        devLogDir = args(i + 1)
+        logger.info("User Log Directory is set to: " + devLogDir)
 
       } else if ("-outputformat".equals(args(i).toLowerCase())) {
         val out = args(i + 1).toLowerCase().trim
@@ -251,7 +261,7 @@ object GMQLExecuteCommand {
 
     //Set the logging file of this job to be stored either to /tmp folder
     // or to the user log directory in the repository.
-    setlogger(jobid, verbose, if (logDir != null) logDir else SYSTEM_TMPE_DIR)
+    setLogger(jobid, userLogDir, devLogDir)
 
     logger.info("Start to execute GMQL Script..")
 
@@ -288,7 +298,7 @@ object GMQLExecuteCommand {
 
   def generateJobId(scriptPath: String, username: String) = "job_" + new java.io.File(scriptPath).getName.substring(0, new java.io.File(scriptPath).getName.indexOf(".")) + username + "_" + date
 
-  def setlogger(jobId: String, verbose: Boolean, logDir: String): Unit = {
+  def setlogger_old(jobId: String, verbose: Boolean, logDir: String): Unit = {
     //    org.apache.log4j.Logger.getRootLogger().getLoggerRepository().resetConfiguration();
     val fa = new FileAppender();
     fa.setName("FileLogger");
@@ -314,6 +324,44 @@ object GMQLExecuteCommand {
     //    val root:ch.qos.logback.classic.Logger = org.slf4j.LoggerFactory.getLogger("org").asInstanceOf[ch.qos.logback.classic.Logger];
     //    root.setLevel(ch.qos.logback.classic.Level.WARN);
 
+  }
+
+  def setLogger(jobId: String,
+                userLogDir: String, devLogDir: String): Unit = {
+
+    val faUser = new FileAppender()
+    faUser.setName("UserFileLogger")
+
+    val userLoggerFile = userLogDir + jobId.toLowerCase() + ".log"
+    faUser.setFile(userLoggerFile)
+    logger.info("User logger is set to:\n" + userLoggerFile)
+
+    faUser.setLayout(new PatternLayout("%d %-5p [%c{1}] %m%n"))
+    faUser.setThreshold(Level.INFO)
+    faUser.setAppend(true)
+    faUser.activateOptions()
+
+    val faDev = new FileAppender()
+    faDev.setName("DevFileLogger")
+
+    val devLoggerFile = devLogDir + jobId.toLowerCase() + ".log"
+    faDev.setFile(devLoggerFile)
+    logger.info("Developer logger is set to:\n" + userLoggerFile)
+
+    faDev.setLayout(new PatternLayout("%d %-5p [%c{1}] %m%n"))
+    faDev.setThreshold(Level.INFO)
+    faDev.setAppend(true)
+    faDev.activateOptions()
+
+
+
+    //add the developer appender to any Logger (here is root)
+    org.apache.log4j.Logger.getRootLogger.addAppender(faDev)
+    org.apache.log4j.Logger.getLogger("org").setLevel(org.apache.log4j.Level.WARN)
+    org.apache.log4j.Logger.getLogger("it.polimi.genomics").addAppender(faUser)
+    org.apache.log4j.Logger.getLogger("it.polimi.genomics.spark").setLevel(org.apache.log4j.Level.INFO)
+    org.apache.log4j.Logger.getLogger("org.apache.spark").setLevel(org.apache.log4j.Level.WARN)
+    org.apache.log4j.Logger.getLogger("akka").setLevel(org.apache.log4j.Level.ERROR)
   }
 
   def readScriptFile(file: String): String = {
