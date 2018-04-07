@@ -295,13 +295,25 @@ class Utilities() {
   }
 
   /**
-    *
-    * Constract the Directory to the Log folder
-    *
+    * Get the Directory to the Log folder
     * @param userName [[ String]] of the user name
     * @return Directory location of the logs folder
     */
-  def getLogDir(userName: String = USERNAME) = RepoDir + userName + "/logs/"
+  def getLogDir(userName: String = USERNAME): String = RepoDir + userName + "/logs/"
+
+  /**
+    * Get the directory of the log for the user
+    * @param userName
+    * @return
+    */
+  def getUserLogDir(userName: String = USERNAME): String = getLogDir(userName) + "user/"
+
+  /**
+    * Get the directory of the log for the developers
+    * @param userName
+    * @return
+    */
+  def getDevLogDir(userName: String = USERNAME): String = getLogDir(userName) + "dev/"
 
   /**
     *
