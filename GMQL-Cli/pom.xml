@@ -95,6 +95,8 @@
                     </execution>
                 </executions>
                 <configuration>
+                    <shadedArtifactAttached>true</shadedArtifactAttached>
+                    <shadedClassifierName>jackofall</shadedClassifierName> <!-- Any name that makes sense -->
                     <!--This is needed because GMQL-Repository and GMQL-Spark both use Hadoop configurations
                     therefore we need to merge the sources of Hadoop code-->
                     <transformers>
