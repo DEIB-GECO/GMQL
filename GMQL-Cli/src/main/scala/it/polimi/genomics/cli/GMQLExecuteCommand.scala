@@ -93,8 +93,8 @@ object GMQLExecuteCommand {
     * @param args
     */
   def main(args: Array[String]) {
-    logger.info(args.mkString("\t"))
-    logger.info("Try to execute GMQL Script..")
+    logger.debug(args.mkString("\t"))
+    logger.debug("Try to execute GMQL Script..")
 
     //Setting the default options
     var executionType = ImplementationPlatform.SPARK.toString.toLowerCase();
@@ -127,27 +127,27 @@ object GMQLExecuteCommand {
 
       } else if ("-exec".equals(args(i))) {
         executionType = args(i + 1).toLowerCase()
-        logger.info("Execution Type is set to: " + executionType)
+        logger.debug("Execution Type is set to: " + executionType)
 
       } else if ("-bin".equals(args(i))) {
         bin = args(i + 1).toLong
-        logger.info("Bin size set to: " + bin)
+        logger.debug("Bin size set to: " + bin)
 
       } else if ("-username".equals(args(i))) {
         username = args(i + 1).toLowerCase()
-        logger.info("Username set to: " + username)
+        logger.debug("Username set to: " + username)
 
       } else if ("-jobid".equals(args(i))) {
         jobid = args(i + 1).toLowerCase()
-        logger.info("JobID set to: " + jobid)
+        logger.debug("JobID set to: " + jobid)
 
       } else if ("-verbose".equals(args(i).toLowerCase())) {
         if (args(i + 1).equals("true")) verbose = true else verbose = false
-        logger.info("Output is set to Verbose: " + verbose)
+        logger.debug("Output is set to Verbose: " + verbose)
 
       } else if ("-script".equals(args(i).toLowerCase())) {
         script = args(i + 1)
-        logger.info("Output Format set to: " + outputFormat)
+        logger.debug("Output Format set to: " + outputFormat)
 
       } else if ("-scriptpath".equals(args(i))) {
         val sFile = new File(args(i + 1))
@@ -156,22 +156,22 @@ object GMQLExecuteCommand {
           //          return 0
         }
         scriptPath = sFile.getPath
-        logger.info("scriptpath set to: " + scriptPath)
+        logger.debug("scriptpath set to: " + scriptPath)
       } else if ("-sparkconffile".equals(args(i).toLowerCase())) {
         sparkConfFile = args(i + 1)
-        logger.info("Spark configuration file path set to: " + sparkConfFile)
+        logger.debug("Spark configuration file path set to: " + sparkConfFile)
         sparkPropObj = Some(new Properties(sparkConfFile))
       } else if ("-logDir".equals(args(i))) {
         logDir = args(i + 1)
-        logger.info("Log Directory is set to: " + logDir)
+        logger.debug("Log Directory is set to: " + logDir)
 
       } else if ("-userLogDir".equals(args(i))) {
         userLogDir = args(i + 1)
-        logger.info("User Log Directory is set to: " + userLogDir)
+        logger.debug("User Log Directory is set to: " + userLogDir)
 
       } else if ("-devLogDir".equals(args(i))) {
         devLogDir = args(i + 1)
-        logger.info("User Log Directory is set to: " + devLogDir)
+        logger.debug("User Log Directory is set to: " + devLogDir)
 
       } else if ("-outputformat".equals(args(i).toLowerCase())) {
         val out = args(i + 1).toLowerCase().trim
@@ -184,7 +184,7 @@ object GMQLExecuteCommand {
             logger.warn(s"Not knwon format $out, Setting the output format for ${GMQLSchemaFormat.TAB}")
             GMQLSchemaFormat.TAB
           }
-        logger.info(s"Output Format set to: $out" + outputFormat)
+        logger.debug(s"Output Format set to: $out" + outputFormat)
 
       } else if ("-outputcoordinatesystem".equals(args(i).toLowerCase())) {
         val out = args(i + 1).toLowerCase().trim
@@ -199,7 +199,7 @@ object GMQLExecuteCommand {
             logger.warn(s"Not knwon coordinate system $out, Setting the output coordinate system for ${GMQLSchemaCoordinateSystem.Default}")
             GMQLSchemaCoordinateSystem.Default
           }
-        logger.info(s"Output Coordinate System set to: $out" + outputCoordinateSystem)
+        logger.debug(s"Output Coordinate System set to: $out" + outputCoordinateSystem)
       }
       else if ("-inputDirs".equals(args(i))) {
         //List of [NAME:::Dir] separated by comma
@@ -208,15 +208,15 @@ object GMQLExecuteCommand {
         // from the web interface, was issued errors when deserialized with this package. (web interface is java)
         //TODO: replace this double compile with serialized version of the DAG.
         inputs = extractDSDir(args(i + 1))
-        logger.info("inputs set to: \n" + (args(i + 1).split(",")).mkString("\n"))
+        logger.debug("inputs set to: \n" + (args(i + 1).split(",")).mkString("\n"))
       } else if ("-outputDirs".equals(args(i))) {
         outputs = extractDSDir(args(i + 1))
-        logger.info("outputs set to: \n" + (outputs).mkString("\n"))
+        logger.debug("outputs set to: \n" + (outputs).mkString("\n"))
       } else if ("-schemata".equals(args(i).toLowerCase())) {
         //List of [NAME:::schema] separated by comma
         //Input datasets Schemata can be sent from the Server Manager a string separated by :::
         schemata = extractInDSsSchema(args(i + 1))
-        logger.info("Schema set to: " + args(i + 1))
+        logger.debug("Schema set to: " + args(i + 1))
       } else if ("-dag".equals(args(i).toLowerCase())) {
         // GMQLSubmit sent directly the DAG encoded as a string
         val serializedDag = args(i + 1)
@@ -229,7 +229,7 @@ object GMQLExecuteCommand {
         dagPath = args(i + 1)
         val serializedDag = readFile(dagPath)
         dag = Some(DAGSerializer.deserializeDAG(serializedDag))
-        logger.info("DAG path set to: " + dagPath)
+        logger.debug("DAG path set to: " + dagPath)
       } else {
         logger.warn("( " + args(i) + " ) NOT A VALID COMMAND ... ")
       }
@@ -306,7 +306,7 @@ object GMQLExecuteCommand {
 
     val userLoggerFile = userLogDir + jobId.toLowerCase() + ".log"
     faUser.setFile(userLoggerFile)
-    logger.info("User logger is set to:\n" + userLoggerFile)
+    logger.debug("User logger is set to:\n" + userLoggerFile)
 
     faUser.setLayout(new PatternLayout("%d %m%n"))
     faUser.setThreshold(Level.INFO)
@@ -318,7 +318,7 @@ object GMQLExecuteCommand {
 
     val devLoggerFile = devLogDir + jobId.toLowerCase() + ".log"
     faDev.setFile(devLoggerFile)
-    logger.info("Developer logger is set to:\n" + userLoggerFile)
+    logger.debug("Developer logger is set to:\n" + userLoggerFile)
 
     faDev.setLayout(new PatternLayout("%d %-5p [%c{1}] %m%n"))
     faDev.setThreshold(Level.INFO)

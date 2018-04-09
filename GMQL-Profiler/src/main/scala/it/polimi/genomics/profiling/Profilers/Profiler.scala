@@ -155,7 +155,7 @@ object Profiler extends java.io.Serializable {
         }
       }
 
-      logger.info("Profiling " + names.size + " samples.")
+      logger.debug("Profiling " + names.size + " samples.")
 
       val sampleProfiles = resultSamplesToSave.map { case (sampleId: Long, profile: ProfilerResult) =>
 

@@ -187,7 +187,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
       }
       // We need to clear the set of materialized variables if we are in interactive mode
       to_be_materialized.clear()
-      logger.info("Total Spark Job Execution Time : "+(System.currentTimeMillis()-ms).toString)
+      logger.debug("Total Spark Job Execution Time : "+(System.currentTimeMillis()-ms).toString)
     }
 
   }
