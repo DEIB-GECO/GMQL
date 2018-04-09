@@ -440,7 +440,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
 
         outputVariablesList.map { ds =>
 
-          val (samples, sch) = repositoryHandle.listResultDSSamples(ds + "/exp/", this.username)
+          val (samples, sch) = repositoryHandle.listResultDSSamples(ds + "/files/", this.username)
 
 //          println("samples")
 //          samples.asScala foreach println _

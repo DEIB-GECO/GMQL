@@ -116,7 +116,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
 
         val variableDir = variable.metaDag.asInstanceOf[IRStoreMD].path.toString
         val MetaOutputPath =  variableDir + "/meta/"
-        val RegionOutputPath = variableDir + "/exp/"
+        val RegionOutputPath = variableDir + "/files/"
         logger.debug("meta out: "+MetaOutputPath)
         logger.debug("region out "+ RegionOutputPath)
 
@@ -144,8 +144,8 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
         val profile = Profiler.profile(regions = regionRDD, meta = metaRDD, sc = sc)
 
         try {
-          val output = fs.create(new Path(variableDir + "/exp/" + "profile.xml"));
-          val output_web = fs.create(new Path(variableDir + "/exp/" + "web_profile.xml"));
+          val output = fs.create(new Path(variableDir + "/files/" + "profile.xml"));
+          val output_web = fs.create(new Path(variableDir + "/files/" + "web_profile.xml"));
 
           val os = new java.io.BufferedOutputStream(output)
           val os_web = new java.io.BufferedOutputStream(output_web)
@@ -316,7 +316,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
   }
 
   def storeSchema(schema: String, path : String)= {
-    val schemaPath = path+"/exp/schema.xml"
+    val schemaPath = path+"/files/schema.xml"
     val br = new BufferedWriter(new OutputStreamWriter(fs.create(new Path(schemaPath)), "UTF-8"));
     br.write(schema)
     br.close()

@@ -89,7 +89,7 @@ object writeMultiOutputFiles{
   }
 
   /**
-    * Move the meta data from the /meta folder to /exp file to be in the same folder with the samples files.
+    * Move the meta data from the /meta folder to /files file to be in the same folder with the samples files.
     *
     * @param originalPath [[String]] of the meta directory
     */
@@ -103,7 +103,7 @@ object writeMultiOutputFiles{
         val files = fs.listStatus(new Path(originalPath));
         files.foreach { sampleFile =>
           val pt = new Path(sampleFile.getPath.toString)
-          val dist = new Path(new Path(originalPath).getParent.toString+"/exp/"+sampleFile.getPath.getName)
+          val dist = new Path(new Path(originalPath).getParent.toString+"/files/"+sampleFile.getPath.getName)
           if(pt.getName !="_SUCCESS")
             fs.rename(pt,dist)
         }

@@ -148,7 +148,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     val hdfspath = conf.get("fs.defaultFS") + General_Utilities().getHDFSRegionDir(userName)
 
     if (dataset.samples.nonEmpty) {
-      val regex = "(/+)(exp(/+))?([^/]+)$".r
+      val regex = "(/+)(files(/+))?([^/]+)$".r
       val ds_folder = regex.replaceFirstIn(hdfspath + dataset.samples.head.name, "")
       fs.delete(new Path(ds_folder), true)
 
