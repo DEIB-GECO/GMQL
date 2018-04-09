@@ -263,7 +263,7 @@ object GMQLExecuteCommand {
     // or to the user log directory in the repository.
     setLogger(jobid, userLogDir, devLogDir)
 
-    logger.info("Start to execute GMQL Script..")
+    logger.info("Start to execute GMQL query..")
 
     val implementation: Implementation = getImplemenation(executionType, jobid, outputFormat, outputCoordinateSystem)
 
@@ -298,34 +298,6 @@ object GMQLExecuteCommand {
 
   def generateJobId(scriptPath: String, username: String) = "job_" + new java.io.File(scriptPath).getName.substring(0, new java.io.File(scriptPath).getName.indexOf(".")) + username + "_" + date
 
-  def setlogger_old(jobId: String, verbose: Boolean, logDir: String): Unit = {
-    //    org.apache.log4j.Logger.getRootLogger().getLoggerRepository().resetConfiguration();
-    val fa = new FileAppender();
-    fa.setName("FileLogger");
-    val loggerFile = logDir + "/" + jobId.toLowerCase() + ".log"
-    fa.setFile(loggerFile);
-    logger.info("Logger is set to:\n" + loggerFile)
-    fa.setLayout(new PatternLayout("%d %-5p [%c{1}] %m%n"));
-    fa.setThreshold(Level.INFO);
-    fa.setAppend(true);
-    fa.activateOptions();
-
-    //add appender to any Logger (here is root)
-    org.apache.log4j.Logger.getRootLogger().addAppender(fa)
-    //    org.apache.log4j.Logger.getRootLogger().setLevel(org.apache.log4j.Level.INFO)
-    org.apache.log4j.Logger.getLogger("org").setLevel(if (!verbose) org.apache.log4j.Level.WARN else org.apache.log4j.Level.INFO)
-    //    org.apache.log4j.Logger.getLogger("it").setLevel(if (!verbose) org.apache.log4j.Level.WARN else org.apache.log4j.Level.DEBUG)
-    org.apache.log4j.Logger.getLogger("it.polimi.genomics.spark").setLevel(org.apache.log4j.Level.INFO)
-    //    org.apache.log4j.Logger.getLogger("it.polimi.genomics.cli").setLevel(if (!verbose) org.apache.log4j.Level.INFO else org.apache.log4j.Level.INFO)
-    org.apache.log4j.Logger.getLogger("org.apache.spark").setLevel(org.apache.log4j.Level.WARN)
-    org.apache.log4j.Logger.getLogger("akka").setLevel(org.apache.log4j.Level.ERROR)
-    //    org.apache.log4j.Logger.getLogger("it.polimi.genomics.spark.implementation.GMQLSparkExecutor").setLevel(org.apache.log4j.Level.INFO)
-
-    //    val root:ch.qos.logback.classic.Logger = org.slf4j.LoggerFactory.getLogger("org").asInstanceOf[ch.qos.logback.classic.Logger];
-    //    root.setLevel(ch.qos.logback.classic.Level.WARN);
-
-  }
-
   def setLogger(jobId: String,
                 userLogDir: String, devLogDir: String): Unit = {
 
@@ -336,7 +308,7 @@ object GMQLExecuteCommand {
     faUser.setFile(userLoggerFile)
     logger.info("User logger is set to:\n" + userLoggerFile)
 
-    faUser.setLayout(new PatternLayout("%d %-5p [%c{1}] %m%n"))
+    faUser.setLayout(new PatternLayout("%d %m%n"))
     faUser.setThreshold(Level.INFO)
     faUser.setAppend(true)
     faUser.activateOptions()
@@ -393,9 +365,10 @@ object GMQLExecuteCommand {
           if (outputs.nonEmpty) {
             if (!d.store_path.isEmpty) {
               val path = id + "_" + d.store_path + "/"
-              logger.info(d.store_path + ", generated: " + path)
+              logger.info("Output dataset " + d.store_path + " will have name " + path)
+//              logger.info(d.store_path + ", generated: " + path)
               d.store_path = outputs.get(d.store_path).getOrElse(path)
-              logger.info("outputs: " + outputs.mkString("\n"))
+              logger.debug("outputs: " + outputs.mkString("\n"))
               d
             }
             else {

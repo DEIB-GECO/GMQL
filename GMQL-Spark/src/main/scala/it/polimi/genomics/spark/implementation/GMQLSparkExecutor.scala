@@ -55,7 +55,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
   var fs:FileSystem = null
 
   def go(): Unit = {
-    logger.info(to_be_materialized.toString())
+    logger.debug(to_be_materialized.toString())
     implementation()
   }
 
