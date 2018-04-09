@@ -46,7 +46,7 @@ object ProfilerLoader {
         (getSampleID(name), name) }
     ).toMap[Long, String]
 
-    val schemaFile = datasetpath+"/test.schema"
+    val schemaFile = datasetpath+"/schema.xml"
     val parser = (new CustomParser).setSchema(schemaFile)
 
     // Parser functions

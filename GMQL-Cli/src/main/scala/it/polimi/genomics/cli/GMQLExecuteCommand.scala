@@ -41,7 +41,7 @@ object GMQLExecuteCommand {
   System.setProperty("current.date", dateFormat.format(new Date()));
 
   private final val SYSTEM_TMPE_DIR = System.getProperty("java.io.tmpdir")
-  private final val DEFAULT_SCHEMA_FILE: String = "/test.schema";
+  private final val DEFAULT_SCHEMA_FILE: String = "/schema.xml";
   private final val date = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
 
 

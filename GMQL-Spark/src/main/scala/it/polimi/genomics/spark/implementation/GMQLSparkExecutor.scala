@@ -316,10 +316,10 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
   }
 
   def storeSchema(schema: String, path : String)= {
-    val schemaPath = path+"/exp/test.schema"
+    val schemaPath = path+"/exp/schema.xml"
     val br = new BufferedWriter(new OutputStreamWriter(fs.create(new Path(schemaPath)), "UTF-8"));
-    br.write(schema);
-    br.close();
+    br.write(schema)
+    br.close()
   }
 
 
