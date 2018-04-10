@@ -107,7 +107,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
       }
 
       FS_Utilities.copyfiletoHDFS(schemaPath,
-        General_Utilities().getHDFSRegionDir(userName)+ new Path(samples.get(0).name).getParent.toString+ "/test.schema"
+        General_Utilities().getHDFSRegionDir(userName)+ new Path(samples.get(0).name).getParent.toString+ "/schema.xml"
       )
 
       // Set File size
@@ -148,7 +148,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     val hdfspath = conf.get("fs.defaultFS") + General_Utilities().getHDFSRegionDir(userName)
 
     if (dataset.samples.nonEmpty) {
-      val regex = "(/+)(exp(/+))?([^/]+)$".r
+      val regex = "(/+)(files(/+))?([^/]+)$".r
       val ds_folder = regex.replaceFirstIn(hdfspath + dataset.samples.head.name, "")
       fs.delete(new Path(ds_folder), true)
 
@@ -194,7 +194,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
           None
       }).toList.asJava;
     val schema =
-      readSchemaFile(dsPath + "/test.schema")
+      readSchemaFile(dsPath + "/schema.xml")
     (samples,schema.fields.asJava)
   }
 

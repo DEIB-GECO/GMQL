@@ -145,7 +145,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
                 //todo: find a better way to avoid accesing hdfs at compilation time
                 val newPath =
                   if(Utilities().LAUNCHER_MODE equals Utilities().REMOTE_CLUSTER_LAUNCHER)
-                    General_Utilities().getSchemaDir(user) + p.path + ".schema"
+                    General_Utilities().getSchemaDir(user) + p.path + ".xml"
                   else  getRegionFolder(p.path, user)
                 println(newPath)
                 new VariablePath(newPath, p.parser_name);
@@ -157,7 +157,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
                 val user = if (repositoryHandle.DSExistsInPublic(p.IDName)) "public" else this.username
                 val newPath =
                   if(Utilities().LAUNCHER_MODE equals Utilities().REMOTE_CLUSTER_LAUNCHER)
-                    General_Utilities().getSchemaDir(user) + p.IDName + ".schema"
+                    General_Utilities().getSchemaDir(user) + p.IDName + ".xml"
                   else  getRegionFolder(p.IDName, user)
                 new VariableIdentifier(newPath);
               } else {
@@ -284,7 +284,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     val user = if (repositoryHandle.DSExistsInPublic(inputDs)) "public" else this.username
     val newPath =
       if(Utilities().LAUNCHER_MODE equals Utilities().REMOTE_CLUSTER_LAUNCHER)
-        General_Utilities().getSchemaDir(user) + inputDs + ".schema"
+        General_Utilities().getSchemaDir(user) + inputDs + ".xml"
       else  getRegionFolder(inputDs, user)
     newPath
   }
@@ -442,7 +442,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
 
         outputVariablesList.map { ds =>
 
-          val (samples, sch) = repositoryHandle.listResultDSSamples(ds + "/exp/", this.username)
+          val (samples, sch) = repositoryHandle.listResultDSSamples(ds + "/files/", this.username)
 
 //          println("samples")
 //          samples.asScala foreach println _

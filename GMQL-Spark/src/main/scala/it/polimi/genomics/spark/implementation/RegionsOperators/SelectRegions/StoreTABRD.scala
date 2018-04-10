@@ -29,7 +29,7 @@ object StoreTABRD {
     val meta = executor.implement_md(associatedMeta,sc)
 
     val MetaOutputPath = path + "/meta/"
-    val RegionOutputPath = path + "/exp/"
+    val RegionOutputPath = path + "/files/"
 
     logger.debug(MetaOutputPath)
     logger.debug(RegionOutputPath)

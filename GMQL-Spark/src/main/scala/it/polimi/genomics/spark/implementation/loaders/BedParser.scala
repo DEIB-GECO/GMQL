@@ -63,26 +63,24 @@ object BedParserHelper {
 class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopPos: Int, var strandPos: Option[Int], var otherPos: Option[Array[(Int, ParsingType.PARSING_TYPE)]]) extends GMQLLoader[(Long, String), Option[DataTypes.GRECORD], (Long, String), Option[DataTypes.MetaType]] with java.io.Serializable {
 
   private val logger: Logger = LoggerFactory.getLogger(classOf[BedParser])
-  var parsingType = GMQLSchemaFormat.TAB
+  var parsingType: GMQLSchemaFormat.Value = GMQLSchemaFormat.TAB
   var coordinateSystem: GMQLSchemaCoordinateSystem.Value = GMQLSchemaCoordinateSystem.ZeroBased
   final val spaceDelimiter: String = " "
   final val semiCommaDelimiter: String = ";"
-  private var otherPosGTF: Array[(Int, PARSING_TYPE)] = _
-  private var namePositionMap: Map[String, Int] = _
-  private var nameTypeMap: Map[String, PARSING_TYPE] = _
 
-  //added function in order to calculate GTF parameters once.
-  def calculateMapParameters(namePosition: Option[Seq[String]] = None): Unit = {
-    parsingType match {
-      case GMQLSchemaFormat.GTF =>
-        if (otherPos.getOrElse(Array.empty).length > 4) otherPosGTF = otherPos.get.tail.tail.tail.tail else otherPosGTF = Array.empty
-        //assume that namePosition order is same as otherPosGTF
-        namePositionMap = namePosition.getOrElse(Iterable.empty).map(_.toUpperCase).zipWithIndex.toMap
-        nameTypeMap = otherPosGTF.map(_._2).zip(namePosition.getOrElse(Seq.empty)).map(a => (a._2.toUpperCase, a._1)).toMap
-    }
-  }
 
-  //  val otherPosExtended = otherPos.getOrElse(Array.empty).map()
+  @transient
+  private lazy val otherGtf: Map[String, (PARSING_TYPE, Int)] =
+    schema
+      .zipWithIndex
+      .map(x => x._1._1.toUpperCase -> (x._1._2, x._2))
+      .toMap
+
+  @transient
+  private lazy val otherGtfSize: Int = otherGtf.size
+
+  @deprecated
+  def calculateMapParameters(namePosition: Option[Seq[String]] = None): Unit = {}
 
   /**
     * Meta Data Parser to parse String to GMQL META TYPE (ATT, VALUE)
@@ -112,7 +110,7 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
       val s: Array[String] = t._2.split(delimiter, -1)
 
       val other = parsingType match {
-        case GMQLSchemaFormat.GTF => {
+        case GMQLSchemaFormat.GTF =>
           // GTF file format definition
           // 0) seqname - name of the chromosome or scaffold; chromosome names can be given with or without the 'chr' prefix. Important note: the seqname must be one used within Ensembl, i.e. a standard chromosome name or an Ensembl identifier such as a scaffold ID, without any additional content such as species or assembly. See the example GFF output below.
           // 1) source - name of the program that generated this feature, or the data source (database or project name)
@@ -129,30 +127,34 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
           val score = parseRegion(ParsingType.DOUBLE, s(5))
           val frame = parseRegion(ParsingType.STRING, s(7))
 
+          val otherValues = Array.fill[GValue](otherGtfSize)(GNull())
+          otherValues(0) = source
+          otherValues(1) = feature
+          otherValues(2) = score
+          otherValues(3) = frame
 
-          val restValues = Array.fill[GValue](otherPosGTF.length)(GNull())
 
           val values = s(8) split semiCommaDelimiter
           values.foreach { value =>
             val split = value.trim.split(spaceDelimiter, 2)
-            if (split.length ==2 ) {
+            if (split.length == 2) {
               val attName = split(0).toUpperCase
-              if(namePositionMap.contains(attName)) {
+              if (otherGtf.contains(attName)) {
                 val attVal = split(1).trim.replaceAll("""^"(.+?)\"$""", "$1")
-                val schemaPos = namePositionMap(attName)
-                val parseType = nameTypeMap(attName)
-                restValues(schemaPos) = parseRegion(parseType, attVal)
+                val (parseType, arrayPos) = otherGtf(attName)
+                otherValues(arrayPos) = parseRegion(parseType, attVal)
               }
+              else
+                logger.warn("Skipped the attribute value, it is not defined in schema " + value)
             }
           }
-          Array(source, feature, score, frame) ++ restValues
-        }
+          otherValues
         case _ =>
           //if other position is defined then convert every element into GValue with parseRegion, else return empty array
           otherPos.getOrElse(Array.empty).map { case (pos, parseType) => parseRegion(parseType, s(pos)) }
       }
 
-      Some((new GRecordKey(t._1,
+      Some((GRecordKey(t._1,
         s(chrPos).trim,
         if (coordinateSystem == GMQLSchemaCoordinateSystem.OneBased) s(startPos).trim.toLong - 1 else s(startPos).trim.toLong,
         s(stopPos).trim.toLong,
@@ -165,10 +167,12 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
     }
     catch {
       case e: Throwable =>
+        logger.warn("line:\t" + t._2)
         logger.warn("problem: " + e.getClass.getCanonicalName + " - " + e.getCause + " - " + e.getMessage)
         logger.warn("Chrom: " + chrPos + "\tStart: " + startPos + "\tStop: " + stopPos + "\tstrand: " + strandPos);
         logger.warn("Values: " + otherPos.getOrElse(Array[(Int, ParsingType.PARSING_TYPE)]()).map(x => "(" + x._1 + "," + x._2 + ")").mkString("\t") + "\n" +
           "This line can not be casted (check the spacing): \n\t\t" + t);
+        logger.warn("error: ", e)
         None //throw ParsingException.create(t._2, e)
     }
   }
@@ -330,7 +334,11 @@ class CustomParser extends BedParser("\t", 0, 1, 2, Some(3), Some(Array((4, Pars
     val fs: FileSystem = FileSystem.get(path.toUri(), FSConfig.getConf);
 
     //todo: remove this hard fix used for remote execution
-    val XMLfile: InputStream = fs.open(new Path(dataset + (if (!dataset.endsWith("schema")) "/test.schema" else "")))
+    val XMLfile: InputStream =
+      if (!fs.exists(new Path(dataset + (if (!dataset.endsWith("xml")) "/schema.xml" else ""))))
+        fs.open(new Path(dataset + (if (!dataset.endsWith("xml")) "/test.schema" else "")))
+      else
+        fs.open(new Path(dataset + (if (!dataset.endsWith("xml")) "/schema.xml" else "")))
     var schematype = GMQLSchemaFormat.TAB
     var coordinatesystem = GMQLSchemaCoordinateSystem.Default
     var schema: Array[(String, ParsingType.Value)] = null
@@ -401,11 +409,6 @@ class CustomParser extends BedParser("\t", 0, 1, 2, Some(3), Some(Array((4, Pars
         }.toList
 
 
-        val namePositionMap = valuesPositionsSchema.map(_._1)
-
-
-
-
         val other: Array[(Int, ParsingType.Value)] = if (valuesPositions.length > 0)
           Array[(Int, ParsingType.Value)]((1, ParsingType.STRING), (2, ParsingType.STRING), (5, ParsingType.DOUBLE), (7, ParsingType.STRING)) ++ valuesPositions
         else
@@ -416,8 +419,6 @@ class CustomParser extends BedParser("\t", 0, 1, 2, Some(3), Some(Array((4, Pars
         stopPos = 4
         strandPos = Some(6)
         otherPos = Some(other)
-
-        calculateMapParameters(Some(namePositionMap))
 
         this.schema = List(("source", ParsingType.STRING), ("feature", ParsingType.STRING), ("score", ParsingType.DOUBLE), ("frame", ParsingType.STRING)) ++ valuesPositionsSchema
       }

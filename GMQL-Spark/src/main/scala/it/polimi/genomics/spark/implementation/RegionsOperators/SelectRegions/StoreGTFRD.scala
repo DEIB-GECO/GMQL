@@ -33,7 +33,7 @@ object StoreGTFRD {
     val fs = FileSystem.get(dfsPath.toUri(), conf);
 
     val MetaOutputPath = path + "/meta/"
-    val RegionOutputPath = path + "/exp/"
+    val RegionOutputPath = path + "/files/"
 
     logger.debug(MetaOutputPath)
     logger.debug(RegionOutputPath)

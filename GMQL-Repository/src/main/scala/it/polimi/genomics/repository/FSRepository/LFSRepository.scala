@@ -94,7 +94,7 @@ class LFSRepository extends GMQLRepository with XMLDataSetRepository{
       }
     ).map(x=> new GMQLSample(x.getPath)).toList.asJava
 
-    val schema = readSchemaFile(dsPath+ "/test.schema")
+    val schema = readSchemaFile(dsPath+ "/schema.xml")
     (samples,schema.fields.asJava)
   }
 
