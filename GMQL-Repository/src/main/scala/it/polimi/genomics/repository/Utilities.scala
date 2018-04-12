@@ -78,11 +78,19 @@ class Utilities() {
           case Conf.GMQL_CONF_DIR => GMQL_CONF_DIR = value
           case Conf.REMOTE_HDFS_NAMESPACE => REMOTE_HDFS_NAMESPACE = value
 
-          case Conf.GUEST_QUOTA  => USER_QUOTA += (GDMSUserClass.GUEST  -> value.toLong)
-          case Conf.BASIC_QUOTA  => USER_QUOTA += (GDMSUserClass.BASIC  -> value.toLong)
-          case Conf.PRO_QUOTA    => USER_QUOTA += (GDMSUserClass.PRO    -> value.toLong)
-          case Conf.ADMIN_QUOTA  => USER_QUOTA += (GDMSUserClass.ADMIN  -> value.toLong)
-          case Conf.PUBLIC_QUOTA => USER_QUOTA += (GDMSUserClass.PUBLIC -> value.toLong)
+          case Conf.DISK_QUOTA  => {
+
+            val user_class =
+              if( x.attribute("user-category").isDefined )
+                GDMSUserClass.withNameOpt(x.attribute("user-category").get.head.text)
+              else
+                GDMSUserClass.ALL
+
+            logger.info("Custom Disk Quota property for "+user_class+" set to "+value+" KB")
+
+            USER_QUOTA += (user_class -> value.toLong)
+
+          }
 
           case _ => logger.error(s"Not known configuration property: $x, $value")
         }
@@ -286,7 +294,9 @@ class Utilities() {
     * @return Quota in KB
     */
   def getUserQuota(userClass: GDMSUserClass): Long = {
-    if( USER_QUOTA.isDefinedAt(userClass) ) {
+    if( USER_QUOTA.isDefinedAt(GDMSUserClass.ALL) ) {
+      USER_QUOTA(GDMSUserClass.ALL)
+    } else if (USER_QUOTA.isDefinedAt(userClass) ) {
       USER_QUOTA(userClass)
     } else {
       logger.warn("Disk quota not defined for userClass "+userClass+" , assigning unlimited quota.")
@@ -389,11 +399,4 @@ object Conf {
   val GMQL_CONF_DIR = "GMQL_CONF_DIR"
   val REMOTE_HDFS_NAMESPACE = "REMOTE_HDFS_NAMESPACE"
 
-  val GUEST_QUOTA = "GUEST_QUOTA"
-  val BASIC_QUOTA = "BASIC_QUOTA"
-  val PRO_QUOTA   = "PRO_QUOTA"
-  val ADMIN_QUOTA = "ADMIN_QUOTA"
-  val PUBLIC_QUOTA = "PUBLIC_QUOTA"
-}
-
-
+  val DISK_QUOTA = "DISK_QUOTA"}
