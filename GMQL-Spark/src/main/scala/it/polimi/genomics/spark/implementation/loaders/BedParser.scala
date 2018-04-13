@@ -3,6 +3,7 @@ package it.polimi.genomics.spark.implementation.loaders
 import java.io.InputStream
 
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
+import it.polimi.genomics.core.exception.ParsingException
 import it.polimi.genomics.core.{GMQLSchemaCoordinateSystem, GMQLSchemaFormat, ParsingType, _}
 import it.polimi.genomics.spark.utilities.FSConfig
 import org.apache.hadoop.fs.{FileSystem, Path}
@@ -90,12 +91,14 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
     */
   override def meta_parser(t: (Long, String)): Option[DataTypes.MetaType] = {
     val s = t._2.split(delimiter, -1)
-    if (s.length != 2) {
-      logger.warn("could not cast this line: \n\t\t" + t)
+    if (s.length != 2 && s.length != 0) {
+      logger.error("could not cast this line: \n\t\t" + t)
+      throw  ParsingException.create("The following metadata entry is not in the correct format: \n["+t._2+"]\nCheck the spacing.")
+    } else if( s.length == 0) {
       None
-    }
-    else
+    } else {
       Some((t._1, (s(0), s(1))))
+    }
   }
 
   /**
@@ -167,13 +170,36 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
     }
     catch {
       case e: Throwable =>
-        logger.warn("line:\t" + t._2)
-        logger.warn("problem: " + e.getClass.getCanonicalName + " - " + e.getCause + " - " + e.getMessage)
-        logger.warn("Chrom: " + chrPos + "\tStart: " + startPos + "\tStop: " + stopPos + "\tstrand: " + strandPos);
-        logger.warn("Values: " + otherPos.getOrElse(Array[(Int, ParsingType.PARSING_TYPE)]()).map(x => "(" + x._1 + "," + x._2 + ")").mkString("\t") + "\n" +
-          "This line can not be casted (check the spacing): \n\t\t" + t);
-        logger.warn("error: ", e)
-        None //throw ParsingException.create(t._2, e)
+
+        // Logged message
+        val message = "line:\t" + t._2 + "\n"+
+                      "problem: " + e.getClass.getCanonicalName + " - " + e.getCause + " - " + e.getMessage+"\n"+
+                      "Chrom: " + chrPos + "\tStart: " + startPos + "\tStop: " + stopPos + "\tstrand: " + strandPos+"\n"+
+                      "Values: " + otherPos.getOrElse(Array[(Int, ParsingType.PARSING_TYPE)]()).map(x => "(" + x._1 + "," + x._2 + ")").mkString("\t") + "\n" +
+                      "This line can not be casted (check the spacing): \n\t\t" + t
+        logger.error(message)
+        logger.error("parsing error: ", e)
+
+        // Launched exception
+        var exceptionMessage = "The following region is not compliant with the provided schema: \n ["+t._2+"]\n"
+
+        val cols: Array[String] = t._2.split(delimiter, -1)
+        val found_cols  = cols.length
+        val schema_cols = 4 + otherPos.getOrElse(Array()).length
+
+        if( found_cols != schema_cols ) {
+          exceptionMessage += "\n Expecting " + schema_cols + " columns, found " + found_cols+". "
+          if (found_cols <= 1)
+            exceptionMessage += "Check the spacing."
+        }
+
+        exceptionMessage
+
+        if (e.isInstanceOf[IllegalArgumentException] || e.isInstanceOf[NumberFormatException]) {
+            exceptionMessage += "\n Wrong type: "+e.getClass.getCanonicalName.replace("java.lang.","")+" "+e.getMessage
+        }
+
+        throw ParsingException.create(exceptionMessage, e)
     }
   }
 
