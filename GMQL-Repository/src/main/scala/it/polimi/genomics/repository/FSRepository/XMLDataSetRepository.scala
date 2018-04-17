@@ -336,8 +336,8 @@ trait XMLDataSetRepository extends GMQLRepository{
   def attType(x: String): ParsingType.Value = x.toUpperCase match {
     case "STRING" => ParsingType.STRING
     case "CHAR" => ParsingType.CHAR
-    case "CHARACTAR" => ParsingType.STRING
-    case "LONG" => ParsingType.DOUBLE
+    case "CHARACTAR" => ParsingType.CHAR
+    case "LONG" => ParsingType.LONG
     case "INTEGER" => ParsingType.INTEGER
     case "INT" => ParsingType.INTEGER
     case "BOOLEAN" => ParsingType.STRING
