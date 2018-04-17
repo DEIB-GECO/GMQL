@@ -9,6 +9,8 @@ package it.polimi.genomics.spark.implementation.loaders
 import com.google.common.hash._
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
 import it.polimi.genomics.core.DataTypes.{GRECORD, MetaType}
+import it.polimi.genomics.core.{GRecordKey, GValue}
+import it.polimi.genomics.core.exception.ParsingException
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FSDataInputStream, FileSystem, Path}
 import org.apache.hadoop.io._
@@ -67,14 +69,27 @@ object Loaders {
       *  Load meta data using a parser function.
       *
       * @param parser parser function as (([[Long]],[[String]]))=>[[Option]] of [[MetaType]]
+      * @param checkConsistency: if true throws a [[ParsingException]] in case of consistency problems
       * @return [[RDD]] of the metadata [[MetaType]]
       */
-    def LoadMetaCombineFiles(parser:((Long,String))=>Option[MetaType]): RDD[MetaType] = {
+    def LoadMetaCombineFiles(parser:((Long,String))=>Option[MetaType], checkConsistency: Boolean): RDD[MetaType] = {
       sc
         .newAPIHadoopRDD(conf, classOf[CombineTextFileWithPathInputFormat], classOf[Long], classOf[Text])
-        .flatMap(x =>  {parser(x._1,x._2.toString)})
+        .flatMap(x =>  {
+          if (checkConsistency) {
+            parser(x._1,x._2.toString)
+          } else {
+            try {
+              parser(x._1, x._2.toString)
+            } catch {
+              case e: ParsingException => logger.warn(e.getMessage); None;
+            }
+          }
+        })
 
     }
+
+    def LoadMetaCombineFiles(parser:((Long,String))=>Option[MetaType]): RDD[MetaType]  = LoadMetaCombineFiles(parser, false)
 
     /**
       *
@@ -83,9 +98,10 @@ object Loaders {
       * @param parser parser function as (([[Long]], [[String]])) => [[Option]][GRECORD]
       * @param lineFilter  line filter function as (([[RegionCondition]], [[GRECORD]]) => [[Boolean]]) to filter lines while loading
       * @param regionPredicate [[Option]] of [[RegionCondition]]
+      * @param checkConsistency: if true throws a [[ParsingException]] in case of consistency problems
       * @return [[RDD]] of [[GRECORD]]
       */
-    def LoadRegionsCombineFiles(parser: ((Long, String)) => Option[GRECORD], lineFilter: ((RegionCondition, GRECORD) => Boolean), regionPredicate: Option[RegionCondition]): RDD[GRECORD] = {
+    def LoadRegionsCombineFiles(parser: ((Long, String)) => Option[GRECORD], lineFilter: ((RegionCondition, GRECORD) => Boolean), regionPredicate: Option[RegionCondition], checkConsistency: Boolean): RDD[GRECORD] = {
       val rdd = sc
         .newAPIHadoopRDD(conf, classOf[CombineTextFileWithPathInputFormat], classOf[Long], classOf[Text])
       val rddPartitioned =
@@ -93,7 +109,20 @@ object Loaders {
       //        rdd.repartition(40)
       //      else
         rdd
-      rddPartitioned.flatMap { x => val gRecord = parser(x._1, x._2.toString);
+      rddPartitioned.flatMap { x =>
+
+        var  gRecord: Option[(GRecordKey, Array[GValue])] = None
+
+        if (checkConsistency) {
+           gRecord = parser(x._1, x._2.toString);
+        } else {
+          try {
+            gRecord = parser(x._1, x._2.toString)
+          } catch {
+            case e: ParsingException => logger.warn(e.getMessage); None;
+          }
+        }
+
         gRecord match {
           case Some(reg) => if (regionPredicate.isDefined) {
             if (lineFilter(regionPredicate.get, reg)) gRecord else None
@@ -103,13 +132,19 @@ object Loaders {
       }
     }
 
+    def LoadRegionsCombineFiles(parser: ((Long, String)) => Option[GRECORD],
+                                lineFilter: ((RegionCondition, GRECORD) => Boolean),
+                                regionPredicate: Option[RegionCondition]): RDD[GRECORD] =
+      LoadRegionsCombineFiles(parser, lineFilter, regionPredicate, false)
+
     /**
       * Load regions data using a parser function.
       *
       * @param parser A parser function as (([[Long]], [[String]])) => [[Option]][GRECORD]
+      * @param checkConsistency: if true throws a [[ParsingException]] in case of consistency problems
       * @return [[RDD]] of [[GRECORD]]
       */
-    def LoadRegionsCombineFiles(parser:((Long,String))=>Option[GRECORD]): RDD[GRECORD] = {
+    def LoadRegionsCombineFiles(parser:((Long,String)) =>Option[GRECORD], checkConsistency: Boolean): RDD[GRECORD] = {
       val rdd = sc.newAPIHadoopRDD(conf, classOf[CombineTextFileWithPathInputFormat], classOf[Long], classOf[Text])
       //.repartition(20)
       val rddPartitioned =
@@ -118,8 +153,21 @@ object Loaders {
       //        else
         rdd
 
-      rddPartitioned.flatMap(x => {parser(x._1, x._2.toString)})
+      rddPartitioned.flatMap(x => {
+        if (checkConsistency) {
+          parser(x._1, x._2.toString)
+        } else {
+          try {
+            parser(x._1, x._2.toString)
+          } catch {
+            case e: ParsingException => logger.warn(e.getMessage); None;
+          }
+        }
+
+      })
     }
+
+    def LoadRegionsCombineFiles( parser:((Long,String)) => Option[GRECORD] ) : RDD[GRECORD] = LoadRegionsCombineFiles(parser , false)
   }
 
   /**

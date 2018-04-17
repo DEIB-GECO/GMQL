@@ -57,8 +57,8 @@ object ProfilerLoader {
     def meta_parser(x: (Long, String)) = BasicParser.asInstanceOf[GMQLLoader[(Long, String), Option[DataTypes.GRECORD], (Long, String), Option[DataTypes.MetaType]]].meta_parser(x)
     
     // Get RDDs for regions and meta
-    val regions = sc forPath selectedURIs.mkString(",") LoadRegionsCombineFiles(region_parser)
-    val meta    = sc forPath(selectedURIs.map(x=>x+".meta").mkString(",")) LoadMetaCombineFiles (meta_parser)
+    val regions = sc forPath selectedURIs.mkString(",") LoadRegionsCombineFiles(region_parser, true)
+    val meta    = sc forPath(selectedURIs.map(x=>x+".meta").mkString(",")) LoadMetaCombineFiles (meta_parser, true)
 
     val startTime = System.currentTimeMillis()
 

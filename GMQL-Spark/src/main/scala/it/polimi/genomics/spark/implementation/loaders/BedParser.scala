@@ -89,10 +89,11 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
     * @param t
     * @return
     */
+  @throws (classOf[ParsingException])
   override def meta_parser(t: (Long, String)): Option[DataTypes.MetaType] = {
     val s = t._2.split(delimiter, -1)
+
     if (s.length != 2 && s.length != 0) {
-      logger.error("could not cast this line: \n\t\t" + t)
       throw  ParsingException.create("The following metadata entry is not in the correct format: \n["+t._2+"]\nCheck the spacing.")
     } else if( s.length == 0) {
       None
@@ -107,6 +108,7 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
     * @param t [[Tuple2]] of the ID and the [[String]] line to be parsed.
     * @return [[DataTypes.GRECORD]] as GMQL record representation.
     */
+  @throws (classOf[ParsingException])
   override def region_parser(t: (Long, String)): Option[DataTypes.GRECORD] = {
     import BedParserHelper._
     try {
@@ -171,15 +173,6 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
     catch {
       case e: Throwable =>
 
-        // Logged message
-        val message = "line:\t" + t._2 + "\n"+
-                      "problem: " + e.getClass.getCanonicalName + " - " + e.getCause + " - " + e.getMessage+"\n"+
-                      "Chrom: " + chrPos + "\tStart: " + startPos + "\tStop: " + stopPos + "\tstrand: " + strandPos+"\n"+
-                      "Values: " + otherPos.getOrElse(Array[(Int, ParsingType.PARSING_TYPE)]()).map(x => "(" + x._1 + "," + x._2 + ")").mkString("\t") + "\n" +
-                      "This line can not be casted (check the spacing): \n\t\t" + t
-        logger.error(message)
-        logger.error("parsing error: ", e)
-
         // Launched exception
         var exceptionMessage = "The following region is not compliant with the provided schema: \n ["+t._2+"]\n"
 
@@ -187,14 +180,15 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
         val found_cols  = cols.length
         val schema_cols = 4 + otherPos.getOrElse(Array()).length
 
+        // Wrong number of columns
         if( found_cols != schema_cols ) {
           exceptionMessage += "\n Expecting " + schema_cols + " columns, found " + found_cols+". "
-          if (found_cols <= 1)
+          if (found_cols <= 1) {
             exceptionMessage += "Check the spacing."
+          }
         }
 
-        exceptionMessage
-
+        // Casting exception
         if (e.isInstanceOf[IllegalArgumentException] || e.isInstanceOf[NumberFormatException]) {
             exceptionMessage += "\n Wrong type: "+e.getClass.getCanonicalName.replace("java.lang.","")+" "+e.getMessage
         }
