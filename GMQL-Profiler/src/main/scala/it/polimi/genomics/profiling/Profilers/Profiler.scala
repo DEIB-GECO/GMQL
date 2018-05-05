@@ -67,8 +67,9 @@ object Profiler extends java.io.Serializable {
 
   case class ProfilerResult(leftMost: Long, rightMost: Long, minLength: Long, maxLength: Long, count: Long, avgLength: Double, varianceLength: Double)
 
+  val zeroProfilerValue = ProfilerValue(Long.MaxValue, Long.MinValue, Long.MaxValue, Long.MinValue, 0, 0, 0)
 
-  val reduceFunc: ((ProfilerValue, ProfilerValue) => ProfilerValue) = {
+  val reduceFunc: (ProfilerValue, ProfilerValue) => ProfilerValue = {
     case (l: ProfilerValue, r: ProfilerValue) =>
       ProfilerValue(
         math.min(l.leftMost, r.leftMost),
@@ -82,9 +83,13 @@ object Profiler extends java.io.Serializable {
   }
 
   val calculateResult: (ProfilerValue => ProfilerResult) = { profile =>
-    val mean = profile.sumLength.toDouble / profile.count
-    val variance = profile.sumLengthOfSquares.toDouble / profile.count - mean * mean
-    ProfilerResult(profile.leftMost, profile.rightMost, profile.minLength, profile.maxLength, profile.count, mean, variance)
+    if (profile.count > 0) {
+      val mean = profile.sumLength.toDouble / profile.count
+      val variance = profile.sumLengthOfSquares.toDouble / profile.count - mean * mean
+      ProfilerResult(profile.leftMost, profile.rightMost, profile.minLength, profile.maxLength, profile.count, mean, variance)
+    }
+    else
+      ProfilerResult(0, 0, 0, 0, profile.count, 0, 0)
   }
 
   /**
@@ -118,6 +123,7 @@ object Profiler extends java.io.Serializable {
       //remove the one that doesn't have corresponding meta
       val filtered = regions.filter(x => names.contains(x._1.id))
 
+      // CHROMOSOME
       //if we need chromosome
       val mappedSampleChrom = filtered
         .map { x =>
@@ -127,24 +133,29 @@ object Profiler extends java.io.Serializable {
           ((gRecordKey.id, gRecordKey.chrom), profiler)
         }
 
+      val reducedSampleChrom = mappedSampleChrom.foldByKey(zeroProfilerValue)(reduceFunc)
 
-      val reducedSampleChrom = mappedSampleChrom.reduceByKey(reduceFunc)
+      // is ready to use !! uncomment the line below and it is ready to save into the profiler data
+      // val resultSampleChromToSave = reducedSampleChrom.map { inp => (inp._1, calculateResult(inp._2)) }
 
+      // SAMPLE
       val mappedSample = reducedSampleChrom
         .map { x: ((Long, String), ProfilerValue) =>
           (x._1._1, x._2)
         }
 
-      val reducedSample = mappedSample.reduceByKey(reduceFunc)
-
+      val reducedSample = mappedSample.foldByKey(zeroProfilerValue)(reduceFunc)
 
       val resultSamples: Map[Long, ProfilerValue] = reducedSample.collectAsMap()
 
       val resultSamplesToSave = resultSamples.map { inp => (inp._1, calculateResult(inp._2)) }
 
+      // DATASET
+      val mappedDs = reducedSample.map(_._2)
 
+      val reducedDs = mappedDs.fold(zeroProfilerValue)(reduceFunc)
 
-      val resultDsToSave = calculateResult(resultSamples.values.reduce(reduceFunc))
+      val resultDsToSave = calculateResult(reducedDs)
 
 
       def numToString(x: Double): String = {
