@@ -89,13 +89,13 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
     * @param t
     * @return
     */
-  @throws (classOf[ParsingException])
+  @throws(classOf[ParsingException])
   override def meta_parser(t: (Long, String)): Option[DataTypes.MetaType] = {
     val s = t._2.split(delimiter, -1)
 
     if (s.length != 2 && s.length != 0 && !s.startsWith("#")) {
-      throw  ParsingException.create("The following metadata entry is not in the correct format: \n["+t._2+"]\nCheck the spacing.")
-    } else if( s.length == 0) {
+      throw ParsingException.create("The following metadata entry is not in the correct format: \n[" + t._2 + "]\nCheck the spacing.")
+    } else if (s.length == 0) {
       None
     } else {
       Some((t._1, (s(0), s(1))))
@@ -108,7 +108,7 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
     * @param t [[Tuple2]] of the ID and the [[String]] line to be parsed.
     * @return [[DataTypes.GRECORD]] as GMQL record representation.
     */
-  @throws (classOf[ParsingException])
+  @throws(classOf[ParsingException])
   override def region_parser(t: (Long, String)): Option[DataTypes.GRECORD] = {
     import BedParserHelper._
     try {
@@ -163,9 +163,9 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
         s(chrPos).trim,
         if (coordinateSystem == GMQLSchemaCoordinateSystem.OneBased) s(startPos).trim.toLong - 1 else s(startPos).trim.toLong,
         s(stopPos).trim.toLong,
-        strandPos.map(s(_).trim.head) match {
-          case Some('+') => '+'
-          case Some('-') => '-'
+        strandPos.map(s(_).trim) match {
+          case Some("+") => '+'
+          case Some("-") => '-'
           case _ => '*'
         }
       ), other))
@@ -173,7 +173,7 @@ class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopP
     catch {
       case e: Throwable =>
 
-        if ( !t._2.startsWith("#") ) {
+        if (!t._2.startsWith("#")) {
 
           // Launched exception
           var exceptionMessage = "The following region is not compliant with the provided schema: \n [" + t._2 + "]\n"
