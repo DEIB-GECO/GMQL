@@ -273,9 +273,9 @@ class GMQLExecute (){
     */
   def getGMQLJob(username:String, jobId:String): GMQLJob ={
 
-    logger.debug("queried job = "+jobId.trim)
-    logger.debug ("jobs: ")
-    JOBID_TO_JOB_INSTANCE.foreach(x=>logger.debug(s"${x._2.jobId} (${x._2.status})") )
+    //logger.debug("queried job = "+jobId.trim)
+    //logger.debug ("jobs: ")
+    //JOBID_TO_JOB_INSTANCE.foreach(x=>logger.debug(s"${x._2.jobId} (${x._2.status})") )
 
     val job = getJob(jobId.trim)
     if (!username.equals(job.username))
