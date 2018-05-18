@@ -12,7 +12,6 @@ import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.slf4j.LoggerFactory
 
-import scala.collection.immutable.HashMap
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -36,7 +35,7 @@ object OrderMD {
         case NoTop() => false
         case Top(_) => false
         case TopG(_) => true
-        case TopP(_) => true
+        case TopP(_) => false
       }
 
     val top: Int =
@@ -136,9 +135,9 @@ object OrderMD {
       val sortedGroups1 = SortingAttVallist.groupBy { record =>
         Hashing.md5.newHasher.putString(record._2.map(_._2).toList.init.mkString("§"), Charsets.UTF_8).hash.asLong
       }.map(s => (s._1, s._2.sortBy((sort: (Long, List[(String, GValue)])) => sort._2.map(_._2).toArray[GValue])(valuesOrdering)))
-      val percentages1 = if (topParameter.isInstanceOf[TopP]) {
+      /*val percentages1 = if (topParameter.isInstanceOf[TopP]) {
         sortedGroups1.map(x => (x._1, x._2.size * top / 100))
-      } else HashMap[Long, Int]()
+      } else HashMap[Long, Int]()*/
 
       sortedGroups1.flatMap { g =>
         //TOPG
@@ -146,7 +145,7 @@ object OrderMD {
           if (top == 0) {
             g._2.map(_._1).toList
           } else {
-            g._2.map(_._1).take(percentages1.getOrElse(g._1, top)).toList
+            g._2.map(_._1).take(top /*percentages1.getOrElse(g._1, top)*/).toList
           }
         //create metadata
         assignPosition(Some(g._1), gFiltered, 1, newAttribute, List())
@@ -158,9 +157,15 @@ object OrderMD {
 
       val sortedSamples: List[Long] = valueListBoth.toList.sortWith { (a, b) => comparator(a, b) }.map(_._1)
 
+      //TOPP
+      val percentages = if (topParameter.isInstanceOf[TopP]) {
+        Some(sortedSamples.size * top / 100)
+      } else None
+
       //TOP
       val filteredSortedSamples: List[Long] =
-        if (top != 0) sortedSamples.take(top)
+        if (top != 0)
+          sortedSamples.take(percentages.getOrElse(top))
         else sortedSamples
 
       //create metadata

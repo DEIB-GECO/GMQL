@@ -106,6 +106,9 @@ class Utilities() {
 
     this.GMQLHOME =  if (this.GMQLHOME == null)  "/tmp/repo/" else  this.GMQLHOME
 
+    //let the GMQLHOME contains ~ as home folder of the user
+    this.GMQLHOME = this.GMQLHOME .replaceFirst("^~", System.getProperty("user.home"))
+
     GMQL_CONF_DIR =  if (!(this.GMQL_CONF_DIR == null))  GMQL_CONF_DIR else confDir
 
     this.USERNAME  = if (this.USERNAME  == null) "gmql_user" else this.USERNAME
