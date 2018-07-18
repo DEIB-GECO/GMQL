@@ -26,11 +26,10 @@ class Utilities {
   var SPARK_CUSTOM: Map[String, Map[GDMSUserClass.Value, String]] = Map()
 
   //TODO: Acticvate the launcher modes
-  var LAUNCHER_MODE: String =  LOCAL_LAUNCHER
   final val LOCAL_LAUNCHER: String = "LOCAL"
   final val CLUSTER_LAUNCHER: String = "CLUSTER"
   final val REMOTE_CLUSTER_LAUNCHER: String = "REMOTE_CLUSTER"
-
+  var LAUNCHER_MODE: String =  LOCAL_LAUNCHER
 
   def apply() = {
 
