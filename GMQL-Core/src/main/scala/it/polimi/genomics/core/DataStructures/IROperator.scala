@@ -1,62 +1,61 @@
 package it.polimi.genomics.core.DataStructures
 
-import it.polimi.genomics.core.DataStructures.OperatorType.OperatorType
-import scala.collection.mutable
-
 /**
  * It represent a generic Intermediate Representation Dag operator
  */
 abstract class IROperator extends Serializable {
-  val operatorName = this.getClass.getName.substring(this.getClass.getName.lastIndexOf('.')+1) + " " + this.hashCode()
 
+  val operatorName: String = this.getClass.getName
+    .substring(this.getClass.getName.lastIndexOf('.')+1) + " " + this.hashCode()
+
+  /** A list of annotations which can be attached to the operator */
+  val annotations: Set[OperatorAnnotation] = Set()
+  /** A list of the source datasets which are used by this operator */
+  def sources: Set[IRDataSet] = this.getDependencies.foldLeft(Set.empty[IRDataSet])((x, y) => x union y.sources)
+  /** Optional intermediate result stored to speed up computations */
   var intermediateResult : Option[AnyRef] = None
-  override def toString = operatorName
 
-  def operatorType: OperatorType.OperatorType
-
-  def getChildren: List[IROperator]
-  def getRegionChildren: List[IROperator] = this.getChildren.filter(p => p.isRegionOperator)
-  def getMetaChildren: List[IROperator] = this.getChildren.filter(p => p.isMetaOperator)
-
+  /** Attributes for profiling */
   var requiresOutputProfile: Boolean = false
   var outputProfile: Option[GMQLDatasetProfile] = None
 
-  def left: Option[IROperator] = None
-  def right: Option[IROperator] = None
+  /** DAG utilities for working with dependencies*/
+  def getDependencies: List[IROperator]
+  def getRegionDependencies: List[IROperator] = this.getDependencies.filter(p => p.isRegionOperator)
+  def getMetaDependencies: List[IROperator] = this.getDependencies.filter(p => p.isMetaOperator)
 
-  def isRegionOperator: Boolean = {
-    this.operatorType == OperatorType.REGION_OPERATOR
-  }
+  /*This is very bad software engineering...but it is impossible to do differently
+  * due to the software architecture... :(*/
+  def isRegionOperator: Boolean = false
+  def isMetaOperator: Boolean = false
+  def isMetaGroupOperator: Boolean = false
+  def isMetaJoinOperator: Boolean = false
 
-  def isMetaOperator: Boolean = {
-    this.operatorType == OperatorType.META_OPERATOR ||
-      this.operatorType == OperatorType.META_GROUP_OPERATOR ||
-      this.operatorType == OperatorType.META_JOIN_OPERATOR
-  }
+  //def substituteDependency(previousDependency: IROperator, newDependency: IROperator): IROperator
 
+  override def toString: String = operatorName
 }
 
 /** Indicates a IROperator which returns a metadata dataset */
 abstract class MetaOperator extends IROperator {
-  override def operatorType: OperatorType = OperatorType.META_OPERATOR
+  override def isMetaOperator: Boolean = true
 }
 
 /** Indicates a IROperator which returns a region dataset */
 abstract class RegionOperator extends IROperator {
+  override def isRegionOperator: Boolean = true
   var binSize : Option[Long] = None
-  override def operatorType: OperatorType = OperatorType.REGION_OPERATOR
 }
 
 /** Indicates a IROperator which returns the result of a meta-group operation */
 abstract class MetaGroupOperator extends IROperator{
-  override def operatorType: OperatorType = OperatorType.META_GROUP_OPERATOR
+  override def isMetaGroupOperator: Boolean = true
 }
 
 /** Indicates a IROperator which returns the result of a meta-join operation*/
 abstract class MetaJoinOperator extends IROperator{
-  override def operatorType: OperatorType = OperatorType.META_JOIN_OPERATOR
+  override def isMetaJoinOperator: Boolean = true
 }
-
 
 /** Structures for specifying an Optional MetaJoinOperator **/
 abstract class OptionalMetaJoinOperator(operator:MetaJoinOperator) extends Serializable

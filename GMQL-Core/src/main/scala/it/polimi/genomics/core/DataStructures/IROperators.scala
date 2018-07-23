@@ -29,14 +29,17 @@ import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 case class IRReadMD[IR, OR, IM, OM](var paths: List[String],
                                     loader: GMQLLoader[IR, OR, IM, OM],
                                     var dataset: IRDataSet) extends MetaOperator {
-  override def getChildren: List[IROperator] = List()
+  override def getDependencies: List[IROperator] = List()
+  override def sources: Set[IRDataSet] = Set(dataset)
+  //override def substituteDependency(previousDependency: IROperator, newDependency: IROperator): IROperator = this.copy()
 }
 
 /**
   * Dag node to represent the memory dataset reader for meta data.
   */
 case class IRReadMEMMD(var metaDS: Any) extends MetaOperator {
-  override def getChildren: List[IROperator] = List()
+  override def getDependencies: List[IROperator] = List()
+  //override def substituteDependency(previousDependency: IROperator, newDependency: IROperator): IROperator = this.copy()
 }
 
 
@@ -53,14 +56,17 @@ case class IRReadMEMMD(var metaDS: Any) extends MetaOperator {
 case class IRReadRD[IR, OR, IM, OM](var paths: List[String],
                                     loader: GMQLLoader[IR, OR, IM, OM],
                                     var dataset: IRDataSet) extends RegionOperator {
-  override def getChildren: List[IROperator] = List()
+  override def getDependencies: List[IROperator] = List()
+  override def sources: Set[IRDataSet] = Set(dataset)
+  //override def substituteDependency(previousDependency: IROperator, newDependency: IROperator): IROperator = this.copy()
 }
 
 /**
   * Dag node to represent the memory dataset reader for region data.
   */
 case class IRReadMEMRD(regionDS: Any) extends RegionOperator {
-  override def getChildren: List[IROperator] = List()
+  override def getDependencies: List[IROperator] = List()
+  //override def substituteDependency(previousDependency: IROperator, newDependency: IROperator): IROperator = this.copy()
 }
 
 
@@ -70,7 +76,14 @@ case class IRReadMEMRD(regionDS: Any) extends RegionOperator {
   * @param father metadata dag of the variable to be stored
   */
 case class IRStoreMD(var path: String, var father: MetaOperator, var dataSet: IRDataSet) extends MetaOperator {
-  override def getChildren: List[IROperator] = List(this.father)
+  override def getDependencies: List[IROperator] = List(this.father)
+
+//  override def substituteDependency(previousDependency: IROperator, newDependency: IROperator): IROperator = {
+//    if(father == previousDependency && newDependency.isInstanceOf[MetaOperator])
+//      this.copy(father = newDependency.asInstanceOf[MetaOperator])
+//    else
+//      throw new IllegalArgumentException("Can't substitute " + previousDependency + " with " + newDependency)
+//  }
 }
 
 
@@ -81,7 +94,14 @@ case class IRStoreMD(var path: String, var father: MetaOperator, var dataSet: IR
   */
 case class IRStoreRD(var path: String, var father: RegionOperator, var associatedMeta: MetaOperator,
                      schema: List[(String, PARSING_TYPE)], dataSet: IRDataSet) extends RegionOperator {
-  override def getChildren: List[IROperator] = List(father, associatedMeta)
+  override def getDependencies: List[IROperator] = List(father, associatedMeta)
+
+//  override def substituteDependency(previousDependency: IROperator, newDependency: IROperator): IROperator = {
+//    if(father == previousDependency && newDependency.isInstanceOf[MetaOperator])
+//      this.copy(father = newDependency.asInstanceOf[RegionOperator])
+//    else
+//      throw new IllegalArgumentException("Can't substitute " + previousDependency + " with " + newDependency)
+//  }
 }
 
 /**
@@ -92,7 +112,14 @@ case class IRStoreRD(var path: String, var father: RegionOperator, var associate
   */
 //TODO MissingAttribute
 case class IRSelectMD(meta_cond: MetadataCondition, var input_dataset: MetaOperator) extends MetaOperator {
-  override def getChildren: List[IROperator] = List(input_dataset)
+  override def getDependencies: List[IROperator] = List(input_dataset)
+
+//  override def substituteDependency(previousDependency: IROperator, newDependency: IROperator): IROperator = {
+//    if(input_dataset == previousDependency && newDependency.isInstanceOf[MetaOperator])
+//      this.copy(input_dataset = newDependency.asInstanceOf[MetaOperator])
+//    else
+//      throw new IllegalArgumentException("Can't substitute " + previousDependency + " with " + newDependency)
+//  }
 }
 
 /**
@@ -102,7 +129,15 @@ case class IRSelectMD(meta_cond: MetadataCondition, var input_dataset: MetaOpera
   * @param input_dataset  the set of metadata to be purged
   */
 case class IRPurgeMD(var region_dataset: RegionOperator, var input_dataset: MetaOperator) extends MetaOperator {
-  override def getChildren: List[IROperator] = List(region_dataset, input_dataset)
+  override def getDependencies: List[IROperator] = List(region_dataset, input_dataset)
+//  override def substituteDependency(previousDependency: IROperator, newDependency: IROperator): IROperator = {
+//    if(input_dataset == previousDependency && newDependency.isInstanceOf[MetaOperator])
+//      this.copy(input_dataset = newDependency.asInstanceOf[MetaOperator])
+//    else if(region_dataset == previousDependency && newDependency.isInstanceOf[RegionOperator])
+//      this.copy(region_dataset = newDependency.asInstanceOf[RegionOperator])
+//    else
+//      throw new IllegalArgumentException("Can't substitute " + previousDependency + " with " + newDependency)
+//  }
 }
 
 /**
@@ -113,7 +148,15 @@ case class IRPurgeMD(var region_dataset: RegionOperator, var input_dataset: Meta
   * @param input_dataset input region dataset to be filtered
   */
 case class IRPurgeRD(var meta_dataset: MetaOperator, var input_dataset: RegionOperator) extends RegionOperator {
-  override def getChildren: List[IROperator] = List(meta_dataset, input_dataset)
+  override def getDependencies: List[IROperator] = List(meta_dataset, input_dataset)
+//  override def substituteDependency(previousDependency: IROperator, newDependency: IROperator): IROperator = {
+//    if(meta_dataset == previousDependency && newDependency.isInstanceOf[MetaOperator])
+//      this.copy(meta_dataset = newDependency.asInstanceOf[MetaOperator])
+//    else if(input_dataset == previousDependency && newDependency.isInstanceOf[RegionOperator])
+//      this.copy(input_dataset = newDependency.asInstanceOf[RegionOperator])
+//    else
+//      throw new IllegalArgumentException("Can't substitute " + previousDependency + " with " + newDependency)
+//  }
 }
 
 
@@ -126,12 +169,23 @@ case class IRPurgeRD(var meta_dataset: MetaOperator, var input_dataset: RegionOp
   */
 case class IRSelectRD(reg_cond: Option[RegionCondition], var filtered_meta: Option[MetaOperator],
                       var input_dataset: RegionOperator) extends RegionOperator {
-  override def getChildren: List[IROperator] = {
-    if(filtered_meta.isDefined)
+  override def getDependencies: List[IROperator] = {
+    if (filtered_meta.isDefined)
       List(filtered_meta.get, input_dataset)
     else
       List(input_dataset)
   }
+
+//  override def substituteDependency(previousDependency: IROperator, newDependency: IROperator): IROperator = {
+//    if(filtered_meta.isDefined &&
+//      filtered_meta.get == previousDependency &&
+//      newDependency.isInstanceOf[MetaOperator])
+//      this.copy(filtered_meta = Some(newDependency.asInstanceOf[MetaOperator]))
+//    else if(input_dataset == previousDependency && newDependency.isInstanceOf[RegionOperator])
+//      this.copy(input_dataset = newDependency.asInstanceOf[RegionOperator])
+//    else
+//      throw new IllegalArgumentException("Can't substitute " + previousDependency + " with " + newDependency)
+//  }
 }
 
 /**
@@ -143,7 +197,7 @@ case class IRSelectRD(reg_cond: Option[RegionCondition], var filtered_meta: Opti
   */
 case class IRSemiJoin(var external_meta: MetaOperator, join_condition: MetaJoinCondition,
                       var input_dataset: MetaOperator) extends MetaOperator {
-  override def getChildren: List[IROperator] = List(external_meta, input_dataset)
+  override def getDependencies: List[IROperator] = List(external_meta, input_dataset)
 }
 
 /**
@@ -162,7 +216,7 @@ case class IRProjectMD(projected_attributes: Option[List[String]],
                        extended_attributes: Option[List[MetaExtension]],
                        all_but_flag: Boolean,
                        var input_dataset: MetaOperator) extends MetaOperator {
-  override def getChildren: List[IROperator] = List(input_dataset)
+  override def getDependencies: List[IROperator] = List(input_dataset)
 }
 
 /**
@@ -176,7 +230,7 @@ case class IRProjectRD(projected_values: Option[List[Int]],
                        new_values: Option[List[RegionFunction]],
                        var input_dataset: RegionOperator,
                        var InputMeta: MetaOperator) extends RegionOperator {
-  override def getChildren: List[IROperator] = List(input_dataset, InputMeta)
+  override def getDependencies: List[IROperator] = List(input_dataset, InputMeta)
 }
 
 /**
@@ -187,7 +241,7 @@ case class IRProjectRD(projected_values: Option[List[Int]],
   * @param input_dataset the input region set
   */
 case class IRAggregateRD(aggregates: List[RegionsToMeta], var input_dataset: RegionOperator) extends MetaOperator {
-  override def getChildren: List[IROperator] = List(input_dataset)
+  override def getDependencies: List[IROperator] = List(input_dataset)
 }
 
 
@@ -206,7 +260,7 @@ case class IRGroupMD(keys: MetaGroupByCondition,
                      group_name: String,
                      var input_dataset: MetaOperator,
                      var region_dataset: RegionOperator) extends MetaOperator {
-  override def getChildren: List[IROperator] = List(input_dataset, region_dataset)
+  override def getDependencies: List[IROperator] = List(input_dataset, region_dataset)
 }
 
 /**
@@ -223,7 +277,7 @@ case class IRGroupMD(keys: MetaGroupByCondition,
   */
 case class IRGroupRD(grouping_parameters: Option[List[GroupRDParameters.GroupingParameter]], aggregates: Option[List[RegionAggregate.RegionsToRegion]],
                      var region_dataset: RegionOperator) extends RegionOperator {
-  override def getChildren: List[IROperator] = List(region_dataset)
+  override def getDependencies: List[IROperator] = List(region_dataset)
 }
 
 /**
@@ -237,7 +291,7 @@ case class IRGroupRD(grouping_parameters: Option[List[GroupRDParameters.Grouping
   */
 case class IROrderMD(ordering: List[(String, Direction)], new_attribute: String, top_par: TopParameter,
                      var input_dataset: MetaOperator) extends MetaOperator {
-  override def getChildren: List[IROperator] = List(input_dataset)
+  override def getDependencies: List[IROperator] = List(input_dataset)
 }
 
 
@@ -253,7 +307,7 @@ case class IROrderMD(ordering: List[(String, Direction)], new_attribute: String,
 
 case class IROrderRD(ordering: List[(Int, Direction)], top_par: TopParameter,
                      var input_dataset: RegionOperator) extends RegionOperator {
-  override def getChildren: List[IROperator] = List(input_dataset)
+  override def getDependencies: List[IROperator] = List(input_dataset)
 }
 
 /**
@@ -263,7 +317,7 @@ case class IROrderRD(ordering: List[(Int, Direction)], top_par: TopParameter,
   * @param input_dataset    the input set of metadata to be grouped
   */
 case class IRGroupBy(group_attributes: MetaGroupByCondition, var input_dataset: MetaOperator) extends MetaGroupOperator {
-  override def getChildren: List[IROperator] = List(input_dataset)
+  override def getDependencies: List[IROperator] = List(input_dataset)
 }
 
 /**
@@ -281,7 +335,7 @@ case class IRRegionCover(cover_flag: CoverFlag,
                          aggregates: List[RegionsToRegion],
                          groups: Option[MetaGroupOperator],
                          var input_dataset: RegionOperator) extends RegionOperator {
-  override def getChildren: List[IROperator] = List(input_dataset)
+  override def getDependencies: List[IROperator] = List(input_dataset)
 }
 
 /**
@@ -293,7 +347,7 @@ case class IRRegionCover(cover_flag: CoverFlag,
   * @param groups  eventual <code>MetaGroupOperator</code> operator
   */
 case class IRMergeMD(var dataset: MetaOperator, groups: Option[MetaGroupOperator]) extends MetaOperator {
-  override def getChildren: List[IROperator] = List(dataset)
+  override def getDependencies: List[IROperator] = List(dataset)
 }
 
 /**
@@ -305,7 +359,7 @@ case class IRMergeMD(var dataset: MetaOperator, groups: Option[MetaGroupOperator
   * @param groups  eventual <code>MetaGroupOperator</code> operator
   */
 case class IRMergeRD(var dataset: RegionOperator, groups: Option[MetaGroupOperator]) extends RegionOperator {
-  override def getChildren: List[IROperator] = List(dataset)
+  override def getDependencies: List[IROperator] = List(dataset)
 }
 
 /**
@@ -321,10 +375,7 @@ case class IRMergeRD(var dataset: RegionOperator, groups: Option[MetaGroupOperat
   */
 case class IRJoinBy(condition: MetaJoinCondition, var left_dataset: MetaOperator,
                     var right_dataset: MetaOperator) extends MetaJoinOperator {
-  override def getChildren: List[IROperator] = List(left_dataset, right_dataset)
-
-  override def left: Option[IROperator] = Some(left_dataset)
-  override def right: Option[IROperator] = Some(right_dataset)
+  override def getDependencies: List[IROperator] = List(left_dataset, right_dataset)
 }
 
 /**
@@ -337,9 +388,7 @@ case class IRCombineMD(grouping: OptionalMetaJoinOperator, var left_dataset: Met
                        var right_dataset: MetaOperator,
                        region_builder: Option[RegionBuilder] = None, left_ds_name: String = "left",
                        right_ds_name: String = "right") extends MetaOperator {
-  override def getChildren: List[IROperator] = List(left_dataset, right_dataset)
-  override def left: Option[IROperator] = Some(left_dataset)
-  override def right: Option[IROperator] = Some(right_dataset)
+  override def getDependencies: List[IROperator] = List(left_dataset, right_dataset)
 }
 
 /**
@@ -351,9 +400,7 @@ case class IRCombineMD(grouping: OptionalMetaJoinOperator, var left_dataset: Met
 case class IRDiffCombineMD(grouping: OptionalMetaJoinOperator, var left_dataset: MetaOperator,
                            var right_dataset: MetaOperator,
                            left_ds_name: String = "left", right_ds_name: String = "right") extends MetaOperator {
-  override def getChildren: List[IROperator] = List(left_dataset, right_dataset)
-  override def left: Option[IROperator] = Some(left_dataset)
-  override def right: Option[IROperator] = Some(right_dataset)
+  override def getDependencies: List[IROperator] = List(left_dataset, right_dataset)
 }
 
 /**
@@ -364,7 +411,7 @@ case class IRDiffCombineMD(grouping: OptionalMetaJoinOperator, var left_dataset:
   * @param input_dataset the metadata set
   */
 case class IRCollapseMD(grouping: Option[MetaGroupOperator], var input_dataset: MetaOperator) extends MetaOperator {
-  override def getChildren: List[IROperator] = List(input_dataset)
+  override def getDependencies: List[IROperator] = List(input_dataset)
 }
 
 /**
@@ -380,9 +427,7 @@ case class IRDifferenceRD(meta_join: OptionalMetaJoinOperator,
                           var left_dataset: RegionOperator,
                           var right_dataset: RegionOperator,
                           exact: Boolean = false) extends RegionOperator {
-  override def getChildren: List[IROperator] = List(left_dataset, right_dataset)
-  override def left: Option[IROperator] = Some(left_dataset)
-  override def right: Option[IROperator] = Some(right_dataset)
+  override def getDependencies: List[IROperator] = List(left_dataset, right_dataset)
 }
 
 /**
@@ -402,9 +447,7 @@ case class IRGenometricJoin(metajoin_condition: OptionalMetaJoinOperator,
                             join_on_attributes: Option[List[(Int, Int)]],
                             var left_dataset: RegionOperator,
                             var right_dataset: RegionOperator) extends RegionOperator {
-  override def getChildren: List[IROperator] = List(left_dataset, right_dataset)
-  override def left: Option[IROperator] = Some(left_dataset)
-  override def right: Option[IROperator] = Some(right_dataset)
+  override def getDependencies: List[IROperator] = List(left_dataset, right_dataset)
 }
 
 /**
@@ -417,9 +460,7 @@ case class IRGenometricJoin(metajoin_condition: OptionalMetaJoinOperator,
   */
 case class IRGenometricMap(grouping: OptionalMetaJoinOperator, aggregates: List[RegionAggregate.RegionsToRegion],
                            var reference: RegionOperator, var samples: RegionOperator) extends RegionOperator {
-  override def getChildren: List[IROperator] = List(reference, samples)
-  override def left: Option[IROperator] = Some(reference)
-  override def right: Option[IROperator] = Some(samples)
+  override def getDependencies: List[IROperator] = List(reference, samples)
 }
 
 /**
@@ -431,9 +472,7 @@ case class IRGenometricMap(grouping: OptionalMetaJoinOperator, aggregates: List[
   */
 case class IRUnionMD(var left_dataset: MetaOperator, var right_dataset: MetaOperator,
                      left_ds_name: String = "right", right_ds_name: String = "left") extends MetaOperator {
-  override def getChildren: List[IROperator] = List(left_dataset, right_dataset)
-  override def left: Option[IROperator] = Some(left_dataset)
-  override def right: Option[IROperator] = Some(right_dataset)
+  override def getDependencies: List[IROperator] = List(left_dataset, right_dataset)
 }
 
 /**
@@ -446,9 +485,7 @@ case class IRUnionMD(var left_dataset: MetaOperator, var right_dataset: MetaOper
   */
 case class IRUnionAggMD(var left_dataset: MetaOperator, var right_dataset: MetaOperator,
                         left_ds_name: String = "right", right_ds_name: String = "left") extends MetaOperator {
-  override def getChildren: List[IROperator] = List(left_dataset, right_dataset)
-  override def left: Option[IROperator] = Some(left_dataset)
-  override def right: Option[IROperator] = Some(right_dataset)
+  override def getDependencies: List[IROperator] = List(left_dataset, right_dataset)
 }
 
 /**
@@ -465,7 +502,5 @@ case class IRUnionAggMD(var left_dataset: MetaOperator, var right_dataset: MetaO
   */
 case class IRUnionRD(schema_reformatting: List[Int], var left_dataset: RegionOperator,
                      var right_dataset: RegionOperator) extends RegionOperator {
-  override def getChildren: List[IROperator] = List(left_dataset, right_dataset)
-  override def left: Option[IROperator] = Some(left_dataset)
-  override def right: Option[IROperator] = Some(right_dataset)
+  override def getDependencies: List[IROperator] = List(left_dataset, right_dataset)
 }

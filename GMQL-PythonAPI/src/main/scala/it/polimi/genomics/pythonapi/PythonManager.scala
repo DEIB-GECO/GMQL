@@ -322,7 +322,7 @@ object PythonManager {
         }
       case _ =>
     }
-    dag.getChildren.map(operator => modify_dag_source(operator, source, dest))
+    dag.getDependencies.map(operator => modify_dag_source(operator, source, dest))
   }
 
   /*Spark context related*/

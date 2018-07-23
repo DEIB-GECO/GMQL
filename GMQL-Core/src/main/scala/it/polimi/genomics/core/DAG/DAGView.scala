@@ -56,7 +56,7 @@ class DAGView(val dag: DAG,  val name:String) extends JFrame {
 
     var index = 0
 
-    for (child: IROperator <- cur.getChildren) {
+    for (child: IROperator <- cur.getDependencies) {
       // println(cur.getClass.getSimpleName+" -> "+child.getClass.getSimpleName)
 
       var child_vertex: AnyRef = null

@@ -75,11 +75,11 @@ class MetaFirstOptimizer(decoratedOptimizer: GMQLOptimizer)
 
   private def checkMetaToRegion(op: IROperator): Boolean = {
     // The node is META and has a REGION children --> not meta-separable
-    if(op.isMetaOperator && op.getRegionChildren.nonEmpty)
+    if(op.isMetaOperator && op.getRegionDependencies.nonEmpty)
       false
     // there are some children --> recursion
-    else if(op.getChildren.nonEmpty)
-      op.getChildren.map(checkMetaToRegion).forall(identity)
+    else if(op.getDependencies.nonEmpty)
+      op.getDependencies.map(checkMetaToRegion).forall(identity)
     else
     // there are no children --> True
       true

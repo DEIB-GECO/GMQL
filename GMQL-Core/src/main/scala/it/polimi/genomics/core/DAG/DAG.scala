@@ -30,7 +30,7 @@ class DAG (val raw: List[IROperator]) {
       new DAG( List[IROperator]() )
     }
 
-    for ( child <- root.getChildren ) {
+    for ( child <- root.getDependencies ) {
       result = result.union( _subDAG(nodeClass, new DAG( List(child) )) )
     }
 
@@ -40,7 +40,7 @@ class DAG (val raw: List[IROperator]) {
   // computes the depthWith Map, for each depth the number of nodes at that depth
   private def _depthWidth(root: IROperator, depth: Int): Unit = {
 
-    for ( child <- root.getChildren ) {
+    for ( child <- root.getDependencies ) {
      _depthWidth(child, depth+1)
     }
 
@@ -54,7 +54,7 @@ class DAG (val raw: List[IROperator]) {
 
   private def _markDown(node:IROperator): Unit = {
     node.requiresOutputProfile = true
-    node.getChildren.foreach(_markDown)
+    node.getDependencies.foreach(_markDown)
   }
 
 
@@ -67,6 +67,13 @@ class DAG (val raw: List[IROperator]) {
   def subDAG( nodeClass : Class[_] ): DAG = {
     raw.map(x => _subDAG(nodeClass,  new DAG( List(x) ) ) ).reduce( (x,y) => x.union(y) )
   }
+
+//  def subDAG(pred: IROperator => Boolean): DAG = {
+//    def _subdDAG(dag: DAG, pred:IROperator => Boolean): DAG = {
+//
+//    }
+//    raw.map(x => )
+//  }
 
   def union( other : DAG ) : DAG  = {
     new DAG( raw.union( other.raw ).distinct ) //check it is expectd result
