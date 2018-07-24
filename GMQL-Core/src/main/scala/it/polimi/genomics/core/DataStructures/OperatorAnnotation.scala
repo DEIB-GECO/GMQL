@@ -1,9 +1,9 @@
 package it.polimi.genomics.core.DataStructures
 
 sealed trait OperatorAnnotation {
-  val annotation : String
+  val message : String
 }
 
 case object SPLIT_POINT extends OperatorAnnotation{
-  override val annotation: String = "SPLIT_POINT"
+  override val message: String = "SPLIT_POINT"
 }
