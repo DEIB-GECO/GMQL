@@ -8,8 +8,9 @@ import javax.swing.{JFrame, WindowConstants}
 import java.awt.Dimension
 import java.awt.Toolkit
 
-import scala.collection.JavaConversions._
+import com.mxgraph.layout._
 
+import scala.collection.JavaConversions._
 import it.polimi.genomics.core.DataStructures.IROperator
 
 class DAGView(val dag: DAG,  val name:String) extends JFrame {
@@ -100,8 +101,11 @@ class DAGView(val dag: DAG,  val name:String) extends JFrame {
     generateDAG(node, v, 1, fatherX)
     index += 1
   }
-
+  val layout2 = new mxParallelEdgeLayout(graph)
+  layout2.execute(graph.getDefaultParent)
   // Stop graph editing
+  graph.setAllowDanglingEdges(false)
+  graph.setConnectableEdges(false)
   graph.getModel().endUpdate()
 
   // parentSome.setEnabled(false)
