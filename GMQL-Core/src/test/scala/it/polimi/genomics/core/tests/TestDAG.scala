@@ -1,6 +1,6 @@
 package it.polimi.genomics.core.tests
 
-import it.polimi.genomics.core.DAG.DAG
+import it.polimi.genomics.core.DAG.{DAG, DAGFrame}
 import it.polimi.genomics.core.DataStructures.CoverParameters.{ALL, CoverFlag}
 import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
 import it.polimi.genomics.core.DataStructures.MetadataCondition.{META_OP, Predicate}
@@ -65,8 +65,14 @@ object TestDAG extends App {
   ))
 
   //dag.plot("Example")
-  dag.subDAG(x => x.isInstanceOf[MetaOperator]).plot("Example")
+  //dag.subDAG(x => x.isInstanceOf[MetaOperator]).plot("Example")
+  val dagFrame = new DAGFrame(dag)
+  dagFrame.setSize(400, 320)
+  dagFrame.setVisible(true)
   println("v1 sources\t" + v1.regionDag.sources.union(v1.metaDag.sources))
   println("v2 sources\t" + v2.regionDag.sources.union(v2.metaDag.sources))
   println("v3 sources\t" + v3.regionDag.sources.union(v3.metaDag.sources))
+
+  val resIRVariables = new DAG(dag.toVariables(binning)).raw.toSet == dag.raw.toSet
+  println(resIRVariables)
 }

@@ -48,6 +48,14 @@ class DAGView(val dag: DAG,  val name:String) extends JFrame {
   graph.getModel.beginUpdate
 
 
+  def getVertexDims(text: String): (Double, Double) = {
+    val lines = text.split("\n")
+    val nLines = lines.length
+    val maxWidth = lines.map(x => x.length).max
+
+    (maxWidth*10, nLines*20)
+  }
+
   // Recursive function used to generate the graph
   def generateDAG(cur: IROperator, cur_vertex: AnyRef, depth: Int, fatherX: Double): Unit = {
 
@@ -71,9 +79,9 @@ class DAGView(val dag: DAG,  val name:String) extends JFrame {
         //val style = "fontColor=white ; fillColor=" + (if (child.isMetaOperator) RED else BLUE) +";"
         val style = if (child.isMetaOperator) "fillColor="+ORANGE+";" else ""
 
-        val name = child.getClass.getSimpleName + (if(child.requiresOutputProfile) " *" else "")
-
-        child_vertex = graph.insertVertex(parentSome, null, name , newFatherX, 10 + 100 * depth, 80, 30, style)
+        val name = child + (if(child.requiresOutputProfile) " *" else "")
+        val vSize = getVertexDims(name)
+        child_vertex = graph.insertVertex(parentSome, null, name , newFatherX, 10 + 100 * depth, vSize._1, vSize._2, style)
 
         // add the node and the graphic element to the mapping
         mapping += (child -> child_vertex)
@@ -83,7 +91,6 @@ class DAGView(val dag: DAG,  val name:String) extends JFrame {
       }
 
       graph.insertEdge(parentSome, null, "", cur_vertex, child_vertex)
-
       index += 1
     }
   }
@@ -95,7 +102,8 @@ class DAGView(val dag: DAG,  val name:String) extends JFrame {
 
     val style = "fillColor=" + (if (node.isMetaOperator) ORANGE1 else BLUE1)
     val fatherX = 80*dag.depth + index * 40 * dag.maxWidth
-    val v = graph.insertVertex(parentSome, null, node.getClass.getSimpleName, fatherX, 10, 80, 30, style)
+    val vSize = getVertexDims(node.toString)
+    val v = graph.insertVertex(parentSome, null, node, fatherX, 10, vSize._1, vSize._2, style)
 
 
     generateDAG(node, v, 1, fatherX)
