@@ -13,6 +13,7 @@ import com.mxgraph.layout._
 import scala.collection.JavaConversions._
 import it.polimi.genomics.core.DataStructures.IROperator
 
+@deprecated("Substituted with DAGFrame")
 class DAGView(val dag: DAG,  val name:String) extends JFrame {
 
   // Maps the IROperator to the respective graph component
