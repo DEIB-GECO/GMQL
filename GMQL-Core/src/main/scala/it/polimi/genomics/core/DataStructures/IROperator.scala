@@ -5,8 +5,8 @@ package it.polimi.genomics.core.DataStructures
  */
 abstract class IROperator extends Serializable {
 
-  val operatorName: String = this.getClass.getName
-    .substring(this.getClass.getName.lastIndexOf('.')+1) + " " + this.hashCode()
+  val operatorName: String = this.getClass.getSimpleName
+    //.substring(this.getClass.getName.lastIndexOf('.')+1) + " " + this.hashCode()
 
   /** A list of annotations which can be attached to the operator */
   val annotations: Set[OperatorAnnotation] = Set()
@@ -24,6 +24,8 @@ abstract class IROperator extends Serializable {
   def getRegionDependencies: List[IROperator] = this.getDependencies.filter(p => p.isRegionOperator)
   def getMetaDependencies: List[IROperator] = this.getDependencies.filter(p => p.isMetaOperator)
 
+  //def getDependenciesSources: List[IROperator]
+
   /*This is very bad software engineering...but it is impossible to do differently
   * due to the software architecture... :(*/
   def isRegionOperator: Boolean = false
@@ -33,7 +35,7 @@ abstract class IROperator extends Serializable {
 
   //def substituteDependency(previousDependency: IROperator, newDependency: IROperator): IROperator
 
-  override def toString: String = operatorName
+  override def toString: String = operatorName + (if(sources.nonEmpty) "\n" + sources.mkString(",") else "")
 }
 
 /** Indicates a IROperator which returns a metadata dataset */
