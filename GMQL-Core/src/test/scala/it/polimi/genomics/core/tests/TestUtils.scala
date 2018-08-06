@@ -33,7 +33,7 @@ object TestUtils {
   def materializeIRVariable(v: IRVariable, outputName: String): IRVariable = {
     val dag_md = IRStoreMD(outputName, v.metaDag, IRDataSet(outputName, List[(String,PARSING_TYPE)]().asJava))
     val dag_rd = IRStoreRD(outputName, v.regionDag, v.metaDag, v.schema ,IRDataSet(outputName, List[(String,PARSING_TYPE)]().asJava))
-    IRVariable(dag_md, dag_rd, v.schema)(binning)
+    IRVariable(dag_md, dag_rd, v.schema, dependencies = List(v))(binning)
   }
 
   def getRegionsToRegion = new RegionsToRegion {
