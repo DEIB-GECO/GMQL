@@ -6,7 +6,7 @@ import com.mxgraph.view.mxGraph
 import it.polimi.genomics.core.DataStructures.IROperator
 import javax.swing.JFrame
 
-class DAGFrame(dag: DAG) extends JFrame{
+class DAGFrame(dag: DAG, squeeze: Boolean = true) extends JFrame{
 
   private final val ORANGE = "#f89610"
   private final val GREEN = "#32e113"
@@ -15,10 +15,6 @@ class DAGFrame(dag: DAG) extends JFrame{
   private val mappingOpToOpEdge = collection.mutable.Map[(Object, Object), Object]()
   val graph = new mxGraph
   val graphLayout = new mxHierarchicalLayout(graph)
-//  graphLayout.setNodeDistance(10)
-//  graphLayout.setLevelDistance(30)
-//  graphLayout.setUseBoundingBox(false)
-//  graphLayout.setEdgeRouting(false)
 
   val graphParent = graph.getDefaultParent
 
@@ -45,7 +41,7 @@ class DAGFrame(dag: DAG) extends JFrame{
     val nodeSize = getVertexDims(node.toString)
 
     val nodeVertex = {
-      if(mappingOpToVertex.contains(node))
+      if(mappingOpToVertex.contains(node) && this.squeeze)
         mappingOpToVertex(node)
       else {
         val v = graph.insertVertex(graphParent, null, node.toString, 0, 0, nodeSize._1, nodeSize._2, style)
@@ -56,7 +52,7 @@ class DAGFrame(dag: DAG) extends JFrame{
     if(node.getDependencies.nonEmpty){
       val childVertices = node.getDependencies.map(drawDAG)
       childVertices.map(x => {
-        if(mappingOpToOpEdge.contains((x, nodeVertex)))
+        if(mappingOpToOpEdge.contains((x, nodeVertex)) && this.squeeze)
           mappingOpToOpEdge((x, nodeVertex))
         else{
           val e = graph.insertEdge(graphParent, null, "", x, nodeVertex)
