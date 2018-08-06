@@ -2,7 +2,6 @@ package it.polimi.genomics.core.DAG
 
 import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
 import it.polimi.genomics.core.DataStructures._
-import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 
 class DAG (val raw: List[IROperator]) {
   private val depthWidth: collection.mutable.Map[Int, Int] = collection.mutable.Map[Int, Int]()
@@ -124,12 +123,6 @@ class DAG (val raw: List[IROperator]) {
       raw.foreach(x => _depthWidth( x , 0 ))
     }
     depthWidth.keys.max
-  }
-
-  def plot(title:String): DAGView = {
-
-    new DAGView(this, title)
-
   }
 
   //  /**
