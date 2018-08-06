@@ -6,6 +6,16 @@ import com.mxgraph.view.mxGraph
 import it.polimi.genomics.core.DataStructures.IROperator
 import javax.swing.JFrame
 
+object DAGDraw {
+  def getVertexDims(text: String): (Double, Double) = {
+    val lines = text.split("\n")
+    val nLines = lines.length
+    val maxWidth = lines.map(x => x.length).max
+
+    (maxWidth*10, nLines*20)
+  }
+}
+
 class DAGFrame(dag: DAG, squeeze: Boolean = true) extends JFrame{
 
   private final val ORANGE = "#f89610"
@@ -20,13 +30,6 @@ class DAGFrame(dag: DAG, squeeze: Boolean = true) extends JFrame{
 
   graph.getModel.beginUpdate()
 
-  private def getVertexDims(text: String): (Double, Double) = {
-    val lines = text.split("\n")
-    val nLines = lines.length
-    val maxWidth = lines.map(x => x.length).max
-
-    (maxWidth*10, nLines*20)
-  }
 
   private def getStyle(node: IROperator): String = {
     val fillColor = "fillColor="+ {
@@ -38,7 +41,7 @@ class DAGFrame(dag: DAG, squeeze: Boolean = true) extends JFrame{
 
   private def drawDAG(node: IROperator): Object = {
     val style = getStyle(node)
-    val nodeSize = getVertexDims(node.toString)
+    val nodeSize = DAGDraw.getVertexDims(node.toString)
 
     val nodeVertex = {
       if(mappingOpToVertex.contains(node) && this.squeeze)
