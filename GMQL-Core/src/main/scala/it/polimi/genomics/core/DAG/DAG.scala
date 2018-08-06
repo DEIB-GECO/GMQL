@@ -23,6 +23,11 @@ class DAG (val raw: List[IROperator]) {
     * @return a list of IRVariable
     */
   def toVariables(implicit binning: BinningParameter): List[IRVariable] = {
+    this.getAssociations.map {case (m, r) => IRVariable(m, r, r.schema)(binning)}
+  }
+
+
+  def getAssociations: List[(IRStoreMD, IRStoreRD)] = {
     if(checkVariableConsistency) {
       def getMap(op: IROperator): (IRDataSet, IROperator) = {
         op match {
@@ -30,22 +35,23 @@ class DAG (val raw: List[IROperator]) {
           case IRStoreRD(_, _, _, _, dataSet) => (dataSet, op)
         }
       }
+
       // Grouping IRVariables together
       val outputDatasets: Map[IRDataSet, List[IROperator]] = this.raw.map(getMap)
-        .groupBy( _._1 ).mapValues(_.map(x => x._2))
+        .groupBy(_._1).mapValues(_.map(x => x._2))
 
-      def getDagParts(l: List[IROperator]): (IRStoreMD, IRStoreRD, List[(String, PARSING_TYPE)]) = {
-        if(l.length != 2)
+      def getDagParts(l: List[IROperator]): (IRStoreMD, IRStoreRD) = {
+        if (l.length != 2)
           throw new IllegalStateException("A dataset is an output of multiple IRVariables!")
-        else{
+        else {
           val metaDag = l.filter { case IRStoreMD(_, _, _) => true; case _ => false }.head.asInstanceOf[IRStoreMD]
           val regionDag = l.filter { case IRStoreRD(_, _, _, _, _) => true; case _ => false }.head.asInstanceOf[IRStoreRD]
-          (metaDag,regionDag,regionDag.schema)
+          (metaDag, regionDag)
         }
       }
+
       outputDatasets.map(x => {
-        val p = getDagParts(x._2)
-        IRVariable(p._1, p._2, p._3)(binning)
+        getDagParts(x._2)
       }).toList
     }
     else
