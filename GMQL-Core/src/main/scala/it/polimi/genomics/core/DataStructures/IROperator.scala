@@ -9,9 +9,17 @@ abstract class IROperator extends Serializable {
     //.substring(this.getClass.getName.lastIndexOf('.')+1) + " " + this.hashCode()
 
   /** A list of annotations which can be attached to the operator */
-  val annotations: Set[OperatorAnnotation] = Set()
+  val annotations: collection.mutable.Set[OperatorAnnotation] = collection.mutable.Set()
+
+  def addAnnotation(annotation: OperatorAnnotation): Unit = annotations += annotation
+  def removeAnnotation(annotation: OperatorAnnotation): Unit = annotations.remove(annotation)
+
   /** A list of the source datasets which are used by this operator */
   def sources: Set[IRDataSet] = this.getDependencies.foldLeft(Set.empty[IRDataSet])((x, y) => x union y.sources)
+
+  /** Returns the set of GMQLInstance which the source datasets come from*/
+  def sourceInstances: Set[GMQLInstance] = this.sources.map(_.instance)
+
   /** Optional intermediate result stored to speed up computations */
   var intermediateResult : Option[AnyRef] = None
 
@@ -35,7 +43,9 @@ abstract class IROperator extends Serializable {
 
   //def substituteDependency(previousDependency: IROperator, newDependency: IROperator): IROperator
 
-  override def toString: String = operatorName + (if(sources.nonEmpty) "\n" + sources.mkString(",") else "")
+  override def toString: String = operatorName +
+    (if(sources.nonEmpty) "\n" + sources.mkString(",") else "") +
+    (if(annotations.nonEmpty) "\n" + annotations.mkString(",") else "")
 }
 
 /** Indicates a IROperator which returns a metadata dataset */
