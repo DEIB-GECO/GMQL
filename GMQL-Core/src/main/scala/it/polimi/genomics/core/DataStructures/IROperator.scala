@@ -1,24 +1,17 @@
 package it.polimi.genomics.core.DataStructures
 
+import it.polimi.genomics.core.DAG.DAGNode
+
 /**
  * It represent a generic Intermediate Representation Dag operator
  */
-abstract class IROperator extends Serializable {
+abstract class IROperator extends Serializable with DAGNode[IROperator] {
 
   val operatorName: String = this.getClass.getSimpleName
     //.substring(this.getClass.getName.lastIndexOf('.')+1) + " " + this.hashCode()
 
-  /** A list of annotations which can be attached to the operator */
-  val annotations: collection.mutable.Set[OperatorAnnotation] = collection.mutable.Set()
-
-  def addAnnotation(annotation: OperatorAnnotation): Unit = annotations += annotation
-  def removeAnnotation(annotation: OperatorAnnotation): Unit = annotations.remove(annotation)
-
   /** A list of the source datasets which are used by this operator */
-  def sources: Set[IRDataSet] = this.getDependencies.foldLeft(Set.empty[IRDataSet])((x, y) => x union y.sources)
-
-  /** Returns the set of GMQLInstance which the source datasets come from*/
-  def sourceInstances: Set[GMQLInstance] = this.sources.map(_.instance)
+  override def sources: Set[IRDataSet] = this.getDependencies.foldLeft(Set.empty[IRDataSet])((x, y) => x union y.sources)
 
   /** Optional intermediate result stored to speed up computations */
   var intermediateResult : Option[AnyRef] = None
@@ -28,11 +21,8 @@ abstract class IROperator extends Serializable {
   var outputProfile: Option[GMQLDatasetProfile] = None
 
   /** DAG utilities for working with dependencies*/
-  def getDependencies: List[IROperator]
   def getRegionDependencies: List[IROperator] = this.getDependencies.filter(p => p.isRegionOperator)
   def getMetaDependencies: List[IROperator] = this.getDependencies.filter(p => p.isMetaOperator)
-
-  //def getDependenciesSources: List[IROperator]
 
   /*This is very bad software engineering...but it is impossible to do differently
   * due to the software architecture... :(*/
@@ -40,8 +30,6 @@ abstract class IROperator extends Serializable {
   def isMetaOperator: Boolean = false
   def isMetaGroupOperator: Boolean = false
   def isMetaJoinOperator: Boolean = false
-
-  //def substituteDependency(previousDependency: IROperator, newDependency: IROperator): IROperator
 
   override def toString: String = operatorName +
     (if(sources.nonEmpty) "\n" + sources.mkString(",") else "") +

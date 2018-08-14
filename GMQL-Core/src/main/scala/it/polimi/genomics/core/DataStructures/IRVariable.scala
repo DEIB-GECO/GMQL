@@ -1,5 +1,6 @@
 package it.polimi.genomics.core.DataStructures
 
+import it.polimi.genomics.core.DAG.DAGNode
 import it.polimi.genomics.core.DataStructures.CoverParameters.CoverFlag.CoverFlag
 import it.polimi.genomics.core.DataStructures.CoverParameters.CoverParam
 import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
@@ -28,7 +29,7 @@ import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
                       schema: List[(String, PARSING_TYPE)] = List.empty,
                       dependencies: List[IRVariable] = List(),
-                      name: String = "")(implicit binS: BinningParameter) extends Serializable {
+                      name: String = "")(implicit binS: BinningParameter) extends Serializable with DAGNode[IRVariable]{
 
   override def toString: String = {
     metaDag match {
@@ -38,8 +39,9 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
     }
   }
 
-  def sources: Set[IRDataSet] = this.metaDag.sources union this.regionDag.sources
-  def sourceInstances: Set[GMQLInstance] = this.sources.map(_.instance)
+  /** Returns the list of dependencies of the node */
+  override def getDependencies: List[IRVariable] = this.dependencies
+  override def sources: Set[IRDataSet] = this.metaDag.sources union this.regionDag.sources
 
   def SELECT(meta_con: MetadataCondition): IRVariable = {
     add_select_statement(external_meta = None, semi_join_condition = None, meta_condition = Some(meta_con), region_condition = None)
@@ -553,5 +555,4 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
       .toList
 
   }
-
 }

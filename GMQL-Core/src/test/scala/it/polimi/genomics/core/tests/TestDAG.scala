@@ -1,6 +1,6 @@
 package it.polimi.genomics.core.tests
 
-import it.polimi.genomics.core.DAG.{DAG, DAGFrame, VariableDAG, VariableDAGFrame}
+import it.polimi.genomics.core.DAG.{VariableDAG, VariableDAGFrame}
 import it.polimi.genomics.core.DataStructures._
 
 import scala.util.Random
@@ -9,15 +9,15 @@ import scala.util.Random
 object TestDAG extends App {
 
   val query = TestQueries.query3
-  val dag = new DAG(query)
+  //val dag = new DAG(query)
   val variableDAG = new VariableDAG(query)
 
-  val resIRVariables = new DAG(dag.toVariables(TestUtils.binning)).raw.toSet == dag.raw.toSet
-  println(resIRVariables)
+//  val resIRVariables = new DAG(dag.toVariables(TestUtils.binning)).raw.toSet == dag.raw.toSet
+//  println(resIRVariables)
 
 
-  def annotateDAGwithExecutionInstances(dag: DAG): DAG = {
-    def randomAnnotator(op: IROperator): Unit = {
+  def annotateDAGwithExecutionInstances(dag: VariableDAG): VariableDAG = {
+    def randomAnnotator(op: IRVariable): Unit = {
 
       // get the instance from the source set of the operator
       val selectedInstance = op.sourceInstances.toList(new Random()
@@ -30,24 +30,40 @@ object TestDAG extends App {
       }
       if(op.getDependencies.nonEmpty) op.getDependencies.foreach(randomAnnotator)
     }
-    dag.raw.foreach(randomAnnotator)
+    dag.roots.foreach(randomAnnotator)
     dag
   }
 
-//  def splitDAGBasedOnExecutionInstances(dag: DAG): DAG = {
-//    def splitPoint
-//    dag.subDAG()
-//  }
+  def splitDAGBasedOnExecutionInstances(dag: VariableDAG): VariableDAG = {
+    def getExecutedOnAnn(i: IRVariable): GMQLInstance = {
+      i.annotations.collect {case EXECUTED_ON(instance) => instance} head
+    }
 
-  annotateDAGwithExecutionInstances(dag)
+    def checkCondition(xInstance: GMQLInstance, depInstances: List[GMQLInstance]): Boolean = {
+      val depInstancesDistinct = depInstances.distinct
+      (depInstancesDistinct.length == 1) && depInstancesDistinct.contains(xInstance)
+    }
 
-  val dagFrame = new DAGFrame(dag, squeeze = true)
-  dagFrame.setSize(1000, 600)
-  dagFrame.setVisible(true)
+    dag.subDAG(x => {
+      val xInstance = getExecutedOnAnn(x)
+      val depInstances = x.getDependencies.map(getExecutedOnAnn)
+      checkCondition(xInstance, depInstances)
+    })
+  }
+
+    annotateDAGwithExecutionInstances(variableDAG)
+    val splitDAG = splitDAGBasedOnExecutionInstances(variableDAG)
+//  val dagFrame = new DAGFrame(dag, squeeze = true)
+//  dagFrame.setSize(1000, 600)
+//  dagFrame.setVisible(true)
 
 
-  val variableDAGFrame = new VariableDAGFrame(variableDAG)
+  val variableDAGFrame = new VariableDAGFrame(variableDAG, squeeze = true)
   variableDAGFrame.setSize(1000, 600)
   variableDAGFrame.setVisible(true)
+
+  val variableDAGFrameSplit = new VariableDAGFrame(splitDAG, squeeze = true)
+  variableDAGFrameSplit.setSize(1000, 600)
+  variableDAGFrameSplit.setVisible(true)
 
 }

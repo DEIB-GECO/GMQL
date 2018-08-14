@@ -1,9 +1,7 @@
 package it.polimi.genomics.core.tests
 
-import it.polimi.genomics.core.DAG.DAG
 import it.polimi.genomics.core.DataStructures.CoverParameters.{ALL, CoverFlag}
 import it.polimi.genomics.core.DataStructures.{IRVariable, Instance}
-import it.polimi.genomics.core.DataStructures.JoinParametersRD.JoinQuadruple
 import it.polimi.genomics.core.DataStructures.MetadataCondition.{META_OP, Predicate}
 import it.polimi.genomics.core.DataStructures.RegionCondition.{REG_OP, StartCondition}
 
