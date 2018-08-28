@@ -63,11 +63,11 @@ object Profiler extends java.io.Serializable {
 
   }
 
-  case class ProfilerValue(leftMost: Long, rightMost: Long, minLength: Long, maxLength: Long, sumLength: Long, sumLengthOfSquares: Long, count: Long)
+  case class ProfilerValue(leftMost: Long, rightMost: Long, minLength: Long, maxLength: Long, sumLength: Long, sumLengthOfSquares: Long, count: Long, samples_count: Long)
 
-  case class ProfilerResult(leftMost: Long, rightMost: Long, minLength: Long, maxLength: Long, count: Long, avgLength: Double, varianceLength: Double)
+  case class ProfilerResult(samples_count: Long, leftMost: Long, rightMost: Long, minLength: Long, maxLength: Long, count: Long, avgLength: Double, varianceLength: Double)
 
-  val zeroProfilerValue = ProfilerValue(Long.MaxValue, Long.MinValue, Long.MaxValue, Long.MinValue, 0, 0, 0)
+  val zeroProfilerValue = ProfilerValue(Long.MaxValue, Long.MinValue, Long.MaxValue, Long.MinValue, 0, 0, 0, 1)
 
   val reduceFunc: (ProfilerValue, ProfilerValue) => ProfilerValue = {
     case (l: ProfilerValue, r: ProfilerValue) =>
@@ -78,7 +78,8 @@ object Profiler extends java.io.Serializable {
         math.max(l.maxLength, r.maxLength),
         l.sumLength + r.sumLength,
         l.sumLengthOfSquares + r.sumLengthOfSquares,
-        l.count + r.count
+        l.count + r.count,
+        l.samples_count + r.samples_count
       )
   }
 
@@ -86,10 +87,10 @@ object Profiler extends java.io.Serializable {
     if (profile.count > 0) {
       val mean = profile.sumLength.toDouble / profile.count
       val variance = profile.sumLengthOfSquares.toDouble / profile.count - mean * mean
-      ProfilerResult(profile.leftMost, profile.rightMost, profile.minLength, profile.maxLength, profile.count, mean, variance)
+      ProfilerResult(profile.samples_count, profile.leftMost, profile.rightMost, profile.minLength, profile.maxLength, profile.count, mean, variance)
     }
     else
-      ProfilerResult(0, 0, 0, 0, profile.count, 0, 0)
+      ProfilerResult(0, 0, 0, 0, 0, profile.count, 0, 0)
   }
 
   /**
@@ -129,7 +130,7 @@ object Profiler extends java.io.Serializable {
         .map { x =>
           val gRecordKey = x._1
           val distance = gRecordKey.stop - gRecordKey.start
-          val profiler = ProfilerValue(gRecordKey.start, gRecordKey.stop, distance, distance, distance, distance * distance, 1)
+          val profiler = ProfilerValue(gRecordKey.start, gRecordKey.stop, distance, distance, distance, distance * distance, 1, 1)
           ((gRecordKey.id, gRecordKey.chrom), profiler)
         }
 
@@ -191,7 +192,7 @@ object Profiler extends java.io.Serializable {
 
       val dsProfile = GMQLDatasetProfile(samples = sampleProfiles.toList)
 
-      dsProfile.stats += Feature.NUM_SAMP.toString -> names.size.toString
+      dsProfile.stats += Feature.NUM_SAMP.toString -> numToString(resultDsToSave.samples_count)
 
       dsProfile.stats += Feature.NUM_REG.toString -> numToString(resultDsToSave.count)
       dsProfile.stats += Feature.AVG_REG_LEN.toString -> numToString(resultDsToSave.avgLength)
