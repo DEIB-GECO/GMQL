@@ -9,8 +9,8 @@ import java.io.File
 import it.polimi.genomics.core.GDMSUserClass
 import it.polimi.genomics.core.GDMSUserClass.GDMSUserClass
 import it.polimi.genomics.repository.FSRepository.{DFSRepository, FS_Utilities, LFSRepository}
+import it.polimi.genomics.repository.federated.GF_Decorator
 import org.slf4j.{Logger, LoggerFactory}
-
 
 import scala.xml.XML
 
@@ -42,6 +42,12 @@ class Utilities() {
 
   // User Quota in KB
   var USER_QUOTA: Map[GDMSUserClass, Long] = Map()
+
+  // GMQL Federated
+  var GF_ENABLED = false
+  var GF_NAMESERVER_ADDRESS: Option[String] = None
+  var GF_NAMESPACE: Option[String] = None
+  var GF_TOKEN: Option[String] =  None
 
 
   /**
@@ -91,6 +97,12 @@ class Utilities() {
             USER_QUOTA += (user_class -> value.toLong)
 
           }
+
+
+          case Conf.GF_ENABLED => GF_ENABLED =  (value == "true")
+          case Conf.GF_NAMESERVER_ADDRESS => this.GF_NAMESERVER_ADDRESS = Some(value)
+          case Conf.GF_NAMESPACE => this.GF_NAMESPACE = Some(value)
+          case Conf.GF_TOKEN => this.GF_TOKEN = Some(value)
 
           case _ => logger.error(s"Not known configuration property: $x, $value")
         }
@@ -361,10 +373,20 @@ class Utilities() {
     * @return an implementation of GMQLRepository
     */
   def getRepository(): GMQLRepository = {
+
+    val repo =
+
     GMQL_REPO_TYPE match {
       case this.LOCAL  => new LFSRepository()
       case this.HDFS   => new DFSRepository()
     }
+
+    if (GF_ENABLED) {
+      println("GF_ENABLED")
+      new GF_Decorator(repo)
+    }
+    else
+      repo
   }
 
   def getHDFSNameSpace(): String = {
@@ -396,10 +418,15 @@ object Utilities {
 object Conf {
   val GMQL_LOCAL_HOME = "GMQL_LOCAL_HOME"
   val GMQL_REPO_TYPE = "GMQL_REPO_TYPE"
-  val GMQL_DFS_HOME = "GMQL_DFS_HOME";
-  val HADOOP_HOME = "HADOOP_HOME";
+  val GMQL_DFS_HOME = "GMQL_DFS_HOME"
+  val HADOOP_HOME = "HADOOP_HOME"
   val HADOOP_CONF_DIR = "HADOOP_CONF_DIR"
   val GMQL_CONF_DIR = "GMQL_CONF_DIR"
   val REMOTE_HDFS_NAMESPACE = "REMOTE_HDFS_NAMESPACE"
+
+  val GF_ENABLED = "GF_ENABLED"
+  val GF_NAMESERVER_ADDRESS = "GF_NAMESERVER_ADDRESS"
+  val GF_NAMESPACE = "GF_NAMESPACE"
+  val GF_TOKEN = "GF_TOKEN"
 
   val DISK_QUOTA = "DISK_QUOTA"}
