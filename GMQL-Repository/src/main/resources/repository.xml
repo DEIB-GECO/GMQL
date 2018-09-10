@@ -6,6 +6,11 @@
    ﻿<property name = "HADOOP_HOME">/usr/local/Cellar/hadoop/2.7.2/libexec/etc/hadoop/</property>
     <property name="REMOTE_HDFS_NAMESPACE">hdfs://your-host:8020/</property>
 
+    <property name="GF_ENABLED">false</property>
+    <property name="GF_NAMESERVER_ADDRESS">http://localhost:8000/api/</property>
+    <property name="GF_NAMESPACE">it.polimi</property>
+    <property name="GF_TOKEN">5449c95221145bdff746de1cf5c902f94a1898a0</property>
+
     <!--property name="DISK_QUOTA" user-category="GUEST">500000</property-->
     <!--property name="DISK_QUOTA" user-category="BASIC">5000000</property-->
     <!--property name="DISK_QUOTA" user-category="PRO">20000000</property-->
