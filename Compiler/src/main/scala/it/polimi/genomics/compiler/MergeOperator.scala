@@ -35,6 +35,9 @@ case class MergeOperator(op_pos : Position,
         case "groupby" => {
           meta_group = parser_named(rich_metadata_attribute_list,p.param_name.trim, p.param_value.trim)
         }
+        case "at" => {
+          parse_named_at(p.param_value)
+        }
 
       }
     }
@@ -43,6 +46,6 @@ case class MergeOperator(op_pos : Position,
   }
 
   override def translate_operator(status : CompilerStatus):CompilerDefinedVariable = {
-    CompilerDefinedVariable(output.name,output.pos,super_variable_left.get.MERGE(meta_group))
+    CompilerDefinedVariable(output.name,output.pos,super_variable_left.get.MERGE(meta_group, operator_location))
   }
 }

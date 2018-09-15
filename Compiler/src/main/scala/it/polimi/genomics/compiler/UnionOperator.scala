@@ -30,6 +30,14 @@ case class UnionOperator(op_pos : Position,
       throw new CompilerException(unsupported_default_parameter)
     }
 
+    for (n <- parameters.named) {
+      n.param_name.trim.toLowerCase match {
+        case "at" => {
+          parse_named_at(n.param_value)
+        }
+      }
+    }
+
     true
   }
 
@@ -38,7 +46,8 @@ case class UnionOperator(op_pos : Position,
     val unified = super_variable_left.get.UNION(
       super_variable_right.get,
       input1.name,
-      input2.get.name)
+      input2.get.name,
+      operator_location)
 
     CompilerDefinedVariable(output.name,output.pos,unified)
   }

@@ -54,6 +54,9 @@ case class OrderOperator(op_pos : Position,
         case "region_top" => { region_top = Top(parser_named(wholeNumber,n.param_name,n.param_value).get.toInt)}
         case "region_topg" => { region_top = TopG(parser_named(wholeNumber,n.param_name,n.param_value).get.toInt)}
         case "region_topp" => {region_top = TopP(parser_named(wholeNumber,n.param_name,n.param_value).get.toInt)}
+        case "at" => {
+          parse_named_at(n.param_value)
+        }
       }
     }
 
@@ -95,7 +98,8 @@ case class OrderOperator(op_pos : Position,
       "_order",
       meta_top,
       refined_region_ordering,
-      region_top)
+      region_top,
+      operator_location)
 
     CompilerDefinedVariable(output.name,output.pos,sorted)
   }

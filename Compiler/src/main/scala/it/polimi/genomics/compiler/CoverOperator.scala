@@ -84,6 +84,9 @@ abstract class RegionIntersectionOperator2(op_pos : Position,
           }
 
         }
+        case "at" => {
+          parse_named_at(p.param_value)
+        }
       }
     }
 
@@ -149,7 +152,13 @@ case class FlatOperator(op_pos : Position,
   override val operator_name = "FLAT"
   def translate_operator(status : CompilerStatus):CompilerDefinedVariable = {
 
-    val covered = super_variable_left.get.COVER(CoverFlag.FLAT,minAcc,maxAcc,refined_agg_function_list,meta_group)
+    val covered = super_variable_left.get.COVER(
+      CoverFlag.FLAT,
+      minAcc,
+      maxAcc,
+      refined_agg_function_list,
+      meta_group,
+      operator_location)
     CompilerDefinedVariable(output.name,output.pos,covered)
   }
 

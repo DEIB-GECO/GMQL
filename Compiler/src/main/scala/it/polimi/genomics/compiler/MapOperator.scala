@@ -101,9 +101,10 @@ case class MapOperator(op_pos : Position,
           }
 
           count_rename = count_provided_name
+        }
 
-
-
+        case "at" => {
+          parse_named_at(n.param_value)
         }
       }
     }
@@ -119,7 +120,8 @@ case class MapOperator(op_pos : Position,
       super_variable_right.get,
       Some(input1.name),
       Some(input2.get.name),
-      count_rename
+      count_rename,
+      operator_location
     )
 
     CompilerDefinedVariable(output.name,output.pos,mapped)

@@ -93,6 +93,9 @@ case class JoinOperator(op_pos : Position,
             "CONTIG, INT, LEFT, RIGHT, RIGHT_DISTINCT and LEFT_DISTINCT. "
           output_builder = parser_named(region_builder, n.param_name, n.param_value, Some(info)).get
         }
+        case "at" => {
+          parse_named_at(n.param_value)
+        }
       }
     }
 
@@ -135,7 +138,8 @@ case class JoinOperator(op_pos : Position,
       super_variable_right.get,
       Some(input1.name),
       Some(input2.get.name),
-      join_on_attributes = on_positions
+      join_on_attributes = on_positions,
+      operator_location
     )
 
     CompilerDefinedVariable(output.name,output.pos,joined)

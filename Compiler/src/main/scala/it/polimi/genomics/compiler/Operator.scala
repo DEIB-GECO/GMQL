@@ -3,7 +3,7 @@ package it.polimi.genomics.compiler
 import it.polimi.genomics.core.DataStructures.CoverParameters.CoverParam
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.Direction
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.TopParameter
-import it.polimi.genomics.core.DataStructures.IRVariable
+import it.polimi.genomics.core.DataStructures.{IRVariable, Instance}
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.AtomicCondition
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
 import it.polimi.genomics.core.DataStructures.MetaAggregate.{MENode, MetaAggregateFunction}
@@ -29,8 +29,11 @@ abstract class Operator (op_pos : Position,
   final val logger = LoggerFactory.getLogger(this.getClass)
   val operator_name : String
   val accepted_named_parameters : List[String]
+  final val default_named_parameters : List[String] = List("at")
   var super_variable_left : Option[IRVariable] = None
   var super_variable_right : Option[IRVariable] = None
+
+  var operator_location: Option[Instance] = None
 
   val unsupported_default_parameter = "Operator " + operator_name + " at line " + op_pos.line +
     " does not support default parameters"
@@ -84,7 +87,8 @@ abstract class Operator (op_pos : Position,
 
   def check_named_parameters() : Boolean = {
     for (x <- parameters.named) {
-      if (!accepted_named_parameters.contains(x.param_name.toLowerCase)) {
+      if (!accepted_named_parameters.contains(x.param_name.toLowerCase) &&
+          !default_named_parameters.contains(x.param_name.toLowerCase )) {
         val msg = "Operator " + operator_name + " at line " + op_pos.line + " does not accept parameter \"" + x.param_name + "\". " +
           "Available options are: " + accepted_named_parameters.mkString(", ")
         throw new CompilerException(msg)
@@ -133,6 +137,10 @@ abstract class Operator (op_pos : Position,
         None
       }
     }
+  }
+
+  def parse_named_at(value : String) = {
+    operator_location = Some(Instance(value))
   }
 
 
