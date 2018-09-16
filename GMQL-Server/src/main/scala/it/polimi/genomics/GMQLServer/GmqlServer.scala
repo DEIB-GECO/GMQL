@@ -21,7 +21,7 @@ class GmqlServer(var implementation : Implementation, binning_size : Option[Long
   var region_output_path : Option[String] = None
   var materializationList : mutable.MutableList[IRVariable] = mutable.MutableList()
 
-  var gmqlOptimizer: GMQLOptimizer = new MetaFirstOptimizer(new DefaultOptimizer)
+  var gmqlOptimizer: GMQLOptimizer = new DefaultOptimizer
 
   def run(graph : Boolean = false)={
     implementation.to_be_materialized ++= optimise(materializationList.toList)
