@@ -54,6 +54,14 @@ case class ExtendOperator(op_pos : Position,
       fun
     }
 
+    for (n <- parameters.named) {
+      n.param_name.trim.toLowerCase match {
+        case "at" => {
+          parse_named_at(n.param_value)
+        }
+      }
+    }
+
     if (refined_aggregate_function_list.isEmpty) {
       val msg = "At operator " + operator_name + " at line " + op_pos.line +
         " : empty parameter list is not allowed. Please specify some."
@@ -65,7 +73,7 @@ case class ExtendOperator(op_pos : Position,
 
   def translate_operator(status : CompilerStatus):CompilerDefinedVariable = {
 
-    val extended = super_variable_left.get.EXTEND(refined_aggregate_function_list)
+    val extended = super_variable_left.get.EXTEND(refined_aggregate_function_list, operator_location)
 
     CompilerDefinedVariable(output.name,output.pos,extended)
   }

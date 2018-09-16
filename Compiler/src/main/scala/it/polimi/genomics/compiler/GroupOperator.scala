@@ -154,6 +154,10 @@ case class GroupOperator(op_pos : Position,
           )
 
         }
+        case "at" => {
+          parse_named_at(p.param_value)
+        }
+
 
       }
     }
@@ -173,7 +177,8 @@ case class GroupOperator(op_pos : Position,
       refined_meta_aggregate_function_list,
       meta_group_name.getOrElse("_group"),
       region_keys,
-      refined_region_aggregate_function_list
+      refined_region_aggregate_function_list,
+      operator_location
     )
     CompilerDefinedVariable(output.name,output.pos,mapped)
   }

@@ -156,6 +156,10 @@
                 p.param_name.trim,
                 p.param_value.trim)
             }
+            case "at" => {
+              parse_named_at(p.param_value)
+            }
+
           }
         }
 
@@ -191,7 +195,8 @@
         meta_modifier,
         all_but_meta =  all_but_flag,
         projected_values = region_project_fields,
-        extended_values = region_modifier)
+        extended_values = region_modifier,
+        execute_location = operator_location)
 
       CompilerDefinedVariable(
         output.name,

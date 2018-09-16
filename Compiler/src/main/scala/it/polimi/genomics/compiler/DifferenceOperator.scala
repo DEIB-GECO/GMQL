@@ -46,6 +46,9 @@ case class DifferenceOperator(op_pos : Position,
                 n.param_name,
                 n.param_value).get
         }
+        case "at" => {
+          parse_named_at(n.param_value)
+        }
       }
     }
 
@@ -57,7 +60,8 @@ case class DifferenceOperator(op_pos : Position,
     val differenced = super_variable_left.get.DIFFERENCE(
       meta_join_param,
       super_variable_right.get,
-      diff_type
+      diff_type,
+      operator_location
     )
 
     CompilerDefinedVariable(output.name,output.pos,differenced)

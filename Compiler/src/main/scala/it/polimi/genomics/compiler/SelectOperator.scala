@@ -50,6 +50,9 @@ case class SelectOperator(op_pos : Position,
         case "parser" => {
           loader = parser_named(ident, n.param_name, n.param_value)
         }
+        case "at" => {
+          parse_named_at(n.param_value)
+        }
       }
     }
 
@@ -150,7 +153,14 @@ case class SelectOperator(op_pos : Position,
     CompilerDefinedVariable(
       output.name,
       output.pos,
-      super_variable_left.get.add_select_statement(sj_var,sj_con,metadata_condition,region_condition))
+      super_variable_left
+        .get
+        .add_select_statement(
+          sj_var,
+          sj_con,
+          metadata_condition,
+          region_condition,
+          operator_location))
   }
 
 }
