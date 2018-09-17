@@ -1,7 +1,5 @@
 package it.polimi.genomics.core.DataStructures
 
-import javax.tools.DocumentationTool.Location
-
 import it.polimi.genomics.core.DAG.DAGNode
 import it.polimi.genomics.core.DataStructures.CoverParameters.CoverFlag.CoverFlag
 import it.polimi.genomics.core.DataStructures.CoverParameters.CoverParam
@@ -29,7 +27,7 @@ import it.polimi.genomics.core.ParsingType.PARSING_TYPE
   */
 @SerialVersionUID(1000L)
 case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
-                      schema: List[(String, PARSING_TYPE)] = List.empty,
+                        schema: List[(String, PARSING_TYPE)] = List.empty,
                       dependencies: List[IRVariable] = List(),
                       name: String = "")(implicit binS: BinningParameter) extends Serializable with DAGNode[IRVariable]{
 
@@ -664,5 +662,10 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
       .filter(x => this.schema(x)._1.matches(scaffold))
       .toList
 
+  }
+
+  override def substituteDependency(oldDep: IRVariable, newDep: IRVariable): IRVariable = {
+    //TODO: remove this...
+    this
   }
 }
