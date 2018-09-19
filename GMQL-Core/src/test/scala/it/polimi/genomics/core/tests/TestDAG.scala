@@ -1,6 +1,6 @@
 package it.polimi.genomics.core.tests
 
-import it.polimi.genomics.core.DAG.{VariableDAG, VariableDAGFrame}
+import it.polimi.genomics.core.DAG.{OperatorDAGFrame, VariableDAG, VariableDAGFrame, OperatorDAG}
 import it.polimi.genomics.core.DataStructures._
 
 import scala.util.Random
@@ -11,6 +11,7 @@ object TestDAG extends App {
   val query = TestQueries.query3
   //val dag = new DAG(query)
   val variableDAG = new VariableDAG(query)
+  val operatorDAG = new OperatorDAG(query.flatMap(x => List(x.metaDag, x.regionDag)))
 
 //  val resIRVariables = new DAG(dag.toVariables(TestUtils.binning)).raw.toSet == dag.raw.toSet
 //  println(resIRVariables)
@@ -62,8 +63,12 @@ object TestDAG extends App {
   variableDAGFrame.setSize(1000, 600)
   variableDAGFrame.setVisible(true)
 
-  val variableDAGFrameSplit = new VariableDAGFrame(splitDAG, squeeze = true)
-  variableDAGFrameSplit.setSize(1000, 600)
-  variableDAGFrameSplit.setVisible(true)
+  val operatorDAGFrame = new OperatorDAGFrame(operatorDAG, squeeze = true)
+  operatorDAGFrame.setSize(1000, 600)
+  operatorDAGFrame.setVisible(true)
+
+//  val variableDAGFrameSplit = new VariableDAGFrame(splitDAG, squeeze = true)
+//  variableDAGFrameSplit.setSize(1000, 600)
+//  variableDAGFrameSplit.setVisible(true)
 
 }

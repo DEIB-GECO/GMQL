@@ -82,5 +82,22 @@ object TestQueries {
       TestUtils.materializeIRVariable(v123, "v123")
     )
   }
+  val query4: List[IRVariable] = {
+    val v1 = TestUtils.getInitialIRVariable("dataset1", Instance("L1"))
+      .SELECT(metadataCondition).MERGE(None)
+    val v2 = TestUtils.getInitialIRVariable("dataset2", Instance("L2"))
+      .SELECT(metadataCondition).PROJECT(Some(List("meta")))
+    val v3 = TestUtils.getInitialIRVariable("dataset3", Instance("L3"))
+      .SELECT(metadataCondition)
+
+    val v23 = TestUtils.doJOIN(v2, v3)
+    val v123 = TestUtils.doMAP(v1, v23)
+
+    List(
+      TestUtils.materializeIRVariable(v1, "v1"),
+      TestUtils.materializeIRVariable(v123, "v123")
+    )
+  }
+
 
 }

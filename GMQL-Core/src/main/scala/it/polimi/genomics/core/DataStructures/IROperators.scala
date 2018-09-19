@@ -77,7 +77,6 @@ case class IRReadMEMRD(regionDS: Any) extends RegionOperator {
   */
 case class IRStoreMD(var path: String, var father: MetaOperator, var dataSet: IRDataSet) extends MetaOperator {
   override def getDependencies: List[IROperator] = List(this.father)
-
 //  override def substituteDependency(previousDependency: IROperator, newDependency: IROperator): IROperator = {
 //    if(father == previousDependency && newDependency.isInstanceOf[MetaOperator])
 //      this.copy(father = newDependency.asInstanceOf[MetaOperator])
