@@ -18,7 +18,12 @@ trait DAGNode[T <: DAGNode[T]] {
   def sources: Set[IRDataSet]
   /** Returns the set of GMQLInstance which the source datasets come from*/
   def sourceInstances: Set[GMQLInstance] = this.sources.map(_.instance)
+
+
+  def substituteDependency(oldDep: T, newDep: T): T
 }
+
+class DependencyException(message: String = "Dependency not found!") extends Exception(message)
 
 abstract class GenericDAG[T <: DAGNode[T], A <: GenericDAG[T, A]](val roots: List[T]) {
   private val depthWidth: collection.mutable.Map[Int, Int] = collection.mutable.Map[Int, Int]()
@@ -150,4 +155,5 @@ class OperatorDAG(raw: List[IROperator]) extends GenericDAG[IROperator, Operator
 
 class VariableDAG(raw: List[IRVariable]) extends GenericDAG[IRVariable, VariableDAG](raw) {
   override def create(roots: List[IRVariable]): VariableDAG = new VariableDAG(roots)
+  def toOperatorDAG: OperatorDAG = new OperatorDAG(this.roots.flatMap(x => List(x.regionDag, x.metaDag)))
 }
