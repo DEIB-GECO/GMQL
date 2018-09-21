@@ -43,7 +43,7 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
   override def getDependencies: List[IRVariable] = this.dependencies
   override def sources: Set[IRDataSet] = this.metaDag.sources union this.regionDag.sources
 
-  def insert_node[T](iROperator: T, at: Option[Instance]) : T = {
+  def insert_node[T](iROperator: T, at: Option[GMQLInstance]) : T = {
     if (at.isDefined){
       iROperator.asInstanceOf[IROperator].addAnnotation(EXECUTED_ON(at.get))
     }
@@ -99,7 +99,7 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
                            semi_join_condition: Option[MetaJoinCondition],
                            meta_condition: Option[MetadataCondition],
                            region_condition: Option[RegionCondition],
-                           execute_location: Option[Instance] = None) : IRVariable = {
+                           execute_location: Option[GMQLInstance] = None) : IRVariable = {
 
 
     var metaset_for_SelectRD: Option[MetaOperator] = None
@@ -143,7 +143,7 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
               projected_values: Option[List[Int]] = None,
               all_but_reg: Option[List[String]] = None,
               extended_values: Option[List[RegionFunction]] = None,
-              execute_location: Option[Instance] = None): IRVariable = {
+              execute_location: Option[GMQLInstance] = None): IRVariable = {
 
 
     val new_projected_values = if (all_but_reg.isDefined)
@@ -239,7 +239,7 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
 
   }
 
-  def EXTEND(region_aggregates: List[RegionsToMeta], execute_location: Option[Instance] = None): IRVariable = {
+  def EXTEND(region_aggregates: List[RegionsToMeta], execute_location: Option[GMQLInstance] = None): IRVariable = {
     new IRVariable(
       insert_node(
         IRUnionAggMD(
@@ -258,7 +258,7 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
             meta_group_name: String = "_group",
             region_keys: Option[List[GroupingParameter]],
             region_aggregates: Option[List[RegionsToRegion]],
-            execute_location: Option[Instance] = None): IRVariable = {
+            execute_location: Option[GMQLInstance] = None): IRVariable = {
 
     //only region grouping
     if (!meta_keys.isDefined && !meta_aggregates.isDefined) {
@@ -328,7 +328,7 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
             meta_top_par: TopParameter = NoTop(),
             region_ordering: Option[List[(Int, Direction)]],
             region_top_par: TopParameter = NoTop(),
-            execute_location: Option[Instance] = None): IRVariable = {
+            execute_location: Option[GMQLInstance] = None): IRVariable = {
 
     //only region ordering
     if (!meta_ordering.isDefined) {
@@ -371,7 +371,7 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
             maxAcc: CoverParam,
             aggregates: List[RegionsToRegion],
             groupBy: Option[List[AttributeEvaluationStrategy]],
-            execute_location: Option[Instance] = None): IRVariable = {
+            execute_location: Option[GMQLInstance] = None): IRVariable = {
 
     val grouping: Option[MetaGroupOperator] =
       if (groupBy.isDefined) {
@@ -410,7 +410,7 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
   }
 
   def MERGE(groupBy: Option[List[AttributeEvaluationStrategy]],
-            execute_location: Option[Instance] = None): IRVariable = {
+            execute_location: Option[GMQLInstance] = None): IRVariable = {
     if (!groupBy.isDefined) {
       new IRVariable(
         insert_node(IRMergeMD(this.metaDag, None), execute_location),
@@ -433,7 +433,7 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
   def DIFFERENCE(condition: Option[MetaJoinCondition] = None,
                  subtrahend: IRVariable,
                  is_exact: Boolean = false,
-                 execute_location: Option[Instance] = None) = {
+                 execute_location: Option[GMQLInstance] = None) = {
 
     val meta_join_cond = if (condition.isDefined) {
       SomeMetaJoinOperator(
@@ -472,7 +472,7 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
   def UNION(right_dataset: IRVariable,
             left_name: String = "",
             right_name: String = "",
-            execute_location: Option[Instance] = None): IRVariable = {
+            execute_location: Option[GMQLInstance] = None): IRVariable = {
 
     val schema_reformatting: List[Int] = for (f <- this.schema) yield {
       right_dataset.get_field_by_name(f._1).getOrElse(-1)
@@ -500,7 +500,7 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
            reference_name: Option[String] = None,
            experiment_name: Option[String] = None,
            join_on_attributes: Option[List[(Int, Int)]] = None,
-           execute_location: Option[Instance] = None
+           execute_location: Option[GMQLInstance] = None
           ): IRVariable = {
 
     if (region_join_condition.isEmpty &&
@@ -570,7 +570,7 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
           reference_name: Option[String] = None,
           experiment_name: Option[String] = None,
           count_name: Option[String] = None,
-          execute_location: Option[Instance] = None) = {
+          execute_location: Option[GMQLInstance] = None) = {
 
     apply_genometric_map(
       condition,
@@ -596,7 +596,7 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
                            reference_name: Option[String],
                            experiment_name: Option[String],
                            count_name_opt: Option[String],
-                           execute_location: Option[Instance] = None): IRVariable = {
+                           execute_location: Option[GMQLInstance] = None): IRVariable = {
     val new_join_result: OptionalMetaJoinOperator = if (condition.isDefined) {
       SomeMetaJoinOperator(
         insert_node(IRJoinBy(condition.get, this.metaDag, experiments.metaDag), execute_location)

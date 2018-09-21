@@ -1,5 +1,6 @@
 package it.polimi.genomics.core.DAG
 
+import com.rits.cloning.Cloner
 import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
 import it.polimi.genomics.core.DataStructures._
 
@@ -14,11 +15,12 @@ trait DAGNode[T <: DAGNode[T]] {
   /** Returns the list of dependencies of the node*/
   def getDependencies: List[T]
 
+  def hasDependencies: Boolean = getDependencies.nonEmpty
+
   /** A list of the source datasets which are used by this node */
   def sources: Set[IRDataSet]
   /** Returns the set of GMQLInstance which the source datasets come from*/
   def sourceInstances: Set[GMQLInstance] = this.sources.map(_.instance)
-
 
   def substituteDependency(oldDep: T, newDep: T): T
 }
@@ -86,6 +88,12 @@ abstract class GenericDAG[T <: DAGNode[T], A <: GenericDAG[T, A]](val roots: Lis
 
 
 class OperatorDAG(raw: List[IROperator]) extends GenericDAG[IROperator, OperatorDAG](raw) {
+
+  def copy: OperatorDAG = {
+    val cloner = new Cloner()
+    cloner.registerImmutable(List[IROperator]().getClass)
+    cloner.deepClone(this)
+  }
 
   // For a DAG to be Variable-consistent it must not have any root node which is different from
   // IRStoreMD and IRStoreRD

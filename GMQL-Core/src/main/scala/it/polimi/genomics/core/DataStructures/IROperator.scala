@@ -1,5 +1,6 @@
 package it.polimi.genomics.core.DataStructures
 
+import com.rits.cloning.Cloner
 import it.polimi.genomics.core.DAG.DAGNode
 
 /**
@@ -12,6 +13,12 @@ abstract class IROperator extends Serializable with DAGNode[IROperator] {
 
   /** A list of the source datasets which are used by this operator */
   override def sources: Set[IRDataSet] = this.getDependencies.foldLeft(Set.empty[IRDataSet])((x, y) => x union y.sources)
+
+  def hasExecutedOn: Boolean = this.annotations.exists({case EXECUTED_ON(_) => true})
+  def getExecutedOn: GMQLInstance =
+    if(this.hasExecutedOn) this.annotations.collect {
+      case EXECUTED_ON(instance) => instance
+    }.head else throw new IllegalAccessError
 
   /** Optional intermediate result stored to speed up computations */
   var intermediateResult : Option[AnyRef] = None
@@ -32,8 +39,13 @@ abstract class IROperator extends Serializable with DAGNode[IROperator] {
   def isMetaJoinOperator: Boolean = false
 
   override def toString: String = operatorName +
-    (if(sources.nonEmpty) "\n" + sources.mkString(",") else "") +
+    //(if(sources.nonEmpty) "\n" + sources.mkString(",") else "") +
     (if(annotations.nonEmpty) "\n" + annotations.mkString(",") else "")
+
+  def deepCopy: IROperator = {
+    val cloner = new Cloner()
+    cloner.deepClone(this)
+  }
 }
 
 /** Indicates a IROperator which returns a metadata dataset */

@@ -25,15 +25,17 @@ object TestUtils {
 
   def getInitialIRVariable(datasetName: String, instance: GMQLInstance = LOCAL_INSTANCE): IRVariable = {
     val readMD = IRReadMD(List(datasetName), new FakeGMQLLoader, IRDataSet(datasetName,emptySchema, instance))
+    readMD.addAnnotation(EXECUTED_ON(instance))
     val readRD = IRReadRD(List(datasetName), new FakeGMQLLoader, IRDataSet(datasetName,emptySchema, instance))
+    readRD.addAnnotation(EXECUTED_ON(instance))
     val v = IRVariable(readMD, readRD, emptySchema.asScala.toList)(binning)
     v
   }
 
-  def materializeIRVariable(v: IRVariable, outputName: String): IRVariable = {
+  def materializeIRVariable(v: IRVariable, outputName: String, location: Option[GMQLInstance] = None): IRVariable = {
     val dag_md = IRStoreMD(outputName, v.metaDag, IRDataSet(outputName, List[(String,PARSING_TYPE)]().asJava))
     val dag_rd = IRStoreRD(outputName, v.regionDag, v.metaDag, v.schema ,IRDataSet(outputName, List[(String,PARSING_TYPE)]().asJava))
-    IRVariable(dag_md, dag_rd, v.schema, dependencies = List(v))(binning)
+    IRVariable(v.insert_node(dag_md, location), v.insert_node(dag_rd, location), v.schema, dependencies = List(v))(binning)
   }
 
   def getRegionsToRegion = new RegionsToRegion {
@@ -49,11 +51,11 @@ object TestUtils {
 
   def getRegionJoinCondition = List(JoinQuadruple(None, None, None, None))
 
-  def doJOIN(v1: IRVariable, v2: IRVariable): IRVariable = {
-    v1.JOIN(None, getRegionJoinCondition, RegionBuilder.RIGHT, v2, None, None, None)
+  def doJOIN(v1: IRVariable, v2: IRVariable, location: Option[GMQLInstance] = None): IRVariable = {
+    v1.JOIN(None, getRegionJoinCondition, RegionBuilder.RIGHT, v2, None, None, None, location)
   }
 
-  def doMAP(v1: IRVariable, v2:IRVariable): IRVariable = {
-    v1.MAP(None, List(getRegionsToRegion), v2)
+  def doMAP(v1: IRVariable, v2:IRVariable, location: Option[GMQLInstance] = None): IRVariable = {
+    v1.MAP(None, List(getRegionsToRegion), v2, None, None, None, location)
   }
 }

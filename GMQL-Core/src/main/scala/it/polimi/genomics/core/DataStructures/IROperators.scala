@@ -76,6 +76,76 @@ case class IRReadMEMRD(regionDS: Any) extends RegionOperator {
 }
 
 
+case class IRReadFedRD(name: String) extends RegionOperator {
+  /** Returns the list of dependencies of the node */
+  override def getDependencies: List[IROperator] = Nil
+
+  override def substituteDependency(oldDep: IROperator, newDep: IROperator): IROperator =
+    throw new DependencyException("This operator has no dependencies!")
+}
+
+
+case class IRReadFedMD(name: String) extends MetaOperator {
+  /** Returns the list of dependencies of the node */
+  override def getDependencies: List[IROperator] = Nil
+
+  override def substituteDependency(oldDep: IROperator, newDep: IROperator): IROperator =
+    throw new DependencyException("This operator has no dependencies!")
+}
+
+
+case class IRReadFedMetaJoin(name: String) extends MetaJoinOperator {
+  /** Returns the list of dependencies of the node */
+  override def getDependencies: List[IROperator] = Nil
+
+  override def substituteDependency(oldDep: IROperator, newDep: IROperator): IROperator =
+    throw new DependencyException("This operator has no dependencies!")
+}
+
+
+case class IRReadFedMetaGroup(name: String) extends MetaGroupOperator {
+  /** Returns the list of dependencies of the node */
+  override def getDependencies: List[IROperator] = Nil
+
+  override def substituteDependency(oldDep: IROperator, newDep: IROperator): IROperator =
+    throw new DependencyException("This operator has no dependencies!")
+}
+
+
+case class IRStoreFedRD(input: RegionOperator, name: String) extends RegionOperator {
+  /** Returns the list of dependencies of the node */
+  override def getDependencies: List[IROperator] = List(input)
+
+  override def substituteDependency(oldDep: IROperator, newDep: IROperator): IROperator = {
+    if(oldDep == input && newDep.isRegionOperator) this.copy(input = newDep.asInstanceOf[RegionOperator])
+    else throw new DependencyException
+  }
+}
+case class IRStoreFedMD(input: MetaOperator, name: String) extends MetaOperator {
+  /** Returns the list of dependencies of the node */
+  override def getDependencies: List[IROperator] = List(input)
+
+  override def substituteDependency(oldDep: IROperator, newDep: IROperator): IROperator =
+    if(oldDep == input && newDep.isMetaOperator) this.copy(input = newDep.asInstanceOf[MetaOperator])
+    else throw new DependencyException
+}
+case class IRStoreFedMetaJoin(input: MetaJoinOperator, name: String) extends MetaJoinOperator {
+  /** Returns the list of dependencies of the node */
+  override def getDependencies: List[IROperator] = List(input)
+
+  override def substituteDependency(oldDep: IROperator, newDep: IROperator): IROperator =
+    if(oldDep == input && newDep.isMetaJoinOperator) this.copy(input = newDep.asInstanceOf[MetaJoinOperator])
+    else throw new DependencyException
+}
+case class IRStoreFedMetaGroup(input: MetaGroupOperator, name: String) extends MetaGroupOperator {
+  /** Returns the list of dependencies of the node */
+  override def getDependencies: List[IROperator] = List(input)
+
+  override def substituteDependency(oldDep: IROperator, newDep: IROperator): IROperator =
+    if(oldDep == input && newDep.isMetaGroupOperator) this.copy(input = newDep.asInstanceOf[MetaGroupOperator])
+    else throw new DependencyException
+}
+
 /** Dag node to represent the MATERIALIZE operation of a variable's metadata into the repository/storage.
   *
   * @param path   location where to store the metadata
@@ -407,8 +477,9 @@ case class IRRegionCover(cover_flag: CoverFlag,
     else if(groups.isDefined) {
       if(oldDep == groups.get && newDep.isMetaGroupOperator)
         this.copy(groups = Some(newDep.asInstanceOf[MetaGroupOperator]))
+      else throw new DependencyException
     }
-    throw new DependencyException
+    else throw new DependencyException
   }
 }
 
@@ -430,8 +501,9 @@ case class IRMergeMD(var dataset: MetaOperator,
     else if(groups.isDefined) {
       if(oldDep == groups.get && newDep.isMetaGroupOperator)
         this.copy(groups = Some(newDep.asInstanceOf[MetaGroupOperator]))
+      else throw new DependencyException
     }
-    throw new DependencyException
+    else throw new DependencyException
   }
 }
 
@@ -454,8 +526,9 @@ case class IRMergeRD(var dataset: RegionOperator,
     else if(groups.isDefined) {
       if(oldDep == groups.get && newDep.isMetaGroupOperator)
         this.copy(groups = Some(newDep.asInstanceOf[MetaGroupOperator]))
+      else throw new DependencyException
     }
-    throw new DependencyException
+    else throw new DependencyException
   }
 }
 
@@ -586,8 +659,10 @@ case class IRCollapseMD(grouping: Option[MetaGroupOperator],
     else if(grouping.isDefined) {
       if(oldDep == grouping.get && newDep.isMetaGroupOperator)
         this.copy(grouping = Some(newDep.asInstanceOf[MetaGroupOperator]))
+      else throw new DependencyException
     }
-    throw new DependencyException
+    else
+      throw new DependencyException
   }
 }
 

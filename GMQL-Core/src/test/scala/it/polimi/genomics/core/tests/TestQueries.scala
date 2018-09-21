@@ -67,19 +67,21 @@ object TestQueries {
     * MATERIALIZE V123 INTO V123
     * */
   val query3: List[IRVariable] = {
-    val v1 = TestUtils.getInitialIRVariable("dataset1", Instance("L1"))
-      .SELECT(metadataCondition).MERGE(None)
-    val v2 = TestUtils.getInitialIRVariable("dataset2", Instance("L2"))
-      .SELECT(metadataCondition).PROJECT(Some(List("meta")))
-    val v3 = TestUtils.getInitialIRVariable("dataset3", Instance("L3"))
-      .SELECT(metadataCondition)
+    val v1 = TestUtils.getInitialIRVariable("dataset1", TestUtils.instances(0))
+      .add_select_statement(None, None, Some(metadataCondition), None, Some(TestUtils.instances(0)))
+      .MERGE(None, Some(TestUtils.instances(0)))
+    val v2 = TestUtils.getInitialIRVariable("dataset2", TestUtils.instances(1))
+      .add_select_statement(None, None, Some(metadataCondition), None, Some(TestUtils.instances(1)))
+      .PROJECT(Some(List("meta")), None, false, None, None, None, Some(TestUtils.instances(1)))
+    val v3 = TestUtils.getInitialIRVariable("dataset3", TestUtils.instances(1))
+      .add_select_statement(None, None, Some(metadataCondition), None, Some(TestUtils.instances(1)))
 
-    val v23 = TestUtils.doJOIN(v2, v3)
-    val v123 = TestUtils.doMAP(v1, v23)
+    val v23 = TestUtils.doJOIN(v2, v3, Some(TestUtils.instances(0)))
+    val v123 = TestUtils.doMAP(v1, v23, Some(TestUtils.instances(1)))
 
     List(
-      TestUtils.materializeIRVariable(v1, "v1"),
-      TestUtils.materializeIRVariable(v123, "v123")
+      TestUtils.materializeIRVariable(v1, "v1", Some(TestUtils.instances(0))),
+      TestUtils.materializeIRVariable(v123, "v123", Some(TestUtils.instances(0)))
     )
   }
 
