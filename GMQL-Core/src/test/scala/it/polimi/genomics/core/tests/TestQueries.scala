@@ -24,14 +24,14 @@ object TestQueries {
     * */
   val query1: List[IRVariable] = {
     val v1 = TestUtils.getInitialIRVariable("dataset1", TestUtils.instances.head)
-      .SELECT(metadataCondition, regionCondition)
+      .add_select_statement(None, None, Some(metadataCondition), Some(regionCondition), Some(TestUtils.instances.head))
     val v2 = TestUtils.getInitialIRVariable("dataset2", TestUtils.instances(1))
-      .COVER(CoverFlag.COVER, new ALL{}, new ALL {}, List(TestUtils.getRegionsToRegion), None)
-    val v3 = TestUtils.doMAP(v2, v1)
+      .COVER(CoverFlag.COVER, new ALL{}, new ALL {}, List(TestUtils.getRegionsToRegion), None, Some(TestUtils.instances(1)))
+    val v3 = TestUtils.doMAP(v2, v1, Some(TestUtils.instances(1)))
     List(
-      TestUtils.materializeIRVariable(v1, "v1"),
-      TestUtils.materializeIRVariable(v2, "v2"),
-      TestUtils.materializeIRVariable(v3, "v3")
+      TestUtils.materializeIRVariable(v1, "v1", Some(TestUtils.instances.head)),
+      TestUtils.materializeIRVariable(v2, "v2", Some(TestUtils.instances.head)),
+      TestUtils.materializeIRVariable(v3, "v3", Some(TestUtils.instances.head))
     )
   }
 
@@ -42,11 +42,11 @@ object TestQueries {
     * MATERIALIZE V1 INTO V1
     * */
   val query2: List[IRVariable] = {
-    val v1 = TestUtils.getInitialIRVariable("dataset1", TestUtils.instances.head)
-      .SELECT(regionCondition)
+    val v1 = TestUtils.getInitialIRVariable("dataset1", TestUtils.instances(1))
+      .add_select_statement(None, None, None, Some(regionCondition), Some(TestUtils.instances(1)))
     List(
-      TestUtils.materializeIRVariable(v1, "v1")
-    )
+      TestUtils.materializeIRVariable(v1, "v1", Some(TestUtils.instances(0))
+    ))
   }
 
   /**
@@ -73,11 +73,11 @@ object TestQueries {
     val v2 = TestUtils.getInitialIRVariable("dataset2", TestUtils.instances(1))
       .add_select_statement(None, None, Some(metadataCondition), None, Some(TestUtils.instances(1)))
       .PROJECT(Some(List("meta")), None, false, None, None, None, Some(TestUtils.instances(1)))
-    val v3 = TestUtils.getInitialIRVariable("dataset3", TestUtils.instances(1))
-      .add_select_statement(None, None, Some(metadataCondition), None, Some(TestUtils.instances(1)))
+    val v3 = TestUtils.getInitialIRVariable("dataset3", TestUtils.instances(2))
+      .add_select_statement(None, None, Some(metadataCondition), None, Some(TestUtils.instances(2)))
 
-    val v23 = TestUtils.doJOIN(v2, v3, Some(TestUtils.instances(0)))
-    val v123 = TestUtils.doMAP(v1, v23, Some(TestUtils.instances(1)))
+    val v23 = TestUtils.doJOIN(v2, v3, Some(TestUtils.instances(1)))
+    val v123 = TestUtils.doMAP(v1, v23, Some(TestUtils.instances(0)))
 
     List(
       TestUtils.materializeIRVariable(v1, "v1", Some(TestUtils.instances(0))),

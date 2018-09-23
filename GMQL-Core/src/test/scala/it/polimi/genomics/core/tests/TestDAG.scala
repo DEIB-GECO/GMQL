@@ -27,23 +27,25 @@ object TestDAG extends App {
 
   def splitDAG(dag: OperatorDAG): Map[GMQLInstance, OperatorDAG] = {
     val toBeExplored = collection.mutable.Stack[IROperator]()
+    val changed = collection.mutable.Map[IROperator, IROperator]()
+    var counter: Int = 0
 
     def checkSplitCondition(op: IROperator, dep: IROperator): Boolean =
       op.getExecutedOn != dep.getExecutedOn
 
-    def getRelativeREAD(dep: IROperator): IROperator = {
-      if(dep.isRegionOperator) IRReadFedRD("bla")
-      else if(dep.isMetaOperator) IRReadFedMD("bla")
-      else if(dep.isMetaJoinOperator) IRReadFedMetaJoin("bla")
-      else if(dep.isMetaGroupOperator) IRReadFedMetaGroup("bla")
+    def getRelativeREAD(dep: IROperator, name: String): IROperator = {
+      if(dep.isRegionOperator) IRReadFedRD(name)
+      else if(dep.isMetaOperator) IRReadFedMD(name)
+      else if(dep.isMetaJoinOperator) IRReadFedMetaJoin(name)
+      else if(dep.isMetaGroupOperator) IRReadFedMetaGroup(name)
       else throw new IllegalArgumentException
     }
 
-    def getRelativeSTORE(op: IROperator): IROperator = {
-      if(op.isRegionOperator) IRStoreFedRD(op.asInstanceOf[RegionOperator], "bla")
-      else if(op.isMetaOperator) IRStoreFedMD(op.asInstanceOf[MetaOperator], "bla")
-      else if(op.isMetaJoinOperator) IRStoreFedMetaJoin(op.asInstanceOf[MetaJoinOperator],"bla")
-      else if(op.isMetaGroupOperator) IRStoreFedMetaGroup(op.asInstanceOf[MetaGroupOperator], "bla")
+    def getRelativeSTORE(op: IROperator, name: String): IROperator = {
+      if(op.isRegionOperator) IRStoreFedRD(op.asInstanceOf[RegionOperator], name)
+      else if(op.isMetaOperator) IRStoreFedMD(op.asInstanceOf[MetaOperator], name)
+      else if(op.isMetaJoinOperator) IRStoreFedMetaJoin(op.asInstanceOf[MetaJoinOperator], name)
+      else if(op.isMetaGroupOperator) IRStoreFedMetaGroup(op.asInstanceOf[MetaGroupOperator], name)
       else throw new IllegalArgumentException
     }
 
@@ -55,13 +57,22 @@ object TestDAG extends App {
         val oldAnnotations = op.annotations
         opDeps.foreach { dep =>
           if(checkSplitCondition(newOp, dep)){
-            val newDep = getRelativeREAD(dep)
-            newDep.addAnnotation(EXECUTED_ON(op.getExecutedOn))
-            newOp = newOp.substituteDependency(dep, newDep)
 
-            val otherDAG = getRelativeSTORE(dep)
-            otherDAG.addAnnotation(EXECUTED_ON(dep.getExecutedOn))
-            toBeExplored.push(otherDAG)
+            val newDep = {
+              if(changed.contains(dep)) changed(dep)
+              else {
+                val res = getRelativeREAD(dep, "temp_" + counter)
+                res.addAnnotation(EXECUTED_ON(op.getExecutedOn))
+
+                val otherDAG = getRelativeSTORE(dep, "temp_" + counter)
+                otherDAG.addAnnotation(EXECUTED_ON(dep.getExecutedOn))
+                toBeExplored.push(otherDAG)
+                changed += dep -> res
+                counter += 1
+                res
+              }
+            }
+            newOp = newOp.substituteDependency(dep, newDep)
           }
           else newOp = newOp.substituteDependency(dep, changeOperator(dep))
           newOp.annotations ++= oldAnnotations
@@ -86,8 +97,8 @@ object TestDAG extends App {
   val operatorDAG = variableDAG.toOperatorDAG
 
 
-//  val variableDAGFrame = new VariableDAGFrame(variableDAG, squeeze = true)
-//  showFrame(variableDAGFrame, "Variable DAG")
+  val variableDAGFrame = new VariableDAGFrame(variableDAG, squeeze = true)
+  showFrame(variableDAGFrame, "Variable DAG")
   val operatorDAGFrame = new OperatorDAGFrame(operatorDAG, squeeze = true)
   showFrame(operatorDAGFrame, "Operator DAG")
 

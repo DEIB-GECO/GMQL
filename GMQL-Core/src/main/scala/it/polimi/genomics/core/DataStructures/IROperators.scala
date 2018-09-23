@@ -82,6 +82,8 @@ case class IRReadFedRD(name: String) extends RegionOperator {
 
   override def substituteDependency(oldDep: IROperator, newDep: IROperator): IROperator =
     throw new DependencyException("This operator has no dependencies!")
+
+  override def toString: String = super.toString + "\n" + this.name
 }
 
 
@@ -91,6 +93,8 @@ case class IRReadFedMD(name: String) extends MetaOperator {
 
   override def substituteDependency(oldDep: IROperator, newDep: IROperator): IROperator =
     throw new DependencyException("This operator has no dependencies!")
+
+  override def toString: String = super.toString + "\n" + this.name
 }
 
 
@@ -100,6 +104,8 @@ case class IRReadFedMetaJoin(name: String) extends MetaJoinOperator {
 
   override def substituteDependency(oldDep: IROperator, newDep: IROperator): IROperator =
     throw new DependencyException("This operator has no dependencies!")
+
+  override def toString: String = super.toString + "\n" + this.name
 }
 
 
@@ -109,6 +115,8 @@ case class IRReadFedMetaGroup(name: String) extends MetaGroupOperator {
 
   override def substituteDependency(oldDep: IROperator, newDep: IROperator): IROperator =
     throw new DependencyException("This operator has no dependencies!")
+
+  override def toString: String = super.toString + "\n" + this.name
 }
 
 
@@ -120,6 +128,8 @@ case class IRStoreFedRD(input: RegionOperator, name: String) extends RegionOpera
     if(oldDep == input && newDep.isRegionOperator) this.copy(input = newDep.asInstanceOf[RegionOperator])
     else throw new DependencyException
   }
+
+  override def toString: String = super.toString + "\n" + this.name
 }
 case class IRStoreFedMD(input: MetaOperator, name: String) extends MetaOperator {
   /** Returns the list of dependencies of the node */
@@ -128,6 +138,8 @@ case class IRStoreFedMD(input: MetaOperator, name: String) extends MetaOperator 
   override def substituteDependency(oldDep: IROperator, newDep: IROperator): IROperator =
     if(oldDep == input && newDep.isMetaOperator) this.copy(input = newDep.asInstanceOf[MetaOperator])
     else throw new DependencyException
+
+  override def toString: String = super.toString + "\n" + this.name
 }
 case class IRStoreFedMetaJoin(input: MetaJoinOperator, name: String) extends MetaJoinOperator {
   /** Returns the list of dependencies of the node */
@@ -136,6 +148,8 @@ case class IRStoreFedMetaJoin(input: MetaJoinOperator, name: String) extends Met
   override def substituteDependency(oldDep: IROperator, newDep: IROperator): IROperator =
     if(oldDep == input && newDep.isMetaJoinOperator) this.copy(input = newDep.asInstanceOf[MetaJoinOperator])
     else throw new DependencyException
+
+  override def toString: String = super.toString + "\n" + this.name
 }
 case class IRStoreFedMetaGroup(input: MetaGroupOperator, name: String) extends MetaGroupOperator {
   /** Returns the list of dependencies of the node */
@@ -144,6 +158,8 @@ case class IRStoreFedMetaGroup(input: MetaGroupOperator, name: String) extends M
   override def substituteDependency(oldDep: IROperator, newDep: IROperator): IROperator =
     if(oldDep == input && newDep.isMetaGroupOperator) this.copy(input = newDep.asInstanceOf[MetaGroupOperator])
     else throw new DependencyException
+
+  override def toString: String = super.toString + "\n" + this.name
 }
 
 /** Dag node to represent the MATERIALIZE operation of a variable's metadata into the repository/storage.
