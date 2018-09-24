@@ -274,9 +274,9 @@ object GMQLExecuteCommandFederated {
           System.exit(0);
         }
       } catch {
-        case e: CompilerException => logger.error(e.getMessage) ; System.exit(0)
-        case ex:Exception => logger.error("exception: \t"+ex.getMessage);/*ex.printStackTrace();*/ System.exit(0)
-        case e : Throwable =>logger.error("Throwable: "+e.getMessage);/* e.printStackTrace(); */System.exit(0)
+        case e: CompilerException => logger.error(e.getMessage,e) ; //System.exit(0)
+        case ex:Exception => logger.error("exception: \t"+ex.getMessage,ex);/*ex.printStackTrace();*/ //System.exit(0)
+        case e : Throwable =>logger.error("Throwable: "+e.getMessage,e);/* e.printStackTrace(); *///System.exit(0)
       }
     }
 

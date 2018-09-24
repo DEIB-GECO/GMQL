@@ -17,6 +17,20 @@ import it.polimi.genomics.core.GMQLLoader
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 
 
+case class IRNoopMD() extends MetaOperator {
+  /** Returns the list of dependencies of the node */
+  override def getDependencies: List[IROperator] = List()
+
+  override def substituteDependency(oldDep: IROperator, newDep: IROperator): IROperator = ???
+}
+
+case class IRNoopRD() extends RegionOperator {
+  /** Returns the list of dependencies of the node */
+  override def getDependencies: List[IROperator] = List()
+
+  override def substituteDependency(oldDep: IROperator, newDep: IROperator): IROperator = ???
+}
+
 case class IRReadFedMetaGroup() extends MetaGroupOperator {
   /** Returns the list of dependencies of the node */
   override def getDependencies: List[IROperator] = List()

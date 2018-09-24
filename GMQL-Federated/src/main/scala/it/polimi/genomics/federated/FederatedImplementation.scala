@@ -4,6 +4,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import it.polimi.genomics.GMQLServer.Implementation
 import it.polimi.genomics.core.DAG.{DAGWrapper, OperatorDAG, OperatorDAGFrame}
+import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
 import it.polimi.genomics.core.DataStructures.{IROperator, _}
 import it.polimi.genomics.core.{GMQLLoaderBase, GMQLSchemaCoordinateSystem, GMQLSchemaFormat}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
@@ -22,6 +23,9 @@ case class RemoteExecute(iRVariable: IRVariable, instance: Instance) extends Fed
 
 class FederatedImplementation extends Implementation with Serializable {
 
+  val binningPar = BinningParameter(Some(1000))
+
+
   val conf = new SparkConf().setAppName("GMQL V2.1 Spark ")
     .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "128")
     .set("spark.driver.allowMultipleContexts", "true")
@@ -31,7 +35,7 @@ class FederatedImplementation extends Implementation with Serializable {
   val gse = new GMQLSparkExecutor(
     testingIOFormats = false,
     sc = sc,
-    outputFormat = GMQLSchemaFormat.VCF,
+    outputFormat = GMQLSchemaFormat.TAB,
     outputCoordinateSystem = GMQLSchemaCoordinateSystem.Default)
 
 
@@ -83,7 +87,8 @@ class FederatedImplementation extends Implementation with Serializable {
     //    newRecursive(dag, dag.getDp)
 
 
-    val splitIdCounter= new AtomicInteger()
+    val splitIdCounter = new AtomicInteger()
+
     def recursive(currIn: IROperator): List[IROperator] = {
 
       var curr = currIn
@@ -141,48 +146,46 @@ class FederatedImplementation extends Implementation with Serializable {
       newDags ++ notToDetach.flatMap(recursive) ++ newDags.flatMap(recursive)
     }
 
-    def getSubDags(metadag: IROperator, regiondag: IROperator): List[(IROperator, IROperator)] = {
+    def getSubDags(metadag: IROperator): List[IROperator] = {
 
       val metaAddress = getLocation(metadag)
-      val regAddress = getLocation(regiondag)
+      //      val regAddress = getLocation(regiondag)
 
       var dag = List.empty[IROperator]
-      if (metaAddress == regAddress) {
-        println("metadag:" + metadag)
+      //      if (metaAddress == regAddress) {
+      println("metadag:" + metadag)
 
-        println("metadag-dep" + metadag.getDependencies)
+      println("metadag-dep" + metadag.getDependencies)
 
-        println("------")
-
-
-        println("---R---")
-        try {
-          val recRes = List(metadag) ++ recursive(metadag)
-
-          recRes.foreach { t =>
-            println("--DAG--")
-            println(t)
+      println("------")
 
 
-            println("--END_DAG--")
+      println("---R---")
+      try {
+        val recRes: List[IROperator] = List(metadag) ++ recursive(metadag)
 
-          }
-          val opDAG = new OperatorDAG(recRes)
+        recRes.foreach { t =>
+          println("--DAG--")
+          println(t)
+          println("--END_DAG--")
 
-          val operatorDAGFrame = new OperatorDAGFrame(opDAG, squeeze = false)
-          operatorDAGFrame.setSize(1000, 600)
-          operatorDAGFrame.setVisible(true)
         }
-        catch {
-          case e: Exception => e.printStackTrace()
-        }
-
-        println("---R--")
-
-
+        //          val opDAG = new OperatorDAG(recRes)
+        //
+        //          val operatorDAGFrame = new OperatorDAGFrame(opDAG, squeeze = false)
+        //          operatorDAGFrame.setSize(1000, 600)
+        //          operatorDAGFrame.setVisible(true)
+        recRes
+      }
+      catch {
+        case e: Exception =>
+          e.printStackTrace()
+          throw e
       }
 
-      List.empty
+      //      }else
+      //      //TODO
+      //        List.empty
     }
 
     val stack = Stack[FederatedStep]()
@@ -192,7 +195,53 @@ class FederatedImplementation extends Implementation with Serializable {
       val regAddress = getLocation(variable.regionDag)
 
 
-      getSubDags(variable.metaDag, variable.regionDag)
+      val dagMeta = getSubDags(variable.metaDag)
+
+
+      val dagRegion = getSubDags(variable.regionDag)
+
+
+      val dagMetaFirst = dagMeta.head
+      val dagRegionFirst = dagRegion.head
+
+
+      val dagIROthers = (dagMeta.tail ++ dagRegion.tail).sortBy(-1 * _.annotations.collectFirst {
+        case SPLIT_ID(x) => x
+      }.getOrElse(-1)).map {
+        case x: RegionOperator => IRVariable(IRNoopMD(), x)(binningPar)
+        case x: MetaOperator => IRVariable(x, IRNoopRD())(binningPar)
+      }
+
+
+
+
+      gse.to_be_materialized ++= dagIROthers
+
+
+
+      //                val opDAG = new OperatorDAG(List(dagMeta, dagRegion))
+      //
+      //                val operatorDAGFrame = new OperatorDAGFrame(opDAG, squeeze = true)
+      //                operatorDAGFrame.setSize(1000, 600)
+      //                operatorDAGFrame.setVisible(true)
+
+
+      gse.to_be_materialized += IRVariable(dagMetaFirst.asInstanceOf[MetaOperator], dagRegionFirst.asInstanceOf[RegionOperator])(binningPar)
+      gse.to_be_materialized.foreach(println)
+
+
+      var i = 0
+      gse.to_be_materialized.foreach { t =>
+        val opDAGFrame = new OperatorDAGFrame(new OperatorDAG(List(t.metaDag, t.regionDag)))
+        opDAGFrame.setTitle(""+i)
+        i = i + 1
+        opDAGFrame.setSize(1000, 600)
+        opDAGFrame.setVisible(true)
+
+      }
+
+      gse.go()
+
 
       if (metaAddress != regAddress) {
         println("ERRORE")
