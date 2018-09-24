@@ -32,8 +32,8 @@ abstract class IROperator extends Serializable with DAGNode[IROperator] {
   def isMetaJoinOperator: Boolean = false
 
   override def toString: String = operatorName +
-    (if(sources.nonEmpty) "\n" + sources.mkString(",") else "") +
-    (if(annotations.nonEmpty) "\n" + annotations.mkString(",") else "")
+    (if(sources.nonEmpty) "\n" + sources.mkString("\n") else "") +
+    (if(annotations.nonEmpty) "\n" + annotations.mkString("\n") else "")
 }
 
 /** Indicates a IROperator which returns a metadata dataset */
