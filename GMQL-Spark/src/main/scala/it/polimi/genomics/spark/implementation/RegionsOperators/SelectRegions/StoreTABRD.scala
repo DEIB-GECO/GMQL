@@ -2,7 +2,7 @@ package it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions
 
 import it.polimi.genomics.core.DataStructures.{MetaOperator, RegionOperator}
 import it.polimi.genomics.core.DataTypes.GRECORD
-import it.polimi.genomics.core.GMQLSchemaCoordinateSystem
+import it.polimi.genomics.core.{GMQLSchemaCoordinateSystem, GRecordKey, GValue}
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
@@ -25,8 +25,13 @@ object StoreTABRD {
 
   @throws[SelectFormatException]
   def apply(executor: GMQLSparkExecutor, path: String, value: RegionOperator, associatedMeta:MetaOperator, schema : List[(String, PARSING_TYPE)], coordinateSystem: GMQLSchemaCoordinateSystem.Value, sc: SparkContext): RDD[GRECORD] = {
-    val regions = executor.implement_rd(value, sc)
+    val regions: RDD[(GRecordKey, Array[GValue])] = executor.implement_rd(value, sc)
     val meta = executor.implement_md(associatedMeta,sc)
+
+//    regions.saveAsObjectFile("/Users/canakoglu/GMQL-sources/gmql_test_ds/test/")
+
+//    val rddReg = sc.objectFile[(GRecordKey, Array[GValue])]("/Users/canakoglu/GMQL-sources/gmql_test_ds/test/")
+//    rddReg.collect().foreach(println)
 
     val MetaOutputPath = path + "/meta/"
     val RegionOutputPath = path + "/exp/"

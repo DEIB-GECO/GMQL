@@ -43,9 +43,9 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
   override def getDependencies: List[IRVariable] = this.dependencies
   override def sources: Set[IRDataSet] = this.metaDag.sources union this.regionDag.sources
 
-  def insert_node[T](iROperator: T, at: Option[GMQLInstance]) : T = {
+  def insert_node[T<:IROperator](iROperator: T, at: Option[GMQLInstance]) : T = {
     if (at.isDefined){
-      iROperator.asInstanceOf[IROperator].addAnnotation(EXECUTED_ON(at.get))
+      iROperator.addAnnotation(EXECUTED_ON(at.get))
     }
     iROperator
   }
