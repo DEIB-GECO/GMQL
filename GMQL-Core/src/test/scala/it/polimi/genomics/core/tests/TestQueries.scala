@@ -85,4 +85,15 @@ object TestQueries {
     )
   }
 
+
+  val query4 : List[IRVariable] = {
+    val v1 = TestUtils.getInitialIRVariable("dataset1", TestUtils.instances(1))
+      .add_select_statement(None, None, Some(metadataCondition), None, Some(TestUtils.instances(1)))
+    val v2 = v1.add_select_statement(None, None, Some(metadataCondition), None, execute_location = Some(TestUtils.instances(2)))
+
+    List(
+      TestUtils.materializeIRVariable(v2, "v2", Some(TestUtils.instances(1)))
+    )
+
+  }
 }

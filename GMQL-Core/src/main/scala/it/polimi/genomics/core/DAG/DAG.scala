@@ -165,3 +165,7 @@ class VariableDAG(raw: List[IRVariable]) extends GenericDAG[IRVariable, Variable
   override def create(roots: List[IRVariable]): VariableDAG = new VariableDAG(roots)
   def toOperatorDAG: OperatorDAG = new OperatorDAG(this.roots.flatMap(x => List(x.regionDag, x.metaDag)))
 }
+
+class MetaDAG(raw: List[ExecutionDAG]) extends GenericDAG[ExecutionDAG, MetaDAG](raw) {
+  override def create(roots: List[ExecutionDAG]): MetaDAG = new MetaDAG(roots)
+}

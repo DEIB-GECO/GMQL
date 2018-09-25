@@ -4,6 +4,7 @@ import it.polimi.genomics.core.DAG._
 import it.polimi.genomics.core.DataStructures._
 import scala.util.Random
 
+
 object TestDAG extends App {
 
   def showFrame[T <: DAGNode[T]](dagFrame: DAGFrame[T], title: String): Unit = {
@@ -92,7 +93,73 @@ object TestDAG extends App {
     }
   }
 
-  val query = TestQueries.query3
+
+  def generateExecutionDAGs(dagSplits: List[OperatorDAG]): MetaDAG = {
+    val created = collection.mutable.Map[IROperator, ExecutionDAG]()
+
+    def getOperatorDAGDependencies(ops: List[IROperator]): List[ExecutionDAG] = {
+
+      def getDependenciesIds(op: IROperator): List[String] = {
+        op match {
+          case IRReadFedMD(name) => List(name)
+          case IRReadFedRD(name) => List(name)
+          case IRReadFedMetaGroup(name) => List(name)
+          case IRReadFedMetaJoin(name) => List(name)
+          case _ => if(op.hasDependencies) op.getDependencies.flatMap(getDependenciesIds) else Nil
+        }
+      }
+
+      def getDependency(name: String): IROperator = dagSplits.flatMap {x => x.roots} filter {
+        case op:IRStoreFedRD => op.name == name
+        case op:IRStoreFedMD => op.name == name
+        case op:IRStoreFedMetaJoin => op.name == name
+        case op:IRStoreFedMetaGroup => op.name == name
+        case _ => false
+      } head
+
+      def getExecutionDAG(op: IROperator): ExecutionDAG = {
+        val opDeps = getDependenciesIds(op) map getDependency map {
+          x => if(created.contains(x)) created(x) else {
+            val res = getExecutionDAG(x)
+            created += x -> res
+            res
+          }
+        }
+        new ExecutionDAG(List(new OperatorDAG(List(op))), opDeps)
+      }
+
+      if(ops.isEmpty) Nil
+      else getExecutionDAG(ops.head) :: getOperatorDAGDependencies(ops.tail)
+    }
+
+    def mergeVariables(preRes: List[ExecutionDAG]): List[ExecutionDAG] = {
+      val realStores = preRes filter {
+        x => x.dag.head.roots.head match {
+          case o:IRStoreRD => true
+          case o:IRStoreMD => true
+          case _ => false
+        }
+      }
+      val newStores = realStores groupBy {
+        x => {
+          x.dag.head.roots.head match {
+            case IRStoreMD(_,_, dataset) => dataset
+            case IRStoreRD(_, _, _, _, dataset) => dataset
+          }
+        }
+      } map {
+        case (dataset, eDs) => new ExecutionDAG(eDs.flatMap(x => x.dag), eDs.flatMap(x => x.getDependencies).distinct)
+      } toList
+
+      newStores //::: preRes filter {x => !realStores.contains(x)}
+    }
+
+    val preRes = getOperatorDAGDependencies(dagSplits.flatMap {x => x.roots})
+
+    new MetaDAG(mergeVariables(preRes))
+  }
+
+  val query = TestQueries.query4
   val variableDAG = new VariableDAG(query)
   val operatorDAG = variableDAG.toOperatorDAG
 
@@ -108,4 +175,6 @@ object TestDAG extends App {
     case (instance, dag) => showFrame(new OperatorDAGFrame(dag, squeeze = true), instance.toString)
   }
 
+  val executionDAGs = generateExecutionDAGs(dagSplits.values.toList)
+  showFrame(new MetaDAGFrame(executionDAGs), title = "MetaDAG")
 }

@@ -3,7 +3,7 @@ package it.polimi.genomics.core.DAG
 import com.mxgraph.layout.hierarchical.mxHierarchicalLayout
 import com.mxgraph.swing.mxGraphComponent
 import com.mxgraph.view.mxGraph
-import it.polimi.genomics.core.DataStructures.{IROperator, IRVariable}
+import it.polimi.genomics.core.DataStructures._
 import javax.swing.JFrame
 
 object DAGDraw {
@@ -92,4 +92,33 @@ class VariableDAGFrame(dag: VariableDAG, squeeze: Boolean = true) extends DAGFra
 
   override protected def getText(node: IRVariable): String = "<b>" + node.toString + "</b>" +
     "<i>" + (if(node.annotations.nonEmpty) "\n" + node.annotations.mkString(",") else "") + "</i>"
+}
+
+class MetaDAGFrame(dag: MetaDAG, squeeze: Boolean = true) extends DAGFrame[ExecutionDAG](dag, squeeze) {
+  override protected def getStyle(node: ExecutionDAG): String = "fillColor="+GREEN
+
+  override protected def getText(node: ExecutionDAG): String = {
+
+    def getREADstring(node: ExecutionDAG): String = {
+
+      def getREADs(op: IROperator): List[IROperator] = {
+        op match {
+          case IRReadMD(_, _, _) => List(op)
+          case IRReadRD(_, _,_) => List(op)
+          case IRReadFedRD(_) => List(op)
+          case IRReadFedMD(_) => List(op)
+          case IRReadFedMetaJoin(_) => List(op)
+          case IRReadFedMetaGroup(_) => List(op)
+          case _ => op.getDependencies.flatMap(getREADs)
+        }
+      }
+
+      node.dag.flatMap(x => x.roots).flatMap(getREADs).distinct.mkString("\n+\n")
+    }
+
+    val stores = node.dag.map(x => x.roots.mkString(",")).mkString("\n+\n")
+    val reads = getREADstring(node)
+
+    reads + "\n|\n|\nV\n" + stores
+  }
 }
