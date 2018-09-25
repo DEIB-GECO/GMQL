@@ -14,11 +14,11 @@ abstract class IROperator extends Serializable with DAGNode[IROperator] {
   /** A list of the source datasets which are used by this operator */
   override def sources: Set[IRDataSet] = this.getDependencies.foldLeft(Set.empty[IRDataSet])((x, y) => x union y.sources)
 
-  def hasExecutedOn: Boolean = this.annotations.exists({case EXECUTED_ON(_) => true})
+  def hasExecutedOn: Boolean = true //this.annotations.exists({case EXECUTED_ON(_) => true})
   def getExecutedOn: GMQLInstance =
     if(this.hasExecutedOn) this.annotations.collect {
       case EXECUTED_ON(instance) => instance
-    }.head else throw new IllegalAccessError
+    }.headOption.getOrElse(LOCAL_INSTANCE) else LOCAL_INSTANCE
 
   /** Optional intermediate result stored to speed up computations */
   var intermediateResult : Option[AnyRef] = None

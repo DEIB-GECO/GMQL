@@ -1,6 +1,6 @@
 package it.polimi.genomics.core.DAG
 
-import it.polimi.genomics.core.DataStructures.IRDataSet
+import it.polimi.genomics.core.DataStructures.{IRDataSet, IRStoreFedRD}
 
 class ExecutionDAG(val dag: List[OperatorDAG], deps: List[ExecutionDAG]) extends DAGNode[ExecutionDAG] {
   /** Returns the list of dependencies of the node */
@@ -11,4 +11,9 @@ class ExecutionDAG(val dag: List[OperatorDAG], deps: List[ExecutionDAG]) extends
 
   override def substituteDependency(oldDep: ExecutionDAG, newDep: ExecutionDAG): ExecutionDAG =
     throw new NotImplementedError()
+
+  def where = dag.head.roots.head.getExecutedOn
+
+
+
 }
