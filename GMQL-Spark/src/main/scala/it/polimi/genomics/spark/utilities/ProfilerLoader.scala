@@ -1,7 +1,7 @@
 package it.polimi.genomics.spark.utilities
 
+import it.polimi.genomics.profiling.Profiles.GMQLDatasetProfile
 import com.google.common.hash.Hashing
-import it.polimi.genomics.core.DataStructures.GMQLDatasetProfile
 import it.polimi.genomics.core.DataTypes.{GRECORD, MetaType}
 import it.polimi.genomics.core.{DataTypes, GMQLLoader}
 import it.polimi.genomics.profiling.Profilers.Profiler
