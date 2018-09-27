@@ -1,7 +1,6 @@
 package it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions
 
 import it.polimi.genomics.core.DataTypes.{GRECORD, MetaType}
-import it.polimi.genomics.core.{GMQLLoader, GRecord, GRecordKey}
 import it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions.StoreFed.PATH
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
