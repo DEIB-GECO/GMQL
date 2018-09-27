@@ -6,7 +6,8 @@
     <property name = "LAUNCHER_MODE">LOCAL</property>
     <property name = "LIB_DIR_LOCAL">../lib/</property>
     <property name = "LIB_DIR_HDFS">/user/repo/lib/</property>
-    <property name = "SPARK_UI_PORT">4050</property>
+
+    <property name="SPARK_CUSTOM" spark-property="spark.ui.port">4050</property>
 
     <property name="SPARK_CUSTOM" user-category="GUEST"  spark-property="spark.cores.max">6</property>
     <property name="SPARK_CUSTOM" user-category="BASIC"  spark-property="spark.cores.max">12</property>

@@ -22,7 +22,7 @@ object CLI {
   System.setProperty("current.date", dateFormat.format(new Date()));
 
   private final val SYSTEM_TMPE_DIR: String = System.getProperty("java.io.tmpdir")
-  private final val DEFAULT_SCHEMA_FILE:String = "/test.schema";
+  private final val DEFAULT_SCHEMA_FILE:String = "/schema.xml";
   private final val date: String = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
 
   private final val usage: String = "GMQL-Submit " +

@@ -4,6 +4,7 @@ import java.io.File
 import java.nio.file.Paths
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.concurrent.TimeUnit
 
 import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.compiler._
@@ -53,6 +54,8 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
 
   private final val logger: Logger = LoggerFactory.getLogger(this.getClass);
   final val loggerPath = General_Utilities().getLogDir(username)+jobId.toLowerCase()+".log"
+  final val userLoggerPath = General_Utilities().getUserLogDir(username)+jobId.toLowerCase()+".log"
+  final val devLoggerPath = General_Utilities().getDevLogDir(username)+jobId.toLowerCase()+".log"
   val jobOutputMessages: StringBuilder = new StringBuilder
 
   //  var script = fixFileFormat(scriptPath)
@@ -143,7 +146,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
                 //todo: find a better way to avoid accesing hdfs at compilation time
                 val newPath =
                   if(Utilities().LAUNCHER_MODE equals Utilities().REMOTE_CLUSTER_LAUNCHER)
-                    General_Utilities().getSchemaDir(user) + p.path + ".schema"
+                    General_Utilities().getSchemaDir(user) + p.path + ".xml"
                   else  getRegionFolder(p.path, user)
                 println(newPath)
                 new VariablePath(newPath, p.parser_name);
@@ -155,7 +158,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
                 val user = if (repositoryHandle.DSExistsInPublic(p.IDName)) "public" else this.username
                 val newPath =
                   if(Utilities().LAUNCHER_MODE equals Utilities().REMOTE_CLUSTER_LAUNCHER)
-                    General_Utilities().getSchemaDir(user) + p.IDName + ".schema"
+                    General_Utilities().getSchemaDir(user) + p.IDName + ".xml"
                   else  getRegionFolder(p.IDName, user)
                 new VariableIdentifier(newPath);
               } else {
@@ -282,7 +285,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     val user = if (repositoryHandle.DSExistsInPublic(inputDs)) "public" else this.username
     val newPath =
       if(Utilities().LAUNCHER_MODE equals Utilities().REMOTE_CLUSTER_LAUNCHER)
-        General_Utilities().getSchemaDir(user) + inputDs + ".schema"
+        General_Utilities().getSchemaDir(user) + inputDs + ".xml"
       else  getRegionFolder(inputDs, user)
     newPath
   }
@@ -431,11 +434,16 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
 
 
         // Compute some execution-related dataset metadata
-        val dsmeta = Map( "Query name"->this.queryName)
+        val hours   =  TimeUnit.MILLISECONDS.toHours(elapsedTime.executionTime)
+        val minutes =  TimeUnit.MILLISECONDS.toMinutes(elapsedTime.executionTime) - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(elapsedTime.executionTime))
+        val seconds =  TimeUnit.MILLISECONDS.toSeconds(elapsedTime.executionTime) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(elapsedTime.executionTime))
+        val execTime = "%02d:%02d:%02d".format(hours,minutes,seconds)
+
+        val dsmeta = Map( "Query name"->this.queryName, "Execution time"->execTime)
 
         outputVariablesList.map { ds =>
 
-          val (samples, sch) = repositoryHandle.listResultDSSamples(ds + "/exp/", this.username)
+          val (samples, sch) = repositoryHandle.listResultDSSamples(ds + "/files/", this.username)
 
 //          println("samples")
 //          samples.asScala foreach println _

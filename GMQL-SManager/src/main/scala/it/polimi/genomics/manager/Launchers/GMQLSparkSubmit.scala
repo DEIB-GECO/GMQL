@@ -4,13 +4,7 @@ package it.polimi.genomics.manager.Launchers
   * @author ABDULRAHMAN KAITOUA
   */
 
-import java.io.{ByteArrayOutputStream, IOException, ObjectOutputStream}
-import java.util
-
-import com.sun.jersey.core.util.Base64
-import it.polimi.genomics.compiler.Operator
-import it.polimi.genomics.core.DataStructures.IRDataSet
-import it.polimi.genomics.core.ParsingType.PARSING_TYPE
+import it.polimi.genomics.core.GDMSUserClass
 import it.polimi.genomics.manager.{GMQLJob, Utilities}
 import org.apache.spark.launcher.{SparkAppHandle, SparkLauncher}
 
@@ -29,7 +23,6 @@ class GMQLSparkSubmit(job:GMQLJob) {
   val HADOOP_CONF_DIR = General_Utilities().HADOOP_CONF_DIR
   val YARN_CONF_DIR =  General_Utilities().HADOOP_CONF_DIR
   val GMQL_HOME = General_Utilities().GMQLHOME
-  val SPARK_UI_PORT = Utilities().SPARK_UI_PORT
 
 
   final val GMQLjar:String = Utilities().CLI_JAR_local()
@@ -79,7 +72,6 @@ class GMQLSparkSubmit(job:GMQLJob) {
       .setSparkHome(SPARK_HOME)
       .setAppResource(GMQLjar)
       .setMainClass(MASTER_CLASS)
-      .setConf("spark.ui.port", SPARK_UI_PORT.toString)
       .setConf("spark.driver.extraClassPath", Utilities().lib_dir_local + "/libs/*")
       //.setConf("spark.executor.extraClassPath", Utilities().lib_dir_local + "/*")
       .addAppArgs("-username", job.username,
@@ -92,7 +84,9 @@ class GMQLSparkSubmit(job:GMQLJob) {
         "-outputFormat",job.gMQLContext.outputFormat.toString,
         "-outputCoordinateSystem", job.gMQLContext.outputCoordinateSystem.toString,
         //"-outputDirs", outDir,
-        "-logDir",General_Utilities().getLogDir(job.username))
+        "-logDir",General_Utilities().getLogDir(job.username),
+        "-userLogDir", General_Utilities().getUserLogDir(job.username),
+        "-devLogDir", General_Utilities().getDevLogDir(job.username))
       .setConf("spark.app.id", APPID)
     if(job.script.script != null && job.script.script != "") {
       d = d.addAppArgs("-script", job.script.script)
@@ -123,9 +117,15 @@ class GMQLSparkSubmit(job:GMQLJob) {
 
        for( spark_property <- Utilities().SPARK_CUSTOM.keys ) {
 
-         if( Utilities().SPARK_CUSTOM(spark_property).isDefinedAt(job.gMQLContext.userClass)) {
-           val spark_value =  Utilities().SPARK_CUSTOM(spark_property)(job.gMQLContext.userClass)
-           d = d.setConf(spark_property, spark_value)
+         val userClass = job.gMQLContext.userClass
+         val allClass  = GDMSUserClass.ALL
+         val property  =  Utilities().SPARK_CUSTOM(spark_property)
+
+         // Note: A property set for a specific user class overrides the same property possibly defined for all classes
+         if ( property.isDefinedAt(userClass) ) {
+           d = d.setConf(spark_property, property(userClass))
+         } else if( property.isDefinedAt(allClass)  ) {
+           d = d.setConf(spark_property, property(allClass))
          }
        }
     }

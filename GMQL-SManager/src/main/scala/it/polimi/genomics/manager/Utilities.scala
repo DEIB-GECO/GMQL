@@ -21,17 +21,15 @@ class Utilities {
   var CLI_CLASS: String = "it.polimi.genomics.cli.GMQLExecuteCommand"
   var lib_dir_local: String = it.polimi.genomics.repository.Utilities().GMQLHOME + "/lib/"
   var lib_dir_hdfs: String = it.polimi.genomics.repository.Utilities().HDFSRepoDir + "/lib/"
-  var SPARK_UI_PORT:Int = 4040
 
   // User-category-specific spark property
   var SPARK_CUSTOM: Map[String, Map[GDMSUserClass.Value, String]] = Map()
 
   //TODO: Acticvate the launcher modes
-  var LAUNCHER_MODE: String =  LOCAL_LAUNCHER
   final val LOCAL_LAUNCHER: String = "LOCAL"
   final val CLUSTER_LAUNCHER: String = "CLUSTER"
   final val REMOTE_CLUSTER_LAUNCHER: String = "REMOTE_CLUSTER"
-
+  var LAUNCHER_MODE: String =  LOCAL_LAUNCHER
 
   def apply() = {
 
@@ -52,10 +50,14 @@ class Utilities {
           case Conf.CLI_CLASS => CLI_CLASS = value
           case Conf.LAUNCHER_MODE => LAUNCHER_MODE = value
 
-          case Conf.SPARK_UI_PORT => SPARK_UI_PORT = value.toInt
           case Conf.SPARK_CUSTOM  => {
 
-            val user_class = GDMSUserClass.withNameOpt(x.attribute("user-category").get.head.text)
+            val user_class =
+              if( x.attribute("user-category").isDefined )
+                GDMSUserClass.withNameOpt(x.attribute("user-category").get.head.text)
+              else
+                GDMSUserClass.ALL
+
             val spark_property = x.attribute("spark-property").get.head.text
 
             logger.info("Custom Spark property for "+user_class+": "+spark_property+"="+value)
@@ -119,6 +121,5 @@ object Conf {
   val LIB_DIR_HDFS = "LIB_DIR_HDFS"
   val CLI_CLASS = "CLI_CLASS"
 
-  val SPARK_UI_PORT = "SPARK_UI_PORT"
   val SPARK_CUSTOM = "SPARK_CUSTOM"
 }

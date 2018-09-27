@@ -94,7 +94,7 @@ trait XMLDataSetRepository extends GMQLRepository{
     val schemaType = (xmlFile \\ "gmqlSchema").head.attribute("type").get.head.text
     val coordinateSystemAttribute = (xmlFile \\ "gmqlSchema").head.attribute("coordinate_system")
     val schemaCoordinateSystem = if (coordinateSystemAttribute.isDefined) coordinateSystemAttribute.get.head.text else "none"
-    val schema = schemaFields.map { x => (x.text.trim, ParsingType.attType(x.attribute("type").get.head.text)) }.toList.asJava
+    val schema = schemaFields.map { x => (x.text.trim, attType(x.attribute("type").get.head.text)) }.toList.asJava
     val dataSet = new IRDataSet(dataSetName, schema)
     val gMQLDataSetXML = new GMQLDataSetXML(dataSet, userName, Samples.asScala.toList, GMQLSchemaFormat.getType(schemaType), GMQLSchemaCoordinateSystem.getType(schemaCoordinateSystem), "IMPORTED_"+General_Utilities().MODE  )
     gMQLDataSetXML.Create()
@@ -335,9 +335,9 @@ trait XMLDataSetRepository extends GMQLRepository{
 
   def attType(x: String): ParsingType.Value = x.toUpperCase match {
     case "STRING" => ParsingType.STRING
-    case "CHAR" => ParsingType.STRING
-    case "CHARACTAR" => ParsingType.STRING
-    case "LONG" => ParsingType.DOUBLE
+    case "CHAR" => ParsingType.CHAR
+    case "CHARACTAR" => ParsingType.CHAR
+    case "LONG" => ParsingType.LONG
     case "INTEGER" => ParsingType.INTEGER
     case "INT" => ParsingType.INTEGER
     case "BOOLEAN" => ParsingType.STRING

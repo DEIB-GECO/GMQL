@@ -58,7 +58,7 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
   var fs: FileSystem = null
 
   def go(): Unit = {
-    logger.info(to_be_materialized.toString())
+    logger.debug(to_be_materialized.toString())
     implementation()
   }
 
@@ -124,7 +124,7 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
 
           val variableDir = variable.metaDag.asInstanceOf[IRStoreMD].path.toString
           val MetaOutputPath = variableDir + "/meta/"
-          val RegionOutputPath = variableDir + "/exp/"
+          val RegionOutputPath = variableDir + "/files/"
           logger.debug("meta out: " + MetaOutputPath)
           logger.debug("region out " + RegionOutputPath)
 
@@ -152,8 +152,8 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
           val profile = Profiler.profile(regions = regionRDD, meta = metaRDD, sc = sc)
 
           try {
-            val output = fs.create(new Path(variableDir + "/exp/" + "profile.xml"));
-            val output_web = fs.create(new Path(variableDir + "/exp/" + "web_profile.xml"));
+            val output = fs.create(new Path(variableDir + "/files/" + "profile.xml"));
+            val output_web = fs.create(new Path(variableDir + "/files/" + "web_profile.xml"));
 
             val os = new java.io.BufferedOutputStream(output)
             val os_web = new java.io.BufferedOutputStream(output_web)
@@ -199,7 +199,7 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
       }
       // We need to clear the set of materialized variables if we are in interactive mode
       to_be_materialized.clear()
-      logger.info("Total Spark Job Execution Time : " + (System.currentTimeMillis() - ms).toString)
+      logger.debug("Total Spark Job Execution Time : " + (System.currentTimeMillis() - ms).toString)
     }
 
   }
@@ -335,10 +335,10 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
   }
 
   def storeSchema(schema: String, path: String) = {
-    val schemaPath = path + "/exp/test.schema"
+    val schemaPath = path + "/files/test.schema"
     val br = new BufferedWriter(new OutputStreamWriter(fs.create(new Path(schemaPath)), "UTF-8"));
-    br.write(schema);
-    br.close();
+    br.write(schema)
+    br.close()
   }
 
 

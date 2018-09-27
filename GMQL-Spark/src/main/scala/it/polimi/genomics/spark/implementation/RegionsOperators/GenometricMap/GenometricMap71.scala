@@ -37,7 +37,7 @@ object GenometricMap71 {
       if (BINNING_PARAMETER == 0)
         Long.MaxValue
       else
-        180 * 1000
+        BINNING_PARAMETER
 
     execute(executor, grouping, aggregator, ref, exp, binningParameter, REF_PARALLILISM, sc)
   }

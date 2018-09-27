@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>it.polimi.genomics</groupId>
     <artifactId>gmql</artifactId>
@@ -41,14 +42,42 @@
         <developer>
             <name>Abdulrahman Kaitoua</name>
             <email>abdulrahman.kaitoua@polimi.it</email>
-            <organization>Politecnico Di Milano University</organization>
+            <organization>Politecnico di Milano</organization>
             <organizationUrl>https://github.com/akaitoua</organizationUrl>
+        </developer>
+
+        <developer>
+            <name>Pietro Pinoli</name>
+            <email>pietro.pinoli@polimi.it</email>
+            <organization>Politecnico di Milano</organization>
+            <organizationUrl>https://github.com/pp86</organizationUrl>
+        </developer>
+
+        <developer>
+            <name>Arif Canakoglu</name>
+            <email>arif.canakoglu@polimi.it</email>
+            <organization>Politecnico di Milano</organization>
+            <organizationUrl>https://github.com/acanakoglu</organizationUrl>
+        </developer>
+
+        <developer>
+            <name>Andrea Gulino</name>
+            <email>andrea.gulino@polimi.it</email>
+            <organization>Politecnico di Milano</organization>
+            <organizationUrl>https://github.com/andreagulino</organizationUrl>
+        </developer>
+
+        <developer>
+            <name>Olha Horlova</name>
+            <email>olha.horlova@polimi.it</email>
+            <organization>Politecnico di Milano</organization>
+            <organizationUrl>https://github.com/OlgaGorlova</organizationUrl>
         </developer>
 
         <developer>
             <name>Luca Nanni</name>
             <email>luca.nanni@polimi.it</email>
-            <organization>Politecnico Di Milano University</organization>
+            <organization>Politecnico Di Milano</organization>
             <organizationUrl>https://github.com/lucananni93</organizationUrl>
         </developer>
     </developers>
@@ -57,8 +86,8 @@
         <connection>scm:git:git://github.com/DEIB-GECO/GMQL.git</connection>
         <developerConnection>scm:git:ssh://github.com/DEIB-GECO/GMQL.git</developerConnection>
         <url>http:///github.com/DEIB-GECO/GMQL</url>
-      <tag>gmql-1.0</tag>
-  </scm>
+        <tag>gmql-1.0</tag>
+    </scm>
 
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
@@ -163,6 +192,19 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.0.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>

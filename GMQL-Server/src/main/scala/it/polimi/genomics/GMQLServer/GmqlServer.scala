@@ -102,7 +102,7 @@ class GmqlServer(var implementation: Implementation, binning_size: Option[Long] 
   /**
     * Class used to generate a variable reading from the file system
     *
-    * @param paths The list of paths where the dataset is stored. It must contains two sub-directory named "meta" and "exp"
+    * @param paths The list of paths where the dataset is stored. It must contains two sub-directory named "meta" and "files"
     */
   class UnfinishedREAD(paths: List[String], location : GMQLInstance = LOCAL_INSTANCE) {
     /**

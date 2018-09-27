@@ -33,7 +33,7 @@ object StoreGTFRD {
     val fs = FileSystem.get(dfsPath.toUri(), conf);
 
     val MetaOutputPath = path + "/meta/"
-    val RegionOutputPath = path + "/exp/"
+    val RegionOutputPath = path + "/files/"
 
     logger.debug(MetaOutputPath)
     logger.debug(RegionOutputPath)
@@ -49,11 +49,11 @@ object StoreGTFRD {
 
     val outSample = "S"
 
-    val Ids = meta.keys.distinct()
-    val newIDS: Map[Long, Long] = Ids.zipWithIndex().collectAsMap()
+    val ids = meta.keys.distinct().collect().sorted
+    val newIDS = ids.zipWithIndex.toMap
     val newIDSbroad = sc.broadcast(newIDS)
 
-    val regionsPartitioner = new HashPartitioner(Ids.count.toInt)
+    val regionsPartitioner = new HashPartitioner(ids.length)
 
     val keyedRDD = {
       val jobname = outputFolderName

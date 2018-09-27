@@ -25,29 +25,33 @@ object GenometricJoin4TopMin3 {
   def apply(executor : GMQLSparkExecutor, metajoinCondition : OptionalMetaJoinOperator, distanceJoinCondition : List[JoinQuadruple], regionBuilder : RegionBuilder, leftDataset : RegionOperator, rightDataset : RegionOperator,join_on_attributes:Option[List[(Int,Int)]], BINNING_PARAMETER:Long, MAXIMUM_DISTANCE:Long, sc : SparkContext) : RDD[GRECORD] = {
     // load datasets
     val ref : RDD[GRECORD] =
-      executor.implement_rd(leftDataset, sc)
+      executor.implement_rd(leftDataset, sc)//.map(x=>(new GRecordKey(Hashing.md5.newHasher.putLong(x._1._1).hash().asLong(),x._1._2,x._1._3,x._1._4,x._1._5),x._2))
     val exp : RDD[GRECORD] =
       executor.implement_rd(rightDataset, sc)
 
     // load grouping
-    val Bgroups: RDD[(Long, Long)] = executor.implement_mjd(metajoinCondition, sc).flatMap{x=>
-          val hs = Hashing.md5.newHasher.putLong(x._1)
-          val exp = x._2
-          x._2.map{ exp_id =>
-            hs.putLong(exp_id)
-          }
-          val groupID = hs.hash().asLong()
-          val e = for(ex <- exp)
-            yield(ex,groupID)
-          e :+ (x._1,groupID)
-        }.distinct()
+    val Bgroups: RDD[((Long, Long), Array[(Long, Long)])] = executor.implement_mjd(metajoinCondition, sc).map { x =>
+      val ref = x._1
+      val hs = Hashing.md5.newHasher.putLong(ref)
+      val exp = x._2
+      exp.map { exp_id =>
+        hs.putLong(exp_id)
+      }
+      val groupID = hs.hash().asLong()
+
+
+      val e = for (ex <- exp)
+        yield (ex, groupID)
+      ((ref, groupID),e)
+    }.distinct()
+
 
 
     val output = if(join_on_attributes.isDefined && distanceJoinCondition.isEmpty)
     {
 
-      val refGrouped = filterRef(ref,Bgroups,join_on_attributes.get.map(_._1))
-      val expGrouped = filterExp(exp,Bgroups,join_on_attributes.get.map(_._2))
+      val refGrouped = filterRef(ref,Bgroups.keys,join_on_attributes.get.map(_._1))
+      val expGrouped = filterExp(exp,Bgroups.values.flatMap(x=>x),join_on_attributes.get.map(_._2))
 
       val dd = refGrouped.join(expGrouped).flatMap{ x=>
         val ref_region = x._2._1
@@ -61,11 +65,11 @@ object GenometricJoin4TopMin3 {
     else if(!distanceJoinCondition.isEmpty){
     // assign group to ref
     val groupedDs : RDD[(Long,Long, String, Long, Long, Char, Array[GValue]/*, Long*/)] =
-      assignRegionGroups( ref, Bgroups).cache()
+      assignRegionGroups( ref, Bgroups.keys).cache()
     // (Expid, refID, chr, start, stop, strand, values, aggregationId)
 
     // assign group and bin experiment
-    val binnedExp: RDD[((Long, String, Int), (Long,Long, Long, Char, Array[GValue], Int,Int))] =binExperiment(exp,Bgroups,BINNING_PARAMETER)
+    val binnedExp: RDD[((Long, String, Int), (Long,Long, Long, Char, Array[GValue], Int,Int))] =binExperiment(exp,Bgroups.values.flatMap(x=>x),BINNING_PARAMETER)
 
     // (ExpID,chr ,bin), start, stop, strand, values,BinStart)
     distanceJoinCondition.map{q =>
@@ -346,15 +350,6 @@ object GenometricJoin4TopMin3 {
     )
   }
 
-  def keyDataBy(ds: RDD[GRECORD], Bgroups:RDD[(Long, Long)]): RDD[( Long, Long, String, Long, Long, Char, Array[GValue]/*, Long*/)] = {
-    if (!ds.isEmpty()) ds.partitionBy(new HashPartitioner(Bgroups.keys.distinct().count.toInt)).keyBy(x=>x._1._1).join(Bgroups,new HashPartitioner(Bgroups.count.toInt)).map { x =>
-      val region = x._2._1
-      (x._2._2, region._1._1, region._1._2, region._1._3, region._1._4, region._1._5, region._2 /*, aggregationId*/)
-    }else ds.partitionBy(new HashPartitioner(Bgroups.count.toInt)).flatMap(region=>
-      Some(1L, region._1._1, region._1._2, region._1._3, region._1._4, region._1._5, region._2 /*, aggregationId*/)
-    )
-  }
-
   def prepareDs(ds : RDD[( Long,Long, String, Long, Long, Char, Array[GValue])],firstRound : JoinExecutionParameter, secondRound : JoinExecutionParameter,binSize : Long, max : Long) : RDD[((Long, String,Int),( Long,Long, Long, Char, Array[GValue], Int))] = {
     ds.flatMap{r  =>
       val hs = Hashing.md5.newHasher
@@ -412,20 +407,12 @@ object GenometricJoin4TopMin3 {
   }
 
   def binExperiment(ds: RDD[GRECORD], Bgroups: RDD[(Long, Long)], BINNING_PARAMETER: Long): RDD[((Long, String, Int), (Long, Long, Long, Char, Array[GValue], Int, Int))] = {
-    if (!ds.isEmpty())
       ds.keyBy(x => x._1._1).join(Bgroups,new HashPartitioner(Bgroups.count.toInt)).flatMap { x =>
         val region = x._2._1
         val binStart = (region._1._3 / BINNING_PARAMETER).toInt
         val binEnd = (region._1._4 / BINNING_PARAMETER).toInt
         for (i <- binStart to binEnd)
           yield ((x._2._2, region._1._2, i), (region._1._1, region._1._3, region._1._4, region._1._5, region._2, binStart, binEnd))
-      }
-    else
-      ds.partitionBy(new HashPartitioner(Bgroups.count.toInt)).flatMap { region =>
-        val binStart = (region._1._3 / BINNING_PARAMETER).toInt
-        val binEnd = (region._1._4 / BINNING_PARAMETER).toInt
-        for (i <- binStart to binEnd)
-          yield ((1L, region._1._2, i), (region._1._1, region._1._3, region._1._4, region._1._5, region._2, binStart, binEnd))
       }
   }
 
