@@ -16,6 +16,7 @@
         <module>GMQL-Profiler</module>
         <module>GMQL-SManager</module>
         <module>GMQL-PythonAPI</module>
+        <module>GMQL-Federated</module>
     </modules>
     <name>${project.groupId}:${project.artifactId}</name>
     <description>Polimi GMQL, Big Data processing for Genomics</description>

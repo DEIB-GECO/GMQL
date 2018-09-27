@@ -1,4 +1,5 @@
-package it.polimi.genomics.core
+package it.polimi.genomics.core.DAG
+
 //import scala.pickling.Defaults._
 //import scala.pickling.json._
 import java.io._
