@@ -190,7 +190,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>it.polimi.genomics.repository.FSRepository.testLFSRepository</mainClass>
+                            <mainClass>it.polimi.genomics.repository.RepositoryManager</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

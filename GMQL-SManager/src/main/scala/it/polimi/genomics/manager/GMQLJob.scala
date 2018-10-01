@@ -130,9 +130,15 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
         }
       }.toMap
 
+      val fsRegDir =
+        if ( General_Utilities().GMQL_REPO_TYPE == General_Utilities().LOCAL)  {
+          General_Utilities().getRegionDir(username)
+        } else {
+          General_Utilities().getHDFSNameSpace() + General_Utilities().getHDFSRegionDir()
+        }
 
-      val fsRegDir: String =
-        General_Utilities().getHDFSNameSpace() + General_Utilities().getHDFSRegionDir()
+//      val fsRegDir: String =
+//        General_Utilities().getHDFSNameSpace() + General_Utilities().getHDFSRegionDir()
 
 
 
@@ -179,13 +185,16 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
           if (!d.store_path.isEmpty){
             if (General_Utilities().MODE == General_Utilities().HDFS)
               d.store_path = fsRegDir + id + "_" + d.store_path + "/"
-            else d.store_path = res_name + "_" + d.store_path + "/"
+            else d.store_path = General_Utilities().getRegionDir(username) + "/" + id + "/"
+            //else d.store_path = res_name + "_" + d.store_path + "/"
             d
           }
           else{
             if (General_Utilities().MODE == General_Utilities().HDFS)
               d.store_path = fsRegDir + id + "/"
-            else d.store_path = res_name + "/"
+            else //(General_Utilities().MODE == General_Utilities().LOCAL)
+              d.store_path = General_Utilities().getRegionDir(username) + "/" + id + "/"
+            //else d.store_path = res_name + "/"
             d
           }
         case s: Operator => s

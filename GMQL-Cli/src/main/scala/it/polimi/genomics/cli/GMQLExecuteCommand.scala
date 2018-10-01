@@ -402,7 +402,7 @@ object GMQLExecuteCommand {
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "128")
       .set("spark.driver.allowMultipleContexts", "true")
       .set("spark.sql.tungsten.enabled", "true")
-    //.setMaster("local[*]")
+      .setMaster("local[*]")
     val sc: SparkContext = new SparkContext(conf)
     //      sc.addSparkListener(new SparkListener() {
     //        override def onApplicationStart(applicationStart: SparkListenerApplicationStart) {
