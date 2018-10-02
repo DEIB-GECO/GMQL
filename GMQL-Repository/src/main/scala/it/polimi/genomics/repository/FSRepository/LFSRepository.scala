@@ -87,7 +87,13 @@ class LFSRepository extends GMQLRepository with XMLDataSetRepository{
     */
   @deprecated
   override def listResultDSSamples(dataSetName:String, userName: String): (java.util.List[GMQLSample],java.util.List[GMQLSchemaField]) = {
-    val dsPath = dataSetName
+    logger.info("dataSetName"  + dataSetName)
+    val dsPath = General_Utilities().getRegionDir(userName) + "/" + "job_" + userName + "_"+ dataSetName
+    logger.info("dsPath: " + dsPath)
+    logger.info("new java.io.File(dsPath): " + new java.io.File(dsPath))
+    logger.info("dsPath exists: " + new java.io.File(dsPath).exists())
+    logger.info("dsPath isDirectory: " + new java.io.File(dsPath).isDirectory())
+    logger.info("new java.io.File(dsPath).listFiles.map(_.toString).toList.toString: " + new java.io.File(dsPath).listFiles.map(_.toString).toList.toString)
     val samples = new java.io.File(dsPath).listFiles(
       new FileFilter() {
         @Override def accept(pathname: java.io.File) = !pathname.getName.startsWith("_") && !pathname.getName.startsWith(".") && new File(pathname.toString+".meta").exists();
@@ -121,11 +127,12 @@ class LFSRepository extends GMQLRepository with XMLDataSetRepository{
     sampleOption match {
       case Some(sample) =>
         val dsLocation = getDSLocation(dataSetName,userName)
-        val dir = if(dsLocation._1.equals(RepositoryType.LOCAL) && dsLocation._2.equals(DatasetOrigin.GENERATED))
-          General_Utilities().getRegionDir(userName)
-        else {
+        val dir =
+//          if(dsLocation._1.equals(RepositoryType.LOCAL) && dsLocation._2.equals(DatasetOrigin.GENERATED))
+//          General_Utilities().getRegionDir(userName)
+//        else {
           ""
-        }
+//        }
         val pathRegion = new File(dir +sample.name)
         val pathMeta = new File(dir +sample.meta)
 

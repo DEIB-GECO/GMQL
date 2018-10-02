@@ -182,10 +182,12 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
           None
         }*/
         case d: MaterializeOperator =>
+          logger.info("d: MaterializeOperator id: " + id)
           if (!d.store_path.isEmpty){
+            logger.info("d: MaterializeOperator d.store_path: " + d.store_path)
             if (General_Utilities().MODE == General_Utilities().HDFS)
               d.store_path = fsRegDir + id + "_" + d.store_path + "/"
-            else d.store_path = General_Utilities().getRegionDir(username) + "/" + id + "/"
+            else d.store_path = General_Utilities().getRegionDir(username) + "/" + id + "_" + d.store_path + "/"
             //else d.store_path = res_name + "_" + d.store_path + "/"
             d
           }
@@ -313,8 +315,8 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     val (location,ds_origin) = repositoryHandle.getDSLocation(dsName,user)
     if ( location == RepositoryType.HDFS)
       getHDFSRegionFolder(path,user)
-    else if(location == RepositoryType.LOCAL && ds_origin == DatasetOrigin.GENERATED)
-      General_Utilities().getRegionDir(user)+ Paths.get(path).getParent.toString
+//    else if(location == RepositoryType.LOCAL && ds_origin == DatasetOrigin.GENERATED)
+//      General_Utilities().getRegionDir(user)+ Paths.get(path).getParent.toString
     else //DatasetOrigin.IMPORTED
       Paths.get(path).getParent.toString
   }

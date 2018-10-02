@@ -73,6 +73,7 @@ case class SelectOperator(op_pos : Position,
         if(var_in_scope.isDefined){
           var_in_scope.get.payload
         } else {
+          logger.debug("i.name: " + i.name)
           val sel_loader = status.get_server.implementation.getParser(loader.getOrElse("default"),i.name)
             .asInstanceOf[GMQLLoader[(Long,String), FlinkRegionType, (Long,String), FlinkMetaType]]
           status.get_server.READ(List(i.name), operator_location.getOrElse(LOCAL_INSTANCE)).USING(sel_loader)
