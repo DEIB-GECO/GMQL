@@ -112,7 +112,7 @@ class GF_Communication {
       resetToken(namespace)
     }
 
-    "63c4e817-c107-4a46-a0e4-556eccfeeb5f"
+    "FEDERATED-TOKEN"
   }
 
   private def resetToken (target_namespace:String) = {
