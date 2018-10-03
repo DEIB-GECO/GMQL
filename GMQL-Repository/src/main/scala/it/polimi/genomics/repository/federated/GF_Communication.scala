@@ -56,6 +56,8 @@ class GF_Communication {
   // Helpers
 
   private def rest_get(uri: Uri, authorization: (String, String)) : Elem = {
+    logger.info("rest_get->uri " + uri)
+    logger.info("rest_get->authorization " + authorization)
 
     val request = sttp.get(uri)
       .header("Accept","application/xml")
@@ -64,7 +66,12 @@ class GF_Communication {
     implicit val backend = HttpURLConnectionBackend()
     val response = request.send()
 
-    XML.loadString(response.unsafeBody)
+    val responseUnsafeBody = response.unsafeBody
+
+
+    logger.info("rest_get->response.unsafeBody " + responseUnsafeBody)
+
+    XML.loadString(responseUnsafeBody)
 
   }
 
