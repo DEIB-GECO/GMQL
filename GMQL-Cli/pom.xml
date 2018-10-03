@@ -31,6 +31,19 @@
 
         <dependency>
             <groupId>it.polimi.genomics</groupId>
+            <artifactId>GMQL-Federated</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+        
+
+        <dependency>
+            <groupId>it.polimi.genomics</groupId>
+            <artifactId>GMQL-Spark</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>it.polimi.genomics</groupId>
             <artifactId>GMQL-Core</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>

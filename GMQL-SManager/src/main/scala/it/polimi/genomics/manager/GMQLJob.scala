@@ -8,9 +8,10 @@ import java.util.concurrent.TimeUnit
 
 import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.compiler._
+import it.polimi.genomics.core.DAG.{DAGSerializer, DAGWrapper}
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLocalLauncher}
-import it.polimi.genomics.core.{DAGSerializer, DAGWrapper, GMQLSchemaCoordinateSystem, GMQLSchemaFormat, GMQLScript}
+import it.polimi.genomics.core.{GMQLSchemaCoordinateSystem, GMQLSchemaFormat, GMQLScript}
 import it.polimi.genomics.manager.Status._
 import it.polimi.genomics.repository.FSRepository.FS_Utilities.{deleteDFSDir, deleteFromLocalFSRecursive, logger}
 import it.polimi.genomics.repository.FSRepository.{FS_Utilities => FSR_Utilities}
@@ -129,9 +130,15 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
         }
       }.toMap
 
+      val fsRegDir =
+        if ( General_Utilities().GMQL_REPO_TYPE == General_Utilities().LOCAL)  {
+          General_Utilities().getRegionDir(username)
+        } else {
+          General_Utilities().getHDFSNameSpace() + General_Utilities().getHDFSRegionDir()
+        }
 
-      val fsRegDir: String =
-        General_Utilities().getHDFSNameSpace() + General_Utilities().getHDFSRegionDir()
+//      val fsRegDir: String =
+//        General_Utilities().getHDFSNameSpace() + General_Utilities().getHDFSRegionDir()
 
 
 
@@ -175,16 +182,21 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
           None
         }*/
         case d: MaterializeOperator =>
+          logger.info("d: MaterializeOperator id: " + id)
           if (!d.store_path.isEmpty){
+            logger.info("d: MaterializeOperator d.store_path: " + d.store_path)
             if (General_Utilities().MODE == General_Utilities().HDFS)
               d.store_path = fsRegDir + id + "_" + d.store_path + "/"
-            else d.store_path = res_name + "_" + d.store_path + "/"
+            else d.store_path = General_Utilities().getRegionDir(username) + "/" + id + "_" + d.store_path + "/"
+            //else d.store_path = res_name + "_" + d.store_path + "/"
             d
           }
           else{
             if (General_Utilities().MODE == General_Utilities().HDFS)
               d.store_path = fsRegDir + id + "/"
-            else d.store_path = res_name + "/"
+            else //(General_Utilities().MODE == General_Utilities().LOCAL)
+              d.store_path = General_Utilities().getRegionDir(username) + "/" + id + "/"
+            //else d.store_path = res_name + "/"
             d
           }
         case s: Operator => s
@@ -269,7 +281,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
       case _ =>
         None
     }
-    val tempRes = inp.getOperatorList.flatMap(operator => rec(operator))
+    val tempRes = inp.getDependencies.flatMap(operator => rec(operator))
 
     tempRes ++ List(result).flatten
   }
@@ -303,8 +315,8 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     val (location,ds_origin) = repositoryHandle.getDSLocation(dsName,user)
     if ( location == RepositoryType.HDFS)
       getHDFSRegionFolder(path,user)
-    else if(location == RepositoryType.LOCAL && ds_origin == DatasetOrigin.GENERATED)
-      General_Utilities().getRegionDir(user)+ Paths.get(path).getParent.toString
+//    else if(location == RepositoryType.LOCAL && ds_origin == DatasetOrigin.GENERATED)
+//      General_Utilities().getRegionDir(user)+ Paths.get(path).getParent.toString
     else //DatasetOrigin.IMPORTED
       Paths.get(path).getParent.toString
   }

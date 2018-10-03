@@ -4,6 +4,7 @@ import java.io.{File, FileFilter}
 import java.util.concurrent.atomic.AtomicInteger
 
 import it.polimi.genomics.GMQLServer.GmqlServer
+import it.polimi.genomics.core.DAG.{DAGSerializer, DAGWrapper}
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core._
@@ -313,7 +314,7 @@ object PythonManager {
         }
       case _ =>
     }
-    dag.getOperatorList.map(operator => modify_dag_source(operator, source, dest))
+    dag.getDependencies.map(operator => modify_dag_source(operator, source, dest))
   }
 
   /*Spark context related*/

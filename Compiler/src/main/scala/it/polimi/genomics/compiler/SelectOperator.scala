@@ -1,13 +1,13 @@
 package it.polimi.genomics.compiler
 
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinCondition
-import it.polimi.genomics.core.DataStructures.{MetaOperator}
-import it.polimi.genomics.core.DataStructures.MetadataCondition.{Predicate, META_OP, MetadataCondition, NOT}
+import it.polimi.genomics.core.DataStructures.{LOCAL_INSTANCE, MetaOperator}
+import it.polimi.genomics.core.DataStructures.MetadataCondition.{META_OP, MetadataCondition, NOT, Predicate}
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
 import it.polimi.genomics.core.DataTypes.{FlinkMetaType, FlinkRegionType}
-import it.polimi.genomics.core.{ParsingType, GMQLLoader}
+import it.polimi.genomics.core.{GMQLLoader, ParsingType}
 
-import scala.util.parsing.input.{Position}
+import scala.util.parsing.input.Position
 
 @SerialVersionUID(123125534332313121L)
 case class SelectOperator(op_pos : Position,
@@ -50,6 +50,9 @@ case class SelectOperator(op_pos : Position,
         case "parser" => {
           loader = parser_named(ident, n.param_name, n.param_value)
         }
+        case "at" => {
+          parse_named_at(n.param_value)
+        }
       }
     }
 
@@ -64,15 +67,16 @@ case class SelectOperator(op_pos : Position,
       case p:VariablePath => Some({
         val sel_loader = status.get_server.implementation.getParser(loader.getOrElse("default"),p.path)
           .asInstanceOf[GMQLLoader[(Long,String), FlinkRegionType, (Long,String), FlinkMetaType]]
-        status.get_server.READ(List(p.path)).USING(sel_loader)})
+        status.get_server.READ(List(p.path), operator_location.getOrElse(LOCAL_INSTANCE)).USING(sel_loader)})
       case i:VariableIdentifier => Some({
         val var_in_scope = status.getVariable(i.name)
         if(var_in_scope.isDefined){
           var_in_scope.get.payload
         } else {
+          logger.debug("i.name: " + i.name)
           val sel_loader = status.get_server.implementation.getParser(loader.getOrElse("default"),i.name)
             .asInstanceOf[GMQLLoader[(Long,String), FlinkRegionType, (Long,String), FlinkMetaType]]
-          status.get_server.READ(List(i.name)).USING(sel_loader)
+          status.get_server.READ(List(i.name), operator_location.getOrElse(LOCAL_INSTANCE)).USING(sel_loader)
         }
       })
     }
@@ -150,7 +154,14 @@ case class SelectOperator(op_pos : Position,
     CompilerDefinedVariable(
       output.name,
       output.pos,
-      super_variable_left.get.add_select_statement(sj_var,sj_con,metadata_condition,region_condition))
+      super_variable_left
+        .get
+        .add_select_statement(
+          sj_var,
+          sj_con,
+          metadata_condition,
+          region_condition,
+          operator_location))
   }
 
 }
