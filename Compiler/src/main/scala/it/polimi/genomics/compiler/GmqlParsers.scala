@@ -31,7 +31,7 @@ trait GmqlParsers extends JavaTokenParsers {
     ("[" ~> ident <~ "]") ~ ("""[A-Z|a-z|0-9/._:-]+""".r) ^^ {
       x => VariablePath(x._2, x._1)
     })
-  val onlyPath = """[A-Z|a-z|0-9._:-]*[/][A-Z|a-z|0-9/._:-]*""".r ^^ { x => VariablePath(x, null) }
+  val onlyPath = """[A-Z|a-z|0-9/._:-]*""".r ^^ { x => VariablePath(x, null) }
   val materializePath = """[A-Z|a-z|0-9/._:-]+""".r ^^ { x => VariablePath(x, null) }
   val anyVariableIdentifier: Parser[Variable] = variableId | variablePath
 
