@@ -26,7 +26,7 @@ import it.polimi.genomics.core.ParsingType.PARSING_TYPE
   */
 @SerialVersionUID(1000L)
 case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
-                      schema: List[(String, PARSING_TYPE)] = List.empty)(implicit binS: BinningParameter) extends Serializable {
+                      var schema: List[(String, PARSING_TYPE)] = List.empty)(implicit binS: BinningParameter) extends Serializable {
 
 
   def SELECT(meta_con: MetadataCondition): IRVariable = {

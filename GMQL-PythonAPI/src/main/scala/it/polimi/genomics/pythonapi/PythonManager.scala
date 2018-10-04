@@ -7,7 +7,7 @@ import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core._
-import it.polimi.genomics.pythonapi.EntryPoint.logger
+import com.rits.cloning.Cloner
 import it.polimi.genomics.pythonapi.operators.{ExpressionBuilder, OperatorManager}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.loaders._
@@ -85,10 +85,17 @@ object PythonManager {
   }
 
   def cloneVariable(index: Int): Int = {
+
+    val cloner = new Cloner()
+    cloner.registerImmutable(classOf[List[(String, PARSING_TYPE)]])
+
     val variable = this.getVariable(index)
-    val binning_parameter = this.server.binning_parameter
-    val new_variable = IRVariable(metaDag = variable.metaDag,
-      regionDag = variable.regionDag, schema = variable.schema)(binning_parameter)
+    val v_schema = variable.schema
+//    val binning_parameter = this.server.binning_parameter
+//    val new_variable = IRVariable(metaDag = variable.metaDag,
+//      regionDag = variable.regionDag, schema = variable.schema)(binning_parameter)
+    val new_variable = cloner.deepClone(variable)
+    new_variable.schema = v_schema
     this.putNewVariable(new_variable)
   }
 
