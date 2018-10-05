@@ -293,12 +293,17 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     * @return path of x
     * */
   def getInputDsPath(inputDs: String)  = {
-    val user = if (repositoryHandle.DSExistsInPublic(inputDs)) "public" else this.username
-    val newPath =
-      if(Utilities().LAUNCHER_MODE equals Utilities().REMOTE_CLUSTER_LAUNCHER)
-        General_Utilities().getSchemaDir(user) + inputDs + ".xml"
-      else  getRegionFolder(inputDs, user)
-    newPath
+    //TODO correct
+    if(inputDs.startsWith("/"))
+      inputDs
+    else {
+      val user = if (repositoryHandle.DSExistsInPublic(inputDs)) "public" else this.username
+      val newPath =
+        if (Utilities().LAUNCHER_MODE equals Utilities().REMOTE_CLUSTER_LAUNCHER)
+          General_Utilities().getSchemaDir(user) + inputDs + ".xml"
+        else getRegionFolder(inputDs, user)
+      newPath
+    }
   }
 
 

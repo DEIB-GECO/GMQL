@@ -76,3 +76,7 @@ abstract class OptionalMetaJoinOperator(operator:MetaJoinOperator) extends Seria
 }
 case class SomeMetaJoinOperator(operator : MetaJoinOperator) extends OptionalMetaJoinOperator(operator)
 case class NoMetaJoinOperator(operator : MetaJoinOperator) extends OptionalMetaJoinOperator(operator)
+
+trait Federated{
+  val name :String
+}

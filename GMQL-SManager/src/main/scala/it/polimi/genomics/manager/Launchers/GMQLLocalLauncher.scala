@@ -1,5 +1,6 @@
 package it.polimi.genomics.manager.Launchers
 
+import it.polimi.genomics.federated.FederatedImplementation
 import it.polimi.genomics.manager.{GMQLJob, Status}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.{SparkConf, SparkContext}
@@ -22,11 +23,12 @@ class GMQLLocalLauncher(localJob: GMQLJob) extends GMQLLauncher(localJob) {
     *     */
   def run(): GMQLLocalLauncher = {
 
-    job.server.implementation = new GMQLSparkExecutor(
-      binSize = job.gMQLContext.binSize,
-      outputFormat = job.gMQLContext.outputFormat,
-      outputCoordinateSystem = job.gMQLContext.outputCoordinateSystem,
-      sc = new SparkContext(new SparkConf().setAppName(job.jobId).setMaster("local[*]")))
+    job.server.implementation = new FederatedImplementation(job.jobId)
+//      new GMQLSparkExecutor(
+//      binSize = job.gMQLContext.binSize,
+//      outputFormat = job.gMQLContext.outputFormat,
+//      outputCoordinateSystem = job.gMQLContext.outputCoordinateSystem,
+//      sc = new SparkContext(new SparkConf().setAppName(job.jobId).setMaster("local[*]")))
 
     job.status = Status.RUNNING
     logger.info(String.format("Job %s is under execution.. ", job.jobId))

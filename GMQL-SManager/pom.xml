@@ -36,6 +36,14 @@
 
         <dependency>
             <groupId>it.polimi.genomics</groupId>
+            <artifactId>GMQL-Federated</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <exclusions>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>it.polimi.genomics</groupId>
             <artifactId>Compiler</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>

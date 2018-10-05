@@ -1,5 +1,6 @@
 package it.polimi.genomics.core.DAG
 
+import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
 import it.polimi.genomics.core.DataStructures.{IRDataSet, IRStoreFedRD}
 
 class ExecutionDAG(val dag: List[OperatorDAG], deps: List[ExecutionDAG]) extends DAGNode[ExecutionDAG] {
@@ -14,6 +15,10 @@ class ExecutionDAG(val dag: List[OperatorDAG], deps: List[ExecutionDAG]) extends
 
   def where = dag.head.roots.head.getExecutedOn
 
-
+  def toIRVariable(implicit binning: BinningParameter) = {
+    new OperatorDAG(dag.flatMap{x=>
+      x.roots
+    }).toVariables
+  }
 
 }
