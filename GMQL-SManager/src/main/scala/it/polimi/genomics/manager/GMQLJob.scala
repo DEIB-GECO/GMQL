@@ -225,9 +225,9 @@ class GMQLJob(val gMQLContext: GMQLContext, val script: GMQLScript, val username
     * @param dagString : string of the serialized DAG
     * @return A list of the output directories and the serialized DAG with the paths renamed
     **/
-  def renameDAGPaths(dagString: String) = {
+  def renameDAGPaths(dagString: String, federatedJobId: Option[String] = None): (List[String], String) = {
     val dagVars: List[IRVariable] = DAGSerializer.deserializeDAG(dagString).dag
-    val outDss = dagVars.flatMap(dagVar => rec(dagVar.metaDag) ++ rec(dagVar.regionDag)).distinct
+    val outDss = dagVars.flatMap(dagVar => rec(dagVar.metaDag, federatedJobId) ++ rec(dagVar.regionDag, federatedJobId)).distinct
     //Get the output Datasets names.
     outputVariablesList = outDss
 
@@ -260,7 +260,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script: GMQLScript, val username
     * @param inp : IROperator representing the dag
     * @return a list of output dataset names
     **/
-  def rec(inp: IROperator): List[String] = {
+  def rec(inp: IROperator, federatedJobId: Option[String] = None): List[String] = {
     val result = inp match {
       case x: IRReadRD[_, _, _, _] =>
         x.paths = List(getInputDsPath(x.dataset.position))
@@ -276,6 +276,14 @@ class GMQLJob(val gMQLContext: GMQLContext, val script: GMQLScript, val username
         val outDsName = generateResultName(queryName) + "_" + x.dataSet.position
         x.path = renameOutputDirs(outDsName)
         Some(outDsName)
+
+      //FEDERATED
+      case x: Federated =>
+        if (federatedJobId.isDefined) {
+          val path = federatedJobId.get + "/" + x.name
+          x.path = Some(renameOutputDirs(path))
+        }
+        None
       case _ =>
         None
     }

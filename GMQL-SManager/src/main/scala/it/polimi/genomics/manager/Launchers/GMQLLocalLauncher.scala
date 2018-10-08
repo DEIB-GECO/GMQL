@@ -8,6 +8,8 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
 import org.apache.spark.{SparkConf, SparkContext}
 import org.slf4j.LoggerFactory
+import it.polimi.genomics.repository.{GMQLRepository, RepositoryType, Utilities => General_Utilities}
+
 
 /**
   * Created by abdulrahman on 04/05/16.
@@ -46,8 +48,10 @@ class GMQLLocalLauncher(localJob: GMQLJob) extends GMQLLauncher(localJob) {
         sc = SparkContext.getOrCreate(new SparkConf().setAppName(job.jobId).setMaster("local[*]")),
         stopContext = false)
     }
-    else
-      job.server.implementation = new FederatedImplementation(job.jobId)
+    else {
+      val tempDir: String = General_Utilities().getResultDir("FEDERATED")
+      job.server.implementation = new FederatedImplementation(tempDir, job.jobId)
+    }
     //      new GMQLSparkExecutor(
     //      binSize = job.gMQLContext.binSize,
     //      outputFormat = job.gMQLContext.outputFormat,

@@ -107,7 +107,8 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
       case "basicparser" => BasicParser
       case "default" => (new CustomParser).setSchema(dataset)
       case _ => {
-        logger.warn("unable to find " + name + " parser, try the default one"); getParser("default", dataset)
+        logger.warn("unable to find " + name + " parser, try the default one");
+        getParser("default", dataset)
       }
     }
   }
@@ -120,7 +121,7 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
         val metaRDD = implement_md(variable.metaDag, sc)
         val regionRDD = implement_rd(variable.regionDag, sc)
 
-        if(variable.metaDag.isInstanceOf[IRStoreMD]) {
+        if (variable.metaDag.isInstanceOf[IRStoreMD]) {
 
           val variableDir = variable.metaDag.asInstanceOf[IRStoreMD].path.toString
           val MetaOutputPath = variableDir + "/meta/"
@@ -234,8 +235,8 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
           case IRGroupMD(keys: MetaGroupByCondition, aggregates: Option[List[MetaAggregateFunction]], groupName: String, inputDataset: MetaOperator, region_dataset: RegionOperator) => GroupMD(this, keys, aggregates, groupName, inputDataset, region_dataset, sc)
           case IRCollapseMD(grouping: Option[MetaGroupOperator], inputDataset: MetaOperator) => CollapseMD(this, grouping, inputDataset, sc)
           case IRNoopMD() => sc.emptyRDD[DataTypes.MetaType]
-          case IRStoreFedMD(input, name) => StoreFed.storeMeta(this, name , input, sc)
-          case IRReadFedMD(name) => ReadFed.readMeta(name, sc)
+          case IRStoreFedMD(input, _, path) => StoreFed.storeMeta(this, path.get, input, sc)
+          case IRReadFedMD(_, path) => ReadFed.readMeta(path.get, sc)
           //TODO: IRReadFedMetaJoin and IRReadFedMetaGroup
         }
       mo.intermediateResult = Some(res)
@@ -275,8 +276,8 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
           case IRDifferenceRD(metaJoin: OptionalMetaJoinOperator, leftDataset: RegionOperator, rightDataset: RegionOperator, exact: Boolean) => GenometricDifference(this, metaJoin, leftDataset, rightDataset, exact, sc)
           case IRProjectRD(projectedValues: Option[List[Int]], tupleAggregator: Option[List[RegionExtension]], inputDataset: RegionOperator, inputDatasetMeta: MetaOperator) => ProjectRD(this, projectedValues, tupleAggregator, inputDataset, inputDatasetMeta, sc)
           case IRNoopRD() => sc.emptyRDD[DataTypes.GRECORD]
-          case IRStoreFedRD(input, name) => StoreFed.storeRegion(this, name , input, sc)
-          case IRReadFedRD(name) => ReadFed.readRegion(name, sc)
+          case IRStoreFedRD(input, _, pathOption) => StoreFed.storeRegion(this, pathOption.get, input, sc)
+          case IRReadFedRD(_, pathOption) => ReadFed.readRegion(pathOption.get, sc)
         }
       ro.intermediateResult = Some(res)
       res

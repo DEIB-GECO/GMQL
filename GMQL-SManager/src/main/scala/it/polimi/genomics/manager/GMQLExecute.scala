@@ -88,7 +88,7 @@ class GMQLExecute() {
     job;
   }
 
-  def registerDAG(script: GMQLScript, gMQLContext: GMQLContext, jobid: String = "", federated: Boolean = false): GMQLJob = {
+  def registerDAG(script: GMQLScript, gMQLContext: GMQLContext, jobid: String = "", federated: Boolean = false, federatedJobId: Option[String] = None): GMQLJob = {
     def saveScript(fileName: String) = {
       val scriptHistory: File = new File(General_Utilities().getScriptsDir(gMQLContext.username) + fileName + ".dag")
       new PrintWriter(scriptHistory) {
@@ -104,7 +104,7 @@ class GMQLExecute() {
     val jID = job.jobId
 
     /* PATH RENAMING */
-    val (outDSs, newSerializedDAG): (List[String], String) = job.renameDAGPaths(script.dag)
+    val (outDSs, newSerializedDAG): (List[String], String) = job.renameDAGPaths(script.dag, federatedJobId)
 
     outDSs.foreach(dataSetName => FS_Utilities.checkDsName(dataSetName))
 
