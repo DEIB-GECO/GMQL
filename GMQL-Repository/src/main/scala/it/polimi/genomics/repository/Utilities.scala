@@ -162,6 +162,15 @@ class Utilities() {
 
 
   /**
+    * Get results region dir
+    */
+  def getResultDir(userName: String) : String = {
+    if( MODE==HDFS ) getHDFSRegionDir(userName)
+    else getRegionDir(userName)
+
+  }
+
+  /**
     * Retrieve the dag folder for each user on HDFS
     *
     * @param userName [[ String]] of the user name
@@ -225,6 +234,18 @@ class Utilities() {
     */
   def getRegionDir(userName: String = USERNAME): String = RepoDir + userName + "/regions/"
 
+
+  /**
+    * Get Federated import dir
+    */
+  def getFedImportDir() : String = {
+
+    if( MODE==HDFS)
+      HDFSRepoDir +  "/federated/imported/"
+    else
+      RepoDir + "/federated/imported/"
+
+  }
 
   /**
     *
