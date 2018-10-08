@@ -37,7 +37,7 @@ class FederatedImplementation(val jobId: String) extends Implementation with Ser
     .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "128")
     .set("spark.driver.allowMultipleContexts", "true")
     .set("spark.sql.tungsten.enabled", "true").setMaster("local[*]")
-  val sc: SparkContext = new SparkContext(conf)
+  val sc: SparkContext = SparkContext.getOrCreate(conf)
 
   val gse = new GMQLSparkExecutor(
     testingIOFormats = false,
@@ -74,6 +74,7 @@ class FederatedImplementation(val jobId: String) extends Implementation with Ser
   def callRemote(irVars: List[IRVariable], instance: GMQLInstance) = {
     val serilizedDag = DAGSerializer.serializeDAG(DAGWrapper(irVars))
     //TODO change
+    // send job_id with an extension _1, _2
     val uri = uri"http://localhost:8000/gmql-rest/queries/dag/tab?jobId=$jobId"
 
 
@@ -133,15 +134,15 @@ class FederatedImplementation(val jobId: String) extends Implementation with Ser
   def implementation(): Unit = {
     val opDAG = new OperatorDAG(to_be_materialized.flatMap(x => List(x.metaDag, x.regionDag)).toList)
 
-    //    val opDAGFrame = new OperatorDAGFrame(opDAG)
-    //    showFrame(opDAGFrame, "OperatorDag")
+        val opDAGFrame = new OperatorDAGFrame(opDAG)
+        showFrame(opDAGFrame, "OperatorDag")
 
 
     val dagSplits = DAGManipulator.splitDAG(opDAG)
     val executionDAGs = DAGManipulator.generateExecutionDAGs(dagSplits.values.toList)
 
-    //    val f2 = new MetaDAGFrame(executionDAGs)
-    //    showFrame(f2, "ExDag")
+        val f2 = new MetaDAGFrame(executionDAGs)
+        showFrame(f2, "ExDag")
 
 
     executionDAGs.roots.foreach(recursiveCall(_, LOCAL_INSTANCE))
