@@ -12,7 +12,7 @@ object DAGDraw {
     val nLines = lines.length
     val maxWidth = lines.map(x => x.length).max
 
-    (maxWidth*10, nLines*20)
+    (maxWidth * 10, nLines * 20)
   }
 }
 
@@ -31,6 +31,7 @@ abstract class DAGFrame[T <: DAGNode[T]](dag: GenericDAG[T, _], squeeze: Boolean
   graph.getModel.beginUpdate()
 
   protected def getStyle(node: T): String
+
   protected def getText(node: T): String
 
   private def drawDAG(node: T): Object = {
@@ -38,7 +39,7 @@ abstract class DAGFrame[T <: DAGNode[T]](dag: GenericDAG[T, _], squeeze: Boolean
     val nodeSize = DAGDraw.getVertexDims(getText(node))
 
     val nodeVertex = {
-      if(mappingNodeToVertex.contains(node) && this.squeeze)
+      if (mappingNodeToVertex.contains(node) && this.squeeze)
         mappingNodeToVertex(node)
       else {
         val v = graph.insertVertex(graphParent, null, getText(node), 0, 0, nodeSize._1, nodeSize._2, style)
@@ -46,12 +47,12 @@ abstract class DAGFrame[T <: DAGNode[T]](dag: GenericDAG[T, _], squeeze: Boolean
         v
       }
     }
-    if(node.getDependencies.nonEmpty){
+    if (node.getDependencies.nonEmpty) {
       val childVertices = node.getDependencies.map(drawDAG)
       childVertices.map(x => {
-        if(mappingNodeToOpEdge.contains((x, nodeVertex)) && this.squeeze)
+        if (mappingNodeToOpEdge.contains((x, nodeVertex)) && this.squeeze)
           mappingNodeToOpEdge((x, nodeVertex))
-        else{
+        else {
           val e = graph.insertEdge(graphParent, null, "", x, nodeVertex)
           mappingNodeToOpEdge += (x, nodeVertex) -> e
           e
@@ -76,7 +77,7 @@ abstract class DAGFrame[T <: DAGNode[T]](dag: GenericDAG[T, _], squeeze: Boolean
 
 class OperatorDAGFrame(dag: OperatorDAG, squeeze: Boolean = true) extends DAGFrame[IROperator](dag, squeeze) {
   override protected def getStyle(node: IROperator): String = {
-    val fillColor = "fillColor="+ {
+    val fillColor = "fillColor=" + {
       if (node.isMetaOperator) ORANGE
       else GREEN
     } + ";"
@@ -91,11 +92,11 @@ class VariableDAGFrame(dag: VariableDAG, squeeze: Boolean = true) extends DAGFra
   override protected def getStyle(node: IRVariable): String = ""
 
   override protected def getText(node: IRVariable): String = "<b>" + node.toString + "</b>" +
-    "<i>" + (if(node.annotations.nonEmpty) "\n" + node.annotations.mkString(",") else "") + "</i>"
+    "<i>" + (if (node.annotations.nonEmpty) "\n" + node.annotations.mkString(",") else "") + "</i>"
 }
 
 class MetaDAGFrame(dag: MetaDAG, squeeze: Boolean = true) extends DAGFrame[ExecutionDAG](dag, squeeze) {
-  override protected def getStyle(node: ExecutionDAG): String = "fillColor="+GREEN
+  override protected def getStyle(node: ExecutionDAG): String = "fillColor=" + GREEN
 
   override protected def getText(node: ExecutionDAG): String = {
 
@@ -104,11 +105,11 @@ class MetaDAGFrame(dag: MetaDAG, squeeze: Boolean = true) extends DAGFrame[Execu
       def getREADs(op: IROperator): List[IROperator] = {
         op match {
           case IRReadMD(_, _, _) => List(op)
-          case IRReadRD(_, _,_) => List(op)
-          case IRReadFedRD(_) => List(op)
-          case IRReadFedMD(_) => List(op)
-          case IRReadFedMetaJoin(_) => List(op)
-          case IRReadFedMetaGroup(_) => List(op)
+          case IRReadRD(_, _, _) => List(op)
+          case IRReadFedRD(_, _) => List(op)
+          case IRReadFedMD(_, _) => List(op)
+          case IRReadFedMetaJoin(_, _) => List(op)
+          case IRReadFedMetaGroup(_, _) => List(op)
           case _ => op.getDependencies.flatMap(getREADs)
         }
       }

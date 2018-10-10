@@ -15,14 +15,16 @@ object TestDAG extends App {
 
   def annotateOperatorDAG(dag: OperatorDAG): Unit = {
     def annotateOperator(op: IROperator): Unit = {
-      if(!op.hasExecutedOn)
+      if (!op.hasExecutedOn)
         op.addAnnotation(EXECUTED_ON(Random.shuffle(TestUtils.instances).head))
     }
+
     def rec(op: IROperator): Unit = {
       annotateOperator(op)
-      if(op.getDependencies.nonEmpty)
+      if (op.getDependencies.nonEmpty)
         op.getDependencies.foreach(rec)
     }
+
     dag.roots.foreach(rec)
   }
 
@@ -35,32 +37,32 @@ object TestDAG extends App {
       op.getExecutedOn != dep.getExecutedOn
 
     def getRelativeREAD(dep: IROperator, name: String): IROperator = {
-      if(dep.isRegionOperator) IRReadFedRD(name)
-      else if(dep.isMetaOperator) IRReadFedMD(name)
-      else if(dep.isMetaJoinOperator) IRReadFedMetaJoin(name)
-      else if(dep.isMetaGroupOperator) IRReadFedMetaGroup(name)
+      if (dep.isRegionOperator) IRReadFedRD(name)
+      else if (dep.isMetaOperator) IRReadFedMD(name)
+      else if (dep.isMetaJoinOperator) IRReadFedMetaJoin(name)
+      else if (dep.isMetaGroupOperator) IRReadFedMetaGroup(name)
       else throw new IllegalArgumentException
     }
 
     def getRelativeSTORE(op: IROperator, name: String): IROperator = {
-      if(op.isRegionOperator) IRStoreFedRD(op.asInstanceOf[RegionOperator], name)
-      else if(op.isMetaOperator) IRStoreFedMD(op.asInstanceOf[MetaOperator], name)
-      else if(op.isMetaJoinOperator) IRStoreFedMetaJoin(op.asInstanceOf[MetaJoinOperator], name)
-      else if(op.isMetaGroupOperator) IRStoreFedMetaGroup(op.asInstanceOf[MetaGroupOperator], name)
+      if (op.isRegionOperator) IRStoreFedRD(op.asInstanceOf[RegionOperator], name)
+      else if (op.isMetaOperator) IRStoreFedMD(op.asInstanceOf[MetaOperator], name)
+      else if (op.isMetaJoinOperator) IRStoreFedMetaJoin(op.asInstanceOf[MetaJoinOperator], name)
+      else if (op.isMetaGroupOperator) IRStoreFedMetaGroup(op.asInstanceOf[MetaGroupOperator], name)
       else throw new IllegalArgumentException
     }
 
     def changeOperator(op: IROperator): IROperator = {
-      if(!op.hasDependencies) op
+      if (!op.hasDependencies) op
       else {
         val opDeps = op.getDependencies
         var newOp = op
         val oldAnnotations = op.annotations
         opDeps.foreach { dep =>
-          if(checkSplitCondition(newOp, dep)){
+          if (checkSplitCondition(newOp, dep)) {
 
             val newDep = {
-              if(changed.contains(dep)) changed(dep)
+              if (changed.contains(dep)) changed(dep)
               else {
                 val res = getRelativeREAD(dep, "temp_" + counter)
                 res.addAnnotation(EXECUTED_ON(op.getExecutedOn))
@@ -83,7 +85,7 @@ object TestDAG extends App {
     }
 
     def emptyStack(): List[IROperator] = {
-      if(toBeExplored.isEmpty) Nil
+      if (toBeExplored.isEmpty) Nil
       else changeOperator(toBeExplored.pop()) :: emptyStack()
     }
 
@@ -101,49 +103,51 @@ object TestDAG extends App {
 
       def getDependenciesIds(op: IROperator): List[String] = {
         op match {
-          case IRReadFedMD(name) => List(name)
-          case IRReadFedRD(name) => List(name)
-          case IRReadFedMetaGroup(name) => List(name)
-          case IRReadFedMetaJoin(name) => List(name)
-          case _ => if(op.hasDependencies) op.getDependencies.flatMap(getDependenciesIds) else Nil
+          case IRReadFedMD(name, _) => List(name)
+          case IRReadFedRD(name, _) => List(name)
+          case IRReadFedMetaGroup(name, _) => List(name)
+          case IRReadFedMetaJoin(name, _) => List(name)
+          case _ => if (op.hasDependencies) op.getDependencies.flatMap(getDependenciesIds) else Nil
         }
       }
 
-      def getDependency(name: String): IROperator = dagSplits.flatMap {x => x.roots} filter {
-        case op:IRStoreFedRD => op.name == name
-        case op:IRStoreFedMD => op.name == name
-        case op:IRStoreFedMetaJoin => op.name == name
-        case op:IRStoreFedMetaGroup => op.name == name
+      def getDependency(name: String): IROperator = dagSplits.flatMap { x => x.roots } filter {
+        case op: IRStoreFedRD => op.name == name
+        case op: IRStoreFedMD => op.name == name
+        case op: IRStoreFedMetaJoin => op.name == name
+        case op: IRStoreFedMetaGroup => op.name == name
         case _ => false
       } head
 
       def getExecutionDAG(op: IROperator): ExecutionDAG = {
         val opDeps = getDependenciesIds(op) map getDependency map {
-          x => if(created.contains(x)) created(x) else {
-            val res = getExecutionDAG(x)
-            created += x -> res
-            res
-          }
+          x =>
+            if (created.contains(x)) created(x) else {
+              val res = getExecutionDAG(x)
+              created += x -> res
+              res
+            }
         }
         new ExecutionDAG(List(new OperatorDAG(List(op))), opDeps)
       }
 
-      if(ops.isEmpty) Nil
+      if (ops.isEmpty) Nil
       else getExecutionDAG(ops.head) :: getOperatorDAGDependencies(ops.tail)
     }
 
     def mergeVariables(preRes: List[ExecutionDAG]): List[ExecutionDAG] = {
       val realStores = preRes filter {
-        x => x.dag.head.roots.head match {
-          case o:IRStoreRD => true
-          case o:IRStoreMD => true
-          case _ => false
-        }
+        x =>
+          x.dag.head.roots.head match {
+            case o: IRStoreRD => true
+            case o: IRStoreMD => true
+            case _ => false
+          }
       }
       val newStores = realStores groupBy {
         x => {
           x.dag.head.roots.head match {
-            case IRStoreMD(_,_, dataset) => dataset
+            case IRStoreMD(_, _, dataset) => dataset
             case IRStoreRD(_, _, _, _, dataset) => dataset
           }
         }
@@ -154,7 +158,7 @@ object TestDAG extends App {
       newStores //::: preRes filter {x => !realStores.contains(x)}
     }
 
-    val preRes = getOperatorDAGDependencies(dagSplits.flatMap {x => x.roots})
+    val preRes = getOperatorDAGDependencies(dagSplits.flatMap { x => x.roots })
 
     new MetaDAG(mergeVariables(preRes))
   }

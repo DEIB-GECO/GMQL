@@ -99,7 +99,7 @@ case class IRReadMEMRD(regionDS: Any) extends RegionOperator {
 }
 
 
-case class IRReadFedRD(name: String) extends RegionOperator with Federated {
+case class IRReadFedRD(name: String, var path:Option[String] = None) extends RegionOperator with Federated {
   /** Returns the list of dependencies of the node */
   override def getDependencies: List[IROperator] = Nil
 
@@ -110,7 +110,7 @@ case class IRReadFedRD(name: String) extends RegionOperator with Federated {
 }
 
 
-case class IRReadFedMD(name: String) extends MetaOperator with Federated {
+case class IRReadFedMD(name: String, var path:Option[String] = None) extends MetaOperator with Federated {
   /** Returns the list of dependencies of the node */
   override def getDependencies: List[IROperator] = Nil
 
@@ -121,7 +121,7 @@ case class IRReadFedMD(name: String) extends MetaOperator with Federated {
 }
 
 
-case class IRReadFedMetaJoin(name: String) extends MetaJoinOperator with Federated {
+case class IRReadFedMetaJoin(name: String, var path:Option[String] = None) extends MetaJoinOperator with Federated {
   /** Returns the list of dependencies of the node */
   override def getDependencies: List[IROperator] = Nil
 
@@ -132,7 +132,7 @@ case class IRReadFedMetaJoin(name: String) extends MetaJoinOperator with Federat
 }
 
 
-case class IRReadFedMetaGroup(name: String) extends MetaGroupOperator with Federated {
+case class IRReadFedMetaGroup(name: String, var path:Option[String] = None) extends MetaGroupOperator with Federated {
   /** Returns the list of dependencies of the node */
   override def getDependencies: List[IROperator] = Nil
 
@@ -143,7 +143,7 @@ case class IRReadFedMetaGroup(name: String) extends MetaGroupOperator with Feder
 }
 
 
-case class IRStoreFedRD(input: RegionOperator, name: String) extends RegionOperator with Federated {
+case class IRStoreFedRD(input: RegionOperator, name: String, var path:Option[String] = None) extends RegionOperator with Federated {
   /** Returns the list of dependencies of the node */
   override def getDependencies: List[IROperator] = List(input)
 
@@ -155,7 +155,7 @@ case class IRStoreFedRD(input: RegionOperator, name: String) extends RegionOpera
   override def toString: String = super.toString + "\n" + this.name
 }
 
-case class IRStoreFedMD(input: MetaOperator, name: String) extends MetaOperator with Federated {
+case class IRStoreFedMD(input: MetaOperator, name: String, var path:Option[String] = None) extends MetaOperator with Federated {
   /** Returns the list of dependencies of the node */
   override def getDependencies: List[IROperator] = List(input)
 
@@ -166,7 +166,7 @@ case class IRStoreFedMD(input: MetaOperator, name: String) extends MetaOperator 
   override def toString: String = super.toString + "\n" + this.name
 }
 
-case class IRStoreFedMetaJoin(input: MetaJoinOperator, name: String) extends MetaJoinOperator with Federated {
+case class IRStoreFedMetaJoin(input: MetaJoinOperator, name: String, var path:Option[String] = None) extends MetaJoinOperator with Federated {
   /** Returns the list of dependencies of the node */
   override def getDependencies: List[IROperator] = List(input)
 
@@ -177,7 +177,7 @@ case class IRStoreFedMetaJoin(input: MetaJoinOperator, name: String) extends Met
   override def toString: String = super.toString + "\n" + this.name
 }
 
-case class IRStoreFedMetaGroup(input: MetaGroupOperator, name: String) extends MetaGroupOperator with Federated {
+case class IRStoreFedMetaGroup(input: MetaGroupOperator, name: String, var path:Option[String] = None) extends MetaGroupOperator with Federated {
   /** Returns the list of dependencies of the node */
   override def getDependencies: List[IROperator] = List(input)
 
