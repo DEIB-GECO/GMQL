@@ -5,6 +5,6 @@ package it.polimi.genomics.core
   */
 object ImplementationPlatform extends Enumeration{
   type platform = Value
-  val FLINK, SPARK, SCIDB = Value
+  val FLINK, SPARK, SCIDB,FEDERATED = Value
 }
 

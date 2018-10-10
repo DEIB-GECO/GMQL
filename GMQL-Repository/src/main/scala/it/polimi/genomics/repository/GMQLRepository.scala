@@ -2,7 +2,7 @@ package it.polimi.genomics.repository
 
 import java.io.InputStream
 
-import it.polimi.genomics.core.DataStructures.IRDataSet
+import it.polimi.genomics.core.DataStructures.{GMQLInstance, IRDataSet, Instance}
 import it.polimi.genomics.core.GDMSUserClass.GDMSUserClass
 import it.polimi.genomics.core._
 import it.polimi.genomics.repository.GMQLExceptions._
@@ -15,20 +15,20 @@ trait GMQLRepository {
 
   /**
     *
-    *  Import Dataset into GMQL from Local file system.
+    * Import Dataset into GMQL from Local file system.
     *
-    * @param dataSetName  String of the dataset name.
-    * @param userName String of the user name.
-    * @param userClass GDMSUserClass
-    * @param Samples List of GMQL samples [[ GMQLSample]].
-    * @param schemaPath String of the path to the xml file of the dataset schema.
+    * @param dataSetName String of the dataset name.
+    * @param userName    String of the user name.
+    * @param userClass   GDMSUserClass
+    * @param Samples     List of GMQL samples [[ GMQLSample]].
+    * @param schemaPath  String of the path to the xml file of the dataset schema.
     * @throws GMQLNotValidDatasetNameException
     * @throws GMQLUserNotFound
     * @throws java.lang.Exception
     */
   @throws(classOf[GMQLDSException])
   @throws(classOf[UserExceedsQuota])
-  def importDs(dataSetName:String, userName:String, userClass: GDMSUserClass, Samples:java.util.List[GMQLSample], schemaPath:String)
+  def importDs(dataSetName: String, userName: String, userClass: GDMSUserClass, Samples: java.util.List[GMQLSample], schemaPath: String)
 
 
   /**
@@ -44,12 +44,12 @@ trait GMQLRepository {
     * @throws it.polimi.genomics.repository.GMQLExceptions.GMQLSampleNotFound
     */
   @throws(classOf[GMQLDSException])
-  def createDs(dataSet:IRDataSet, userName:String, Samples:java.util.List[GMQLSample], GMQLScriptPaht:String = "ROOT_DS",schemaType:GMQLSchemaFormat.Value=GMQLSchemaFormat.TAB, schemaCoordinateSystem:GMQLSchemaCoordinateSystem.Value=GMQLSchemaCoordinateSystem.ZeroBased, dsmeta: Map[String, String])
+  def createDs(dataSet: IRDataSet, userName: String, Samples: java.util.List[GMQLSample], GMQLScriptPaht: String = "ROOT_DS", schemaType: GMQLSchemaFormat.Value = GMQLSchemaFormat.TAB, schemaCoordinateSystem: GMQLSchemaCoordinateSystem.Value = GMQLSchemaCoordinateSystem.ZeroBased, dsmeta: Map[String, String])
 
 
   /**
     *
-    *  Delete data set from the repository
+    * Delete data set from the repository
     *
     * @param userName Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @throws GMQLDSNotFound
@@ -57,12 +57,12 @@ trait GMQLRepository {
     * @throws GMQLUserNotFound
     */
   @throws(classOf[GMQLDSException])
-  def deleteDS(dataSetName:String, userName:String)
+  def deleteDS(dataSetName: String, userName: String)
 
 
   /**
     *
-    *   Add [[ GMQLSample]]  to dataset [[ IRDataSet]] in the repository
+    * Add [[ GMQLSample]]  to dataset [[ IRDataSet]] in the repository
     *
     * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @param Sample
@@ -73,11 +73,11 @@ trait GMQLRepository {
     */
   @throws(classOf[GMQLDSException])
   @throws(classOf[UserExceedsQuota])
-  def addSampleToDS(dataSet:String, userName:String, Sample:GMQLSample, userClass: GDMSUserClass = GDMSUserClass.PUBLIC)
+  def addSampleToDS(dataSet: String, userName: String, Sample: GMQLSample, userClass: GDMSUserClass = GDMSUserClass.PUBLIC)
 
   /**
     *
-    *  Delete [[ GMQLSample]] from a dataset [[ IRDataSet]]
+    * Delete [[ GMQLSample]] from a dataset [[ IRDataSet]]
     *
     * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
     * @param Sample
@@ -87,22 +87,22 @@ trait GMQLRepository {
     * @throws GMQLSampleNotFound
     */
   @throws(classOf[GMQLDSException])
-  def deleteSampleFromDS(dataSet:String, userName:String, Sample:GMQLSample)
+  def deleteSampleFromDS(dataSet: String, userName: String, Sample: GMQLSample)
 
   /**
     *
-    *  List all the [[ IRDataSet]] dataset of the user in the repository
+    * List all the [[ IRDataSet]] dataset of the user in the repository
     *
     * @param userName [[ String]] of the user name
     * @throws GMQLDSException
     * @throws GMQLUserNotFound
     */
   @throws(classOf[GMQLDSException])
-  def listAllDSs(userName:String): java.util.List[IRDataSet]
+  def listAllDSs(userName: String): java.util.List[IRDataSet]
 
   /**
     *
-    *   List all the samples [[ GMQLSample]] of specific dataset in the repository
+    * List all the samples [[ GMQLSample]] of specific dataset in the repository
     *
     * @param dataSetName
     * @param userName
@@ -110,7 +110,7 @@ trait GMQLRepository {
     * @return
     */
   @throws(classOf[GMQLDSException])
-  def listDSSamples(dataSetName:String, userName:String):java.util.List[GMQLSample]
+  def listDSSamples(dataSetName: String, userName: String): java.util.List[GMQLSample]
 
   /**
     *
@@ -121,7 +121,7 @@ trait GMQLRepository {
     * @return
     */
   @throws(classOf[GMQLDSException])
-  def listResultDSSamples(dataSetName:String, userName:String):(java.util.List[GMQLSample],java.util.List[GMQLSchemaField])
+  def listResultDSSamples(dataSetName: String, userName: String): (java.util.List[GMQLSample], java.util.List[GMQLSchemaField])
 
   /**
     * Copy data set from GMQL repository to local folder,
@@ -131,156 +131,158 @@ trait GMQLRepository {
     * @throws GMQLDSException
     */
   @throws(classOf[GMQLDSException])
-  def exportDsToLocal(dataSet:String, userName:String,localDir:String)
+  def exportDsToLocal(dataSet: String, userName: String, localDir: String)
 
   /**
     *
-    *  Verify the existance of a dataset in the reposiotry under a specific username
+    * Verify the existance of a dataset in the reposiotry under a specific username
     *
-    * @param dataSet [[ IRDataSet]] of the dataset
-    * @param userName  [[ String]] of the user name
+    * @param dataSet  [[ IRDataSet]] of the dataset
+    * @param userName [[ String]] of the user name
     * @throws GMQLDSException
     * @return
     */
   @throws(classOf[GMQLDSException])
-  def DSExists(dataSet:String, userName:String): Boolean
+  def DSExists(dataSet: String, userName: String, location: Option[GMQLInstance] = None): Boolean
 
   /**
     *
-    *  Verify the existance of a dataset in the public dataset
+    * Verify the existance of a dataset in the public dataset
     *
     * @param dataSet [[ IRDataSet]] of the dataset
     * @throws GMQLDSException
     * @return
     */
   @throws(classOf[GMQLDSException])
-  def DSExistsInPublic( dataSet:String): Boolean
+  def DSExistsInPublic(dataSet: String): Boolean
 
   /**
     *
-    *   return the schema of the dataset
+    * return the schema of the dataset
     *
     * @param schemaPath [[ String]] of the path to the schema xml
     * @return
     */
-  def readSchemaFile(schemaPath:String):  GMQLSchema
+  def readSchemaFile(schemaPath: String): GMQLSchema
 
   /**
-    *  get the dataset schema
+    * get the dataset schema
     *
     * @param datasetName String of the dataset name
-    * @param userName String of the username, the owner of the dataset
+    * @param userName    String of the username, the owner of the dataset
     * @return [[ GMQLSchema]] as the schema of the dataset
     */
-  def getSchema(datasetName:String, userName:String): GMQLSchema
+  def getSchema(datasetName: String, userName: String): GMQLSchema
 
   /**
-    *  return the schema file as stream.
+    * return the schema file as stream.
+    *
     * @param datasetName String of the dataset name
-    * @param userName String of the username, the owner of the dataset
+    * @param userName    String of the username, the owner of the dataset
     * @return [[InputStream]] for the schema file
     */
-  def getSchemaStream(datasetName:String, userName:String): InputStream
+  def getSchemaStream(datasetName: String, userName: String): InputStream
 
 
   /**
     *
     * Get the metadata of a Dataset
     *
-    * @param dataSet [[ IRDataSet]], dataset identifier
+    * @param dataSet  [[ IRDataSet]], dataset identifier
     * @param userName [[ String]] of the user name
     * @return
     */
-  def getMeta(dataSet: String,userName:String):String
+  def getMeta(dataSet: String, userName: String): String
 
   /**
     *
-    *  Return a [[ String]] of the meta data of specific sample
+    * Return a [[ String]] of the meta data of specific sample
     *
-    * @param dataSet [[ IRDataSet]], dataset identifier
+    * @param dataSet  [[ IRDataSet]], dataset identifier
     * @param userName [[ String]] of the user name
     * @param sample
     * @return
     */
-  def getSampleMeta(dataSet: String, userName:String, sample: GMQLSample):String
+  def getSampleMeta(dataSet: String, userName: String, sample: GMQLSample): String
 
   /**
     *
-    *  Return a list of {@ink GNQLSample} after searching the meta data with a query
+    * Return a list of {@ink GNQLSample} after searching the meta data with a query
     *
-    * @param dataSet [[ IRDataSet]], dataset identifier
+    * @param dataSet  [[ IRDataSet]], dataset identifier
     * @param userName [[ String]] of the user name
-    * @param query  [[ String]] of the query
+    * @param query    [[ String]] of the query
     * @return
     */
-  def searchMeta(dataSet: String, userName:String, query:String): java.util.List[GMQLSample]
+  def searchMeta(dataSet: String, userName: String, query: String): java.util.List[GMQLSample]
 
   /**
     *
-    *  Register user in the repository
-    *
-    * @param userName [[ String]] of the user name
-    * @return
-    */
-  def registerUser(userName:String): Boolean
-
-  /**
-    *
-    *  Delete a user from the repsository
+    * Register user in the repository
     *
     * @param userName [[ String]] of the user name
     * @return
     */
-  def unregisterUser(userName:String): Boolean
+  def registerUser(userName: String): Boolean
+
+  /**
+    *
+    * Delete a user from the repsository
+    *
+    * @param userName [[ String]] of the user name
+    * @return
+    */
+  def unregisterUser(userName: String): Boolean
 
   /**
     * Return the location of the dataset, Local, HDFS, remote
     *
-    * @param dataSet String of the dataset name
+    * @param dataSet  String of the dataset name
     * @param userName String of the name of the owner of the dataset
     * @return The Location as either LOCAL, HDFS, or REMOTE
     */
-  def getDSLocation(dataSet:String, userName:String): (RepositoryType.Value,DatasetOrigin.Value)
+  def getDSLocation(dataSet: String, userName: String): (RepositoryType.Value, DatasetOrigin.Value)
 
 
   /**
     * change the dataset name to a new name
     *
     * @param datasetName old dataset name as a String
-    * @param newDSName new dataset name as a String
+    * @param newDSName   new dataset name as a String
     */
-  def changeDSName(datasetName:String, userName:String, newDSName:String)
+  def changeDSName(datasetName: String, userName: String, newDSName: String)
 
   /**
     * send streams of the sample and its meta data.
     *
     * @param dataSetName dataset name as a string
-    * @param userName the owner of the dataset as a String
-    * @param sampleName The sample name, which is the file name with out the full path as a String
+    * @param userName    the owner of the dataset as a String
+    * @param sampleName  The sample name, which is the file name with out the full path as a String
     * @return Two Streams, one for the sample and the other for the metadata
     */
   def sampleStreams(dataSetName: String, userName: String, sampleName: String): (InputStream, InputStream)
 
   /**
-    *  Return a stream of the script file.
+    * Return a stream of the script file.
     *
     * @param dataSetName dataset name of the requested script
-    * @param userName the owner of the dataset and the script
+    * @param userName    the owner of the dataset and the script
     * @return [[InputStream]] as the script string file.
     */
   def getScriptStream(dataSetName: String, userName: String): InputStream
 
   /**
-    *  Return a stream of the vocabulary file.
+    * Return a stream of the vocabulary file.
     *
     * @param dataSetName dataset name of the requested script
-    * @param userName the owner of the dataset and the script
+    * @param userName    the owner of the dataset and the script
     * @return [[InputStream]] as the script string file.
     */
   def getVocabularyStream(dataSetName: String, userName: String): InputStream
 
   /**
     * Return a stram of the dataset.xml file
+    *
     * @param datasetName
     * @param userName
     * @return
@@ -292,14 +294,14 @@ trait GMQLRepository {
 
   /**
     * Returns the metadata associated to a dataset, e.g:
-    *   Source => Politecnico di Milano
-    *   Type => GDM
-    *   Creation Date => 21 Mar 2011
-    *   Creation Time => 00:18:56
-    *   Size => "50.12 MB"
+    * Source => Politecnico di Milano
+    * Type => GDM
+    * Creation Date => 21 Mar 2011
+    * Creation Time => 00:18:56
+    * Size => "50.12 MB"
     *
     * @param datasetName dataset name as a string
-    * @param userName   the owner of the dataset
+    * @param userName    the owner of the dataset
     * @return a Map[String, String] containing property_name => value
     */
   def getDatasetMeta(datasetName: String, userName: String): Map[String, String]
@@ -312,17 +314,17 @@ trait GMQLRepository {
     * @param userName
     * @param metaEntries , a map of key => values entries
     */
-  def setDatasetMeta(datasetName: String, userName: String, metaEntries:Map[String,String])
+  def setDatasetMeta(datasetName: String, userName: String, metaEntries: Map[String, String])
 
 
   /**
     * Returns profiling information concerning the whole dataset, e.g.:
-    *   Number of samples => 15
-    *   Number of regions => 31209
-    *   Average region length => 123.12
+    * Number of samples => 15
+    * Number of regions => 31209
+    * Average region length => 123.12
     *
     * @param datasetName dataset name as a string
-    * @param userName   the owner of the dataset
+    * @param userName    the owner of the dataset
     * @return a Map[String, String] containing property_name => value
     */
   def getDatasetProfile(datasetName: String, userName: String): Map[String, String]
@@ -331,13 +333,13 @@ trait GMQLRepository {
   /**
     * Returns profiling information concerning a specific sample of the dataset, e.g.:
     *
-    *   Number of samples => 15
-    *   Number of regions => 31209
-    *   Average region length => 123.12
+    * Number of samples => 15
+    * Number of regions => 31209
+    * Average region length => 123.12
     *
     * @param datasetName dataset name as a string
-    * @param sampleName name of the sample (index 1 .. N)
-    * @param userName the owner of the dataset
+    * @param sampleName  name of the sample (index 1 .. N)
+    * @param userName    the owner of the dataset
     */
   def getSampleProfile(datasetName: String, sampleName: String, userName: String): Map[String, String]
 
@@ -346,6 +348,7 @@ trait GMQLRepository {
 
   /**
     * Returns information about the user disk quota usage
+    *
     * @param userName
     * @param userClass
     * @return (occupied, user_quota) in KBs
@@ -354,6 +357,7 @@ trait GMQLRepository {
 
   /**
     * Boolean value: true if user quota is exceeded
+    *
     * @param username
     * @param userClass
     * @return
@@ -364,14 +368,14 @@ trait GMQLRepository {
   /**
     * Save a serialized dag to the dag folder for the specified user
     *
-    * @param userName [[String]] the username
+    * @param userName      [[String]] the username
     * @param serializedDag [[String]] the serialized dag
-    * @param fileName [[String]] the file name of the dag in the folder
+    * @param fileName      [[String]] the file name of the dag in the folder
     * @return the resulting location
-    * */
+    **/
   def saveDagQuery(userName: String, serializedDag: String, fileName: String): String
 
   def getInfoStream(dataSetName: String, userName: String): InputStream
 
-  }
+}
 

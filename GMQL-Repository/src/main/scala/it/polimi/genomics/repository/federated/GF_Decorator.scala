@@ -3,10 +3,12 @@ package it.polimi.genomics.repository.federated
 import java.io.InputStream
 import java.util
 
-import it.polimi.genomics.core.DataStructures.IRDataSet
+import it.polimi.genomics.core.DataStructures.{GMQLInstance, IRDataSet, Instance, LOCAL_INSTANCE}
 import it.polimi.genomics.core.GDMSUserClass.GDMSUserClass
 import it.polimi.genomics.core.{GMQLSchema, GMQLSchemaCoordinateSystem, GMQLSchemaField, GMQLSchemaFormat}
 import it.polimi.genomics.repository.{DatasetOrigin, GMQLRepository, GMQLSample, RepositoryType}
+
+import scala.util.{Failure, Success, Try}
 
 
 class GF_Decorator (val repository : GMQLRepository) extends GMQLRepository {
@@ -145,8 +147,18 @@ class GF_Decorator (val repository : GMQLRepository) extends GMQLRepository {
     * @throws GMQLDSException
     * @return
     */
-  override def DSExists(dataSet: String, userName: String): Boolean =
-    repository.DSExists(dataSet, userName)
+  override def DSExists(dataSet: String, userName: String, location: Option[GMQLInstance]): Boolean ={
+    location match {
+      case Some(LOCAL_INSTANCE) | None => repository.DSExists(dataSet, userName,Some(LOCAL_INSTANCE))
+      case Some(Instance(name)) => Try(api.getDataset(dataSet)) match {
+        case Success(v) =>
+          v.locations.exists(_.id == name)
+        case Failure(_) =>
+          false
+      }
+    }
+  }
+
 
   /**
     *

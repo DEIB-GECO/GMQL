@@ -31,6 +31,13 @@ case class SelectOperator(op_pos : Position,
   var sj_var : Option[MetaOperator] = None
   var sj_con : Option[MetaJoinCondition] = None
 
+
+  this.parameters.named.foreach(n => n.param_name.trim.toLowerCase match {
+    case "at" => {
+      this.parse_named_at(n.param_value)
+    }
+  })
+
   override def check_input_variables(status : CompilerStatus) : Boolean = {
 
     true

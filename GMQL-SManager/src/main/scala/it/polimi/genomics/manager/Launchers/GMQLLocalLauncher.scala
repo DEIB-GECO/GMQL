@@ -49,8 +49,8 @@ class GMQLLocalLauncher(localJob: GMQLJob) extends GMQLLauncher(localJob) {
         stopContext = false)
     }
     else {
-      val tempDir: String = General_Utilities().getResultDir("FEDERATED")
-      job.server.implementation = new FederatedImplementation(tempDir, job.jobId)
+      val tempDir: String = General_Utilities().getResultDir("federated")
+      job.server.implementation = new FederatedImplementation(Some(tempDir), Some(job.jobId))
     }
     //      new GMQLSparkExecutor(
     //      binSize = job.gMQLContext.binSize,

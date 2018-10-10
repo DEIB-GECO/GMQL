@@ -5,8 +5,10 @@ import it.polimi.genomics.GMQLServer.Implementation
 import it.polimi.genomics.core.DAG._
 import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
 import it.polimi.genomics.core.DataStructures._
-import it.polimi.genomics.core.{GMQLLoaderBase, GMQLSchemaCoordinateSystem, GMQLSchemaFormat}
+import it.polimi.genomics.core.{GMQLLoaderBase, GMQLSchema, GMQLSchemaCoordinateSystem, GMQLSchemaFormat}
+import it.polimi.genomics.repository.federated.GF_Communication
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
+import it.polimi.genomics.spark.implementation.loaders.CustomParser
 import org.apache.spark.{SparkConf, SparkContext}
 import org.slf4j.LoggerFactory
 
@@ -19,7 +21,9 @@ case class LocalExecute(iRVariable: IRVariable) extends FederatedStep
 
 case class RemoteExecute(iRVariable: IRVariable, instance: Instance) extends FederatedStep
 
-class FederatedImplementation(val tempDir: String, val jobId: String) extends Implementation with Serializable {
+class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Option[String] = None) extends Implementation with Serializable {
+
+  val api = new GF_Communication()
 
   def showFrame[T <: DAGNode[T]](dagFrame: DAGFrame[T], title: String): Unit = {
     dagFrame.setSize(1000, 600)
@@ -63,7 +67,15 @@ class FederatedImplementation(val tempDir: String, val jobId: String) extends Im
   /** given the name of a parser, returns it. It must at least provide a parser for the "default" name */
   override def getParser(name: String, dataset: String): GMQLLoaderBase = {
     println("getParser")
-    gse.getParser(name, dataset)
+    if (dataset.contains(".")) {
+      val schema: GMQLSchema = api.getSchema(dataset)
+      val parser = new CustomParser
+
+      parser.schema = schema.fields.map(f => (f.name, f.fieldType))
+      parser
+    }
+    else
+      gse.getParser(name, dataset)
   }
 
   def call(irVars: List[IRVariable]) = {
@@ -88,6 +100,9 @@ class FederatedImplementation(val tempDir: String, val jobId: String) extends Im
     val response = request.send()
 
 
+    //add waiting execution
+    //add move
+    //add waiting move
     Thread.sleep(1000)
     println(response.body)
 
@@ -138,8 +153,8 @@ class FederatedImplementation(val tempDir: String, val jobId: String) extends Im
     val opDAGFrame = new OperatorDAGFrame(opDAG)
     showFrame(opDAGFrame, "OperatorDag")
 
-
-    val dagSplits = DAGManipulator.splitDAG(opDAG, jobId, tempDir)
+    //TODO check .get
+    val dagSplits = DAGManipulator.splitDAG(opDAG, jobId.get, tempDir.get)
     val executionDAGs = DAGManipulator.generateExecutionDAGs(dagSplits.values.toList)
 
     val f2 = new MetaDAGFrame(executionDAGs)

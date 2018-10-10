@@ -376,8 +376,7 @@ object GMQLExecuteCommandFederated {
   def getImplementation(executionType: String,
                         jobid: String,
                         outputFormat: GMQLSchemaFormat.Value,
-                        outputCoordinateSystem: GMQLSchemaCoordinateSystem.Value) =
-    new FederatedImplementation(jobid)
+                        outputCoordinateSystem: GMQLSchemaCoordinateSystem.Value) = ??? //TODO CORRECT    new FederatedImplementation(jobid)
 
 
   private def extractInDSsSchema(inputSchemata: String): Map[String, String] = {

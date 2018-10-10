@@ -114,14 +114,17 @@ class GMQLJob(val gMQLContext: GMQLContext, val script: GMQLScript, val username
       inputDataSets = languageParserOperators.flatMap { x =>
         x match {
           case select: SelectOperator =>
+
+            val loc = select.operator_location
+
             //            logger.info(select.op_pos + "\t" + select.output + "\t" + select.parameters);
             val DSname: String = select.input1 match {
               case p: VariablePath => p.path
               case p: Variable => p.name
             }
-            if (repositoryHandle.DSExists(DSname, username)) {
-              val user = if (repositoryHandle.DSExistsInPublic(DSname)) "public" else this.username
-              Some(DSname, getRegionFolder(DSname, user))
+            if (repositoryHandle.DSExists(DSname, username, loc)) {
+              val user = if (loc.getOrElse(LOCAL_INSTANCE) != LOCAL_INSTANCE) "federated" else if (repositoryHandle.DSExistsInPublic(DSname)) "public" else this.username
+              Some(DSname, getRegionFolder(DSname, user, loc))
             } else {
               logger.warn(DSname + " is not a dataset in the repository...error");
               None
@@ -251,6 +254,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script: GMQLScript, val username
     dir
   }
 
+
   /**
     * Recursive search of READ and STORE operations in the DAG.
     * It searches recursively in all the IROperators of the DAG, the ones related
@@ -295,21 +299,22 @@ class GMQLJob(val gMQLContext: GMQLContext, val script: GMQLScript, val username
   /**
     * Given a dataset name, it returns its path.
     *
-    * @param inputDs : dataset name
+    * @param inDs : dataset name, possibly with namespace
     * @return path of x
     **/
-  def getInputDsPath(inputDs: String) = {
+  def getInputDsPath(inDs: String) = {
     //TODO correct
-    if (inputDs.startsWith("/"))
-      inputDs
-    else {
-      val user = if (repositoryHandle.DSExistsInPublic(inputDs)) "public" else this.username
-      val newPath =
-        if (Utilities().LAUNCHER_MODE equals Utilities().REMOTE_CLUSTER_LAUNCHER)
-          General_Utilities().getSchemaDir(user) + inputDs + ".xml"
-        else getRegionFolder(inputDs, user)
-      newPath
-    }
+    //    if (inputDs.startsWith("/"))
+    //      inputDs
+    //    else {
+    val inputDs = inDs.split('.').last
+    val user = if (repositoryHandle.DSExistsInPublic(inputDs)) "public" else this.username
+    val newPath =
+      if (Utilities().LAUNCHER_MODE equals Utilities().REMOTE_CLUSTER_LAUNCHER)
+        General_Utilities().getSchemaDir(user) + inputDs + ".xml"
+      else getRegionFolder(inputDs, user)
+    newPath
+    //    }
   }
 
 
@@ -320,16 +325,23 @@ class GMQLJob(val gMQLContext: GMQLContext, val script: GMQLScript, val username
     * @param user   String of the user name, owner of the dataset
     * @return String of the dataset location
     */
-  def getRegionFolder(dsName: String, user: String): String = {
-    val path = repositoryHandle.listDSSamples(dsName, user).asScala.head.name //(xml \\ "url") (0).text
+  def getRegionFolder(dsName: String, user: String, location: Option[GMQLInstance] = None): String = {
+    location match {
+      case Some(LOCAL_INSTANCE) | None =>
+        val path = repositoryHandle.listDSSamples(dsName, user).asScala.head.name //(xml \\ "url") (0).text
 
-    val (location, ds_origin) = repositoryHandle.getDSLocation(dsName, user)
-    if (location == RepositoryType.HDFS)
-      getHDFSRegionFolder(path, user)
-    //    else if(location == RepositoryType.LOCAL && ds_origin == DatasetOrigin.GENERATED)
-    //      General_Utilities().getRegionDir(user)+ Paths.get(path).getParent.toString
-    else //DatasetOrigin.IMPORTED
-      Paths.get(path).getParent.toString
+        val (location, ds_origin) = repositoryHandle.getDSLocation(dsName, user)
+        if (location == RepositoryType.HDFS)
+          getHDFSRegionFolder(path, user)
+        //    else if(location == RepositoryType.LOCAL && ds_origin == DatasetOrigin.GENERATED)
+        //      General_Utilities().getRegionDir(user)+ Paths.get(path).getParent.toString
+        else //DatasetOrigin.IMPORTED
+          Paths.get(path).getParent.toString
+      case Some(Instance(_)) =>
+        dsName
+    }
+
+
   }
 
   /**

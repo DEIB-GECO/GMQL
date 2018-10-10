@@ -7,7 +7,7 @@
     <version>1.0-SNAPSHOT</version>
     <modules>
         <module>GMQL-Core</module>
-        <!--<module>GMQL-Cli</module>-->
+        <module>GMQL-Cli</module>
         <module>GMQL-Server</module>
         <module>GMQL-Spark</module>
         <module>Compiler</module>

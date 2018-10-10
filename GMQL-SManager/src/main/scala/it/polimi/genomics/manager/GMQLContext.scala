@@ -4,6 +4,7 @@ import it.polimi.genomics.GMQLServer.Implementation
 import it.polimi.genomics.core
 import it.polimi.genomics.core.GDMSUserClass.GDMSUserClass
 import it.polimi.genomics.core.{BinSize, GDMSUserClass, GMQLSchemaCoordinateSystem, ImplementationPlatform}
+import it.polimi.genomics.federated.FederatedImplementation
 import it.polimi.genomics.repository.FSRepository.LFSRepository
 import it.polimi.genomics.repository.{GMQLRepository, Utilities => repo_Utilities}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
@@ -58,6 +59,9 @@ case class GMQLContext(val implPlatform: core.ImplementationPlatform.Value, val 
   /**
     * the implementation instance as the executor that will run GMQL script.
     */
-  val implementation: Implementation = new GMQLSparkExecutor(binSize = binSize, sc = sc, outputFormat = outputFormat, outputCoordinateSystem = outputCoordinateSystem)
+  val implementation: Implementation = implPlatform match {
+    case ImplementationPlatform.SPARK =>    new GMQLSparkExecutor (binSize = binSize, sc = sc, outputFormat = outputFormat, outputCoordinateSystem = outputCoordinateSystem)
+    case ImplementationPlatform.FEDERATED => new FederatedImplementation
+  }
 
 }

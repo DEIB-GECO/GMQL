@@ -5,7 +5,7 @@ import java.nio.file.{Files, Paths}
 import java.text.SimpleDateFormat
 import java.util.Date
 
-import it.polimi.genomics.core.DataStructures.IRDataSet
+import it.polimi.genomics.core.DataStructures.{GMQLInstance, IRDataSet, Instance}
 import it.polimi.genomics.core.GDMSUserClass._
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core.exception.UserExceedsQuota
@@ -176,7 +176,7 @@ trait XMLDataSetRepository extends GMQLRepository{
     * @throws GMQLDSException
     * @return
     */
-  override def DSExists(dataSet: String, userName: String = General_Utilities().USERNAME): Boolean = {
+  override def DSExists(dataSet: String, userName: String = General_Utilities().USERNAME, location: Option[GMQLInstance]): Boolean = {
     new GMQLDataSetXML(dataSet,userName).exists()  ||
     //getOrElse there is no public user
       Try( new GMQLDataSetXML(dataSet, "public").exists()).getOrElse(false)
