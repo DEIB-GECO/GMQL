@@ -3,7 +3,9 @@ package it.polimi.genomics.repository.federated
 import scala.xml.{Elem, NodeSeq}
 
 class Location (location:NodeSeq) {
+  val id = location \ "id" text
   val name = location \ "name" text
+  val namespace = location \ "namespace" text
   val details = location \ "details" text
   val URI = location \ "URI" text
 
