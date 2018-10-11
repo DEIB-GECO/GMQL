@@ -7,12 +7,6 @@ import scala.util.Random
 
 object TestDAG extends App {
 
-  def showFrame[T <: DAGNode[T]](dagFrame: DAGFrame[T], title: String): Unit = {
-    dagFrame.setSize(1000, 600)
-    dagFrame.setVisible(true)
-    dagFrame.setTitle(title)
-  }
-
   def annotateOperatorDAG(dag: OperatorDAG): Unit = {
     def annotateOperator(op: IROperator): Unit = {
       if (!op.hasExecutedOn)
@@ -169,16 +163,16 @@ object TestDAG extends App {
 
 
   val variableDAGFrame = new VariableDAGFrame(variableDAG, squeeze = true)
-  showFrame(variableDAGFrame, "Variable DAG")
+  DAGDraw.showFrame(variableDAGFrame, "Variable DAG")
   val operatorDAGFrame = new OperatorDAGFrame(operatorDAG, squeeze = true)
-  showFrame(operatorDAGFrame, "Operator DAG")
+  DAGDraw.showFrame(operatorDAGFrame, "Operator DAG")
 
 
   val dagSplits = splitDAG(operatorDAG)
   dagSplits.foreach {
-    case (instance, dag) => showFrame(new OperatorDAGFrame(dag, squeeze = true), instance.toString)
+    case (instance, dag) => DAGDraw.showFrame(new OperatorDAGFrame(dag, squeeze = true), instance.toString)
   }
 
   val executionDAGs = generateExecutionDAGs(dagSplits.values.toList)
-  showFrame(new MetaDAGFrame(executionDAGs), title = "MetaDAG")
+  DAGDraw.showFrame(new MetaDAGFrame(executionDAGs), title = "MetaDAG")
 }

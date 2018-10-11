@@ -85,6 +85,13 @@ object TestQueries {
     )
   }
 
+
+  /**Query 4:
+    *
+    * V1 = SELECT(metadataCondition) dataset1;
+    * V2 = SELECT(metadataCondition, at: Loc2) V1;
+    * MATERIALIZE V2 INTO V2;
+    * */
   val query4 : List[IRVariable] = {
     val v1 = TestUtils.getInitialIRVariable("dataset1", TestUtils.instances(1))
       .add_select_statement(None, None, Some(metadataCondition), None, Some(TestUtils.instances(1)))
