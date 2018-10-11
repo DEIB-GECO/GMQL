@@ -46,7 +46,7 @@ case class IRNoopRD() extends RegionOperator {
   */
 case class IRReadMD[IR, OR, IM, OM](var paths: List[String],
                                     loader: GMQLLoader[IR, OR, IM, OM],
-                                    var dataset: IRDataSet) extends MetaOperator {
+                                    var dataset: IRDataSet) extends MetaOperator with ReadOperator {
   override def getDependencies: List[IROperator] = List()
 
   override def sources: Set[IRDataSet] = Set(dataset)
@@ -78,7 +78,7 @@ case class IRReadMEMMD(var metaDS: Any) extends MetaOperator {
   */
 case class IRReadRD[IR, OR, IM, OM](var paths: List[String],
                                     loader: GMQLLoader[IR, OR, IM, OM],
-                                    var dataset: IRDataSet) extends RegionOperator {
+                                    var dataset: IRDataSet) extends RegionOperator with ReadOperator {
   override def getDependencies: List[IROperator] = List()
 
   override def sources: Set[IRDataSet] = Set(dataset)
