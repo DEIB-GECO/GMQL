@@ -27,10 +27,11 @@ import it.polimi.genomics.core.ParsingType.PARSING_TYPE
   */
 @SerialVersionUID(1000L)
 case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
-                        schema: List[(String, PARSING_TYPE)] = List.empty,
+                      schema: List[(String, PARSING_TYPE)] = List.empty,
                       dependencies: List[IRVariable] = List(),
                       name: String = "")(implicit binS: BinningParameter) extends Serializable with DAGNode[IRVariable]{
 
+  @deprecated
   override def toString: String = {
     metaDag match {
       case IRReadMD(_, _, d) => "READ "  + d
@@ -40,7 +41,9 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
   }
 
   /** Returns the list of dependencies of the node */
+  @deprecated
   override def getDependencies: List[IRVariable] = this.dependencies
+  @deprecated
   override def sources: Set[IRDataSet] = this.metaDag.sources union this.regionDag.sources
 
   def insert_node[T<:IROperator](iROperator: T, at: Option[GMQLInstance]) : T = {
@@ -664,6 +667,7 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
 
   }
 
+  @deprecated
   override def substituteDependency(oldDep: IRVariable, newDep: IRVariable): IRVariable = {
     //TODO: remove this...
     this
