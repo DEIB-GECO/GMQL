@@ -94,40 +94,41 @@
 
         <sourceDirectory>./src/main/scala</sourceDirectory>
         <plugins>
+            <!--UBER-JAR plugin (optional)-->
+            <!--<plugin>-->
+                <!--<groupId>org.apache.maven.plugins</groupId>-->
+                <!--<artifactId>maven-shade-plugin</artifactId>-->
+                <!--<version>2.3</version>-->
+                <!--<executions>-->
+                    <!--<execution>-->
+                        <!--<phase>package</phase>-->
+                        <!--<goals>-->
+                            <!--<goal>shade</goal>-->
+                        <!--</goals>-->
+                    <!--</execution>-->
+                <!--</executions>-->
+                <!--<configuration>-->
+                    <!--<shadedArtifactAttached>true</shadedArtifactAttached>-->
+                    <!--<shadedClassifierName>jackofall</shadedClassifierName> &lt;!&ndash; Any name that makes sense &ndash;&gt;-->
+                    <!--&lt;!&ndash;This is needed because GMQL-Repository and GMQL-Spark both use Hadoop configurations-->
+                    <!--therefore we need to merge the sources of Hadoop code&ndash;&gt;-->
+                    <!--<transformers>-->
+                        <!--<transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>-->
+                    <!--</transformers>-->
+                    <!--<filters>-->
+                        <!--<filter>-->
+                            <!--<artifact>*:*</artifact>-->
+                            <!--<excludes>-->
+                                <!--<exclude>META-INF/*.SF</exclude>-->
+                                <!--<exclude>META-INF/*.DSA</exclude>-->
+                                <!--<exclude>META-INF/*.RSA</exclude>-->
+                            <!--</excludes>-->
+                        <!--</filter>-->
+                    <!--</filters>-->
+                    <!--<finalName>uber-${project.artifactId}-${project.version}</finalName>-->
+                <!--</configuration>-->
+            <!--</plugin>-->
 
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>2.3</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <shadedArtifactAttached>true</shadedArtifactAttached>
-                    <shadedClassifierName>jackofall</shadedClassifierName> <!-- Any name that makes sense -->
-                    <!--This is needed because GMQL-Repository and GMQL-Spark both use Hadoop configurations
-                    therefore we need to merge the sources of Hadoop code-->
-                    <transformers>
-                        <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
-                    </transformers>
-                    <filters>
-                        <filter>
-                            <artifact>*:*</artifact>
-                            <excludes>
-                                <exclude>META-INF/*.SF</exclude>
-                                <exclude>META-INF/*.DSA</exclude>
-                                <exclude>META-INF/*.RSA</exclude>
-                            </excludes>
-                        </filter>
-                    </filters>
-                    <finalName>uber-${project.artifactId}-${project.version}</finalName>
-                </configuration>
-            </plugin>
             <!--&lt;!&ndash;Builds the directory ./lib in which all the dependencies of CLI are put&ndash;&gt;-->
             <!--<plugin>-->
                 <!--<artifactId>maven-dependency-plugin</artifactId>-->
@@ -143,44 +144,6 @@
                     <!--</execution>-->
                 <!--</executions>-->
             <!--</plugin>-->
-
-            <!--&lt;!&ndash;Creates the UBER-JAR&ndash;&gt;-->
-
-            <!--<plugin>-->
-                <!--<groupId>org.apache.maven.plugins</groupId>-->
-                <!--<artifactId>maven-shade-plugin</artifactId>-->
-                <!--<version>2.3</version>-->
-                <!--<executions>-->
-                    <!--<execution>-->
-                        <!--<phase>package</phase>-->
-                        <!--<goals>-->
-                            <!--<goal>shade</goal>-->
-                        <!--</goals>-->
-                    <!--</execution>-->
-                <!--</executions>-->
-                <!--<configuration>-->
-                    <!--&lt;!&ndash;<transformers>&ndash;&gt;-->
-                        <!--&lt;!&ndash;<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">&ndash;&gt;-->
-                            <!--&lt;!&ndash;<manifestEntries>&ndash;&gt;-->
-                                <!--&lt;!&ndash;<Main-Class>it.polimi.genomics.cli.GMQLExecuteCommand</Main-Class>&ndash;&gt;-->
-                                <!--&lt;!&ndash;<addClasspath>true</addClasspath>&ndash;&gt;-->
-                            <!--&lt;!&ndash;</manifestEntries>&ndash;&gt;-->
-                        <!--&lt;!&ndash;</transformer>&ndash;&gt;-->
-                    <!--&lt;!&ndash;</transformers>&ndash;&gt;-->
-                    <!--<filters>-->
-                        <!--<filter>-->
-                            <!--<artifact>*:*</artifact>-->
-                            <!--<excludes>-->
-                                <!--<exclude>META-INF/*.SF</exclude>-->
-                                <!--<exclude>META-INF/*.DSA</exclude>-->
-                                <!--<exclude>META-INF/*.RSA</exclude>-->
-                            <!--</excludes>-->
-                        <!--</filter>-->
-                    <!--</filters>-->
-                    <!--<finalName>uber-${project.artifactId}-${project.version}</finalName>-->
-                <!--</configuration>-->
-            <!--</plugin>-->
-
 
             <plugin>
                 <groupId>org.scala-tools</groupId>
@@ -259,61 +222,6 @@
                 </configuration>
             </plugin>
 
-            <!--<plugin>-->
-                <!--<groupId>com.github.goldin</groupId>-->
-                <!--<artifactId>copy-maven-plugin</artifactId>-->
-                <!--<version>0.2.5</version>-->
-                <!--<executions>-->
-                    <!--<execution>-->
-                        <!--<id>deploy-to-local-directory</id>-->
-                        <!--<phase>install</phase>-->
-                        <!--<goals>-->
-                            <!--<goal>copy</goal>-->
-                        <!--</goals>-->
-                        <!--<configuration>-->
-                            <!--<skipIdentical>false</skipIdentical>-->
-                            <!--<failIfNotFound>false</failIfNotFound>-->
-                            <!--<resources>-->
-                                <!--<resource>-->
-                                    <!--<description>Copy artifact to another directory</description>-->
-                                    <!--<targetPath>${project.build.directory}/lib</targetPath>-->
-                                    <!--<directory>${project.build.directory}</directory>-->
-                                    <!--<includes>-->
-                                        <!--<include>GMQL-Cli-2.0.jar</include>-->
-                                    <!--</includes>-->
-                                <!--</resource>-->
-                            <!--</resources>-->
-                        <!--</configuration>-->
-                    <!--</execution>-->
-                <!--</executions>-->
-            <!--</plugin>-->
-
-
-            <!--<plugin>-->
-                <!--<groupId>org.apache.maven.plugins</groupId>-->
-                <!--<artifactId>maven-site-plugin</artifactId>-->
-                <!--<version>3.3</version>-->
-                <!--<configuration>-->
-                    <!--&lt;!&ndash;<reportPlugins>&ndash;&gt;-->
-                        <!--&lt;!&ndash;<plugin>&ndash;&gt;-->
-                            <!--&lt;!&ndash;<artifactId>maven-project-info-reports-plugin</artifactId>&ndash;&gt;-->
-                            <!--&lt;!&ndash;<version>2.2</version>&ndash;&gt;-->
-                        <!--&lt;!&ndash;</plugin>&ndash;&gt;-->
-                        <!--&lt;!&ndash;<plugin>&ndash;&gt;-->
-                            <!--&lt;!&ndash;<groupId>net.alchim31.maven</groupId>&ndash;&gt;-->
-                            <!--&lt;!&ndash;<artifactId>scala-maven-plugin</artifactId>&ndash;&gt;-->
-                            <!--&lt;!&ndash;<version>3.2.1</version>&ndash;&gt;-->
-                            <!--&lt;!&ndash;<configuration>&ndash;&gt;-->
-                                <!--&lt;!&ndash;<jvmArgs>&ndash;&gt;-->
-                                    <!--&lt;!&ndash;<jvmArg>-Xms64m</jvmArg>&ndash;&gt;-->
-                                    <!--&lt;!&ndash;<jvmArg>-Xmx1024m</jvmArg>&ndash;&gt;-->
-                                <!--&lt;!&ndash;</jvmArgs>&ndash;&gt;-->
-                            <!--&lt;!&ndash;</configuration>&ndash;&gt;-->
-                        <!--&lt;!&ndash;</plugin>&ndash;&gt;-->
-                    <!--&lt;!&ndash;</reportPlugins>&ndash;&gt;-->
-                <!--</configuration>-->
-            <!--</plugin>-->
-
             <plugin>
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
@@ -347,28 +255,5 @@
                 </executions>
             </plugin>
         </plugins>
-
-
     </build>
-
-    <!--<reporting>-->
-        <!--<plugins>-->
-            <!--<plugin>-->
-                <!--<groupId>org.apache.maven.plugins</groupId>-->
-                <!--<artifactId>maven-project-info-reports-plugin</artifactId>-->
-                <!--<version>2.9</version>-->
-            <!--</plugin>-->
-            <!--<plugin>-->
-                <!--<groupId>net.alchim31.maven</groupId>-->
-                <!--<artifactId>scala-maven-plugin</artifactId>-->
-                <!--<version>3.2.2</version>-->
-
-            <!--</plugin>-->
-            <!--<plugin>-->
-                <!--<groupId>org.apache.maven.plugins</groupId>-->
-                <!--<artifactId>maven-site-plugin</artifactId>-->
-                <!--<version>3.3</version>-->
-            <!--</plugin>-->
-        <!--</plugins>-->
-    <!--</reporting>-->
 </project>
