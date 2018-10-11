@@ -94,6 +94,36 @@ object FS_Utilities {
 
   /**
     *
+    * Give a list of file names contained in a directory
+    *
+    * @param folderPath [[ String]] path of the folder containing the files (or folders)
+    * @throws it.polimi.genomics.repository.GMQLExceptions.GMQLNotValidDatasetNameException
+    */
+
+  def listFiles(folderPath: String) : List[String] = {
+
+
+    val listStatus = org.apache.hadoop.fs.FileSystem.get(gethdfsConfiguration())
+      .listStatus(new org.apache.hadoop.fs.Path(folderPath))
+
+    val result = for (urlStatus <- listStatus) yield urlStatus.getPath.getName
+
+    result.toList
+
+
+  }
+
+  /**
+    * Get the stream of a file
+    */
+
+  def getStream(filePath: String) : InputStream = {
+    org.apache.hadoop.fs.FileSystem.get(gethdfsConfiguration()).open(new org.apache.hadoop.fs.Path(filePath))
+
+  }
+
+  /**
+    *
     * Return Hadoop Configuration File by reading Hadoop Core and HDFS config files
     *
     * @return [[ Configuration]] Hadoop configurations
@@ -137,8 +167,6 @@ object FS_Utilities {
     */
   @throws(classOf[IOException])
   def copyfiletoLocal(sourceHDFSUrl: String, distLocalUrl: String): Boolean = {
-    val conf = gethdfsConfiguration
-    val fs = FileSystem.get(conf)
     if (!fs.exists(new Path(sourceHDFSUrl))) {
       logger.error("The Dataset sample Url is not found: " + sourceHDFSUrl)
       return false
@@ -153,6 +181,22 @@ object FS_Utilities {
     true
   }
 
+  def createFolder(path: String) = {
+
+    if( !fs.exists(new Path(path) ) )  {
+      fs.mkdirs(new Path(path))
+      logger.debug("Creating folder "+path)
+    } else {
+      logger.debug("Folder already exists: "+path)
+    }
+
+  }
+
+
+  def copyFile(source: String, target: String) = {
+
+  }
+
   /**
     *
     * Copy File from Local file system to Hadoop File system
@@ -164,8 +208,6 @@ object FS_Utilities {
     */
   @throws(classOf[IOException])
   def copyfiletoHDFS(sourceUrl: String, distUrl: String) = {
-    val conf = gethdfsConfiguration
-    val fs = FileSystem.get(conf)
     if (!fs.exists(new Path(Paths.get(distUrl).getParent.toString))) {
       logger.info(s"Folder ($distUrl) not found, creating directory..")
       fs.mkdirs(new Path(Paths.get(distUrl).getParent.toString))
@@ -183,6 +225,16 @@ object FS_Utilities {
   }
 
   /**
+    * Check if a file/folder exists
+    * @param path
+    * @return
+    */
+
+  def checkExists(path: String) = {
+    fs.exists(new Path(path))
+  }
+
+  /**
     *
     * Delete sample from HDFS
     * If the sample has meta file, the meta file will be deleted too
@@ -193,9 +245,6 @@ object FS_Utilities {
     */
   @throws[IOException]
   def deleteDFSDir(url: String): Boolean = {
-    def conf = gethdfsConfiguration
-
-    def fs = FileSystem.get(conf)
 
     fs.delete(new Path(url), true)
     if (fs.exists(new Path(url + ".meta"))) fs.delete(new Path(url + ".meta"), true)

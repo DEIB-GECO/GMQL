@@ -6,14 +6,17 @@ import java.util
 import it.polimi.genomics.core.DataStructures.{GMQLInstance, IRDataSet, Instance, LOCAL_INSTANCE}
 import it.polimi.genomics.core.GDMSUserClass.GDMSUserClass
 import it.polimi.genomics.core.{GMQLSchema, GMQLSchemaCoordinateSystem, GMQLSchemaField, GMQLSchemaFormat}
+import it.polimi.genomics.repository.GMQLExceptions.GMQLDSException
 import it.polimi.genomics.repository.{DatasetOrigin, GMQLRepository, GMQLSample, RepositoryType}
 
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Try}
+
+
 
 
 class GF_Decorator (val repository : GMQLRepository) extends GMQLRepository {
 
-  val api = new GF_Communication()
+  val api = GF_Communication.instance()
 
   /**
     *
@@ -151,7 +154,7 @@ class GF_Decorator (val repository : GMQLRepository) extends GMQLRepository {
     location match {
       case Some(LOCAL_INSTANCE) | None => repository.DSExists(dataSet, userName,Some(LOCAL_INSTANCE))
       case Some(Instance(name)) => Try(api.getDataset(dataSet)) match {
-        case Success(v) =>
+        case scala.util.Success(v) =>
           v.locations.exists(_.id == name)
         case Failure(_) =>
           false

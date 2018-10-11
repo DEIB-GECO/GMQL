@@ -236,18 +236,6 @@ class Utilities() {
 
 
   /**
-    * Get Federated import dir
-    */
-  def getFedImportDir() : String = {
-
-    if( MODE==HDFS)
-      HDFSRepoDir +  "/federated/imported/"
-    else
-      RepoDir + "/federated/imported/"
-
-  }
-
-  /**
     *
     * Constructs the Directory to the regions folder on Local file system
     *

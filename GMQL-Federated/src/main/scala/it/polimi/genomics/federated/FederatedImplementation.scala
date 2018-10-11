@@ -23,7 +23,7 @@ case class RemoteExecute(iRVariable: IRVariable, instance: Instance) extends Fed
 
 class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Option[String] = None) extends Implementation with Serializable {
 
-  val api = new GF_Communication()
+  val api = GF_Communication.instance()
 
   def showFrame[T <: DAGNode[T]](dagFrame: DAGFrame[T], title: String): Unit = {
     dagFrame.setSize(1000, 600)
