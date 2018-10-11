@@ -1,6 +1,5 @@
 package it.polimi.genomics.core.DAG
 
-import com.rits.cloning.Cloner
 import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
 import it.polimi.genomics.core.DataStructures._
 
@@ -90,9 +89,7 @@ abstract class GenericDAG[T <: DAGNode[T], A <: GenericDAG[T, A]](val roots: Lis
 class OperatorDAG(raw: List[IROperator]) extends GenericDAG[IROperator, OperatorDAG](raw) {
 
   def copy: OperatorDAG = {
-    val cloner = new Cloner()
-    cloner.registerImmutable(List[IROperator]().getClass)
-    cloner.deepClone(this)
+    new OperatorDAG(raw.map(_.deepCopy))
   }
 
   // For a DAG to be Variable-consistent it must not have any root node which is different from
