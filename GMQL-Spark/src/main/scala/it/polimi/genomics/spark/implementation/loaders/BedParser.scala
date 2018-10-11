@@ -352,59 +352,57 @@ object RnaSeqParser extends BedParser("\t", 0, 1, 2, Some(3), Some(Array((4, Par
   */
 class CustomParser extends BedParser("\t", 0, 1, 2, Some(3), Some(Array((4, ParsingType.DOUBLE)))) {
 
-  private val logger: Logger = LoggerFactory.getLogger(classOf[CustomParser]);
+  private val logger: Logger = LoggerFactory.getLogger(classOf[CustomParser])
 
   def setSchema(dataset: String): BedParser = {
-
-    val path: Path = new Path(dataset);
-    val fs: FileSystem = FileSystem.get(path.toUri(), FSConfig.getConf);
+    val path: Path = new Path(dataset)
+    val fs: FileSystem = FileSystem.get(path.toUri, FSConfig.getConf)
 
     //todo: remove this hard fix used for remote execution
-    val XMLfile: InputStream =
+    val xmlFile: InputStream =
       if (!fs.exists(new Path(dataset + (if (!dataset.endsWith("xml")) "/schema.xml" else ""))))
         fs.open(new Path(dataset + (if (!dataset.endsWith("xml")) "/test.schema" else "")))
       else
         fs.open(new Path(dataset + (if (!dataset.endsWith("xml")) "/schema.xml" else "")))
-    var schematype = GMQLSchemaFormat.TAB
-    var coordinatesystem = GMQLSchemaCoordinateSystem.Default
-    var schema: Array[(String, ParsingType.Value)] = null
+    setSchema(xmlFile)
+  }
 
-    try {
-      val schemaXML = XML.load(XMLfile);
-      val cc = (schemaXML \\ "field")
-      schematype = GMQLSchemaFormat.getType((schemaXML \\ "gmqlSchema").head.attribute("type").get.head.text.trim.toLowerCase())
-      val coordSysAttr = (schemaXML \\ "gmqlSchema").head.attribute("coordinate_system")
-      coordinatesystem = GMQLSchemaCoordinateSystem.getType(if (coordSysAttr.isDefined) coordSysAttr.get.head.text.trim.toLowerCase() else "default")
-      schema = cc.map(x => (x.text.trim, ParsingType.attType(x.attribute("type").get.head.text))).toArray
-    } catch {
-      case x: Throwable => x.printStackTrace(); logger.error(x.getMessage); throw new RuntimeException(x.getMessage)
-    }
 
-    coordinatesystem match {
+  def setSchema(xmlFile: InputStream): BedParser = {
+    val res = setSchema(GMQLSchema(xmlFile))
+    xmlFile.close()
+    res
+  }
+
+  def setSchema(gmqlSchema: GMQLSchema): BedParser = {
+    gmqlSchema.schemaCoordinateSystem match {
       case GMQLSchemaCoordinateSystem.ZeroBased => coordinateSystem = GMQLSchemaCoordinateSystem.ZeroBased
       case GMQLSchemaCoordinateSystem.OneBased => coordinateSystem = GMQLSchemaCoordinateSystem.OneBased
       case _ => coordinateSystem = GMQLSchemaCoordinateSystem.Default
     }
 
-    schematype match {
+    val schema = gmqlSchema.fields
+
+
+    gmqlSchema.schemaType match {
       case GMQLSchemaFormat.VCF => {
         parsingType = GMQLSchemaFormat.VCF
 
         if (coordinateSystem == GMQLSchemaCoordinateSystem.Default) coordinateSystem = GMQLSchemaCoordinateSystem.OneBased
 
-        val valuesPositions = schema.zipWithIndex.flatMap { x =>
-          val name = x._1._1
+        val valuesPositions = schema.toArray.zipWithIndex.flatMap { x =>
+          val name = x._1.name
           if (checkCoordinatesName(name)) None
-          else Some(x._2 + 2, x._1._2)
+          else Some(x._2 + 2, x._1.fieldType)
         }
 
         val valuesPositionsSchema = schema.flatMap { x =>
-          val name = x._1
+          val name = x.name
           if (checkCoordinatesName(name)) None
-          else Some(x._1, x._2)
+          else Some(x.name, x.fieldType)
         }.toList
 
-        val other: Array[(Int, ParsingType.Value)] = if (valuesPositions.length > 0)
+        val other: Array[(Int, ParsingType.Value)] = if (valuesPositions.nonEmpty)
           (5, ParsingType.DOUBLE) +: valuesPositions
         else
           Array((5, ParsingType.DOUBLE))
@@ -422,16 +420,16 @@ class CustomParser extends BedParser("\t", 0, 1, 2, Some(3), Some(Array((4, Pars
 
         if (coordinateSystem == GMQLSchemaCoordinateSystem.Default) coordinateSystem = GMQLSchemaCoordinateSystem.OneBased
 
-        val valuesPositions: Array[(Int, ParsingType.Value)] = schema.flatMap { x =>
-          val name = x._1.toUpperCase();
+        val valuesPositions: Array[(Int, ParsingType.Value)] = schema.toArray.flatMap { x =>
+          val name = x.name.toUpperCase();
           if (name.equals("SEQNAME") || name.equals("SOURCE") || name.equals("FEATURE") || name.equals("FRAME") || name.equals("SCORE") || checkCoordinatesName(name)) None
-          else Some(8, x._2)
+          else Some(8, x.fieldType)
         }
 
         val valuesPositionsSchema: Seq[(String, ParsingType.Value)] = schema.flatMap { x =>
-          val name = x._1.toUpperCase();
+          val name = x.name.toUpperCase();
           if (name.equals("SEQNAME") || name.equals("SOURCE") || name.equals("FEATURE") || name.equals("FRAME") || name.equals("SCORE") || checkCoordinatesName(name)) None
-          else Some(x._1, x._2)
+          else Some(x.name, x.fieldType)
         }.toList
 
 
@@ -454,56 +452,55 @@ class CustomParser extends BedParser("\t", 0, 1, 2, Some(3), Some(Array((4, Pars
         if (coordinateSystem == GMQLSchemaCoordinateSystem.Default) coordinateSystem = GMQLSchemaCoordinateSystem.ZeroBased
 
         val schemaWithIndex = schema.zipWithIndex
-        val chrom = schemaWithIndex.filter(x => (x._1._1.toUpperCase().equals("CHROM") || x._1._1.toUpperCase().equals("CHROMOSOME") || x._1._1.toUpperCase().equals("CHR")))
-        val start = schemaWithIndex.filter(x => (x._1._1.toUpperCase().equals("START") || x._1._1.toUpperCase().equals("LEFT")))
-        val stop = schemaWithIndex.filter(x => (x._1._1.toUpperCase().equals("STOP") || x._1._1.toUpperCase().equals("RIGHT") || x._1._1.toUpperCase().equals("END")))
-        val strand = schemaWithIndex.filter(x => (x._1._1.toUpperCase().equals("STR") || x._1._1.toUpperCase().equals("STRAND")))
+        val chrom = schemaWithIndex.filter(x => x._1.name.toUpperCase().equals("CHROM") || x._1.name.toUpperCase().equals("CHROMOSOME") || x._1.name.toUpperCase().equals("CHR"))
+        val start = schemaWithIndex.filter(x => x._1.name.toUpperCase().equals("START") || x._1.name.toUpperCase().equals("LEFT"))
+        val stop = schemaWithIndex.filter(x => x._1.name.toUpperCase().equals("STOP") || x._1.name.toUpperCase().equals("RIGHT") || x._1.name.toUpperCase().equals("END"))
+        val strand = schemaWithIndex.filter(x => x._1.name.toUpperCase().equals("STR") || x._1.name.toUpperCase().equals("STRAND"))
 
         var missing = 0
-        val chromPosition = if (chrom.size > 0) chrom.head._2
+        val chromPosition = if (chrom.nonEmpty) chrom.head._2
         else {
           missing += 1;
           0
         }
-        val startPosition = if (start.size > 0) start.head._2
+        val startPosition = if (start.nonEmpty) start.head._2
         else {
           missing += 1;
           1
         }
-        val stopPosition = if (stop.size > 0) stop.head._2
+        val stopPosition = if (stop.nonEmpty) stop.head._2
         else {
           missing += 1;
           2
         }
-        val strPosition = if (strand.size > 0) Some(strand.head._2 + missing)
+        val strPosition = if (strand.nonEmpty) Some(strand.head._2 + missing)
         else {
           logger.warn("Strand is not specified in the XML schema file, the default strand (which is * is selected.")
           None
         } //in this case strand considered not present
 
-        val valuesPositions = schemaWithIndex.flatMap { x =>
-          val name = x._1._1;
+        val valuesPositions = schemaWithIndex.toArray.flatMap { x =>
+          val name = x._1.name
           if (checkCoordinatesName(name)) None
-          else Some(x._2 + missing, x._1._2)
+          else Some(x._2 + missing, x._1.fieldType)
         }
         val valuesPositionsSchema = schemaWithIndex.flatMap { x =>
-          val name = x._1._1;
+          val name = x._1.name
           if (checkCoordinatesName(name)) None
           else Some(x._1)
         }
-        chrPos = chromPosition;
-        startPos = startPosition;
-        stopPos = stopPosition;
-        strandPos = strPosition;
+        chrPos = chromPosition
+        startPos = startPosition
+        stopPos = stopPosition
+        strandPos = strPosition
         otherPos = Some(valuesPositions)
 
 
-        this.schema = valuesPositionsSchema.toList
+        this.schema = valuesPositionsSchema.map(x=>(x.name,x.fieldType)).toList
       }
     }
 
     this
-
   }
 
   /**

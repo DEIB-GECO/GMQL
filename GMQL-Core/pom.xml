@@ -147,5 +147,12 @@
             <artifactId>cloning</artifactId>
             <version>1.9.10</version>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/org.scala-lang.modules/scala-xml -->
+        <dependency>
+            <groupId>org.scala-lang.modules</groupId>
+            <artifactId>scala-xml_2.11</artifactId>
+            <version>1.1.1</version>
+        </dependency>
+
     </dependencies>
 </project>

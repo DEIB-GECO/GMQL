@@ -71,7 +71,7 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
       val schema: GMQLSchema = api.getSchema(dataset)
       val parser = new CustomParser
 
-      parser.schema = schema.fields.map(f => (f.name, f.fieldType))
+      parser.setSchema(schema)
       parser
     }
     else
