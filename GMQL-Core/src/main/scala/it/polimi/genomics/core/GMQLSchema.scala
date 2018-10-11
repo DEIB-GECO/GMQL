@@ -1,6 +1,11 @@
 package it.polimi.genomics.core
 
+import java.io.InputStream
+
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
+import org.slf4j.{Logger, LoggerFactory}
+
+import scala.xml.XML
 
 /**
   * Created by Abdulrahman Kaitoua on 11/04/16.
@@ -13,37 +18,38 @@ import it.polimi.genomics.core.ParsingType.PARSING_TYPE
   * @param fields
   */
 
-case class GMQLSchema (name:String,
-                       schemaType:GMQLSchemaFormat.Value,
-                       schemaCoordinateSystem: GMQLSchemaCoordinateSystem.Value,
-                       fields:List[GMQLSchemaField])
+case class GMQLSchema(name: String,
+                      schemaType: GMQLSchemaFormat.Value,
+                      schemaCoordinateSystem: GMQLSchemaCoordinateSystem.Value,
+                      fields: List[GMQLSchemaField])
 
 /**
   *
-  *  The schema of the sample's columns descriped in the schema XML file
+  * The schema of the sample's columns descriped in the schema XML file
   *
-  * @param name NAme of the field (column name)
+  * @param name      NAme of the field (column name)
   * @param fieldType Type of the column
   */
-case class GMQLSchemaField(name:String, fieldType:ParsingType.Value)
+case class GMQLSchemaField(name: String, fieldType: ParsingType.Value)
 
 /**
   * Enum for the coordinate system that is used for dataset
   */
-object GMQLSchemaCoordinateSystem extends Enumeration{
+object GMQLSchemaCoordinateSystem extends Enumeration {
   type outputFormat = Value
   val ZeroBased = Value("0-based")
   val OneBased = Value("1-based")
   val Default = Value("default")
+
   /**
     *
-    *  Get the [[ GMQLSchemaFormat]] of a specific String
+    * Get the [[ GMQLSchemaFormat]] of a specific String
     *
     * @param coordinateSystem String of the coordinate system
     * @return
     */
-  def getType(coordinateSystem:String): GMQLSchemaCoordinateSystem.Value ={
-    coordinateSystem. toLowerCase() match {
+  def getType(coordinateSystem: String): GMQLSchemaCoordinateSystem.Value = {
+    coordinateSystem.toLowerCase() match {
       case "0-based" => GMQLSchemaCoordinateSystem.ZeroBased
       case "1-based" => GMQLSchemaCoordinateSystem.OneBased
       case _ => GMQLSchemaCoordinateSystem.Default
@@ -54,7 +60,7 @@ object GMQLSchemaCoordinateSystem extends Enumeration{
 /**
   * Enum for the types of schemas that we can have in our repository
   */
-object GMQLSchemaFormat extends Enumeration{
+object GMQLSchemaFormat extends Enumeration {
   type outputFormat = Value
   val TAB = Value("tab")
   val GTF = Value("gtf")
@@ -63,13 +69,13 @@ object GMQLSchemaFormat extends Enumeration{
 
   /**
     *
-    *  Get the [[ GMQLSchemaFormat]] of a specific String
+    * Get the [[ GMQLSchemaFormat]] of a specific String
     *
     * @param schemaType String of the schema type
     * @return
     */
-  def getType(schemaType:String): GMQLSchemaFormat.Value ={
-    schemaType. toLowerCase() match {
+  def getType(schemaType: String): GMQLSchemaFormat.Value = {
+    schemaType.toLowerCase() match {
       case "gtf" => GMQLSchemaFormat.GTF
       case "del" => GMQLSchemaFormat.TAB
       case "vcf" => GMQLSchemaFormat.VCF
@@ -79,34 +85,56 @@ object GMQLSchemaFormat extends Enumeration{
 }
 
 object GMQLSchema {
-  def generateSchemaXML(schema : List[(String, PARSING_TYPE)], dsname:String,outputFormat: GMQLSchemaFormat.Value, outputCoordinateSystem: GMQLSchemaCoordinateSystem.Value): String ={
-    val schemaPart = if(outputFormat == GMQLSchemaFormat.GTF) {
-      "\t<gmqlSchema type=\"gtf\"" + " coordinate_system=\"" +outputCoordinateSystem.toString+"\">\n"+
+  private val logger: Logger = LoggerFactory.getLogger(this.getClass)
+
+
+  def apply(xmlFile: InputStream): GMQLSchema = {
+    try {
+      val schemaXML = XML.load(xmlFile);
+      val cc = (schemaXML \\ "field")
+      val schemaType = GMQLSchemaFormat.getType((schemaXML \\ "gmqlSchema").head.attribute("type").get.head.text.trim.toLowerCase())
+      val coordSysAttr = (schemaXML \\ "gmqlSchema").head.attribute("coordinate_system")
+      val coordinatesystem = GMQLSchemaCoordinateSystem.getType(if (coordSysAttr.isDefined) coordSysAttr.get.head.text.trim.toLowerCase() else "default")
+      val schema = cc.map(x => GMQLSchemaField(x.text.trim, ParsingType.attType(x.attribute("type").get.head.text))).toList
+
+      new GMQLSchema("", schemaType, coordinatesystem, schema)
+    } catch {
+      case x: Throwable =>
+        x.printStackTrace()
+        logger.error(x.getMessage)
+        throw new RuntimeException(x.getMessage)
+    }
+  }
+
+
+  def generateSchemaXML(schema: List[(String, PARSING_TYPE)], dsname: String, outputFormat: GMQLSchemaFormat.Value, outputCoordinateSystem: GMQLSchemaCoordinateSystem.Value): String = {
+    val schemaPart = if (outputFormat == GMQLSchemaFormat.GTF) {
+      "\t<gmqlSchema type=\"gtf\"" + " coordinate_system=\"" + outputCoordinateSystem.toString + "\">\n" +
         "\t\t<field type=\"STRING\">seqname</field>\n" +
-        "\t\t<field type=\"STRING\">source</field>\n"+
-        "\t\t<field type=\"STRING\">feature</field>\n"+
-        "\t\t<field type=\"LONG\">start</field>\n"+
-        "\t\t<field type=\"LONG\">end</field>\n"+
-        "\t\t<field type=\"DOUBLE\">score</field>\n"+
-        "\t\t<field type=\"CHAR\">strand</field>\n"+
+        "\t\t<field type=\"STRING\">source</field>\n" +
+        "\t\t<field type=\"STRING\">feature</field>\n" +
+        "\t\t<field type=\"LONG\">start</field>\n" +
+        "\t\t<field type=\"LONG\">end</field>\n" +
+        "\t\t<field type=\"DOUBLE\">score</field>\n" +
+        "\t\t<field type=\"CHAR\">strand</field>\n" +
         "\t\t<field type=\"STRING\">frame</field>"
 
-    }else {
-      "\t<gmqlSchema type=\"Peak\"" + " coordinate_system=\"" +outputCoordinateSystem.toString+"\">\n" +
+    } else {
+      "\t<gmqlSchema type=\"Peak\"" + " coordinate_system=\"" + outputCoordinateSystem.toString + "\">\n" +
         "\t\t<field type=\"STRING\">chr</field>\n" +
         "\t\t<field type=\"LONG\">left</field>\n" +
         "\t\t<field type=\"LONG\">right</field>\n" +
         "\t\t<field type=\"CHAR\">strand</field>"
     }
 
-    val gtfFixFields = Array[String]("score","feature","source","frame")
+    val gtfFixFields = Array[String]("score", "feature", "source", "frame")
 
     val schemaHeader =
       "<?xml version='1.0' encoding='UTF-8'?>\n" +
-        "<gmqlSchemaCollection name=\""+dsname+"\" xmlns=\"http://genomic.elet.polimi.it/entities\">\n" +
-        schemaPart +"\n"+
-        schema.flatMap{x =>
-          if(outputFormat == GMQLSchemaFormat.GTF && (gtfFixFields.filter(s=>x._1.toLowerCase() == s).size > 0) ) None
+        "<gmqlSchemaCollection name=\"" + dsname + "\" xmlns=\"http://genomic.elet.polimi.it/entities\">\n" +
+        schemaPart + "\n" +
+        schema.flatMap { x =>
+          if (outputFormat == GMQLSchemaFormat.GTF && (gtfFixFields.filter(s => x._1.toLowerCase() == s).size > 0)) None
           else Some("\t\t<field type=\"" + x._2.toString + "\">" + x._1 + "</field>")
         }.mkString("\n") +
         "\n\t</gmqlSchema>\n" +
@@ -114,6 +142,7 @@ object GMQLSchema {
 
     schemaHeader
   }
+
 }
 
 ///**
