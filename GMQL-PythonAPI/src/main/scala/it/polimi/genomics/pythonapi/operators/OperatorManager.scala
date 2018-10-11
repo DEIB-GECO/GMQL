@@ -450,7 +450,7 @@ object OperatorManager {
       else
         None
     }
-    val nv = v.ORDER(metaOrderingP, "_group", metaTopParameter, regionOrderingP, regionTopParameter)
+    val nv = v.ORDER(metaOrderingP, "_order", metaTopParameter, regionOrderingP, regionTopParameter)
     // generate new index
     val new_index = PythonManager.putNewVariable(nv)
     new_index
