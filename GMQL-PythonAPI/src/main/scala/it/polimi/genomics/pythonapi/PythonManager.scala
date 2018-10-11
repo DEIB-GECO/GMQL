@@ -8,7 +8,6 @@ import it.polimi.genomics.core.DAG.{DAGSerializer, DAGWrapper}
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core._
-import it.polimi.genomics.pythonapi.EntryPoint.logger
 import it.polimi.genomics.pythonapi.operators.{ExpressionBuilder, OperatorManager}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.loaders._
@@ -85,6 +84,7 @@ object PythonManager {
     index
   }
 
+  @deprecated
   def cloneVariable(index: Int): Int = {
     val variable = this.getVariable(index)
     val binning_parameter = this.server.binning_parameter
@@ -292,12 +292,38 @@ object PythonManager {
     DAGSerializer.serializeDAG(DAGWrapper(List(variableToSerialize)))
   }
 
-  def modify_dag_source(index: Int, source: String, dest: String): Unit = {
+  def modify_dag_source(index: Int, source: String, dest: String): Int = {
     val variable = this.getVariable(index)
-    modify_dag_source(variable.metaDag, source, dest)
-    modify_dag_source(variable.regionDag, source, dest)
+    val newMeta = changeSources(variable.metaDag, source, dest)
+    val newRegion = changeSources(variable.regionDag, source, dest)
+    val newVariable = variable.copy(regionDag = newRegion.asInstanceOf[RegionOperator],
+                                    metaDag = newMeta.asInstanceOf[MetaOperator])(this.server.binning_parameter)
+    this.putNewVariable(newVariable)
   }
 
+  def changeSources(v: IROperator, source: String, dest: String): IROperator = {
+    v match {
+      case x: IRReadMD[_, _, _, _] => {
+        if(x.dataset.position == source || x.paths.contains(source))
+          x.copy(paths = List(dest), dataset = x.dataset.copy(position = dest))
+        else x.copy()
+      }
+      case x: IRReadRD[_, _, _, _] => {
+        if(x.dataset.position == source || x.paths.contains(source))
+          x.copy(paths = List(dest), dataset = x.dataset.copy(position = dest))
+        else x.copy()
+      }
+      case _ => {
+        var r = v
+        v.getDependencies.foreach { d =>
+          r = r.substituteDependency(d, changeSources(d, source, dest))
+        }
+        r
+      }
+    }
+  }
+
+  @deprecated
   def modify_dag_source(dag: IROperator, source: String, dest: String): Unit = {
     dag match {
       case x: IRReadMD[_, _, _, _] =>
