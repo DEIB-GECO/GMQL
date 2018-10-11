@@ -1,7 +1,7 @@
 package it.polimi.genomics.core.DataStructures
 
-import com.rits.cloning.Cloner
 import it.polimi.genomics.core.DAG.DAGNode
+import it.polimi.genomics.core.GMQLLoader
 
 /**
   * It represent a generic Intermediate Representation Dag operator
@@ -16,9 +16,9 @@ abstract class IROperator extends Serializable with DAGNode[IROperator] {
 
   def hasExecutedOn: Boolean = true //this.annotations.exists({case EXECUTED_ON(_) => true})
   def getExecutedOn: GMQLInstance =
-    if (this.hasExecutedOn) this.annotations.collect {
+    if (this.hasExecutedOn) this.annotations.collectFirst {
       case EXECUTED_ON(instance) => instance
-    }.headOption.getOrElse(LOCAL_INSTANCE) else LOCAL_INSTANCE
+    }.getOrElse(LOCAL_INSTANCE) else LOCAL_INSTANCE
 
   /** Optional intermediate result stored to speed up computations */
   var intermediateResult: Option[AnyRef] = None
@@ -47,8 +47,33 @@ abstract class IROperator extends Serializable with DAGNode[IROperator] {
     (if (annotations.nonEmpty) "\n" + annotations.mkString(",") else "")
 
   def deepCopy: IROperator = {
-    val cloner = new Cloner()
-    cloner.deepClone(this)
+    val result = {
+      if(this.hasDependencies) {
+        var res = this
+        val deps = res.getDependencies
+        deps.foreach { d =>
+          res = res.substituteDependency(d, d.deepCopy)
+        }
+        res
+      } else {
+        this match {
+          case x:IRReadRD[_, _, _, _] => x.copy()
+          case x:IRReadMD[_, _, _, _] => x.copy()
+          case x:IRReadMEMMD => x.copy()
+          case x:IRReadFedMD => x.copy()
+          case x:IRReadFedMetaGroup => x.copy()
+          case x:IRReadFedMetaJoin => x.copy()
+          case x:IRReadFedRD => x.copy()
+          case _ => throw new IllegalArgumentException("DeepCopy: Unknown operator")
+        }
+      }
+    }
+    result.annotations ++= this.annotations
+    result.intermediateResult = this.intermediateResult
+    result.requiresOutputProfile = this.requiresOutputProfile
+    result.outputProfile = this.outputProfile
+
+    result
   }
 }
 
@@ -86,4 +111,10 @@ case class NoMetaJoinOperator(operator: MetaJoinOperator) extends OptionalMetaJo
 trait Federated {
   val name: String
   var path: Option[String]
+}
+
+trait ReadOperator {
+  var paths: List[String]
+  val loader: GMQLLoader[_, _, _, _]
+  var dataset: IRDataSet
 }
