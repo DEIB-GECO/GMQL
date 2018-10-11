@@ -14,6 +14,12 @@ object DAGDraw {
 
     (maxWidth * 10, nLines * 20)
   }
+
+  def showFrame[T <: DAGNode[T]](dagFrame: DAGFrame[T], title: String): Unit = {
+    dagFrame.setSize(1000, 600)
+    dagFrame.setVisible(true)
+    dagFrame.setTitle(title)
+  }
 }
 
 
