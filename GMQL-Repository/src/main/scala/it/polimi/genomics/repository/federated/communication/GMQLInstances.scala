@@ -95,18 +95,14 @@ class GMQLInstances(ns: NameServer) {
         val outputStream: FileOutputStream = new FileOutputStream(dest)
         val inputStream = connection.getInputStream
 
-        var bytesRead: Int = -(1)
-        val buffer: Array[Byte] = new Array[Byte](4096)
-        while ( {
-          (bytesRead = connection.getInputStream.read(buffer)) != -(1)
-        }) {
-          outputStream.write(buffer, 0, bytesRead)
-        }
+        Iterator
+          .continually(inputStream.read)
+          .takeWhile(-1 !=)
+          .foreach(outputStream.write)
+
 
         outputStream.close()
         inputStream.close()
-
-
 
       }
       case 404 => {
