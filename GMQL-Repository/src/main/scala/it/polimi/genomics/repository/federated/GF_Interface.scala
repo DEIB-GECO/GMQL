@@ -1,6 +1,6 @@
 package it.polimi.genomics.repository.federated
 
-import java.io.{FileInputStream, InputStream}
+import java.io.{InputStream}
 
 import it.polimi.genomics.repository.FSRepository.FS_Utilities
 import it.polimi.genomics.repository.Utilities
@@ -17,6 +17,11 @@ class GF_Interface private {
 
   def importDataset (jobId: String, dsName: String, location: String) = {
     val path = Utilities().getTempDir("federated")
+
+    // Create the temp folder if it does not exists
+    if( !FS_Utilities.checkExists(path) )
+      FS_Utilities.createDFSDir(path)
+
     api.importDataset(jobId, dsName, location, path)
   }
 
