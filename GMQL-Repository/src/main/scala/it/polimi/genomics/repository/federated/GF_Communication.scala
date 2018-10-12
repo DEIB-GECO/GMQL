@@ -255,8 +255,8 @@ class GF_Communication private {
 
 
           // todo: delete these lines
-          if( DEBUG_MODE && FS_Utilities.checkExists(final_dest_parent) ) {
-            FS_Utilities.deleteDFSDir(final_dest_parent)
+          if( DEBUG_MODE && FS_Utilities.checkExists(final_dest) ) {
+            FS_Utilities.deleteDFSDir(final_dest)
             logger.debug("Deleting "+final_dest)
           } else {
             logger.debug("Not found: "+final_dest)
