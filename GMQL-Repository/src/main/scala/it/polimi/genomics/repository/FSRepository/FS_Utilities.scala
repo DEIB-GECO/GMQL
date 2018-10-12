@@ -103,8 +103,7 @@ object FS_Utilities {
   def listFiles(folderPath: String) : List[String] = {
 
 
-    val listStatus = org.apache.hadoop.fs.FileSystem.get(gethdfsConfiguration())
-      .listStatus(new org.apache.hadoop.fs.Path(folderPath))
+    val listStatus = fs.listStatus(new org.apache.hadoop.fs.Path(folderPath))
 
     val result = for (urlStatus <- listStatus) yield urlStatus.getPath.getName
 
@@ -118,7 +117,7 @@ object FS_Utilities {
     */
 
   def getStream(filePath: String) : InputStream = {
-    org.apache.hadoop.fs.FileSystem.get(gethdfsConfiguration()).open(new org.apache.hadoop.fs.Path(filePath))
+    fs.open(new org.apache.hadoop.fs.Path(filePath))
 
   }
 
@@ -135,24 +134,13 @@ object FS_Utilities {
     conf.addResource(new org.apache.hadoop.fs.Path(General_Utilities().HDFSConfigurationFiles))
     conf.set("fs.hdfs.impl", classOf[org.apache.hadoop.hdfs.DistributedFileSystem].getName)
     conf.set("fs.file.impl", classOf[org.apache.hadoop.fs.LocalFileSystem].getName)
-    conf
-  }
 
-  /**
-    *
-    * Return Hadoop Distributed File System handle
-    *
-    * @return [[ FileSystem]]
-    */
-  def getFileSystem: FileSystem = {
-    val fs: FileSystem = null
-    try {
-      val fs = FileSystem.get(gethdfsConfiguration)
+    logger.debug(General_Utilities().MODE)
+    if( General_Utilities().MODE != General_Utilities().HDFS ) {
+      conf.set("fs.defaultFS", "file:///")
     }
-    catch {
-      case e: IOException => e.printStackTrace()
-    }
-    fs
+
+    conf
   }
 
   /**
@@ -181,21 +169,6 @@ object FS_Utilities {
     true
   }
 
-  def createFolder(path: String) = {
-
-    if( !fs.exists(new Path(path) ) )  {
-      fs.mkdirs(new Path(path))
-      logger.debug("Creating folder "+path)
-    } else {
-      logger.debug("Folder already exists: "+path)
-    }
-
-  }
-
-
-  def copyFile(source: String, target: String) = {
-
-  }
 
   /**
     *
@@ -275,12 +248,6 @@ object FS_Utilities {
     */
   @throws[IOException]
   def createDFSDir(url: String): Boolean = {
-    val conf = new Configuration
-    conf.addResource(new Path(General_Utilities().CoreConfigurationFiles))
-    conf.addResource(new Path(General_Utilities().HDFSConfigurationFiles))
-    conf.set("fs.hdfs.impl", classOf[DistributedFileSystem].getName)
-    conf.set("fs.file.impl", classOf[LocalFileSystem].getName)
-    val fs = FileSystem.get(conf)
     if (fs.mkdirs(new Path(url))) true else false
   }
 
