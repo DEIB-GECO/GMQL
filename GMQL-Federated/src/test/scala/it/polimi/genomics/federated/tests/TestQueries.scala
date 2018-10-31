@@ -1,7 +1,8 @@
-package it.polimi.genomics.core.tests
+package it.polimi.genomics.federated.tests
 
-import it.polimi.genomics.core.DataStructures.CoverParameters.{ALL, CoverFlag}
-import it.polimi.genomics.core.DataStructures.{IRVariable, Instance}
+import it.polimi.genomics.core.DataStructures.CoverParameters.{ALL, CoverFlag, CoverParameterManager}
+import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder
+import it.polimi.genomics.core.DataStructures.{IRVariable, Instance, LOCAL_INSTANCE}
 import it.polimi.genomics.core.DataStructures.MetadataCondition.{META_OP, Predicate}
 import it.polimi.genomics.core.DataStructures.RegionCondition.{REG_OP, StartCondition}
 
@@ -101,5 +102,34 @@ object TestQueries {
       TestUtils.materializeIRVariable(v2, "v2", Some(TestUtils.instances(1)))
     )
 
+  }
+
+  /**
+    * Publication query
+    *
+    * myExperiment = SELECT(at GMQL-U) UPLOAD;
+    * myData = COVER(2, ANY; at GMQL-U) myExperiment;
+    * genes = SELECT(annotation_type == "gene" AND provider == "RefSeq" at GMQL-A) HG19_BED_ANNOTATIONS;
+    * onGenes = JOIN(distance < 0; output: right at GMQL-A) genes myData;
+    * mutations = SELECT(type == "SNP" at GMQL-CINECA) ICGC_REPOSITORY;
+    * geneMutationCount = MAP(at GMQL-CINECA) onGenes mutations;
+    * MATERIALIZE geneMutationCount INTO result;
+    * */
+
+  val queryPub: List[IRVariable] = {
+    val myExperiment = TestUtils.getInitialIRVariable("UPLOAD", Instance("GMQL-U"))
+      .add_select_statement(None, None, None, None, Some(Instance("GMQL-U")))
+    val myData = myExperiment.COVER(CoverFlag.COVER, CoverParameterManager.getCoverParam("N", Some(2)),
+      CoverParameterManager.getCoverParam("ANY"), List.empty, None, Some(Instance("GMQL-U")))
+    val genes = TestUtils.getInitialIRVariable("HG19_BED_ANNOTATIONS", Instance("GMQL-A"))
+      .add_select_statement(None, None, None, None, Some(Instance("GMQL-A")))
+    val onGenes = genes.JOIN(None, List(), RegionBuilder.RIGHT, myData, None, None, None, Some(Instance("GMQL-A")))
+    val mutations = TestUtils.getInitialIRVariable("ICGC_REPOSITORY", Instance("GMQL-CINECA"))
+      .add_select_statement(None, None, None, None, Some(Instance("GMQL-CINECA")))
+    val geneMutationCount = onGenes.MAP(None, List.empty, mutations, None, None, None, Some(Instance("GMQL-CINECA")))
+
+    List(
+      TestUtils.materializeIRVariable(geneMutationCount, "", Some(LOCAL_INSTANCE))
+    )
   }
 }

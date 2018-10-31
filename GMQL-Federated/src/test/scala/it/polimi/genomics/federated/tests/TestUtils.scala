@@ -1,13 +1,13 @@
-package it.polimi.genomics.core.tests
+package it.polimi.genomics.federated.tests
 
 import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.{JoinQuadruple, RegionBuilder}
-import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.DataStructures.RegionAggregate.RegionsToRegion
-import it.polimi.genomics.core.{GDouble, GMQLLoader, GValue, ParsingType}
+import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
+import it.polimi.genomics.core.{GDouble, GMQLLoader, GValue, ParsingType}
+import collection.JavaConverters._
 
-import scala.collection.JavaConverters._
 
 object TestUtils {
 

@@ -1,4 +1,4 @@
-package it.polimi.genomics.core.tests
+package it.polimi.genomics.federated.tests
 
 import it.polimi.genomics.core.DAG.{DAGDraw, OperatorDAGFrame, VariableDAG}
 
