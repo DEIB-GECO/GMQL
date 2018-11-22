@@ -291,7 +291,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script: GMQLScript, val username
       case _ =>
         None
     }
-    val tempRes = inp.getDependencies.flatMap(operator => rec(operator))
+    val tempRes = inp.getDependencies.flatMap(operator => rec(operator, federatedJobId))
 
     tempRes ++ List(result).flatten
   }

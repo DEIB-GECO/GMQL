@@ -12,6 +12,8 @@ import it.polimi.genomics.spark.implementation.loaders.CustomParser
 import org.apache.spark.{SparkConf, SparkContext}
 import org.slf4j.LoggerFactory
 
+import scala.collection.mutable
+
 
 trait FederatedStep
 
@@ -83,11 +85,51 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
     gse.go()
   }
 
+  def pooling(remoteServerUri: String, remoteJobId: String) = {
+    implicit val backend = HttpURLConnectionBackend()
+
+    var status = "started"
+
+    do {
+      Thread.sleep(1000)
+
+      val uri = uri"${remoteServerUri}jobs/$remoteJobId/trace"
+
+
+      val request = sttp
+        .header("Accept", "application/xml")
+        .header("X-AUTH-TOKEN", "FEDERATED-TOKEN")
+        .get(uri)
+
+
+      val response = request.send()
+
+      if (response.code != 200) {
+        throw new GmqlFederatedException("Fatal federated error: trace response code != 200 ")
+      }
+
+      status = (scala.xml.XML.loadString(response.body.right.get) \\ "status").text
+
+      if (status.contains("FAILED") || status.contains("STOPPED"))
+        throw new GmqlFederatedException("Fatal federated error: trace-> " + status)
+
+      println("\t\t\t\t\t" + remoteJobId + status)
+
+    } while (!status.equals("EXEC_SUCCESS"))
+  }
+
   def callRemote(irVars: List[IRVariable], instance: GMQLInstance) = {
+    implicit val backend = HttpURLConnectionBackend()
+
+
+    //    MOVE
+
     val serilizedDag = DAGSerializer.serializeDAG(DAGWrapper(irVars))
-    //TODO change
-    // send job_id with an extension _1, _2
-    val uri = uri"http://localhost:8000/gmql-rest/queries/dag/tab?federatedJobId=$jobId"
+    //TODO change send job_id with an extension _1, _2
+    //TODO get from name server
+    val remoteServerUri = "http://localhost:8000/gmql-rest/" //check slash
+
+    val uri = uri"${remoteServerUri}queries/dag/tab?federatedJobId=$jobId"
 
 
     val request = sttp.body(serilizedDag)
@@ -96,18 +138,43 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
       .post(uri)
 
 
-    implicit val backend = HttpURLConnectionBackend()
     val response = request.send()
 
+    if (response.code != 200) {
+      throw new Exception("Fatal federated error response code  != 200 ")
+    }
+
+
+    val remoteJobId = (scala.xml.XML.loadString(response.body.right.get) \\ "id").text
 
     //add waiting execution
+    pooling(remoteServerUri, remoteJobId)
+
+
     //add move
+    val remoteDsName =
+      irVars.head.regionDag match {
+        case federated: Federated => federated.name
+        case _ => irVars.head.metaDag.asInstanceOf[Federated].name
+      }
+
+
+    val fedIrVars: List[IROperator] = irVars.flatMap(irVar =>
+      irVar.metaDag.getDependencies ++ irVar.regionDag.getDependencies
+    ).filter(_.isInstanceOf[Federated])
+
+
+    println("\t\t\t\t\t\t\t" + fedIrVars)
+
+
+
     //add waiting move
-    Thread.sleep(1000)
+    //    Thread.sleep(1000)
     println(response.body)
 
   }
 
+  val previouslyRunDag = mutable.Set.empty[ExecutionDAG]
 
   def recursiveCall(executionDag: ExecutionDAG, destination: GMQLInstance): Unit = {
     val whereExDag: GMQLInstance = executionDag.where
@@ -130,18 +197,21 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
       !(x.regionDag.isInstanceOf[IRNoopRD] && x.metaDag.isInstanceOf[IRStoreMD])
     }
 
-    //send other
-    whereExDag match {
-      case LOCAL_INSTANCE =>
-        println("call(irVarFiltered)")
-        call(irVarFiltered)
-      case _: GMQLInstance =>
-        println("SEND " + executionDag + " to " + whereExDag)
-        println("callRemote(irVarFiltered)")
-        //TODO
-        //        call(irVarFiltered)
-        callRemote(irVarFiltered, whereExDag)
-        println("SEND DATA from " + whereExDag + " to " + destination)
+    if(!previouslyRunDag.contains(executionDag)) {
+      //send other
+      whereExDag match {
+        case LOCAL_INSTANCE =>
+          println("call(irVarFiltered)")
+          call(irVarFiltered)
+        case _: GMQLInstance =>
+          println("SEND " + executionDag + " to " + whereExDag)
+          println("callRemote(irVarFiltered)")
+          //TODO
+          //        call(irVarFiltered)
+          callRemote(irVarFiltered, whereExDag)
+          println("SEND DATA from " + whereExDag + " to " + destination)
+      }
+      previouslyRunDag.add(executionDag)
     }
 
 
@@ -151,14 +221,14 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
     val opDAG = new OperatorDAG(to_be_materialized.flatMap(x => List(x.metaDag, x.regionDag)).toList)
 
     val opDAGFrame = new OperatorDAGFrame(opDAG)
-    showFrame(opDAGFrame, "OperatorDag")
+//    showFrame(opDAGFrame, "OperatorDag")
 
     //TODO check .get
     val dagSplits = DAGManipulator.splitDAG(opDAG, jobId.get, tempDir.get)
     val executionDAGs = DAGManipulator.generateExecutionDAGs(dagSplits.values.toList)
 
     val f2 = new MetaDAGFrame(executionDAGs)
-    showFrame(f2, "ExDag")
+//    showFrame(f2, "ExDag")
 
 
     executionDAGs.roots.foreach(recursiveCall(_, LOCAL_INSTANCE))
