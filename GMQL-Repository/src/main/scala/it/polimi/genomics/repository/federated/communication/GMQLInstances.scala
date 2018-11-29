@@ -24,16 +24,16 @@ class GMQLInstances(ns: NameServer) {
   val AUTH_HEADER_VALUE_G = "FEDERATED-TOKEN"
 
 
-  private def getToken (namespace:String) : String =  {
+  private def getToken (target:String) : String =  {
 
-    logger.info("Getting the token for "+namespace)
+    logger.info("Getting the token for communication with "+target)
 
-    if ( !authentication.contains(namespace) || authentication.get(namespace).get.isExpired() ) {
-      val token = ns.resetToken(namespace)
-      authentication += (namespace -> token)
+    if ( !authentication.contains(target) || authentication.get(target).get.isExpired() ) {
+      val token = ns.resetToken(target)
+      authentication += (target -> token)
     }
 
-    authentication(namespace).get
+    authentication(target).get
 
   }
 
@@ -44,12 +44,12 @@ class GMQLInstances(ns: NameServer) {
     val address = location.URI+URI
 
     logger.info("rest_get->uri " + address)
-    logger.info("rest_get->authorization " + getToken(location.namespace))
+    logger.info("rest_get->authorization " + getToken(location.instance))
 
     val request = sttp.get(uri"$address").readTimeout(Duration.Inf)
       .header("Accept","application/xml")
       .header(AUTH_HEADER_NAME_G, AUTH_HEADER_VALUE_G)
-      .header(AUTH_HEADER_NAME_F, getToken(location.namespace))
+      .header(AUTH_HEADER_NAME_F, getToken(location.instance))
 
     implicit val backend = HttpURLConnectionBackend()
     val response = request.send()
@@ -78,7 +78,7 @@ class GMQLInstances(ns: NameServer) {
     import java.net.URL
     import java.io.File
 
-    val uri = s"${location.URI}/federated/download/${job_id}/${ds_name}?authToken="+AUTH_HEADER_VALUE_G
+    val uri = s"${location.URI}federated/download/${job_id}/${ds_name}?authToken="+AUTH_HEADER_VALUE_G
     val url = new URL(uri)
 
     val connection: HttpURLConnection = url.openConnection.asInstanceOf[HttpURLConnection]

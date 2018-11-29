@@ -74,10 +74,10 @@ class NameServer {
   }
 
   // Ask for a new token to communicate with the target namespace
-  def resetToken (target_namespace:String) : Token= {
+  def resetToken (target:String) : Token= {
 
     val URI = NS_ADDRESS+"/api/authentication/"
-    val body = Map("target"->target_namespace)
+    val body = Map("target"->target)
 
 
     val token_xml     = post(URI, body)
