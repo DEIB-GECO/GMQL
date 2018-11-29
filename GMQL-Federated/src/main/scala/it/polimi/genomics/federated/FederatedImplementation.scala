@@ -90,7 +90,7 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
     if (to.isDefined) {
       implicit val backend = HttpURLConnectionBackend()
 
-      val uri = uri"${to.get}federated/import/${federatedJobId}/${dsName}/${from}%2F"
+      val uri = uri"${to.get}federated/import/${federatedJobId}/${dsName}/${from}"
       println(uri)
       println
       println
@@ -107,7 +107,7 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
       println(response.body)
       println(response.statusText)
     } else {
-      GF_Interface.instance().importDataset(federatedJobId, dsName, from + "/")
+      GF_Interface.instance().importDataset(federatedJobId, dsName, from)
     }
 
 
@@ -205,7 +205,7 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
   def callRemote(irVars: List[IRVariable], instance: GMQLInstance) = {
     implicit val backend = HttpURLConnectionBackend()
 
-    val remoteServerUri = GF_Communication.instance().getLocation(instance.name + "/").URI + "/"
+    val remoteServerUri = GF_Communication.instance().getLocation(instance.name).URI
 
 
     val serilizedDag = DAGSerializer.serializeDAG(DAGWrapper(irVars))
@@ -313,10 +313,9 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
 
     val dssNamesToCopy = executionDag.dag.flatMap(_.roots).filter(_.isInstanceOf[Federated]).map(_.asInstanceOf[Federated].name)
 
-    //TODO remove last slash
     val remoteServerUriOpt =
       if (destination != LOCAL_INSTANCE)
-        Some(GF_Communication.instance().getLocation(destination.name + "/").URI + "/")
+        Some(GF_Communication.instance().getLocation(destination.name).URI)
       else
         None
 
