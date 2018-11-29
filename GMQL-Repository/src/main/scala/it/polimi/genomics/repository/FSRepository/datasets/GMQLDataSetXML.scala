@@ -498,7 +498,9 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
 
     setDSName(newDSName)
     this.storeXML(generateDSXML(), Utilities().getDataSetsDir(this.userName ) + newDSName + ".xml")
+    val repo = this.Repo; this.Repo = "Ignore generating schema coordinates";
     this.storeXML(generateSchemaXML(this.schema), Utilities().getSchemaDir( this.userName)  + DSname + ".schema")
+    this.Repo=repo;
   }
   /**
     *  Delete sample from the dataset
