@@ -46,7 +46,7 @@ class Utilities() {
   // GMQL Federated
   var GF_ENABLED = false
   var GF_NAMESERVER_ADDRESS: Option[String] = None
-  var GF_NAMESPACE: Option[String] = None
+  var GF_INSTANCENAME: Option[String] = None
   var GF_TOKEN: Option[String] =  None
 
 
@@ -101,7 +101,7 @@ class Utilities() {
 
           case Conf.GF_ENABLED => GF_ENABLED =  (value == "true")
           case Conf.GF_NAMESERVER_ADDRESS => this.GF_NAMESERVER_ADDRESS = Some(value)
-          case Conf.GF_NAMESPACE => this.GF_NAMESPACE = Some(value)
+          case Conf.GF_INSTANCENAME => this.GF_INSTANCENAME = Some(value)
           case Conf.GF_TOKEN => this.GF_TOKEN = Some(value)
 
           case _ => logger.error(s"Not known configuration property: $x, $value")
@@ -435,7 +435,7 @@ object Conf {
 
   val GF_ENABLED = "GF_ENABLED"
   val GF_NAMESERVER_ADDRESS = "GF_NAMESERVER_ADDRESS"
-  val GF_NAMESPACE = "GF_NAMESPACE"
+  val GF_INSTANCENAME = "GF_INSTANCENAME"
   val GF_TOKEN = "GF_TOKEN"
 
   val DISK_QUOTA = "DISK_QUOTA"}

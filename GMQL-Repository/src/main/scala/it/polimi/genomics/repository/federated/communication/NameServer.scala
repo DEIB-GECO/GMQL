@@ -23,12 +23,12 @@ class NameServer {
     } else
       Utilities().GF_NAMESERVER_ADDRESS.get
 
-  var NS_NAMESPACE  =
-    if (Utilities().GF_NAMESPACE.isEmpty) {
+  var NS_INSTANCENAME  =
+    if (Utilities().GF_INSTANCENAME.isEmpty) {
       logger.error("GF_NAMESPACE is not set in repository.xml. Please provide your institutional namespace, e.g. it.polimi.")
       ""
     } else
-      Utilities().GF_NAMESPACE.get
+      Utilities().GF_INSTANCENAME.get
 
   var NS_TOKEN      =
     if (Utilities().GF_TOKEN.isEmpty) {
