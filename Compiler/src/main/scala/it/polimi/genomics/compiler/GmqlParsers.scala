@@ -26,12 +26,17 @@ trait GmqlParsers extends JavaTokenParsers {
     ("\"" +"""([^"\p{Cntrl}\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*""" + "\"").r |
       ("\'" +"""([^'\p{Cntrl}\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*""" + "\'").r
 
+  val variableIdSelect: Parser[VariableIdentifier] = positioned(rep1sep(ident,".") ^^ { x => VariableIdentifier(x.mkString(".")) })
   val variableId: Parser[VariableIdentifier] = positioned(ident ^^ { x => VariableIdentifier(x) })
   val variablePath: Parser[VariablePath] = positioned(
     ("[" ~> ident <~ "]") ~ ("""[A-Z|a-z|0-9/._:-]+""".r) ^^ {
       x => VariablePath(x._2, x._1)
     })
-  val onlyPath = """[A-Z|a-z|0-9/._:-]*""".r ^^ { x => VariablePath(x, null) }
+//  val onlyPath = """[A-Z|a-z|0-9/._:-]*""".r ^^ { x => VariablePath(x, null) } // fed
+  val onlyPath = """.*([/].*)+""".r ^^ { x => VariablePath(x, null) } //pa
+//val onlyPath = """[A-Z|a-z|0-9._:-]*[/][A-Z|a-z|0-9/._:-]*""".r ^^ { x => VariablePath(x, null) } //master
+
+
   val materializePath = """[A-Z|a-z|0-9/._:-]+""".r ^^ { x => VariablePath(x, null) }
   val anyVariableIdentifier: Parser[Variable] = variableId | variablePath
 
