@@ -341,14 +341,14 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
     val opDAG = new OperatorDAG(to_be_materialized.flatMap(x => List(x.metaDag, x.regionDag)).toList)
 
     val opDAGFrame = new OperatorDAGFrame(opDAG)
-    showFrame(opDAGFrame, "OperatorDag")
+//    showFrame(opDAGFrame, "OperatorDag")
 
     //TODO check .get
     val dagSplits = DAGManipulator.splitDAG(opDAG, jobId.get, tempDir.get)
     val executionDAGs = DAGManipulator.generateExecutionDAGs(dagSplits.values.toList)
 
     val f2 = new MetaDAGFrame(executionDAGs)
-    showFrame(f2, "ExDag")
+//    showFrame(f2, "ExDag")
 
 
     executionDAGs.roots.foreach(recursiveCall(_, LOCAL_INSTANCE))
