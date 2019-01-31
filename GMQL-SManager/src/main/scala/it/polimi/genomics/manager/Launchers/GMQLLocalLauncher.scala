@@ -35,34 +35,37 @@ class GMQLLocalLauncher(localJob: GMQLJob) extends GMQLLauncher(localJob) {
     *
     **/
   def run(): GMQLLocalLauncher = {
+    new Thread(new Runnable {
+      def run() {
 
-    if (job.federated) {
-      val serializedDag = readFile(job.script.dagPath)
-      val dag = Some(DAGSerializer.deserializeDAG(serializedDag))
-      job.server.materializationList ++= dag.get.dag
+        if (job.federated) {
+          val serializedDag = readFile(job.script.dagPath)
+          val dag = Some(DAGSerializer.deserializeDAG(serializedDag))
+          job.server.materializationList ++= dag.get.dag
 
-      job.server.implementation = new GMQLSparkExecutor(
-        binSize = job.gMQLContext.binSize,
-        outputFormat = job.gMQLContext.outputFormat,
-        outputCoordinateSystem = job.gMQLContext.outputCoordinateSystem,
-        sc = SparkContext.getOrCreate(new SparkConf().setAppName(job.jobId).setMaster("local[*]")),
-        stopContext = false)
-    }
-    else {
-      val tempDir: String = General_Utilities().getResultDir("federated")
-      job.server.implementation = new FederatedImplementation(Some(tempDir), Some(job.jobId))
-    }
-    //      new GMQLSparkExecutor(
-    //      binSize = job.gMQLContext.binSize,
-    //      outputFormat = job.gMQLContext.outputFormat,
-    //      outputCoordinateSystem = job.gMQLContext.outputCoordinateSystem,
-    //      sc = new SparkContext(new SparkConf().setAppName(job.jobId).setMaster("local[*]")))
+          job.server.implementation = new GMQLSparkExecutor(
+            binSize = job.gMQLContext.binSize,
+            outputFormat = job.gMQLContext.outputFormat,
+            outputCoordinateSystem = job.gMQLContext.outputCoordinateSystem,
+            sc = SparkContext.getOrCreate(new SparkConf().setAppName(job.jobId).setMaster("local[*]")),
+            stopContext = false)
+        }
+        else {
+          val tempDir: String = General_Utilities().getResultDir("federated")
+          job.server.implementation = new FederatedImplementation(Some(tempDir), Some(job.jobId))
+        }
+        //      new GMQLSparkExecutor(
+        //      binSize = job.gMQLContext.binSize,
+        //      outputFormat = job.gMQLContext.outputFormat,
+        //      outputCoordinateSystem = job.gMQLContext.outputCoordinateSystem,
+        //      sc = new SparkContext(new SparkConf().setAppName(job.jobId).setMaster("local[*]")))
 
-    job.status = Status.RUNNING
-    logger.info(String.format("Job %s is under execution.. ", job.jobId))
-    job.server.run()
+        job.status = Status.RUNNING
+        logger.info(String.format("Job %s is under execution.. ", job.jobId))
+        job.server.run()
 
-    job.status = Status.EXEC_SUCCESS
+        job.status = Status.EXEC_SUCCESS
+      }}).start()
     this
   }
 

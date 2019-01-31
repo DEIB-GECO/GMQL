@@ -157,12 +157,13 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
     } else {
       var status: DownloadStatus = null
       do {
+        Thread.sleep(1000)
 
         status = GF_Interface.instance().checkImportStatus(federatedJobId, dsName)
         if (status.isInstanceOf[Failed] || status.isInstanceOf[NotFound])
           throw new GmqlFederatedException("Fatal federated error: trace-> " + status)
 
-      } while (status.isInstanceOf[Success])
+      } while (!status.isInstanceOf[Success])
 
 
     }
