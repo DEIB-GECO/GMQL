@@ -146,8 +146,8 @@ object FS_Utilities {
     if (fs.exists(new Path(sourceHDFSUrl + ".meta"))) {
       fs.copyToLocalFile(new Path(sourceHDFSUrl + ".meta"), new Path(distLocalUrl + ".meta"))
     }
-    logger.debug("source:", sourceHDFSUrl)
-    logger.debug("Distination", distLocalUrl)
+    logger.debug("Source:" + sourceHDFSUrl)
+    logger.debug("Destination" + distLocalUrl)
     fs.copyToLocalFile(new Path(sourceHDFSUrl), new Path(distLocalUrl))
     val dist: File = new File(distLocalUrl)
     true
