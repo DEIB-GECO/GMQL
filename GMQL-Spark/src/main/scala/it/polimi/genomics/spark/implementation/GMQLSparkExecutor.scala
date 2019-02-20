@@ -140,27 +140,27 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
         // store schema
         storeSchema(GMQLSchema.generateSchemaXML(variable.schema,outputFolderName,outputFormat, outputCoordinateSystem),variableDir)
 
-        // Compute Profile and store into xml files (one for web, one for optimization)
-        val profile = Profiler.profile(regions = regionRDD, meta = metaRDD, sc = sc)
-
-        try {
-          val output = fs.create(new Path(variableDir + "/files/" + "profile.xml"));
-          val output_web = fs.create(new Path(variableDir + "/files/" + "web_profile.xml"));
-
-          val os = new java.io.BufferedOutputStream(output)
-          val os_web = new java.io.BufferedOutputStream(output_web)
-
-          os.write(Profiler.profileToOptXML(profile).toString().getBytes("UTF-8"))
-          os_web.write(Profiler.profileToWebXML(profile).toString().getBytes("UTF-8"))
-
-          os.close()
-          os_web.close()
-        } catch {
-          case e: Throwable => {
-            logger.error(e.getMessage)
-            e.printStackTrace()
-          }
-        }
+//        // Compute Profile and store into xml files (one for web, one for optimization)
+//        val profile = Profiler.profile(regions = regionRDD, meta = metaRDD, sc = sc)
+//
+//        try {
+//          val output = fs.create(new Path(variableDir + "/files/" + "profile.xml"));
+//          val output_web = fs.create(new Path(variableDir + "/files/" + "web_profile.xml"));
+//
+//          val os = new java.io.BufferedOutputStream(output)
+//          val os_web = new java.io.BufferedOutputStream(output_web)
+//
+//          os.write(Profiler.profileToOptXML(profile).toString().getBytes("UTF-8"))
+//          os_web.write(Profiler.profileToWebXML(profile).toString().getBytes("UTF-8"))
+//
+//          os.close()
+//          os_web.close()
+//        } catch {
+//          case e: Throwable => {
+//            logger.error(e.getMessage)
+//            e.printStackTrace()
+//          }
+//        }
 
         fs.deleteOnExit(new Path(RegionOutputPath+"_SUCCESS"))
 
