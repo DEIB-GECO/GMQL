@@ -63,7 +63,7 @@ class NameServer {
   def post(URI: String, body: Map[String, String]) = {
     val request = sttp
       .body(body)
-      .post(uri"$URI")
+      .post(uri"$NS_ADDRESS$URI")
       .header("Accept","application/xml")
       .header("Authorization",s"Token $NS_TOKEN")
 
@@ -76,7 +76,7 @@ class NameServer {
   // Ask for a new token to communicate with the target namespace
   def resetToken (target:String) : Token= {
 
-    val URI = NS_ADDRESS+"/api/authentication/"
+    val URI = "/api/authentication/"
     val body = Map("target"->target)
 
 
@@ -87,6 +87,23 @@ class NameServer {
     new Token(token_string, token_expdate)
 
   }
+
+  // Validate token
+  def validateToken (target: String, token: String) : Boolean = {
+
+    val URI = "/api/authentication/"+NS_INSTANCENAME+"_"+target+"/"
+    println(URI)
+
+    try {
+      val tokenServer = get(URI)  \ "token" text
+
+      tokenServer == token
+    } catch {
+      case _=> false
+    }
+
+  }
+
   // returns address
   def resolveLocation(location_id: String) : Location = {
 
