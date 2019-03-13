@@ -89,9 +89,9 @@ class NameServer {
   }
 
   // Validate token
-  def validateToken (target: String, token: String) : Boolean = {
+  def validateToken (from: String, token: String) : Boolean = {
 
-    val URI = "/api/authentication/"+NS_INSTANCENAME+"_"+target+"/"
+    val URI = "/api/authentication/"+from+"_"+NS_INSTANCENAME+"/"
     println(URI)
 
     try {
