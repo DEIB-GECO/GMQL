@@ -80,7 +80,7 @@ class GMQLInstances(ns: NameServer) {
     import java.net.URL
     import java.io.File
 
-    val uri = s"${location.URI}federated/download/${job_id}/${ds_name}?authToken="+AUTH_HEADER_VALUE_G
+    val uri = s"${location.URI}federated/download/${job_id}/${ds_name}?authToken=$AUTH_HEADER_VALUE_G&$AUTH_HEADER_NAME_FN=${ns.NS_INSTANCENAME}&$AUTH_HEADER_NAME_FT=${getToken(location.instance)}"
     val url = new URL(uri)
 
     val connection: HttpURLConnection = url.openConnection.asInstanceOf[HttpURLConnection]
