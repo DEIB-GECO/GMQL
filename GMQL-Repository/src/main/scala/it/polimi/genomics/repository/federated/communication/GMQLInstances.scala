@@ -17,9 +17,10 @@ class GMQLInstances(ns: NameServer) {
   // Tokens: Map [ target_namespace, token ]
   private var authentication = Map[String, Token]()
 
-
-  val AUTH_HEADER_NAME_F = "X-AUTH-FED-TOKEN"
+  val AUTH_HEADER_NAME_FN = "X-AUTH-FED-INSTANCE"
+  val AUTH_HEADER_NAME_FT = "X-AUTH-FED-TOKEN"
   val AUTH_HEADER_NAME_G = "X-AUTH-TOKEN"
+
 
   val AUTH_HEADER_VALUE_G = "FEDERATED-TOKEN"
 
@@ -49,7 +50,8 @@ class GMQLInstances(ns: NameServer) {
     val request = sttp.get(uri"$address").readTimeout(Duration.Inf)
       .header("Accept","application/xml")
       .header(AUTH_HEADER_NAME_G, AUTH_HEADER_VALUE_G)
-      .header(AUTH_HEADER_NAME_F, getToken(location.instance))
+      .header(AUTH_HEADER_NAME_FN, ns.NS_INSTANCENAME)
+      .header(AUTH_HEADER_NAME_FT, getToken(location.instance))
 
     implicit val backend = HttpURLConnectionBackend()
     val response = request.send()
