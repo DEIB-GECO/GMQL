@@ -61,9 +61,10 @@ class NameServer {
 
   // Perform a post request to the name server
   def post(URI: String, body: Map[String, String]) = {
+    val address = NS_ADDRESS+URI
     val request = sttp
       .body(body)
-      .post(uri"$NS_ADDRESS$URI")
+      .post(uri"$address")
       .header("Accept","application/xml")
       .header("Authorization",s"Token $NS_TOKEN")
 

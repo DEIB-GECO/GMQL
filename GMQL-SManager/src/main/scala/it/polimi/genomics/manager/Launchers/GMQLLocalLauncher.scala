@@ -1,7 +1,7 @@
 package it.polimi.genomics.manager.Launchers
 
 import it.polimi.genomics.core.DAG.DAGSerializer
-import it.polimi.genomics.federated.FederatedImplementation
+import it.polimi.genomics.federated.{FederatedImplementation, GmqlFederatedException}
 import it.polimi.genomics.manager.{GMQLJob, Status}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.hadoop.conf.Configuration
@@ -62,9 +62,13 @@ class GMQLLocalLauncher(localJob: GMQLJob) extends GMQLLauncher(localJob) {
 
         job.status = Status.RUNNING
         logger.info(String.format("Job %s is under execution.. ", job.jobId))
-        job.server.run()
+        try {
+          job.server.run()
+          job.status = Status.EXEC_SUCCESS
+        }catch {
+          case _:GmqlFederatedException => job.status = Status.EXEC_FAILED
+        }
 
-        job.status = Status.EXEC_SUCCESS
       }}).start()
     this
   }

@@ -6,7 +6,7 @@ import it.polimi.genomics.core.DAG._
 import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.{GMQLLoaderBase, GMQLSchema, GMQLSchemaCoordinateSystem, GMQLSchemaFormat}
-import it.polimi.genomics.repository.federated.communication.{DownloadStatus, Failed, NotFound, Success}
+import it.polimi.genomics.repository.federated.communication._
 import it.polimi.genomics.repository.federated.{GF_Communication, GF_Interface}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.loaders.CustomParser
@@ -86,7 +86,7 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
     gse.go()
   }
 
-  def moving(federatedJobId: String, dsName: String, from: String, to: Option[String]) = {
+  def moving(federatedJobId: String, dsName: String, from: String, to: Option[String], toName: String) = {
     if (to.isDefined) {
       implicit val backend = HttpURLConnectionBackend()
 
@@ -96,24 +96,36 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
       println
       println
 
+      val ns = new NameServer()
+      val ins = new GMQLInstances(ns)
+      val token = ins.getToken(toName)
+
       val request = sttp
         .header("Accept", "application/xml")
         .header("X-AUTH-TOKEN", "FEDERATED-TOKEN")
+        .header(ins.AUTH_HEADER_NAME_FN, ns.NS_INSTANCENAME)
+        .header(ins.AUTH_HEADER_NAME_FT, token)
         .get(uri)
 
-      val response = request.send()
+      try {
+        val response = request.send()
 
-      println(response)
-      println(response.body)
-      println(response.statusText)
+        println(response)
+        println(response.body)
+        println(response.statusText)
+        Some(token)
+      } catch {
+        case e: Exception => throw new GmqlFederatedException(e.getMessage)
+      }
     } else {
       GF_Interface.instance().importDataset(federatedJobId, dsName, from)
+      None
     }
 
 
   }
 
-  def poolingMoving(federatedJobId: String, dsName: String, to: Option[String]) = {
+  def poolingMoving(federatedJobId: String, dsName: String, to: Option[String], token: Option[String]) = {
     if (to.isDefined) {
 
 
@@ -126,32 +138,39 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
       do {
         Thread.sleep(1000)
 
+        val ns = new NameServer()
+        val ins = new GMQLInstances(ns)
 
         val request = sttp
           .header("Accept", "application/xml")
           .header("X-AUTH-TOKEN", "FEDERATED-TOKEN")
+          .header(ins.AUTH_HEADER_NAME_FN, ns.NS_INSTANCENAME)
+          .header(ins.AUTH_HEADER_NAME_FT, token.get)
           .get(uri)
 
+        try {
+          val response = request.send()
 
-        val response = request.send()
+          println("  def poolingMoving(federatedJobId: String, dsName: String, to: String) = {")
 
-        println("  def poolingMoving(federatedJobId: String, dsName: String, to: String) = {")
-
-        println(response)
-        println(response.body)
-        println(response.statusText)
+          println(response)
+          println(response.body)
+          println(response.statusText)
 
 
-        if (response.code != 200) {
-          throw new GmqlFederatedException("Fatal federated error: trace response code != 200 ")
+          if (response.code != 200) {
+            throw new GmqlFederatedException("Fatal federated error: trace response code != 200 ")
+          }
+
+          status = (scala.xml.XML.loadString(response.unsafeBody) \\ "status").text
+
+          if (status.toLowerCase.equals("failed") || status.toLowerCase.equals("notfound"))
+            throw new GmqlFederatedException("Fatal federated error: trace-> " + status)
+
+          println(s"\t\t\t\t\t${federatedJobId}/${dsName}")
+        } catch {
+          case e: Exception => throw new GmqlFederatedException(e.getMessage)
         }
-
-        status = (scala.xml.XML.loadString(response.unsafeBody) \\ "status").text
-
-        if (status.toLowerCase.equals("failed") || status.toLowerCase.equals("notfound"))
-          throw new GmqlFederatedException("Fatal federated error: trace-> " + status)
-
-        println(s"\t\t\t\t\t${federatedJobId}/${dsName}")
 
       } while (!status.toLowerCase.equals("success"))
     } else {
@@ -170,7 +189,7 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
   }
 
 
-  def pooling(remoteServerUri: String, remoteJobId: String) = {
+  def pooling(remoteServerUri: String, remoteJobId: String, token: String) = {
     implicit val backend = HttpURLConnectionBackend()
 
     var status = "started"
@@ -180,25 +199,32 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
 
       val uri = uri"${remoteServerUri}jobs/$remoteJobId/trace"
 
+      val ns = new NameServer()
+      val ins = new GMQLInstances(ns)
 
       val request = sttp
         .header("Accept", "application/xml")
         .header("X-AUTH-TOKEN", "FEDERATED-TOKEN")
+        .header(ins.AUTH_HEADER_NAME_FN, ns.NS_INSTANCENAME)
+        .header(ins.AUTH_HEADER_NAME_FT, token)
         .get(uri)
 
+      try {
+        val response = request.send()
 
-      val response = request.send()
+        if (response.code != 200) {
+          throw new GmqlFederatedException("Fatal federated error: trace response code != 200 ")
+        }
 
-      if (response.code != 200) {
-        throw new GmqlFederatedException("Fatal federated error: trace response code != 200 ")
+        status = (scala.xml.XML.loadString(response.body.right.get) \\ "status").text
+
+        if (status.contains("FAILED") || status.contains("STOPPED"))
+          throw new GmqlFederatedException("Fatal federated error: trace-> " + status)
+
+        println("\t\t\t\t\t" + remoteJobId + status)
+      } catch {
+        case e: Exception => throw new GmqlFederatedException(e.getMessage)
       }
-
-      status = (scala.xml.XML.loadString(response.body.right.get) \\ "status").text
-
-      if (status.contains("FAILED") || status.contains("STOPPED"))
-        throw new GmqlFederatedException("Fatal federated error: trace-> " + status)
-
-      println("\t\t\t\t\t" + remoteJobId + status)
 
     } while (!status.equals("EXEC_SUCCESS"))
   }
@@ -214,44 +240,51 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
 
     val uri = uri"${remoteServerUri}queries/dag/tab?federatedJobId=$jobId"
 
+    val ns = new NameServer()
+    val ins = new GMQLInstances(ns)
+    val token = ins.getToken(instance.name)
 
     val request = sttp.body(serilizedDag)
       .header("Accept", "application/xml")
       .header("X-AUTH-TOKEN", "FEDERATED-TOKEN")
+      .header(ins.AUTH_HEADER_NAME_FN, ns.NS_INSTANCENAME)
+      .header(ins.AUTH_HEADER_NAME_FT, token)
       .post(uri)
 
 
-    val response = request.send()
+    try {
+      val response = request.send()
 
-    if (response.code != 200) {
-      throw new Exception("Fatal federated error response code  != 200 ")
-    }
-
-
-    val remoteJobId = (scala.xml.XML.loadString(response.body.right.get) \\ "id").text
-
-    //add waiting execution
-    pooling(remoteServerUri, remoteJobId)
-
-
-    //add move
-    val remoteDsName =
-      irVars.head.regionDag match {
-        case federated: Federated => federated.name
-        case _ => irVars.head.metaDag.asInstanceOf[Federated].name
+      if (response.code != 200) {
+        throw new GmqlFederatedException("Fatal federated error response code  != 200 ")
       }
 
+      val remoteJobId = (scala.xml.XML.loadString(response.body.right.get) \\ "id").text
 
-    val fedIrVars: List[IROperator] = irVars.flatMap(irVar =>
-      irVar.metaDag.getDependencies ++ irVar.regionDag.getDependencies
-    ).filter(_.isInstanceOf[Federated])
-
-
-    println("\t\t\t\t\t\t\t" + fedIrVars)
+      //add waiting execution
+      pooling(remoteServerUri, remoteJobId, token)
 
 
-    println(response.body)
+      //add move
+      val remoteDsName =
+        irVars.head.regionDag match {
+          case federated: Federated => federated.name
+          case _ => irVars.head.metaDag.asInstanceOf[Federated].name
+        }
 
+
+      val fedIrVars: List[IROperator] = irVars.flatMap(irVar =>
+        irVar.metaDag.getDependencies ++ irVar.regionDag.getDependencies
+      ).filter(_.isInstanceOf[Federated])
+
+
+      println("\t\t\t\t\t\t\t" + fedIrVars)
+
+
+      println(response.body)
+    } catch {
+      case e: Exception => throw new GmqlFederatedException(e.getMessage)
+    }
   }
 
   val previouslyRunDag = mutable.Set.empty[ExecutionDAG]
@@ -323,8 +356,8 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
     dssNamesToCopy.foreach { dsName =>
       println("MOVE DATA(" + dsName + ") from " + whereExDag + " to " + destination)
       //      if(remoteServerUriOpt.isDefined) {
-      moving(jobId.get, dsName, whereExDag.name, remoteServerUriOpt)
-      poolingMoving(jobId.get, dsName, remoteServerUriOpt)
+      val tokenOpt = moving(jobId.get, dsName, whereExDag.name, remoteServerUriOpt, destination.name)
+      poolingMoving(jobId.get, dsName, remoteServerUriOpt, tokenOpt)
 
       //      }
       //      else{/**/
@@ -341,14 +374,14 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
     val opDAG = new OperatorDAG(to_be_materialized.flatMap(x => List(x.metaDag, x.regionDag)).toList)
 
     val opDAGFrame = new OperatorDAGFrame(opDAG)
-//    showFrame(opDAGFrame, "OperatorDag")
+    //    showFrame(opDAGFrame, "OperatorDag")
 
     //TODO check .get
     val dagSplits = DAGManipulator.splitDAG(opDAG, jobId.get, tempDir.get)
     val executionDAGs = DAGManipulator.generateExecutionDAGs(dagSplits.values.toList)
 
     val f2 = new MetaDAGFrame(executionDAGs)
-//    showFrame(f2, "ExDag")
+    //    showFrame(f2, "ExDag")
 
 
     executionDAGs.roots.foreach(recursiveCall(_, LOCAL_INSTANCE))
