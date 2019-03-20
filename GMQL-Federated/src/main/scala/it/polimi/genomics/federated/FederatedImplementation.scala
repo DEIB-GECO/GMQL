@@ -356,7 +356,11 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
     dssNamesToCopy.foreach { dsName =>
       println("MOVE DATA(" + dsName + ") from " + whereExDag + " to " + destination)
       //      if(remoteServerUriOpt.isDefined) {
-      val tokenOpt = moving(jobId.get, dsName, whereExDag.name, remoteServerUriOpt, destination.name)
+      val from = whereExDag match {
+        case LOCAL_INSTANCE=> new NameServer().NS_INSTANCENAME
+        case _=>whereExDag.name
+      }
+      val tokenOpt = moving(jobId.get, dsName, from, remoteServerUriOpt, destination.name)
       poolingMoving(jobId.get, dsName, remoteServerUriOpt, tokenOpt)
 
       //      }
