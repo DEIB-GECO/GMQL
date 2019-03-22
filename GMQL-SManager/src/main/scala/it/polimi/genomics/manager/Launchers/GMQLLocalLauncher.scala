@@ -1,8 +1,9 @@
 package it.polimi.genomics.manager.Launchers
 
 import it.polimi.genomics.core.DAG.DAGSerializer
-import it.polimi.genomics.federated.FederatedImplementation
+import it.polimi.genomics.federated.{FederatedImplementation, GmqlFederatedException}
 import it.polimi.genomics.manager.{GMQLJob, Status}
+import it.polimi.genomics.repository.FSRepository.FS_Utilities
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
@@ -22,9 +23,9 @@ class GMQLLocalLauncher(localJob: GMQLJob) extends GMQLLauncher(localJob) {
   var launcherHandler: GMQLJob = job
 
   def readFile(path: String): String = {
-    val conf = new Configuration();
-    val pathHadoop = new org.apache.hadoop.fs.Path(path);
-    val fs = FileSystem.get(pathHadoop.toUri(), conf);
+    val conf = FS_Utilities.gethdfsConfiguration()
+    val pathHadoop = new org.apache.hadoop.fs.Path(path)
+    val fs = FileSystem.get(pathHadoop.toUri(), conf)
     val ifS = fs.open(pathHadoop)
     scala.io.Source.fromInputStream(ifS).mkString
   }
@@ -35,34 +36,47 @@ class GMQLLocalLauncher(localJob: GMQLJob) extends GMQLLauncher(localJob) {
     *
     **/
   def run(): GMQLLocalLauncher = {
+    new Thread(new Runnable {
+      def run() {
 
-    if (job.federated) {
-      val serializedDag = readFile(job.script.dagPath)
-      val dag = Some(DAGSerializer.deserializeDAG(serializedDag))
-      job.server.materializationList ++= dag.get.dag
+        if (job.federated) {
+          val serializedDag = readFile(job.script.dagPath)
+          val dag = Some(DAGSerializer.deserializeDAG(serializedDag))
+          job.server.materializationList ++= dag.get.dag
 
-      job.server.implementation = new GMQLSparkExecutor(
-        binSize = job.gMQLContext.binSize,
-        outputFormat = job.gMQLContext.outputFormat,
-        outputCoordinateSystem = job.gMQLContext.outputCoordinateSystem,
-        sc = SparkContext.getOrCreate(new SparkConf().setAppName(job.jobId).setMaster("local[*]")),
-        stopContext = false)
-    }
-    else {
-      val tempDir: String = General_Utilities().getResultDir("federated")
-      job.server.implementation = new FederatedImplementation(Some(tempDir), Some(job.jobId))
-    }
-    //      new GMQLSparkExecutor(
-    //      binSize = job.gMQLContext.binSize,
-    //      outputFormat = job.gMQLContext.outputFormat,
-    //      outputCoordinateSystem = job.gMQLContext.outputCoordinateSystem,
-    //      sc = new SparkContext(new SparkConf().setAppName(job.jobId).setMaster("local[*]")))
+          job.server.implementation = new GMQLSparkExecutor(
+            binSize = job.gMQLContext.binSize,
+            outputFormat = job.gMQLContext.outputFormat,
+            outputCoordinateSystem = job.gMQLContext.outputCoordinateSystem,
+            sc = SparkContext.getOrCreate(new SparkConf().setAppName(job.jobId).setMaster("local[*]")),
+            stopContext = false)
+        }
+        else {
+          val tempDir: String =
+            if (General_Utilities().GMQL_REPO_TYPE == General_Utilities().HDFS) {
+              General_Utilities().getHDFSNameSpace() + General_Utilities().getResultDir("federated")
+            }
+            else{
+              General_Utilities().getResultDir("federated")
+            }
+          job.server.implementation = new FederatedImplementation(Some(tempDir), Some(job.jobId))
+        }
+        //      new GMQLSparkExecutor(
+        //      binSize = job.gMQLContext.binSize,
+        //      outputFormat = job.gMQLContext.outputFormat,
+        //      outputCoordinateSystem = job.gMQLContext.outputCoordinateSystem,
+        //      sc = new SparkContext(new SparkConf().setAppName(job.jobId).setMaster("local[*]")))
 
-    job.status = Status.RUNNING
-    logger.info(String.format("Job %s is under execution.. ", job.jobId))
-    job.server.run()
+        job.status = Status.RUNNING
+        logger.info(String.format("Job %s is under execution.. ", job.jobId))
+        try {
+          job.server.run()
+          job.status = Status.EXEC_SUCCESS
+        }catch {
+          case _:GmqlFederatedException => job.status = Status.EXEC_FAILED
+        }
 
-    job.status = Status.EXEC_SUCCESS
+      }}).start()
     this
   }
 

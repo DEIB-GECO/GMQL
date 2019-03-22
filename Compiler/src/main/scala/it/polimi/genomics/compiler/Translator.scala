@@ -168,9 +168,7 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
 
   val selectStatement =
     ((variableId <~ assignment_symbol) ~ ((SELECT <~ "(") ~ operator_parameters <~ ")")) ~
-      ( (onlyPath ^^ {
-        (_, None)
-      })| operatorInput) <~ ";" ^^ {
+      ( (onlyPath ^^ { (_, None)} ) | (variableIdSelect ^^ { (_, None)} ) | operatorInput) <~ ";" ^^ {
       x => SelectOperator(x._1._2._1.pos, x._2._1, x._2._2, x._1._1, x._1._2._2)
     }
 

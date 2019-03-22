@@ -23,13 +23,17 @@ object Test extends App {
   //  }
 
 
-  val query = "DATA_SET_VAR = SELECT(at:it.polimi.Location0) it.polimi.Example_Dataset_0;\nMATERIALIZE DATA_SET_VAR INTO RESULT_DS;"
+  val query =
+    "ds1 = SELECT(at:it.polimi.test1) it.polimi.Example_Dataset_0;\n" +
+      "ds2 = SELECT(at:it.polimi.test2) com.institution2.Example_Dataset_2;\n" +
+      "DATA_SET_VAR2 = MAP(at:it.polimi.test1) ds1 ds2;\n" +
+      "MATERIALIZE DATA_SET_VAR2 INTO RESULT_DS;"
   val queryName = "queryName"
   val outputFormat = GMQLSchemaFormat.TAB
   val userClass = GDMSUserClass.ADMIN
 
 
-//  compile
+  //  compile
 
   execute
 

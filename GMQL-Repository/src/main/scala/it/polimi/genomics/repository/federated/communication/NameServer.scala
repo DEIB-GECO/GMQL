@@ -23,12 +23,12 @@ class NameServer {
     } else
       Utilities().GF_NAMESERVER_ADDRESS.get
 
-  var NS_NAMESPACE  =
-    if (Utilities().GF_NAMESPACE.isEmpty) {
+  var NS_INSTANCENAME  =
+    if (Utilities().GF_INSTANCENAME.isEmpty) {
       logger.error("GF_NAMESPACE is not set in repository.xml. Please provide your institutional namespace, e.g. it.polimi.")
       ""
     } else
-      Utilities().GF_NAMESPACE.get
+      Utilities().GF_INSTANCENAME.get
 
   var NS_TOKEN      =
     if (Utilities().GF_TOKEN.isEmpty) {
@@ -61,9 +61,10 @@ class NameServer {
 
   // Perform a post request to the name server
   def post(URI: String, body: Map[String, String]) = {
+    val address = NS_ADDRESS+URI
     val request = sttp
       .body(body)
-      .post(uri"$URI")
+      .post(uri"$address")
       .header("Accept","application/xml")
       .header("Authorization",s"Token $NS_TOKEN")
 
@@ -74,10 +75,10 @@ class NameServer {
   }
 
   // Ask for a new token to communicate with the target namespace
-  def resetToken (target_namespace:String) : Token= {
+  def resetToken (target:String) : Token= {
 
-    val URI = NS_ADDRESS+"/api/authentication/"
-    val body = Map("target"->target_namespace)
+    val URI = "/api/authentication/"
+    val body = Map("target"->target)
 
 
     val token_xml     = post(URI, body)
@@ -87,6 +88,23 @@ class NameServer {
     new Token(token_string, token_expdate)
 
   }
+
+  // Validate token
+  def validateToken (from: String, token: String) : Boolean = {
+
+    val URI = "/api/authentication/"+from+"_"+NS_INSTANCENAME+"/"
+    println(URI)
+
+    try {
+      val tokenServer = get(URI)  \ "token" text
+
+      tokenServer == token
+    } catch {
+      case _=> false
+    }
+
+  }
+
   // returns address
   def resolveLocation(location_id: String) : Location = {
 

@@ -6,11 +6,14 @@ import it.polimi.genomics.core.DAG._
 import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.{GMQLLoaderBase, GMQLSchema, GMQLSchemaCoordinateSystem, GMQLSchemaFormat}
-import it.polimi.genomics.repository.federated.GF_Communication
+import it.polimi.genomics.repository.federated.communication._
+import it.polimi.genomics.repository.federated.{GF_Communication, GF_Interface}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.loaders.CustomParser
 import org.apache.spark.{SparkConf, SparkContext}
 import org.slf4j.LoggerFactory
+
+import scala.collection.mutable
 
 
 trait FederatedStep
@@ -83,31 +86,208 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
     gse.go()
   }
 
-  def callRemote(irVars: List[IRVariable], instance: GMQLInstance) = {
-    val serilizedDag = DAGSerializer.serializeDAG(DAGWrapper(irVars))
-    //TODO change
-    // send job_id with an extension _1, _2
-    val uri = uri"http://localhost:8000/gmql-rest/queries/dag/tab?federatedJobId=$jobId"
+  def moving(federatedJobId: String, dsName: String, from: String, to: Option[String], toName: String) = {
+    if (to.isDefined) {
+      implicit val backend = HttpURLConnectionBackend()
 
+      val uri = uri"${to.get}federated/import/${federatedJobId}/${dsName}/${from}"
+      println(uri)
+      println
+      println
+      println
+
+      val ns = new NameServer()
+      val ins = new GMQLInstances(ns)
+      val token = ins.getToken(toName)
+
+      val request = sttp
+        .header("Accept", "application/xml")
+        .header("X-AUTH-TOKEN", "FEDERATED-TOKEN")
+        .header(ins.AUTH_HEADER_NAME_FN, ns.NS_INSTANCENAME)
+        .header(ins.AUTH_HEADER_NAME_FT, token)
+        .get(uri)
+
+      try {
+        val response = request.send()
+
+        println(response)
+        println(response.body)
+        println(response.statusText)
+        Some(token)
+      } catch {
+        case e: Exception => throw new GmqlFederatedException(e.getMessage)
+      }
+    } else {
+      GF_Interface.instance().importDataset(federatedJobId, dsName, from)
+      None
+    }
+
+
+  }
+
+  def poolingMoving(federatedJobId: String, dsName: String, to: Option[String], token: Option[String]) = {
+    if (to.isDefined) {
+
+
+      implicit val backend = HttpURLConnectionBackend()
+
+      var status = "started"
+      val uri = uri"${to.get}federated/checkimport/${federatedJobId}/${dsName}"
+
+
+      do {
+        Thread.sleep(1000)
+
+        val ns = new NameServer()
+        val ins = new GMQLInstances(ns)
+
+        val request = sttp
+          .header("Accept", "application/xml")
+          .header("X-AUTH-TOKEN", "FEDERATED-TOKEN")
+          .header(ins.AUTH_HEADER_NAME_FN, ns.NS_INSTANCENAME)
+          .header(ins.AUTH_HEADER_NAME_FT, token.get)
+          .get(uri)
+
+        try {
+          val response = request.send()
+
+          println("  def poolingMoving(federatedJobId: String, dsName: String, to: String) = {")
+
+          println(response)
+          println(response.body)
+          println(response.statusText)
+
+
+          if (response.code != 200) {
+            throw new GmqlFederatedException("Fatal federated error: trace response code != 200 ")
+          }
+
+          status = (scala.xml.XML.loadString(response.unsafeBody) \\ "status").text
+
+          if (status.toLowerCase.equals("failed") || status.toLowerCase.equals("notfound"))
+            throw new GmqlFederatedException("Fatal federated error: trace-> " + status)
+
+          println(s"\t\t\t\t\t${federatedJobId}/${dsName}")
+        } catch {
+          case e: Exception => throw new GmqlFederatedException(e.getMessage)
+        }
+
+      } while (!status.toLowerCase.equals("success"))
+    } else {
+      var status: DownloadStatus = null
+      do {
+        Thread.sleep(1000)
+
+        status = GF_Interface.instance().checkImportStatus(federatedJobId, dsName)
+        if (status.isInstanceOf[Failed] || status.isInstanceOf[NotFound])
+          throw new GmqlFederatedException("Fatal federated error: trace-> " + status)
+
+      } while (!status.isInstanceOf[Success])
+
+
+    }
+  }
+
+
+  def pooling(remoteServerUri: String, remoteJobId: String, token: String) = {
+    implicit val backend = HttpURLConnectionBackend()
+
+    var status = "started"
+
+    do {
+      Thread.sleep(1000)
+
+      val uri = uri"${remoteServerUri}jobs/$remoteJobId/trace"
+
+      val ns = new NameServer()
+      val ins = new GMQLInstances(ns)
+
+      val request = sttp
+        .header("Accept", "application/xml")
+        .header("X-AUTH-TOKEN", "FEDERATED-TOKEN")
+        .header(ins.AUTH_HEADER_NAME_FN, ns.NS_INSTANCENAME)
+        .header(ins.AUTH_HEADER_NAME_FT, token)
+        .get(uri)
+
+      try {
+        val response = request.send()
+
+        if (response.code != 200) {
+          throw new GmqlFederatedException("Fatal federated error: trace response code != 200 ")
+        }
+
+        status = (scala.xml.XML.loadString(response.body.right.get) \\ "status").text
+
+        if (status.contains("FAILED") || status.contains("STOPPED"))
+          throw new GmqlFederatedException("Fatal federated error: trace-> " + status)
+
+        println("\t\t\t\t\t" + remoteJobId + status)
+      } catch {
+        case e: Exception => throw new GmqlFederatedException(e.getMessage)
+      }
+
+    } while (!status.equals("EXEC_SUCCESS"))
+  }
+
+  def callRemote(irVars: List[IRVariable], instance: GMQLInstance) = {
+    implicit val backend = HttpURLConnectionBackend()
+
+    val remoteServerUri = GF_Communication.instance().getLocation(instance.name).URI
+
+
+    val serilizedDag = DAGSerializer.serializeDAG(DAGWrapper(irVars))
+
+
+    val uri = uri"${remoteServerUri}queries/dag/tab?federatedJobId=$jobId"
+
+    val ns = new NameServer()
+    val ins = new GMQLInstances(ns)
+    val token = ins.getToken(instance.name)
 
     val request = sttp.body(serilizedDag)
       .header("Accept", "application/xml")
       .header("X-AUTH-TOKEN", "FEDERATED-TOKEN")
+      .header(ins.AUTH_HEADER_NAME_FN, ns.NS_INSTANCENAME)
+      .header(ins.AUTH_HEADER_NAME_FT, token)
       .post(uri)
 
 
-    implicit val backend = HttpURLConnectionBackend()
-    val response = request.send()
+    try {
+      val response = request.send()
+
+      if (response.code != 200) {
+        throw new GmqlFederatedException("Fatal federated error response code  != 200 ")
+      }
+
+      val remoteJobId = (scala.xml.XML.loadString(response.body.right.get) \\ "id").text
+
+      //add waiting execution
+      pooling(remoteServerUri, remoteJobId, token)
 
 
-    //add waiting execution
-    //add move
-    //add waiting move
-    Thread.sleep(1000)
-    println(response.body)
+      //add move
+      val remoteDsName =
+        irVars.head.regionDag match {
+          case federated: Federated => federated.name
+          case _ => irVars.head.metaDag.asInstanceOf[Federated].name
+        }
 
+
+      val fedIrVars: List[IROperator] = irVars.flatMap(irVar =>
+        irVar.metaDag.getDependencies ++ irVar.regionDag.getDependencies
+      ).filter(_.isInstanceOf[Federated])
+
+
+      println("\t\t\t\t\t\t\t" + fedIrVars)
+
+
+      println(response.body)
+    } catch {
+      case e: Exception => throw new GmqlFederatedException(e.getMessage)
+    }
   }
 
+  val previouslyRunDag = mutable.Set.empty[ExecutionDAG]
 
   def recursiveCall(executionDag: ExecutionDAG, destination: GMQLInstance): Unit = {
     val whereExDag: GMQLInstance = executionDag.where
@@ -126,22 +306,69 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
         }
     }
 
+
+
+
+
+    //    val remoteServerUri = "http://localhost:8000/gmql-rest" //check slash
+
+    //    println(executionDag.getFederatedsources)
+    //    executionDag.getFederatedsources.foreach {
+    //      case (dsName) =>
+    //        println(s"PRE MOVING ${jobId.get}, $dsName, ${instance.name}, $remoteServerUri")
+    //        moving(jobId.get, dsName, instance.name, remoteServerUri)
+    //        println(s"AFTER MOVING ${jobId.get}, $dsName, ${instance.name}, $remoteServerUri")
+    //
+    //        poolingMoving(jobId.get, dsName, remoteServerUri)
+    //        println(s"AFTER poolingMoving ${jobId.get}, $dsName, ${instance.name}, $remoteServerUri")
+    //    }
+
     val irVarFiltered = irVars.filter { x =>
       !(x.regionDag.isInstanceOf[IRNoopRD] && x.metaDag.isInstanceOf[IRStoreMD])
     }
 
-    //send other
-    whereExDag match {
-      case LOCAL_INSTANCE =>
-        println("call(irVarFiltered)")
-        call(irVarFiltered)
-      case _: GMQLInstance =>
-        println("SEND " + executionDag + " to " + whereExDag)
-        println("callRemote(irVarFiltered)")
-        //TODO
-        //        call(irVarFiltered)
-        callRemote(irVarFiltered, whereExDag)
-        println("SEND DATA from " + whereExDag + " to " + destination)
+
+    if (!previouslyRunDag.contains(executionDag)) {
+      //send other
+      whereExDag match {
+        case LOCAL_INSTANCE =>
+          println("call(irVarFiltered)")
+          call(irVarFiltered)
+        case _: GMQLInstance =>
+
+          println("callRemote(irVarFiltered)")
+          //TODO
+          //        call(irVarFiltered)
+          callRemote(irVarFiltered, whereExDag)
+        //          println("MOVE DATA from " + whereExDag + " to " + destination)
+      }
+      previouslyRunDag.add(executionDag)
+    }
+
+    val dssNamesToCopy = executionDag.dag.flatMap(_.roots).filter(_.isInstanceOf[Federated]).map(_.asInstanceOf[Federated].name)
+
+    val remoteServerUriOpt =
+      if (destination != LOCAL_INSTANCE)
+        Some(GF_Communication.instance().getLocation(destination.name).URI)
+      else
+        None
+
+    dssNamesToCopy.foreach { dsName =>
+      println("MOVE DATA(" + dsName + ") from " + whereExDag + " to " + destination)
+      //      if(remoteServerUriOpt.isDefined) {
+      val from = whereExDag match {
+        case LOCAL_INSTANCE=> new NameServer().NS_INSTANCENAME
+        case _=>whereExDag.name
+      }
+      val tokenOpt = moving(jobId.get, dsName, from, remoteServerUriOpt, destination.name)
+      poolingMoving(jobId.get, dsName, remoteServerUriOpt, tokenOpt)
+
+      //      }
+      //      else{/**/
+      //        GF_Interface.instance().importDataset(jobId.get,dsName,whereExDag.name)
+      //      }
+
+
     }
 
 
@@ -151,14 +378,14 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
     val opDAG = new OperatorDAG(to_be_materialized.flatMap(x => List(x.metaDag, x.regionDag)).toList)
 
     val opDAGFrame = new OperatorDAGFrame(opDAG)
-    showFrame(opDAGFrame, "OperatorDag")
+    //    showFrame(opDAGFrame, "OperatorDag")
 
     //TODO check .get
     val dagSplits = DAGManipulator.splitDAG(opDAG, jobId.get, tempDir.get)
     val executionDAGs = DAGManipulator.generateExecutionDAGs(dagSplits.values.toList)
 
     val f2 = new MetaDAGFrame(executionDAGs)
-    showFrame(f2, "ExDag")
+    //    showFrame(f2, "ExDag")
 
 
     executionDAGs.roots.foreach(recursiveCall(_, LOCAL_INSTANCE))

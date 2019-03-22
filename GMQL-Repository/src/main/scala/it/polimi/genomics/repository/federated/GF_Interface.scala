@@ -1,16 +1,17 @@
 package it.polimi.genomics.repository.federated
 
-import java.io.{InputStream}
+import java.io.InputStream
 
 import it.polimi.genomics.repository.FSRepository.FS_Utilities
 import it.polimi.genomics.repository.Utilities
 import it.polimi.genomics.repository.federated.communication.{DownloadStatus, NotFound, NotFoundException}
+import org.apache.hadoop.fs.Path
 import org.slf4j.{Logger, LoggerFactory}
 
 
 class GF_Interface private {
 
-  val logger: Logger = LoggerFactory.getLogger(Utilities.getClass)
+  val logger: Logger = LoggerFactory.getLogger(GF_Interface.getClass)
 
   private val api = GF_Communication.instance()
   private val repo = Utilities().getRepository()
@@ -67,7 +68,10 @@ class GF_Interface private {
     logger.info("Deleting partial result: "+jobId+" "+dsName)
 
     val path = Utilities().getResultDir("federated") + "/" + jobId + "/" + dsName+ "/"
-    FS_Utilities.deleteDFSDir(path)
+
+    if( new Path(path).isAbsolute && !jobId.contains("/") && !dsName.contains("/"))  {
+      FS_Utilities.deleteDFSDir(path)
+    }
 
   }
 

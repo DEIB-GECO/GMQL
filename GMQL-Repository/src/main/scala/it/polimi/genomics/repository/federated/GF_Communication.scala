@@ -11,7 +11,6 @@ import it.polimi.genomics.repository.{FSRepository, GMQLSample, Utilities}
 import org.slf4j.{Logger, LoggerFactory}
 import java.io.File
 
-import javax.ws.rs.Path
 
 import scala.xml.NodeSeq
 import scala.collection.JavaConverters._
@@ -19,7 +18,7 @@ import scala.collection.JavaConverters._
 
 class GF_Communication private {
 
-  val logger: Logger = LoggerFactory.getLogger(Utilities.getClass)
+  val logger: Logger = LoggerFactory.getLogger(GF_Communication.getClass)
 
   val ns = new NameServer()
   val federation = new GMQLInstances(ns)
@@ -57,11 +56,11 @@ class GF_Communication private {
   def getSamples(dataset_identifier:String) : util.List[GMQLSample]  = {
 
     val dataset = getDataset(dataset_identifier)
-    val location = dataset.locations.head
+    val location = getLocation(dataset.locations.head)
 
-    val uri = "/datasets/public."+dataset.name
+    val uri = "datasets/public."+dataset.name
 
-    val samples_xml = federation.get(uri, location.id)
+    val samples_xml = federation.get(uri, location.instance)
 
     val samples_set_xml = samples_xml \\ "sample"
 
@@ -87,11 +86,11 @@ class GF_Communication private {
   def getSampleMeta(dataset_identifier: String, sample: String, withID: Boolean = false, ID: String = "0") : String = {
 
     val dataset = getDataset(dataset_identifier)
-    val location = dataset.locations.head
+    val location = getLocation(dataset.locations.head)
 
-    val uri = "/metadata/public."+dataset.name+"/sample/"+sample
+    val uri = "metadata/public."+dataset.name+"/sample/"+sample
 
-    val metadata_xml = federation.get(uri, location.id)
+    val metadata_xml = federation.get(uri, location.instance)
 
     val metadata =
       for (meta <- metadata_xml \\ "attribute" )
@@ -115,11 +114,11 @@ class GF_Communication private {
   def getSchema (dataset_identifier:String) : GMQLSchema = {
 
     val dataset = getDataset(dataset_identifier)
-    val location = dataset.locations.head
+    val location =  getLocation(dataset.locations.head)
 
-    val uri = "/datasets/public."+dataset.name+"/schema"
+    val uri = "datasets/public."+dataset.name+"/schema"
 
-    val schema_xml = federation.get(uri, location.id )
+    val schema_xml = federation.get(uri, location.instance )
 
     var coordinate_system = GMQLSchemaCoordinateSystem.Default
 
@@ -137,11 +136,11 @@ class GF_Communication private {
   def getDasetProfile(dataset_identifier: String) : Map[String, String] = {
 
     val dataset = getDataset(dataset_identifier)
-    val location = dataset.locations.head
+    val location =  getLocation(dataset.locations.head)
 
-    val uri = "/datasets/public."+dataset.name+"/info"
+    val uri = "datasets/public."+dataset.name+"/info"
 
-    val info_xml = federation.get(uri, location.id)
+    val info_xml = federation.get(uri, location.instance)
 
     var info  =
       for ( item <- info_xml \ "info")
@@ -154,11 +153,11 @@ class GF_Communication private {
   def getSampleProfile(dataset_identifier: String, sample_name: String) : Map[String, String] = {
 
     val dataset = getDataset(dataset_identifier)
-    val location = dataset.locations.head
+    val location =  getLocation(dataset.locations.head)
 
-    val uri = "/datasets/public."+dataset.name+"/"+sample_name+"/info"
+    val uri = "datasets/public."+dataset.name+"/"+sample_name+"/info"
 
-    val info_xml = federation.get(uri, location.id)
+    val info_xml = federation.get(uri, location.instance)
 
     var info  =
       for ( item <- info_xml \ "info")
@@ -170,16 +169,16 @@ class GF_Communication private {
   def getDatasetMeta(dataset_identifier: String) : Map[String, String] = {
 
     val dataset = getDataset(dataset_identifier)
-    Map( "Owner" -> dataset.namespace,
+    Map( "Owner" -> dataset.owner,
       "Author" -> dataset.author,
       "Description" -> dataset.description,
-      "Locations" -> dataset.locations.map(_.id).reduce((x,y)=>x+", "+y) )
+      "Locations" -> dataset.locations.reduce((x,y)=>x+", "+y) )
   }
 
 
   def getDownloadStatus(job_id: String, dataset_id: String) =  {
 
-    print(downloadStatus.map(_._2.getClass.getName).reduce((x,y)=>x+" "+y))
+    println(downloadStatus.map(_._2.getClass.getName).reduce((x,y)=>x+" "+y))
 
     val entity_id = job_id+"."+dataset_id
 

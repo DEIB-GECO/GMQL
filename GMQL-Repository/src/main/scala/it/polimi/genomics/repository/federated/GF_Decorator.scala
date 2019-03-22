@@ -155,7 +155,7 @@ class GF_Decorator (val repository : GMQLRepository) extends GMQLRepository {
       case Some(LOCAL_INSTANCE) | None => repository.DSExists(dataSet, userName,Some(LOCAL_INSTANCE))
       case Some(Instance(name)) => Try(api.getDataset(dataSet)) match {
         case scala.util.Success(v) =>
-          v.locations.exists(_.id == name)
+          v.locations.contains(name)
         case Failure(_) =>
           false
       }
