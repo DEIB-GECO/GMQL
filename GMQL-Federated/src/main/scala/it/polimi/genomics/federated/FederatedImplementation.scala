@@ -56,7 +56,7 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
 
   /** Starts the execution */
   override def go(): Unit = {
-    println("####  Federated #####")
+    logger.debug("Starting a FEDERATED execution")
     implementation()
   }
 
@@ -82,6 +82,7 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
   }
 
   def call(irVars: List[IRVariable]) = {
+    logger.info("Executing local query")
     gse.to_be_materialized ++= irVars
     gse.go()
   }
@@ -251,7 +252,7 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
       .header(ins.AUTH_HEADER_NAME_FT, token)
       .post(uri)
 
-
+    logger.info(s"Sending sub-query to $instance")
     try {
       val response = request.send()
 
@@ -277,11 +278,9 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
         irVar.metaDag.getDependencies ++ irVar.regionDag.getDependencies
       ).filter(_.isInstanceOf[Federated])
 
-
-      println("\t\t\t\t\t\t\t" + fedIrVars)
-
-
+      logger.debug("\t\t\t\t\t\t\t" + fedIrVars)
       println(response.body)
+
     } catch {
       case e: Exception => throw new GmqlFederatedException(e.getMessage)
     }
@@ -305,10 +304,6 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
           }
         }
     }
-
-
-
-
 
     //    val remoteServerUri = "http://localhost:8000/gmql-rest" //check slash
 
@@ -345,7 +340,7 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
       previouslyRunDag.add(executionDag)
     }
 
-    val dssNamesToCopy = executionDag.dag.flatMap(_.roots).filter(_.isInstanceOf[Federated]).map(_.asInstanceOf[Federated].name)
+    val dssNamesToCopy: Seq[String] = executionDag.dag.flatMap(_.roots).filter(_.isInstanceOf[Federated]).map(_.asInstanceOf[Federated].name)
 
     val remoteServerUriOpt =
       if (destination != LOCAL_INSTANCE)
@@ -354,7 +349,7 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
         None
 
     dssNamesToCopy.foreach { dsName =>
-      println("MOVE DATA(" + dsName + ") from " + whereExDag + " to " + destination)
+      logger.info("Moving " + dsName + " from " + whereExDag + " to " + destination)
       //      if(remoteServerUriOpt.isDefined) {
       val from = whereExDag match {
         case LOCAL_INSTANCE=> new NameServer().NS_INSTANCENAME
@@ -376,18 +371,20 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
 
   def implementation(): Unit = {
     val opDAG = new OperatorDAG(to_be_materialized.flatMap(x => List(x.metaDag, x.regionDag)).toList)
-
+    logger.info(s"Starting Federated query $jobId")
     val opDAGFrame = new OperatorDAGFrame(opDAG)
     //    showFrame(opDAGFrame, "OperatorDag")
 
     //TODO check .get
+    logger.info("Splitting the computation DAG")
     val dagSplits = DAGManipulator.splitDAG(opDAG, jobId.get, tempDir.get)
+    logger.info("Getting DAGs to execute remotely")
     val executionDAGs = DAGManipulator.generateExecutionDAGs(dagSplits.values.toList)
 
     val f2 = new MetaDAGFrame(executionDAGs)
     //    showFrame(f2, "ExDag")
 
-
+    logger.info("Starting the federated query")
     executionDAGs.roots.foreach(recursiveCall(_, LOCAL_INSTANCE))
   }
 
