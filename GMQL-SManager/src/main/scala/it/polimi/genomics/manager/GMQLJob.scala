@@ -304,7 +304,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script:GMQLScript, val username:
     if ( location == RepositoryType.HDFS)
       getHDFSRegionFolder(path,user)
     else if(location == RepositoryType.LOCAL && ds_origin == DatasetOrigin.GENERATED)
-      General_Utilities().getRegionDir(user)+ Paths.get(path).getParent.toString
+      Paths.get(path).getParent.toString //General_Utilities().getRegionDir(user)+
     else //DatasetOrigin.IMPORTED
       Paths.get(path).getParent.toString
   }
