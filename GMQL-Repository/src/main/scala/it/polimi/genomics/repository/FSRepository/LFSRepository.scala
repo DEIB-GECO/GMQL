@@ -87,7 +87,7 @@ class LFSRepository extends GMQLRepository with XMLDataSetRepository{
     */
   @deprecated
   override def listResultDSSamples(dataSetName:String, userName: String): (java.util.List[GMQLSample],java.util.List[GMQLSchemaField]) = {
-    val dsPath = dataSetName
+    val dsPath = General_Utilities().getRegionDir(userName) + dataSetName
     val samples = new java.io.File(dsPath).listFiles(
       new FileFilter() {
         @Override def accept(pathname: java.io.File) = !pathname.getName.startsWith("_") && !pathname.getName.startsWith(".") && new File(pathname.toString+".meta").exists();
