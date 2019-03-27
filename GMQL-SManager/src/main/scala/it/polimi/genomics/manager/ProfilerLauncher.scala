@@ -108,6 +108,10 @@ object ProfilerLauncher {
       repo = RepoUtilities().getRepository()
     }
 
+    //if the repository is LOCAL, don't do anything
+    if(RepoUtilities().MODE == RepoUtilities().LOCAL)
+      return
+
     val conf = FS_Utilities.gethdfsConfiguration
 
     val profilesFolder  = RepoUtilities().getProfileDir(username)
