@@ -8,7 +8,7 @@ deploy:
   skip_cleanup: true
   on:
     all_branches: true
-    condition: $TRAVIS_BRANCH == "master" || $TRAVIS_BRANCH == "logging"
+    condition: $TRAVIS_BRANCH == "master" || $TRAVIS_BRANCH == "gmql_federated"
 env:
   global:
   - secure: "KRkDmkcU6w9HwFVdVAYJvQXX6jeelrOWoLP1p2lYgT3GMDRcqsmtwYzZ1oaEdtpTWYyktFHIwXKr7VpH/Ac+xmIPEJ4wFVLbCx96VWDKyniZivGldRgCLWlJ/XcY3O+3MZsnGYo+UOoVjUn6ifKY76RDjd3R5FzKxWju6YNfEw2ls8hMhlGdMGCi01rg/6b/GVmorTOYIJms8pgmkeGeplzXT1Lfm7WMZeJkE8zlbK6XVL81k0KipBunsixYseLEb0v8GChZmaHDBXbO3elEqqy448XG9FGT8nSB+PmIydyjqu4e7BAqjHRXZXOTr+JUWaliG7dE8asKxIsviWodGdL5sP+JUGdsC+svH/lw30DCeK9ERXisJv5bP+8WDEMGt9DGMRS0oeyyIBEtKt+wTMj3e1S2Iz0al7jMguN6JVM6htgWMpGI6bQfjWMaOogeY9lik7vC6xFCKX/RxVZV8paJyaoWi8JICDJVYo20Fwl/tcHZOGMzFX09xrpM8iYDeH0vIOiKqjMTk4gFKHccqDqii+WOPnXFoMdBL/LahhpY2odWyhNj7HlApy5AmJLhzajdPfjJchEC3RXGi2Bsu9lrNhaERWujZMICxh7mwPawoAPjO3kSKt6pGska/vhxkCiHQNRDeJmvVK1hfhru8PJPqdjDuO0zQJ13gVYvP94="
