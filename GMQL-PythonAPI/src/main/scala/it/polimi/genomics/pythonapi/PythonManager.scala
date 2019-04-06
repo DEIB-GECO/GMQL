@@ -11,6 +11,7 @@ import it.polimi.genomics.pythonapi.operators.{ExpressionBuilder, OperatorManage
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.loaders._
 import org.apache.spark.{SparkConf, SparkContext}
+import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
@@ -26,6 +27,8 @@ import scala.collection.mutable.ListBuffer
   * the spark context and the executor.
   */
 object PythonManager {
+
+  val logger = LoggerFactory.getLogger(this.getClass)
 
   /*
   * This data structure stores in memory the variables used by the programmer.
@@ -55,6 +58,7 @@ object PythonManager {
 
   def startEngine(): Unit = {
     // set the server and the executor
+    logger.info("Setting the GMQL Server")
     this.server = new GmqlServer(new StubExecutor())
   }
 
@@ -65,6 +69,7 @@ object PythonManager {
   }
 
   def shutdown(): Unit = {
+    logger.info("Shutting down the backend")
     this.stopEngine()
     System.exit(0)
   }
@@ -74,23 +79,26 @@ object PythonManager {
   * VARIABLES
   * */
   def getVariable(index: Int): IRVariable = {
+    logger.info(s"Getting variable $index")
     this.variables(index)
   }
 
   def putNewVariable(variable: IRVariable): Int = {
     val index = this.counter.getAndIncrement()
+    logger.info(s"Putting new variable $index")
     this.variables(index) = variable
     index
   }
 
   def cloneVariable(index: Int): Int = {
-
+    logger.info(s"Cloning variable $index")
     val variable = this.getVariable(index)
     val new_variable = DAGSerializer.deserializeDAG(DAGSerializer.serializeDAG(DAGWrapper(List(variable)))).dag.head
     this.putNewVariable(new_variable)
   }
 
   def getVariableSchemaNames(index: Int): java.util.List[String] = {
+    logger.info(s"Getting schema of variable $index")
     val variable = this.getVariable(index)
     val result = variable.schema.map({ case (a, b) => a })
     result.asJava
@@ -105,11 +113,13 @@ object PythonManager {
 
   def getOperatorManager = {
     // generate a new operator manager
+    logger.info(s"Getting OperatorManager")
     val op = OperatorManager
     op
   }
 
   def getNewExpressionBuilder(index: Int): ExpressionBuilder = {
+    logger.info(s"Getting ExpressionBuilder")
     val expressionBuilder = new ExpressionBuilder(index)
     expressionBuilder
   }
@@ -250,6 +260,7 @@ object PythonManager {
   * */
 
   def materialize(index: Int, outputPath: String): Unit = {
+    logger.info(s"Materializing variable $index at $outputPath")
     // get the variable from the map
     val variableToMaterialize = this.variables.get(index)
     this.server setOutputPath outputPath MATERIALIZE variableToMaterialize.get
@@ -326,7 +337,8 @@ object PythonManager {
   }
 
   def startSparkContext(): SparkContext = {
-    SparkContext.getOrCreate(this.sparkConfigs.get)
+    if (this.sparkConfigs.isDefined) SparkContext.getOrCreate(this.sparkConfigs.get)
+    else SparkContext.getOrCreate()
   }
 
   def stopSparkContext(): Unit = {
