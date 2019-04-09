@@ -4,7 +4,6 @@ import java.io.{File, FileFilter}
 import java.util.concurrent.atomic.AtomicInteger
 
 import it.polimi.genomics.GMQLServer.GmqlServer
-import it.polimi.genomics.core.DAG.{DAGSerializer, DAGWrapper}
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core._
@@ -12,6 +11,7 @@ import it.polimi.genomics.pythonapi.operators.{ExpressionBuilder, OperatorManage
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.loaders._
 import org.apache.spark.{SparkConf, SparkContext}
+import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
@@ -27,6 +27,8 @@ import scala.collection.mutable.ListBuffer
   * the spark context and the executor.
   */
 object PythonManager {
+
+  val logger = LoggerFactory.getLogger(this.getClass)
 
   /*
   * This data structure stores in memory the variables used by the programmer.
@@ -56,6 +58,7 @@ object PythonManager {
 
   def startEngine(): Unit = {
     // set the server and the executor
+    logger.info("Setting the GMQL Server")
     this.server = new GmqlServer(new StubExecutor())
   }
 
@@ -66,6 +69,7 @@ object PythonManager {
   }
 
   def shutdown(): Unit = {
+    logger.info("Shutting down the backend")
     this.stopEngine()
     System.exit(0)
   }
@@ -75,25 +79,26 @@ object PythonManager {
   * VARIABLES
   * */
   def getVariable(index: Int): IRVariable = {
+    logger.info(s"Getting variable $index")
     this.variables(index)
   }
 
   def putNewVariable(variable: IRVariable): Int = {
     val index = this.counter.getAndIncrement()
+    logger.info(s"Putting new variable $index")
     this.variables(index) = variable
     index
   }
 
-  @deprecated
   def cloneVariable(index: Int): Int = {
+    logger.info(s"Cloning variable $index")
     val variable = this.getVariable(index)
-    val binning_parameter = this.server.binning_parameter
-    val new_variable = IRVariable(metaDag = variable.metaDag,
-      regionDag = variable.regionDag, schema = variable.schema)(binning_parameter)
+    val new_variable = DAGSerializer.deserializeDAG(DAGSerializer.serializeDAG(DAGWrapper(List(variable)))).dag.head
     this.putNewVariable(new_variable)
   }
 
   def getVariableSchemaNames(index: Int): java.util.List[String] = {
+    logger.info(s"Getting schema of variable $index")
     val variable = this.getVariable(index)
     val result = variable.schema.map({ case (a, b) => a })
     result.asJava
@@ -108,11 +113,13 @@ object PythonManager {
 
   def getOperatorManager = {
     // generate a new operator manager
+    logger.info(s"Getting OperatorManager")
     val op = OperatorManager
     op
   }
 
   def getNewExpressionBuilder(index: Int): ExpressionBuilder = {
+    logger.info(s"Getting ExpressionBuilder")
     val expressionBuilder = new ExpressionBuilder(index)
     expressionBuilder
   }
@@ -253,6 +260,7 @@ object PythonManager {
   * */
 
   def materialize(index: Int, outputPath: String): Unit = {
+    logger.info(s"Materializing variable $index at $outputPath")
     // get the variable from the map
     val variableToMaterialize = this.variables.get(index)
     this.server setOutputPath outputPath MATERIALIZE variableToMaterialize.get
@@ -292,38 +300,12 @@ object PythonManager {
     DAGSerializer.serializeDAG(DAGWrapper(List(variableToSerialize)))
   }
 
-  def modify_dag_source(index: Int, source: String, dest: String): Int = {
+  def modify_dag_source(index: Int, source: String, dest: String): Unit = {
     val variable = this.getVariable(index)
-    val newMeta = changeSources(variable.metaDag, source, dest)
-    val newRegion = changeSources(variable.regionDag, source, dest)
-    val newVariable = variable.copy(regionDag = newRegion.asInstanceOf[RegionOperator],
-                                    metaDag = newMeta.asInstanceOf[MetaOperator])(this.server.binning_parameter)
-    this.putNewVariable(newVariable)
+    modify_dag_source(variable.metaDag, source, dest)
+    modify_dag_source(variable.regionDag, source, dest)
   }
 
-  def changeSources(v: IROperator, source: String, dest: String): IROperator = {
-    v match {
-      case x: IRReadMD[_, _, _, _] => {
-        if(x.dataset.position == source || x.paths.contains(source))
-          x.copy(paths = List(dest), dataset = x.dataset.copy(position = dest))
-        else x.copy()
-      }
-      case x: IRReadRD[_, _, _, _] => {
-        if(x.dataset.position == source || x.paths.contains(source))
-          x.copy(paths = List(dest), dataset = x.dataset.copy(position = dest))
-        else x.copy()
-      }
-      case _ => {
-        var r = v
-        v.getDependencies.foreach { d =>
-          r = r.substituteDependency(d, changeSources(d, source, dest))
-        }
-        r
-      }
-    }
-  }
-
-  @deprecated
   def modify_dag_source(dag: IROperator, source: String, dest: String): Unit = {
     dag match {
       case x: IRReadMD[_, _, _, _] =>
@@ -340,7 +322,7 @@ object PythonManager {
         }
       case _ =>
     }
-    dag.getDependencies.map(operator => modify_dag_source(operator, source, dest))
+    dag.getOperatorList.map(operator => modify_dag_source(operator, source, dest))
   }
 
   /*Spark context related*/
@@ -355,7 +337,8 @@ object PythonManager {
   }
 
   def startSparkContext(): SparkContext = {
-    SparkContext.getOrCreate(this.sparkConfigs.get)
+    if (this.sparkConfigs.isDefined) SparkContext.getOrCreate(this.sparkConfigs.get)
+    else SparkContext.getOrCreate()
   }
 
   def stopSparkContext(): Unit = {
@@ -375,9 +358,9 @@ object PythonManager {
                             conf: java.util.Map[String, String]): Unit = {
     this.sparkConfigs = Some(
       new SparkConf()
-      .setAppName(appName)
-      .setMaster(master)
-      .setAll(conf)
+        .setAppName(appName)
+        .setMaster(master)
+        .setAll(conf)
     )
   }
 

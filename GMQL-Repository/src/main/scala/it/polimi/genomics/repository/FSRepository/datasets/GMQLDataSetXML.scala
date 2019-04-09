@@ -498,7 +498,9 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
 
     setDSName(newDSName)
     this.storeXML(generateDSXML(), Utilities().getDataSetsDir(this.userName ) + newDSName + ".xml")
+    val repo = this.Repo; this.Repo = "Ignore generating schema coordinates";
     this.storeXML(generateSchemaXML(this.schema), Utilities().getSchemaDir( this.userName)  + DSname + ".schema")
+    this.Repo=repo;
   }
   /**
     *  Delete sample from the dataset
@@ -603,6 +605,7 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
     return del._1.ID.toInt
   }
 
+  @deprecated
   def getMeta(): String = {
     implicit val codec = Codec.UTF8
 
@@ -612,6 +615,18 @@ case class GMQLDataSetXML(val dataSet: IRDataSet) {
     logger.info("GMQLDataSetXML->getMeta(): " + Utilities().getMetaDir(userName) + DSname + ".meta")
     scala.io.Source.fromFile(Utilities().getMetaDir(userName) + DSname + ".meta").mkString
   }
+
+
+  def getMetaIterator(): Iterator[String] = {
+    implicit val codec = Codec.UTF8
+
+    codec.onMalformedInput(CodingErrorAction.REPLACE)
+    codec.onUnmappableCharacter(CodingErrorAction.REPLACE)
+
+    logger.info("GMQLDataSetXML->getMeta(): " + Utilities().getMetaDir(userName) + DSname + ".meta")
+    scala.io.Source.fromFile(Utilities().getMetaDir(userName) + DSname + ".meta").getLines()
+  }
+
 
   /**
     *  Check if the user is registered in the repository

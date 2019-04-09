@@ -1,12 +1,10 @@
 package it.polimi.genomics.pythonapi
 
-import java.io.{File, PrintWriter}
+import java.io.{BufferedReader, IOException, InputStreamReader}
+import java.nio.charset.Charset
 
-import org.apache.log4j.Logger
-import org.apache.log4j.varia.NullAppender
-import org.apache.spark.{SparkConf, SparkContext}
-import org.slf4j.LoggerFactory
-import py4j.GatewayServer
+import org.slf4j.{Logger, LoggerFactory}
+import py4j.{GatewayServer, Py4JNetworkException}
 
 /**
   * Created by Luca Nanni on 08/04/17.
@@ -17,31 +15,74 @@ import py4j.GatewayServer
   * Main of the application. It instantiates a gateway server for Python
   * to access to the JVM (through py4j)
   **/
+
+class EntryPoint {
+
+  def getPythonManager = PythonManager
+}
+
 object EntryPoint {
 
-  val logger = LoggerFactory.getLogger(this.getClass)
-  val properties = AppProperties
+  val logger: Logger = LoggerFactory.getLogger(this.getClass)
+  val properties: AppProperties.type = AppProperties
+  val usage = "Usage: GMQL-PythonAPI [port]"
 
   def main(args: Array[String]): Unit = {
 
-    // SILENCE EVERYTHING
-    Logger.getRootLogger.removeAllAppenders()
-    Logger.getRootLogger.addAppender(new NullAppender)
+    var port = 25333
+    var foundPort = false
+    var gatewayServer: Option[GatewayServer] = None
 
-    val port = args(0).toInt
+    if(args.length == 0) {
+      // We have to find the port ourselves
+      while(!foundPort){
+        try {
+          gatewayServer = Some(new GatewayServer(new EntryPoint, port))
+          gatewayServer.get.start()
+          foundPort = true
+        }
+        catch {
+          case x:Py4JNetworkException => {
+            this.logger.error(s"Failed connection to port $port")
+            port = port + 1
+          }
+          case _ => {
+            this.logger.error("Network error")
+            System.exit(-1)
+          }
+        }
+        this.logger.info(s"Found free port at $port")
+      }
+    } else if(args.length == 1) {
+        if(args(0) == "--help")
+          println(usage)
+        else {
+          try {
+            port = args(0).toInt
+            gatewayServer = Some(new GatewayServer(new EntryPoint, port))
+            gatewayServer.get.start()
+          }
+          catch {
+            case x: Py4JNetworkException => {
+              this.logger.error(s"Failed connection", x)
+              System.exit(-1)
+            }
+          }
+        }
+    } else {
+      println("Wrong command line options\n"+usage)
+    }
+    this.logger.info(s"GatewayServer started at port $port")
+    println(port)
 
-    //val sc = startSparkContext()
-
-    //val pythonManager = PythonManager
-    //pythonManager.setSparkContext(sc=sc)
-
-    val gatewayServer: GatewayServer = new GatewayServer(this, port)
-    gatewayServer.start()
-    this.logger.info("GatewayServer started")
-
-    /*Synchronization with the python process*/
-    val pw = new PrintWriter(new File("sync.txt"))
-    pw.write("Spark context started")
-    pw.close()
+    // Die when the connection with Python is ended
+    try {
+      val stdin = new BufferedReader(new InputStreamReader(System.in, Charset.forName("UTF-8")))
+      stdin.readLine
+      System.exit(0)
+    } catch {
+      case e: IOException =>
+        System.exit(1)
+    }
   }
 }

@@ -192,7 +192,20 @@ trait GMQLRepository {
     * @param userName [[ String]] of the user name
     * @return
     */
+  @deprecated
   def getMeta(dataSet: String, userName: String): String
+
+
+  /**
+    *
+    * Get the metadata of a Dataset as iterator
+    *
+    * @param dataSet [[ IRDataSet]], dataset identifier
+    * @param userName [[ String]] of the user name
+    * @return
+    */
+  def getMetaIterator(dataSet: String,userName:String): Iterator[String]
+
 
   /**
     *

@@ -157,6 +157,15 @@ trait XMLDataSetRepository extends GMQLRepository{
 
   /**
     *
+    * @param dataSet Intermediate Representation (IRDataSet) of the dataset, contains the dataset name and schema.
+    * @return
+    */
+  override def getMetaIterator(dataSet: String,userName:String = General_Utilities().USERNAME):  Iterator[String] = {
+    new GMQLDataSetXML(dataSet,userName).getMetaIterator()
+  }
+
+  /**
+    *
     * @param userName
     * @throws GMQLDSException
     * @throws GMQLUserNotFound

@@ -225,6 +225,21 @@ class GF_Decorator (val repository : GMQLRepository) extends GMQLRepository {
 
   /**
     *
+    * Get the metadata of a Dataset as iterator
+    *
+    * @param dataSet [[ IRDataSet]], dataset identifier
+    * @param userName [[ String]] of the user name
+    * @return
+    */
+  override def getMetaIterator(dataSet: String,userName:String): Iterator[String] =
+    if (userName=="federated")
+      api.getMeta(dataSet).split("\n").toIterator
+    else
+      repository.getMetaIterator(dataSet, userName)
+
+
+  /**
+    *
     * Return a [[ String]] of the meta data of specific sample
     *
     * @param dataSet  [[ IRDataSet]], dataset identifier
