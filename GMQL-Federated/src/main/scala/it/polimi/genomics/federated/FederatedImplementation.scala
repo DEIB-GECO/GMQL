@@ -381,7 +381,7 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
     logger.info("Getting DAGs to execute remotely")
     val executionDAGs = DAGManipulator.generateExecutionDAGs(dagSplits.values.toList)
 
-    val f2 = new MetaDAGFrame(executionDAGs)
+    //val f2 = new MetaDAGFrame(executionDAGs)
     //    showFrame(f2, "ExDag")
 
     logger.info("Starting the federated query")
