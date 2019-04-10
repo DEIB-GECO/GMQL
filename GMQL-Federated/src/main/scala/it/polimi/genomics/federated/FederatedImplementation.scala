@@ -372,7 +372,7 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
   def implementation(): Unit = {
     val opDAG = new OperatorDAG(to_be_materialized.flatMap(x => List(x.metaDag, x.regionDag)).toList)
     logger.info(s"Starting Federated query $jobId")
-    val opDAGFrame = new OperatorDAGFrame(opDAG)
+    //val opDAGFrame = new OperatorDAGFrame(opDAG)
     //    showFrame(opDAGFrame, "OperatorDag")
 
     //TODO check .get
