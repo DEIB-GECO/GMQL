@@ -68,6 +68,14 @@ class GMQLSparkSubmit(job:GMQLJob) {
 
 //    println(outDir)
 
+    val tempDir: String =
+      if (General_Utilities().GMQL_REPO_TYPE == General_Utilities().HDFS) {
+        General_Utilities().getHDFSNameSpace() + General_Utilities().getResultDir("federated")
+      }
+      else{
+        General_Utilities().getResultDir("federated")
+      }
+
     var d =  new SparkLauncher(env.asJava)
       .setSparkHome(SPARK_HOME)
       .setAppResource(GMQLjar)
@@ -86,7 +94,8 @@ class GMQLSparkSubmit(job:GMQLJob) {
         //"-outputDirs", outDir,
         "-logDir",General_Utilities().getLogDir(job.username),
         "-userLogDir", General_Utilities().getUserLogDir(job.username),
-        "-devLogDir", General_Utilities().getDevLogDir(job.username))
+        "-devLogDir", General_Utilities().getDevLogDir(job.username),
+        "-tempdirfed", tempDir)
       .setConf("spark.app.id", APPID)
     if(job.script.script != null && job.script.script != "") {
       d = d.addAppArgs("-script", job.script.script)

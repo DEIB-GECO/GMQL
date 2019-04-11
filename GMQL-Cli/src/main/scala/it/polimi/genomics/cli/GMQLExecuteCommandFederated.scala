@@ -24,12 +24,9 @@ import org.slf4j.LoggerFactory
 object GMQLExecuteCommandFederated {
   private final val logger = LoggerFactory.getLogger(GMQLExecuteCommandFederated.getClass)
   try {
-    if (new File("GMQL-Core/src/main/resources/logback.xml").exists()) {
-      DOMConfigurator.configure("GMQL-Core/src/main/resources/logback.xml")
       val root: ch.qos.logback.classic.Logger = org.slf4j.LoggerFactory.getLogger("org").asInstanceOf[ch.qos.logback.classic.Logger];
       root.setLevel(ch.qos.logback.classic.Level.WARN);
       org.slf4j.LoggerFactory.getLogger("it.polimi.genomics.cli").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.INFO)
-    }
   } catch {
     case _: Throwable => logger.warn("log4j.xml is not found in conf")
   }
@@ -82,6 +79,9 @@ object GMQLExecuteCommandFederated {
     "\t\tMandatory parameter, select the GMQL script to execute" +
     "\t-[sparkconffile /where/spark/comnf/is/spark-defaults.conf]\n" +
     "\t\tUseful to override the default Spark properties when running the CLI without spark-submit"
+    "\n" +
+    "\t-tempdirfed /where/federeated/temporary/directory/is/located\n" +
+    "\t\tMandatory parameter"
 
   /**
     * CLI: Command Line Interface to control GMQL-Submit Command.
@@ -113,6 +113,7 @@ object GMQLExecuteCommandFederated {
     // DAG OPTIONS
     var dag: Option[DAGWrapper] = None
     var dagPath: String = null
+    var tempdirfed: String = null
 
     //Check the CLI options
     for (i <- 0 until args.length if (i % 2 == 0)) {
@@ -216,6 +217,9 @@ object GMQLExecuteCommandFederated {
         val serializedDag = readFile(dagPath)
         dag = Some(DAGSerializer.deserializeDAG(serializedDag))
         logger.info("DAG path set to: " + dagPath)
+      } else if ("-tempdirfed".equals(args(i).toLowerCase())) {
+        tempdirfed = args(i + 1)
+        logger.info("tempdirfed path set to: " + tempdirfed)
       } else {
         logger.warn("( " + args(i) + " ) NOT A VALID COMMAND ... ")
       }
@@ -251,7 +255,7 @@ object GMQLExecuteCommandFederated {
 
     logger.info("Start to execute GMQL Script..")
 
-    val implementation: Implementation = getImplementation(executionType, jobid, outputFormat, outputCoordinateSystem)
+    val implementation: Implementation = getImplementation(executionType, jobid, outputFormat, outputCoordinateSystem,tempdirfed)
 
     val server = new GmqlServer(implementation, Some(1000))
     if (dag.isDefined) {
@@ -377,7 +381,39 @@ object GMQLExecuteCommandFederated {
   def getImplementation(executionType: String,
                         jobid: String,
                         outputFormat: GMQLSchemaFormat.Value,
-                        outputCoordinateSystem: GMQLSchemaCoordinateSystem.Value) = ??? //TODO CORRECT    new FederatedImplementation(jobid)
+                        outputCoordinateSystem: GMQLSchemaCoordinateSystem.Value,
+                        tempdirfed:String) = {
+    //    if (executionType.equals(it.polimi.genomics.core.ImplementationPlatform.SPARK.toString.toLowerCase())) {
+//    val conf = new SparkConf().setAppName("GMQL V2.1 Spark " + jobid)
+//      .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "128")
+//      .set("spark.driver.allowMultipleContexts", "true")
+//      .set("spark.sql.tungsten.enabled", "true")
+//      .setMaster("local[*]")
+//    val sc: SparkContext = new SparkContext(conf)
+    //      sc.addSparkListener(new SparkListener() {
+    //        override def onApplicationStart(applicationStart: SparkListenerApplicationStart) {
+    //          logger.debug("Spark ApplicationStart: " + applicationStart.appName);
+    //        }
+    //
+    //        override def onStageCompleted(stageCompleted: SparkListenerStageCompleted): Unit = {
+    //          logger.debug("Number of tasks "+stageCompleted.stageInfo.numTasks+ "\tinfor:"+ stageCompleted.stageInfo.rddInfos.mkString("\n"))
+    //          logger.debug("Spark Stage ended: " +stageCompleted.stageInfo.name+
+    //            /*", with details ("+ stageCompleted.stageInfo.details+*/
+    //            " ,execTime: "+ stageCompleted.stageInfo.completionTime.getOrElse(0));
+    //        }
+    //
+    //        override def onApplicationEnd(applicationEnd: SparkListenerApplicationEnd) {
+    //          logger.debug("Spark ApplicationEnd: " + applicationEnd.time);
+    //        }
+    //
+    //      });
+    new FederatedImplementation(tempDir = Some(tempdirfed),jobId = Some(jobid))
+    //    }
+    //    else /*if(executionType.equals(FLINK)) */ {
+    //      new FlinkImplementation()
+    //    }
+  }
+
 
 
   private def extractInDSsSchema(inputSchemata: String): Map[String, String] = {
