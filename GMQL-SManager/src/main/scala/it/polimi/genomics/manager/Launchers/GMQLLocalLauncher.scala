@@ -1,7 +1,11 @@
 package it.polimi.genomics.manager.Launchers
 
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.classic.{Level, LoggerContext}
 import ch.qos.logback.core.FileAppender
+import ch.qos.logback.core.filter.Filter
+import ch.qos.logback.core.spi.FilterReply
 import it.polimi.genomics.core.DAG.DAGSerializer
 import it.polimi.genomics.federated.{FederatedImplementation, GmqlFederatedException}
 import it.polimi.genomics.manager.{GMQLJob, Status}
@@ -32,11 +36,6 @@ class GMQLLocalLauncher(localJob: GMQLJob) extends GMQLLauncher(localJob) {
   }
 
 
-  import ch.qos.logback.classic.spi.ILoggingEvent
-  import ch.qos.logback.core.filter.Filter
-  import ch.qos.logback.core.spi.FilterReply
-
-
   class SampleFilter(threadName: String) extends Filter[ILoggingEvent] {
     override def decide(event: ILoggingEvent): FilterReply =
       if (event.getThreadName.equals(threadName))
@@ -48,37 +47,26 @@ class GMQLLocalLauncher(localJob: GMQLJob) extends GMQLLauncher(localJob) {
   private def createLoggerFor(jobId: String, verbose: Boolean, logDir: String) = {
     val loggerFile = logDir + "/" + jobId.toLowerCase() + ".log"
 
-
-    import ch.qos.logback.classic.encoder.PatternLayoutEncoder
-    import ch.qos.logback.classic.{Level, LoggerContext}
-    import org.slf4j.LoggerFactory
-
-
     val lc = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
     val ple = new PatternLayoutEncoder
-    ple.setPattern("%date %level [%thread] %logger{10} [%file:%line] %msg%n")
+    ple.setPattern("%date %msg%n")
     ple.setContext(lc)
     ple.start()
-
-    import ch.qos.logback.classic.spi.ILoggingEvent
-    import ch.qos.logback.core.FileAppender
 
     val fileAppender = new FileAppender[ILoggingEvent]
     fileAppender.setFile(loggerFile)
     fileAppender.setEncoder(ple)
     fileAppender.setContext(lc)
     fileAppender.addFilter(new SampleFilter(jobId))
-    fileAppender.start
+    fileAppender.start()
 
 
-    import org.slf4j.LoggerFactory
     val logbackLogger = LoggerFactory.getLogger(classOf[FederatedImplementation]).asInstanceOf[ch.qos.logback.classic.Logger]
     logbackLogger.addAppender(fileAppender)
     logbackLogger.setLevel(Level.ALL)
     logbackLogger.setAdditive(false)
 
     (ple, fileAppender)
-
   }
 
 
