@@ -1,5 +1,7 @@
 package it.polimi.genomics.manager.Launchers
 
+import ch.qos.logback.classic.encoder.PatternLayoutEncoder
+import ch.qos.logback.core.FileAppender
 import it.polimi.genomics.core.DAG.DAGSerializer
 import it.polimi.genomics.federated.{FederatedImplementation, GmqlFederatedException}
 import it.polimi.genomics.manager.{GMQLJob, Status}
@@ -7,7 +9,6 @@ import it.polimi.genomics.repository.FSRepository.FS_Utilities
 import it.polimi.genomics.repository.{Utilities => General_Utilities}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.hadoop.fs.FileSystem
-import org.apache.log4j.{FileAppender, Level, PatternLayout}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.slf4j.LoggerFactory
 
@@ -30,36 +31,56 @@ class GMQLLocalLauncher(localJob: GMQLJob) extends GMQLLauncher(localJob) {
     scala.io.Source.fromInputStream(ifS).mkString
   }
 
-  def setlogger(jobId: String, verbose: Boolean, logDir: String) = {
-    //    org.apache.log4j.Logger.getRootLogger().getLoggerRepository().resetConfiguration();
-    val fa = new FileAppender();
-    fa.setName("FileLogger");
-    val loggerFile = logDir + "/" + jobId.toLowerCase() + ".log"
-    fa.setFile(loggerFile);
-    logger.info("Logger is set to:\n" + loggerFile)
-    fa.setLayout(new PatternLayout("%d %-5p [%c{1}] %m%n"));
-    fa.setThreshold(Level.ALL);
-    fa.setAppend(true);
-    fa.activateOptions();
-    fa.setImmediateFlush(true)
 
-    //add appender to any Logger (here is root)
-    org.apache.log4j.Logger.getRootLogger().addAppender(fa)
-    //    org.apache.log4j.Logger.getRootLogger().setLevel(org.apache.log4j.Level.INFO)
-    org.apache.log4j.Logger.getLogger("org").setLevel(if (!verbose) org.apache.log4j.Level.ALL else org.apache.log4j.Level.ALL)
-    //    org.apache.log4j.Logger.getLogger("it").setLevel(if (!verbose) org.apache.log4j.Level.WARN else org.apache.log4j.Level.DEBUG)
-    org.apache.log4j.Logger.getLogger("it.polimi.genomics.spark").setLevel(org.apache.log4j.Level.ALL)
-    org.apache.log4j.Logger.getLogger("it.polimi.genomics.federated").setLevel(org.apache.log4j.Level.ALL)
-    //    org.apache.log4j.Logger.getLogger("it.polimi.genomics.cli").setLevel(if (!verbose) org.apache.log4j.Level.INFO else org.apache.log4j.Level.INFO)
-    org.apache.log4j.Logger.getLogger("org.apache.spark").setLevel(org.apache.log4j.Level.ALL)
-    org.apache.log4j.Logger.getLogger("akka").setLevel(org.apache.log4j.Level.ALL)
-    //    org.apache.log4j.Logger.getLogger("it.polimi.genomics.spark.implementation.GMQLSparkExecutor").setLevel(org.apache.log4j.Level.INFO)
+  import ch.qos.logback.classic.spi.ILoggingEvent
+  import ch.qos.logback.core.filter.Filter
+  import ch.qos.logback.core.spi.FilterReply
 
-    //    val root:ch.qos.logback.classic.Logger = org.slf4j.LoggerFactory.getLogger("org").asInstanceOf[ch.qos.logback.classic.Logger];
-    //    root.setLevel(ch.qos.logback.classic.Level.WARN);
 
-    fa
+  class SampleFilter(threadName: String) extends Filter[ILoggingEvent] {
+    override def decide(event: ILoggingEvent): FilterReply =
+      if (event.getThreadName.equals(threadName))
+        FilterReply.ACCEPT
+      else
+        FilterReply.DENY
   }
+
+  private def createLoggerFor(jobId: String, verbose: Boolean, logDir: String) = {
+    val loggerFile = logDir + "/" + jobId.toLowerCase() + ".log"
+
+
+    import ch.qos.logback.classic.encoder.PatternLayoutEncoder
+    import ch.qos.logback.classic.{Level, LoggerContext}
+    import org.slf4j.LoggerFactory
+
+
+    val lc = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
+    val ple = new PatternLayoutEncoder
+    ple.setPattern("%date %level [%thread] %logger{10} [%file:%line] %msg%n")
+    ple.setContext(lc)
+    ple.start()
+
+    import ch.qos.logback.classic.spi.ILoggingEvent
+    import ch.qos.logback.core.FileAppender
+
+    val fileAppender = new FileAppender[ILoggingEvent]
+    fileAppender.setFile(loggerFile)
+    fileAppender.setEncoder(ple)
+    fileAppender.setContext(lc)
+    fileAppender.addFilter(new SampleFilter(jobId))
+    fileAppender.start
+
+
+    import org.slf4j.LoggerFactory
+    val logbackLogger = LoggerFactory.getLogger(classOf[FederatedImplementation]).asInstanceOf[ch.qos.logback.classic.Logger]
+    logbackLogger.addAppender(fileAppender)
+    logbackLogger.setLevel(Level.ALL)
+    logbackLogger.setAdditive(false)
+
+    (ple, fileAppender)
+
+  }
+
 
   /**
     * Run GMQL job localy, this will call the programatical API of Spark/Flink,
@@ -70,7 +91,7 @@ class GMQLLocalLauncher(localJob: GMQLJob) extends GMQLLauncher(localJob) {
     new Thread(new Runnable {
       def run() {
 
-        val fa = setlogger(job.jobId, false, General_Utilities().getUserLogDir(job.username))
+        val logs: (PatternLayoutEncoder, FileAppender[ILoggingEvent]) = createLoggerFor(job.jobId, false, General_Utilities().getUserLogDir(job.username))
 
         if (job.federated) {
           val serializedDag = readFile(job.script.dagPath)
@@ -108,11 +129,12 @@ class GMQLLocalLauncher(localJob: GMQLJob) extends GMQLLauncher(localJob) {
         } catch {
           case _: GmqlFederatedException => job.status = Status.EXEC_FAILED
         }
-        fa.getImmediateFlush()
-        fa.close()
+        logs._2.stop()
+        logs._1.stop()
+
 
       }
-    }).start()
+    }, job.jobId).start()
     this
   }
 
