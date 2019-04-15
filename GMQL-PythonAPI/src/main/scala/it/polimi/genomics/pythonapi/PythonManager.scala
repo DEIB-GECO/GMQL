@@ -331,7 +331,7 @@ object PythonManager {
     /*Check if there is an instantiated spark context*/
     if (this.sparkContext.isEmpty) {
       val sc = this.startSparkContext()
-      this.server.implementation = new GMQLSparkExecutor(sc = sc, stopContext = false)
+      this.server.implementation = new GMQLSparkExecutor(sc = sc, stopContext = false, profileData = false)
       this.setSparkContext(sc)
     }
   }

@@ -44,7 +44,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
                         testingIOFormats:Boolean = false, sc:SparkContext,
                         outputFormat:GMQLSchemaFormat.Value = GMQLSchemaFormat.TAB,
                         outputCoordinateSystem: GMQLSchemaCoordinateSystem.Value = GMQLSchemaCoordinateSystem.Default,
-                        stopContext:Boolean = true)
+                        stopContext:Boolean = true, profileData: Boolean = true)
   extends Implementation with java.io.Serializable{
 
 
@@ -139,26 +139,27 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
 
         // store schema
         storeSchema(GMQLSchema.generateSchemaXML(variable.schema,outputFolderName,outputFormat, outputCoordinateSystem),variableDir)
+        if(profileData){
+          // Compute Profile and store into xml files (one for web, one for optimization)
+          val profile = Profiler.profile(regions = regionRDD, meta = metaRDD, sc = sc)
 
-        // Compute Profile and store into xml files (one for web, one for optimization)
-        val profile = Profiler.profile(regions = regionRDD, meta = metaRDD, sc = sc)
+          try {
+            val output = fs.create(new Path(variableDir + "/files/" + "profile.xml"));
+            val output_web = fs.create(new Path(variableDir + "/files/" + "web_profile.xml"));
 
-        try {
-          val output = fs.create(new Path(variableDir + "/files/" + "profile.xml"));
-          val output_web = fs.create(new Path(variableDir + "/files/" + "web_profile.xml"));
+            val os = new java.io.BufferedOutputStream(output)
+            val os_web = new java.io.BufferedOutputStream(output_web)
 
-          val os = new java.io.BufferedOutputStream(output)
-          val os_web = new java.io.BufferedOutputStream(output_web)
+            os.write(Profiler.profileToOptXML(profile).toString().getBytes("UTF-8"))
+            os_web.write(Profiler.profileToWebXML(profile).toString().getBytes("UTF-8"))
 
-          os.write(Profiler.profileToOptXML(profile).toString().getBytes("UTF-8"))
-          os_web.write(Profiler.profileToWebXML(profile).toString().getBytes("UTF-8"))
-
-          os.close()
-          os_web.close()
-        } catch {
-          case e: Throwable => {
-            logger.error(e.getMessage)
-            e.printStackTrace()
+            os.close()
+            os_web.close()
+          } catch {
+            case e: Throwable => {
+              logger.error(e.getMessage)
+              e.printStackTrace()
+            }
           }
         }
 
