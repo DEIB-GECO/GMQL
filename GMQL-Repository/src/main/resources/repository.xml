@@ -11,6 +11,8 @@
     <property name="GF_INSTANCENAME">it.polimi</property>
     <property name="GF_TOKEN">5449c95221145bdff746de1cf5c902f94a1898a0</property>
 
+    <property name="GUEST_ENABLED">true</property>
+
     <!--property name="DISK_QUOTA" user-category="GUEST">500000</property-->
     <!--property name="DISK_QUOTA" user-category="BASIC">5000000</property-->
     <!--property name="DISK_QUOTA" user-category="PRO">20000000</property-->

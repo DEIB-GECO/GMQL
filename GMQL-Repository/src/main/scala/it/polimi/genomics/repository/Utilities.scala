@@ -49,6 +49,8 @@ class Utilities() {
   var GF_INSTANCENAME: Option[String] = None
   var GF_TOKEN: Option[String] =  None
 
+  var GUEST_ENABLED = true
+
 
   /**
     *  Read Configurations from the system environment variables.
@@ -103,6 +105,8 @@ class Utilities() {
           case Conf.GF_NAMESERVER_ADDRESS => this.GF_NAMESERVER_ADDRESS = Some(value)
           case Conf.GF_INSTANCENAME => this.GF_INSTANCENAME = Some(value)
           case Conf.GF_TOKEN => this.GF_TOKEN = Some(value)
+
+          case Conf.GUEST_ENABLED =>  GUEST_ENABLED = (value == "true")
 
           case _ => logger.error(s"Not known configuration property: $x, $value")
         }
@@ -437,5 +441,7 @@ object Conf {
   val GF_NAMESERVER_ADDRESS = "GF_NAMESERVER_ADDRESS"
   val GF_INSTANCENAME = "GF_INSTANCENAME"
   val GF_TOKEN = "GF_TOKEN"
+
+  val GUEST_ENABLED = "GUEST_ENABLED"
 
   val DISK_QUOTA = "DISK_QUOTA"}
