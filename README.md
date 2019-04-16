@@ -38,4 +38,4 @@ Shell API is provided for GDMS repository, to list datasets, add, delete, alter 
 > [Repository Manager shell API](docs/SHELL_API.md)
 
 The first step in the installation is to understand the engine configurations, currently we have two sets of configurations. One set of configurations for the repository and the other for the executor.
-> [Engine Configurations.](docs/Configutations.md)
+> [Engine Configurations.](docs/Configurations.md)
