@@ -9,8 +9,8 @@ Engine Configurations
 
 Two sets of configurations are set for **GMQL** Engine :
 	
-> - Repository configurations, set in <i class="icon-cog"></i> [repo.xml](GMQL-Repository/src/main/resources/GMQL.conf) file.  
-> - Executors configurations  set in <i class="icon-cog"></i> [impl.xml](GMQL-SManager/src/main/resources/impl.conf) file. 
+> - Repository configurations, set in <i class="icon-cog"></i> [repo.xml](GMQL-Repository/src/main/resources/repository.xml) file.  
+> - Executors configurations  set in <i class="icon-cog"></i> [impl.xml](GMQL-SManager/src/main/resources/executor.xml) file. 
 > 
 Repository Configurations: 
 -------------------------------------
