@@ -283,17 +283,17 @@ object PythonManager {
     this.checkSparkContext()
 
     val variableToCollect = this.variables.get(index)
-    val result = this.server COLLECT variableToCollect.get
+    val result = this.server COLLECT_ITERATOR variableToCollect.get
     // this.stopSparkContext()
     new CollectedResult(result)
   }
 
-  def take(index: Int, n: Int): CollectedResult = {
-    this.checkSparkContext()
-    val variableToTake = this.getVariable(index)
-    val result = this.server.TAKE(variableToTake, n)
-    new CollectedResult(result)
-  }
+//  def take(index: Int, n: Int): CollectedResult = {
+//    this.checkSparkContext()
+//    val variableToTake = this.getVariable(index)
+//    val result = this.server.TAKE(variableToTake, n)
+//    new CollectedResult(result)
+//  }
 
   def serializeVariable(index: Int): String = {
     val variableToSerialize = this.getVariable(index)

@@ -3,7 +3,7 @@ package it.polimi.genomics.GMQLServer
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
 
-import it.polimi.genomics.core.GMQLLoaderBase
+import it.polimi.genomics.core.{GMQLLoaderBase, GRecordKey, GValue}
 import it.polimi.genomics.core.DataStructures.Builtin._
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.{NoTop, Top, TopG}
 import it.polimi.genomics.core.DataStructures.GroupRDParameters.FIELD
@@ -50,6 +50,8 @@ abstract class Implementation {
   def go()
 
   def collect(iRVariable: IRVariable):Any
+
+  def collectIterator(iRVariable: IRVariable): (Iterator[(GRecordKey, Array[GValue])], Iterator[(Long, (String, String))], List[(String, PARSING_TYPE)])
 
   def take(iRVariable: IRVariable, n:Int):Any
 

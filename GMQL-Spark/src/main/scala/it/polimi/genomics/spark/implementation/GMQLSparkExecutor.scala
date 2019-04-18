@@ -59,6 +59,15 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
     implementation()
   }
 
+
+  override def collectIterator(iRVariable: IRVariable): (Iterator[(GRecordKey, Array[GValue])], Iterator[(Long, (String, String))], List[(String, PARSING_TYPE)]) = {
+    val metaRDD = implement_md(iRVariable.metaDag, sc).toLocalIterator
+    val regionRDD = implement_rd(iRVariable.regionDag, sc).toLocalIterator
+
+    (regionRDD,metaRDD,iRVariable.schema)
+  }
+
+
   override def collect(variable: IRVariable): (Array[(GRecordKey, Array[GValue])], Array[(Long, (String, String))], List[(String, PARSING_TYPE)]) = {
     val metaRDD = implement_md(variable.metaDag, sc).collect()
     val regionRDD = implement_rd(variable.regionDag, sc).collect
@@ -322,6 +331,5 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
     br.write(schema)
     br.close()
   }
-
 
 }

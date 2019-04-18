@@ -1,6 +1,6 @@
 package it.polimi.genomics.GMQLServer
 
-import it.polimi.genomics.core.GMQLLoader
+import it.polimi.genomics.core.{GMQLLoader, GRecordKey, GValue}
 import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.ParsingType.{PARSING_TYPE, _}
@@ -48,6 +48,12 @@ class GmqlServer(var implementation : Implementation, binning_size : Option[Long
   {
     optimise()
     implementation.collect(iRVariable)
+  }
+
+
+  def COLLECT_ITERATOR(iRVariable: IRVariable): (Iterator[(GRecordKey, Array[GValue])], Iterator[(Long, (String, String))], List[(String, PARSING_TYPE)]) = {
+    optimise()
+    implementation.collectIterator(iRVariable)
   }
 
   def TAKE(iRVariable: IRVariable, n: Int): Any =
