@@ -207,7 +207,7 @@ class GF_Communication private {
     val thread = new Thread {
       override def run {
 
-        val DEBUG_MODE = true
+        val DEBUG_MODE = false
 
         // If is not already in final dest
         if( !FS_Utilities.checkExists(final_dest) || DEBUG_MODE) {
@@ -298,6 +298,8 @@ class GF_Communication private {
 
 
         }
+        else
+          logger.info(s"importDataset => dataset($job_id, $ds_name) from $location_id has already been downloaded: " )
 
         downloadStatus+= (entity_id -> Success())
 
