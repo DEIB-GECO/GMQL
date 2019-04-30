@@ -9,8 +9,8 @@ Engine Configurations
 
 Two sets of configurations are set for **GMQL** Engine :
 	
-> - Repository configurations, set in <i class="icon-cog"></i> [repo.xml](GMQL-Repository/src/main/resources/GMQL.conf) file.  
-> - Executors configurations  set in <i class="icon-cog"></i> [impl.xml](GMQL-SManager/src/main/resources/impl.conf) file. 
+> - Repository configurations, set in <i class="icon-cog"></i> [repository.xml](../GMQL-Repository/src/main/resources/repository.xml) file.  
+> - Executors configurations  set in <i class="icon-cog"></i> [executor.xml](../GMQL-SManager/src/main/resources/executor.xml) file. 
 > 
 Repository Configurations: 
 -------------------------------------
@@ -24,6 +24,21 @@ GMQL_DFS_HOME | /user/repo/ | The home folder <i class="icon-folder-open"></i> o
 [HADOOP_HOME](http://hadoop.apache.org/)|/usr/local/hadoop/|The location of Hadoop installation. `Considered only when GMQL_REPO is set to HDFS.`
 HADOOP_CONF_DIR|/usr/local/hadoop/etc/hadoop/|The location of Hadoop configuration folder <i class="icon-folder-open"></i>. `Considered only when GMQL_REPO is set to HDFS.`
 GMQL_CONF_DIR|$GMQL_INSTALLATION/conf|The folder location <i class="icon-folder-open"></i> of GMQL configuration files. 
+
+Property Name  | Default  | Meaning
+------------------ | ----------- | ----------
+GUEST_ENABLED | true | If this property is set to false, the registration of guest users through the web interface will be disabled. Moreover, all registered users will need approval from the administrator of the instance before being able to login to the system. The administrator approves users from the admin view by changing their type from DISABLED to one of the other available types (e.g. BASIC).
+
+The following table presents properties related to GMQL-Federated:
+
+Property Name  | Default  | Meaning
+------------------ | ----------- | ----------
+GF_ENABLED | false | Whether GMQL-Federated must be enabled on the system.
+GF_NAMESERVER_ADDRESS | | URL to the root of the nameserver web-service.
+GF_INSTANCENAME | | username of the instance chosen upon registration to the nameserver.
+GF_TOKEN | | token provided by the nameserver for authentication.
+
+
 
 Launcher Configurations: 
 -------------------------------------
