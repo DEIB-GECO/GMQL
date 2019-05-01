@@ -1,6 +1,7 @@
 package it.polimi.genomics.core
 
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
+import scala.collection.JavaConverters._
 
 sealed trait GMQLLoaderBase
 
@@ -18,4 +19,6 @@ trait GMQLLoader[IR,OR,IM,OM] extends GMQLLoaderBase{
   def region_parser(input : IR) : OR
 
   var schema : List[(String, PARSING_TYPE)] = List.empty
+
+  def getSchema = schema.asJava
 }
