@@ -61,7 +61,7 @@ object BedParserHelper {
   * @param strandPos [[Int]] of the position index of strand column in the delimited file, this is compulsory column.
   * @param otherPos  [[Array]] of the other columns positions, this is [[Option]] and can be [[None]]. The Array has tuple of (position as [[Int]],[[ParsingType]])
   */
-class BedParser(delimiter: String, var chrPos: Int, var startPos: Int, var stopPos: Int, var strandPos: Option[Int], var otherPos: Option[Array[(Int, ParsingType.PARSING_TYPE)]]) extends GMQLLoader[(Long, String), Option[DataTypes.GRECORD], (Long, String), Option[DataTypes.MetaType]] with java.io.Serializable {
+class BedParser(val delimiter: String, var chrPos: Int, var startPos: Int, var stopPos: Int, var strandPos: Option[Int], var otherPos: Option[Array[(Int, ParsingType.PARSING_TYPE)]]) extends GMQLLoader[(Long, String), Option[DataTypes.GRECORD], (Long, String), Option[DataTypes.MetaType]] with java.io.Serializable {
 
   private val logger: Logger = LoggerFactory.getLogger(classOf[BedParser])
   var parsingType: GMQLSchemaFormat.Value = GMQLSchemaFormat.TAB
