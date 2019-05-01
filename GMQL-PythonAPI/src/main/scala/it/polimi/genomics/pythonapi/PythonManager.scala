@@ -10,6 +10,8 @@ import it.polimi.genomics.core._
 import it.polimi.genomics.pythonapi.operators.{ExpressionBuilder, OperatorManager}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.loaders._
+import it.polimi.genomics.spark.utilities.FSConfig
+import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.slf4j.LoggerFactory
 
@@ -174,9 +176,42 @@ object PythonManager {
     }
   }
 
+
+  def preProcessPath(datasetPath: String): String = {
+    val path: Path = new Path(datasetPath)
+    val fs: FileSystem = FileSystem.get(path.toUri, FSConfig.getConf)
+    val filesFolder: Option[Path] = fs.listStatus(path).collectFirst{ case x if x.isDirectory && x.getPath.getName == "files" => x.getPath }
+
+    val res = {
+      if(filesFolder.isDefined){
+        //search for a schema.xml
+        val schemaPath = new Path(filesFolder.get, "schema.xml")
+        if(fs.isFile(schemaPath))
+          filesFolder.get.toUri.getPath
+        else
+          throw new IllegalStateException(s"No schema found in ${filesFolder.get.toUri.getRawPath}")
+      }
+      else{
+        //no files folder...search the schema.xml here
+        val schemaPath = new Path(path, "schema.xml")
+        if(fs.isFile(schemaPath))
+          path.toUri.getPath
+        else
+          throw new IllegalStateException(s"No schema found in ${path.toUri.getRawPath}")
+
+      }
+    }
+    res
+  }
+
+  def getParserFromPath(parserPath: String): BedParser = {
+    (new CustomParser).setSchema(parserPath)
+  }
+
+
   def buildParser(delimiter: String, chrPos: Int, startPos: Int, stopPos: Int,
                   strandPos: Option[Int], otherPos: Option[java.util.List[java.util.List[String]]],
-                  parsingType: String, coordinateSystem: String) = {
+                  parsingType: String, coordinateSystem: String): BedParser = {
 
     val pType = GMQLSchemaFormat.getType(parsingType)
     val cSystem = GMQLSchemaCoordinateSystem.getType(coordinateSystem)
@@ -261,6 +296,13 @@ object PythonManager {
 
   def materialize(index: Int, outputPath: String): Unit = {
     logger.info(s"Materializing variable $index at $outputPath")
+
+    val path = new Path(outputPath)
+    val fs = FileSystem.get(path.toUri, FSConfig.getConf)
+
+    if(fs.exists(path))
+      throw new java.io.IOException("Trying to overwrite non empty folder")
+
     // get the variable from the map
     val variableToMaterialize = this.variables.get(index)
     this.server setOutputPath outputPath MATERIALIZE variableToMaterialize.get
