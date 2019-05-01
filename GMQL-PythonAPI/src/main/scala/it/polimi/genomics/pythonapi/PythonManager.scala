@@ -180,22 +180,22 @@ object PythonManager {
   def preProcessPath(datasetPath: String): String = {
     val path: Path = new Path(datasetPath)
     val fs: FileSystem = FileSystem.get(path.toUri, FSConfig.getConf)
-    val filesFolder: Option[Path] = fs.listStatus(path).collectFirst{ case x if x.isDirectory && x.getPath.getName == "files" => x.getPath }
 
     val res = {
-      if(filesFolder.isDefined){
+      if(fs.listStatus(path).exists{ x => x.isDirectory && x.getPath.getName == "files" }){
+        val filesFolder = new Path(path, "files")
         //search for a schema.xml
-        val schemaPath = new Path(filesFolder.get, "schema.xml")
+        val schemaPath = new Path(filesFolder, "schema.xml")
         if(fs.isFile(schemaPath))
-          filesFolder.get.toUri.getPath
+          filesFolder.toString
         else
-          throw new IllegalStateException(s"No schema found in ${filesFolder.get.toUri.getRawPath}")
+          throw new IllegalStateException(s"No schema found in ${filesFolder.toUri.getRawPath}")
       }
       else{
         //no files folder...search the schema.xml here
         val schemaPath = new Path(path, "schema.xml")
         if(fs.isFile(schemaPath))
-          path.toUri.getPath
+          path.toString
         else
           throw new IllegalStateException(s"No schema found in ${path.toUri.getRawPath}")
 
