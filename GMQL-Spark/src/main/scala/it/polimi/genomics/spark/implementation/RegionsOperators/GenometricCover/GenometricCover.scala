@@ -96,7 +96,6 @@ object GenometricCover {
 
     // EXECUTE COVER ON BINS
     val ss = extracted
-      .filter(_._2!=null)
       // collapse coincident point
       .reduceByKey { (a, b) => {
       b.foldLeft(a) { case (m, (k, v2)) =>
