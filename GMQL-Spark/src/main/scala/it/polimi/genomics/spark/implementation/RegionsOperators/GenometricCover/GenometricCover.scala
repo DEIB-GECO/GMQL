@@ -90,15 +90,20 @@ object GenometricCover {
     //      max match{
     //        case ALL() => allValue
     //        case ANY() => groupIds.map(v => ((v, Int.MaxValue))).foldRight(new HashMap[Long, Int])((a,z) => z + a)
-    //        case N(value) => groupIds.map(v => ((v, value))).foldRight(new HashMap[Long, Int])((a,z) => z + a)
+    //        case N(value) => groupIds.map(v x=> ((v, value))).foldRight(new HashMap[Long, Int])((a,z) => z + a)
     //      }
 
     // EXECUTE COVER ON BINS
     val ss = extracted
+      .filter(_._2!=null)
       // collapse coincident point
-      .reduceByKey((a, b) => {
-      (a.merged(b)({ case ((k, v1), (_, v2)) => (k, v1 + v2) }))
-    })
+      .reduceByKey { (a, b) => {
+        a.merged(b)({
+          case ((k, v1), (_, v2)) => (k, v1 + v2)
+        })
+
+      }
+    }
 
     val binnedPureCover: RDD[Grecord] = ss.flatMap(bin => {
       val points: List[(Int, Int)] = bin._2.toList.sortBy(_._1)
