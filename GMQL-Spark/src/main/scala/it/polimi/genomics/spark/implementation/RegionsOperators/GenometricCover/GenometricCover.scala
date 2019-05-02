@@ -93,15 +93,18 @@ object GenometricCover {
     //        case N(value) => groupIds.map(v => ((v, value))).foldRight(new HashMap[Long, Int])((a,z) => z + a)
     //      }
 
+
     // EXECUTE COVER ON BINS
     val ss = extracted
       .filter(_._2!=null)
       // collapse coincident point
       .reduceByKey { (a, b) => {
-      a.merged(b)({
-        case ((k, v1), (_, v2)) => (k, v1 + v2)
-      })
-
+      b.foldLeft(a) { case (m, (k, v2)) =>
+        m.updated(k, m.get(k) match {
+          case Some(v1) => v1 + v2
+          case None => v2
+        })
+      }
     }
     }
 
