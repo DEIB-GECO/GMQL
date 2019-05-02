@@ -95,10 +95,15 @@ object GenometricCover {
 
     // EXECUTE COVER ON BINS
     val ss = extracted
+      .filter(_._2!=null)
       // collapse coincident point
-      .reduceByKey((a, b) => {
-      (a.merged(b)({ case ((k, v1), (_, v2)) => (k, v1 + v2) }))
-    })
+      .reduceByKey { (a, b) => {
+      a.merged(b)({
+        case ((k, v1), (_, v2)) => (k, v1 + v2)
+      })
+
+    }
+    }
 
     val binnedPureCover: RDD[Grecord] = ss.flatMap(bin => {
       val points: List[(Int, Int)] = bin._2.toList.sortBy(_._1)
