@@ -11,4 +11,4 @@ package it.polimi.genomics.core
   * @param Join [[ Long} of the bin size for the Genometric Join Operation
   * @param Cover [[ Long} of the bin size for the Genometric Cover Operation
   */
-case class BinSize(Map:Long = 50000l,Join:Long = 5000l,Cover:Long = 2000l)
+case class BinSize(Map:Long = 50000l,Join:Long = 500000l,Cover:Long = 2000l)
