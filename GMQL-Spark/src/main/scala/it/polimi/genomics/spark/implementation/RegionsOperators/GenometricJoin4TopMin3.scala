@@ -69,7 +69,7 @@ object GenometricJoin4TopMin3 {
     // (Expid, refID, chr, start, stop, strand, values, aggregationId)
 
     // assign group and bin experiment
-    val binnedExp: RDD[((Long, String, Int), (Long,Long, Long, Char, Array[GValue], Int,Int))] =binExperiment(exp,Bgroups.values.flatMap(x=>x),BINNING_PARAMETER)
+    val binnedExp: RDD[((Long, String, Int), (Long,Long, Long, Char, Array[GValue], Int,Int))] =binExperiment(exp,Bgroups.values.flatMap(x=>x),BINNING_PARAMETER, sc)
 
     // (ExpID,chr ,bin), start, stop, strand, values,BinStart)
     distanceJoinCondition.map{q =>
@@ -88,7 +88,7 @@ object GenometricJoin4TopMin3 {
       // bin reference
       // (groupId, Chr, Bin)(ID,Start,Stop,strand,Values,AggregationID,BinStart)
       val binnedRegions: RDD[((Long, String, Int), (Long,Long, Long, Char, Array[GValue], Int))] =
-        prepareDs(groupedDs, firstRoundParameters,secondRoundParameters,BINNING_PARAMETER,MAXIMUM_DISTANCE)
+        prepareDs(groupedDs, firstRoundParameters,secondRoundParameters,BINNING_PARAMETER,MAXIMUM_DISTANCE, sc)
 
       //(sampleId   , chr       , start    , stop   , strand , values , aggId    , binStart      , bin          )
       //(binStart   , binStop   , bin      , id     , chr    , start  , stop     , strand        , values       )
@@ -350,8 +350,8 @@ object GenometricJoin4TopMin3 {
     )
   }
 
-  def prepareDs(ds : RDD[( Long,Long, String, Long, Long, Char, Array[GValue])],firstRound : JoinExecutionParameter, secondRound : JoinExecutionParameter,binSize : Long, max : Long) : RDD[((Long, String,Int),( Long,Long, Long, Char, Array[GValue], Int))] = {
-    ds.flatMap{r  =>
+  def prepareDs(ds : RDD[( Long,Long, String, Long, Long, Char, Array[GValue])],firstRound : JoinExecutionParameter, secondRound : JoinExecutionParameter,binSize : Long, max : Long, sc : SparkContext) : RDD[((Long, String,Int),( Long,Long, Long, Char, Array[GValue], Int))] = {
+    ds.repartition(sc.defaultParallelism * 32 - 1).flatMap{r  =>
       val hs = Hashing.md5.newHasher
       val maxDistance : Long =
         if(firstRound.max.isDefined) Math.max(0L, firstRound.max.get)
@@ -406,8 +406,8 @@ object GenometricJoin4TopMin3 {
     (a ++ b).toSet
   }
 
-  def binExperiment(ds: RDD[GRECORD], Bgroups: RDD[(Long, Long)], BINNING_PARAMETER: Long): RDD[((Long, String, Int), (Long, Long, Long, Char, Array[GValue], Int, Int))] = {
-      ds.keyBy(x => x._1._1).join(Bgroups,new HashPartitioner(Bgroups.count.toInt)).flatMap { x =>
+  def binExperiment(ds: RDD[GRECORD], Bgroups: RDD[(Long, Long)], BINNING_PARAMETER: Long, , sc : SparkContext): RDD[((Long, String, Int), (Long, Long, Long, Char, Array[GValue], Int, Int))] = {
+      ds.keyBy(x => x._1._1).join(Bgroups,new HashPartitioner(Bgroups.count.toInt)).repartition(sc.defaultParallelism * 32 - 1).flatMap { x =>
         val region = x._2._1
         val binStart = (region._1._3 / BINNING_PARAMETER).toInt
         val binEnd = (region._1._4 / BINNING_PARAMETER).toInt
