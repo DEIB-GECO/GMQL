@@ -24,9 +24,11 @@ object GenometricJoin4TopMin3 {
   @throws[SelectFormatException]
   def apply(executor : GMQLSparkExecutor, metajoinCondition : OptionalMetaJoinOperator, distanceJoinCondition : List[JoinQuadruple], regionBuilder : RegionBuilder, leftDataset : RegionOperator, rightDataset : RegionOperator,join_on_attributes:Option[List[(Int,Int)]], BINNING_PARAMETER:Long, MAXIMUM_DISTANCE:Long, sc : SparkContext) : RDD[GRECORD] = {
     // load datasets
+    implicit val orderGRECORD: Ordering[(GRecordKey, Array[GValue])] = Ordering.by { ar: GRECORD => ar._1 }
+
     val ref : RDD[GRECORD] =
-      executor.implement_rd(leftDataset, sc).repartition(sc.defaultParallelism * 32 - 1)//.map(x=>(new GRecordKey(Hashing.md5.newHasher.putLong(x._1._1).hash().asLong(),x._1._2,x._1._3,x._1._4,x._1._5),x._2))
-    val exp : RDD[GRECORD] =
+      executor.implement_rd(leftDataset, sc)//.map(x=>(new GRecordKey(Hashing.md5.newHasher.putLong(x._1._1).hash().asLong(),x._1._2,x._1._3,x._1._4,x._1._5),x._2))
+    val exp =
       executor.implement_rd(rightDataset, sc).repartition(sc.defaultParallelism * 32 - 1)
 
     // load grouping
