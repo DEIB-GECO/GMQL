@@ -406,8 +406,8 @@ object GenometricJoin4TopMin3 {
     (a ++ b).toSet
   }
 
-  def binExperiment(ds: RDD[GRECORD], Bgroups: RDD[(Long, Long)], BINNING_PARAMETER: Long, , sc : SparkContext): RDD[((Long, String, Int), (Long, Long, Long, Char, Array[GValue], Int, Int))] = {
-      ds.keyBy(x => x._1._1).join(Bgroups,new HashPartitioner(Bgroups.count.toInt)).repartition(sc.defaultParallelism * 32 - 1).flatMap { x =>
+  def binExperiment(ds: RDD[GRECORD], Bgroups: RDD[(Long, Long)], BINNING_PARAMETER: Long, sc : SparkContext): RDD[((Long, String, Int), (Long, Long, Long, Char, Array[GValue], Int, Int))] = {
+      ds.repartition(sc.defaultParallelism * 32 - 1).keyBy(x => x._1._1).join(Bgroups,new HashPartitioner(Bgroups.count.toInt)).flatMap { x =>
         val region = x._2._1
         val binStart = (region._1._3 / BINNING_PARAMETER).toInt
         val binEnd = (region._1._4 / BINNING_PARAMETER).toInt
