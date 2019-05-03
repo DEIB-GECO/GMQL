@@ -29,7 +29,7 @@ object GenometricJoin4TopMin3 {
     val ref : RDD[GRECORD] =
       executor.implement_rd(leftDataset, sc)//.map(x=>(new GRecordKey(Hashing.md5.newHasher.putLong(x._1._1).hash().asLong(),x._1._2,x._1._3,x._1._4,x._1._5),x._2))
     val exp =
-      executor.implement_rd(rightDataset, sc).repartition(sc.defaultParallelism * 32 - 1)
+      executor.implement_rd(rightDataset, sc)
 
     // load grouping
     val Bgroups: RDD[((Long, Long), Array[(Long, Long)])] = executor.implement_mjd(metajoinCondition, sc).map { x =>
@@ -344,10 +344,10 @@ object GenometricJoin4TopMin3 {
   ////////////////////////////////////////////////////
 
   def assignRegionGroups(ds: RDD[GRECORD], Bgroups:RDD[(Long, Long)]): RDD[( Long, Long, String, Long, Long, Char, Array[GValue]/*, Long*/)] = {
-    if (!ds.isEmpty()) ds.partitionBy(new HashPartitioner(Bgroups.keys.distinct().count.toInt)).keyBy(x=>x._1._1).join(Bgroups,new HashPartitioner(Bgroups.count.toInt)).map { x =>
+    if (!ds.isEmpty()) ds.partitionBy(new HashPartitioner(Bgroups.keys.distinct().count.toInt * 10)).keyBy(x=>x._1._1).join(Bgroups,new HashPartitioner(Bgroups.count.toInt)).map { x =>
       val region = x._2._1
       (x._2._2, region._1._1, region._1._2, region._1._3, region._1._4, region._1._5, region._2 /*, aggregationId*/)
-    }else ds.partitionBy(new HashPartitioner(Bgroups.count.toInt)).flatMap(region=>
+    }else ds.partitionBy(new HashPartitioner(Bgroups.count.toInt * 10)).flatMap(region=>
       Some(1L, region._1._1, region._1._2, region._1._3, region._1._4, region._1._5, region._2 /*, aggregationId*/)
     )
   }
@@ -409,7 +409,7 @@ object GenometricJoin4TopMin3 {
   }
 
   def binExperiment(ds: RDD[GRECORD], Bgroups: RDD[(Long, Long)], BINNING_PARAMETER: Long): RDD[((Long, String, Int), (Long, Long, Long, Char, Array[GValue], Int, Int))] = {
-      ds.keyBy(x => x._1._1).join(Bgroups,new HashPartitioner(Bgroups.count.toInt)).flatMap { x =>
+      ds.keyBy(x => x._1._1).join(Bgroups,new HashPartitioner(Bgroups.count.toInt*10)).flatMap { x =>
         val region = x._2._1
         val binStart = (region._1._3 / BINNING_PARAMETER).toInt
         val binEnd = (region._1._4 / BINNING_PARAMETER).toInt
