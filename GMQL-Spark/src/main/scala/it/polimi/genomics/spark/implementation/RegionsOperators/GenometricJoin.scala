@@ -87,7 +87,7 @@ object GenometricJoin {
         //(idRight, bin, chrom), (gRecordKey, values)
         val binnedRight = binRightDs(exp.repartition(right_size * repartitionConstant), BINNING_PARAMETER)
 
-        val joined2: RDD[((Long, Int, String), ((GRecordKey, Array[GValue], Long), (GRecordKey, Array[GValue])))] =
+        val joined2: RDD[((Long, Int, String), ((GRecordKey, Array[GValue]), (GRecordKey, Array[GValue])))] =
           binnedRef
             .join(binnedRight)
 
@@ -101,10 +101,10 @@ object GenometricJoin {
           case ind => values(ind)
         }
 
-        val filteredAttribute: RDD[((Long, Int, String), ((GRecordKey, Array[GValue], Long), (GRecordKey, Array[GValue])))] =
+        val filteredAttribute: RDD[((Long, Int, String), ((GRecordKey, Array[GValue]), (GRecordKey, Array[GValue])))] =
           if (joinOnAttributes.getOrElse(List.empty).nonEmpty) {
             joined2.filter {
-              case (_, ((gRKLeft, valuesLeft, newId), (gRKRight, valuesRight))) =>
+              case (_, ((gRKLeft, valuesLeft), (gRKRight, valuesRight))) =>
                 joinOnAttributes.getOrElse(List.empty)
                   .foldLeft(true) {
                     case (pre, (in1, in2)) =>
@@ -126,14 +126,14 @@ object GenometricJoin {
 
         val first =
           filteredAttribute
-            .filter { case ((_, bin, _), ((gRKL, _, _), (gRKR, _))) =>
+            .filter { case ((_, bin, _), ((gRKL, _), (gRKR, _))) =>
               val startRefBin = computeBinStartRef(gRKL, firstRoundParameters, secondRoundParameters, maxDistance, BINNING_PARAMETER)
               val expStartBin = (gRKR.start / BINNING_PARAMETER).toInt
               (bin == startRefBin || bin == expStartBin) &&
                 (gRKL.strand.equals('*') || gRKR.strand.equals('*') || gRKL.strand.equals(gRKR.strand))
             }
             .map(_._2)
-            .filter { case ((gRKL, valuesL, newId), (gRKR, valuesR)) =>
+            .filter { case ((gRKL, valuesL), (gRKR, valuesR)) =>
               val r = gRKL
               val e = gRKR
 
@@ -170,8 +170,8 @@ object GenometricJoin {
 
         val firstRound: RDD[((GRecordKey, Array[GValue]), (GRecordKey, Array[GValue]))] = if (minDistanceParameter.isDefined) {
 
-          first.map { case ((gRKL, valuesL, newId), (gRKR, valuesR)) =>
-            (MapKey(newId, gRKL.chrom, gRKL.start, gRKL.stop, gRKL.strand, valuesL.toList), (gRKR, valuesR))
+          first.map { case ((gRKL, valuesL), (gRKR, valuesR)) =>
+            (MapKey(gRKL.id, gRKL.chrom, gRKL.start, gRKL.stop, gRKL.strand, valuesL.toList), (gRKR, valuesR))
           }
             .groupByKey()
             .flatMap { case (mapKey, iter) =>
@@ -190,7 +190,7 @@ object GenometricJoin {
             }
         }
         else
-          first.map((x: ((GRecordKey, Array[GValue], Long), (GRecordKey, Array[GValue]))) => ((x._1._1, x._1._2), x._2))
+          first.map((x: ((GRecordKey, Array[GValue]), (GRecordKey, Array[GValue]))) => ((x._1._1, x._1._2), x._2))
 
         val res_pairs: RDD[((GRecordKey, Array[GValue]), (GRecordKey, Array[GValue]))] = if (
           secondRoundParameters.max.isDefined ||
@@ -305,7 +305,7 @@ object GenometricJoin {
                 secondRound: JoinExecutionParameter,
                 binSize: Long,
                 maxDistance: Long
-               ): RDD[((Long, Int, String), (GRecordKey, Array[GValue], Long))] = {
+               ): RDD[((Long, Int, String), (GRecordKey, Array[GValue]))] = {
     ds
       .flatMap {
         case (rKey: GRecordKey, values: Array[GValue]) =>
@@ -313,7 +313,7 @@ object GenometricJoin {
           val binEnd = computeBinStopRef(rKey, firstRound, secondRound, maxDistance, binSize)
 
           for (newId <- refGroups.getOrElse(rKey.id, List.empty); bin <- binStart to binEnd) yield
-            ((newId._1, bin, rKey.chrom), (rKey, values, newId._2))
+            ((newId._2, bin, rKey.chrom), (rKey, values))
       }
 
   }
