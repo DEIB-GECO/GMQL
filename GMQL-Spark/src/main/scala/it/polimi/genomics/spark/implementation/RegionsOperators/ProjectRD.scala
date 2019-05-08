@@ -41,7 +41,7 @@ object ProjectRD {
 
 
       extendRegion(a, a, tupleAggregator.get,meta)
-    }.cache()
+    }
     else input
 
     if(projectedValues.isDefined)
