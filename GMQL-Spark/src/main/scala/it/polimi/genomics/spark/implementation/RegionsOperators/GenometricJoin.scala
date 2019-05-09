@@ -73,7 +73,7 @@ object GenometricJoin {
           else if (firstRoundParameters.min.isDefined) firstRoundParameters.min.get + MAXIMUM_DISTANCE
           else MAXIMUM_DISTANCE
 
-        val repartitionConstant = 4 * Math.ceil(2.0 * maxDistance / BINNING_PARAMETER).toInt
+        val repartitionConstant = 24 * Math.ceil(2.0 * maxDistance / BINNING_PARAMETER).toInt
 
         //(idRight, bin, chrom), (gRecordKey, values, newId)
         val binnedRef = binLeftDs(
