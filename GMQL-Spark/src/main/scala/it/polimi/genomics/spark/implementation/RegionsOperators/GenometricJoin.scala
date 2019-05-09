@@ -36,20 +36,23 @@ object GenometricJoin {
     val exp =
       executor.implement_rd(rightDataset, sc)
 
-    val groups =
+
+    val groups2 =
       executor
         .implement_mjd(metajoinCondition, sc)
         .flatMap {
-          x => x._2.map(s => (x._1, s, Hashing.md5().newHasher().putLong(x._1).putLong(s).hash().asLong))
+          case (refId: Long, expIds: Array[Long]) =>
+            expIds.map {
+              expId => ((refId, expId), Hashing.md5().newHasher().putLong(refId).putLong(expId).hash().asLong)
+            }
         }
 
-    //Left -> List( (Right, newId), ..., ...  )
-    val refGroups: Map[Long, Iterable[(Long, Long)]] =
-      sc.broadcast(groups.map(x => (x._1, (x._2, x._3))).groupByKey().collectAsMap()).value.toMap
+    //(Left, Right) -> newId
+    val refGroups2: Map[(Long, Long), Long] = sc.broadcast(groups2.collectAsMap()).value.toMap
 
-    val left_before_size = refGroups.size
-    val right_size = refGroups.values.map(x => x.map(_._1).toSet).reduce(_ ++ _).size
-    val left_new_size = refGroups.values.map(x => x.map(_._2).toSet).reduce(_ ++ _).size
+
+    val left_size = refGroups2.keys.map(_._1).toSet.size
+    val right_size = refGroups2.keys.map(_._2).toSet.size
 
     val output: RDD[(GRecordKey, Array[GValue])] = {
 
@@ -73,35 +76,25 @@ object GenometricJoin {
           else if (firstRoundParameters.min.isDefined) firstRoundParameters.min.get + MAXIMUM_DISTANCE
           else MAXIMUM_DISTANCE
 
-        val repartitionConstant = 4 * Math.ceil(2.0 * maxDistance / BINNING_PARAMETER).toInt
+        val repartitionConstant = 24 * Math.ceil(2.0 * maxDistance / BINNING_PARAMETER).toInt
 
-        //(idRight, bin, chrom), (gRecordKey, values, newId)
-        val binnedRef = binLeftDs(
-          ref.repartition(left_new_size * repartitionConstant),
-          refGroups,
+        //(bin, chrom), (gRecordKey, values, newId)
+        val binnedRef = binLeftDs2(
+          ref.repartition(left_size * repartitionConstant),
           firstRoundParameters,
           secondRoundParameters,
           BINNING_PARAMETER,
           maxDistance)
 
-        //(idRight, bin, chrom), (gRecordKey, values)
-        val binnedRight = binRightDs(exp.repartition(right_size * repartitionConstant), BINNING_PARAMETER)
+        //(bin, chrom), (gRecordKey, values)
+        val binnedRight = binRightDs2(exp.repartition(right_size * repartitionConstant), BINNING_PARAMETER)
 
-        val joined2: RDD[((Long, Int, String), ((GRecordKey, Array[GValue]), (GRecordKey, Array[GValue])))] =
+        val joined2: RDD[((Int, String), ((GRecordKey, Array[GValue]), (GRecordKey, Array[GValue])))] =
           binnedRef
             .join(binnedRight)
 
-        def getValue(index: Int, region: GRecordKey, values: Array[GValue]) = index match {
-          case COORD_POS.CHR_POS => region.chrom
-          case COORD_POS.LEFT_POS => region.start
-          case COORD_POS.RIGHT_POS => region.stop
-          case COORD_POS.START_POS => if (region.strand == '-') region.stop else region.start
-          case COORD_POS.STOP_POS => if (region.strand == '-') region.start else region.stop
-          case COORD_POS.STRAND_POS => region.strand
-          case ind => values(ind)
-        }
 
-        val filteredAttribute: RDD[((Long, Int, String), ((GRecordKey, Array[GValue]), (GRecordKey, Array[GValue])))] =
+        val filteredAttribute: RDD[((Int, String), ((GRecordKey, Array[GValue]), (GRecordKey, Array[GValue])))] =
           if (joinOnAttributes.getOrElse(List.empty).nonEmpty) {
             joined2.filter {
               case (_, ((gRKLeft, valuesLeft), (gRKRight, valuesRight))) =>
@@ -116,63 +109,25 @@ object GenometricJoin {
             joined2
 
 
-        val filteredRegions =
-          if (distanceJoinCondition.nonEmpty) {
-            filteredAttribute
-          }
-          else
-            filteredAttribute
-
-
-        val first =
+        val first: RDD[(GRECORD, GRECORD)] =
           filteredAttribute
-            .filter { case ((_, bin, _), ((gRKL, _), (gRKR, _))) =>
+            .filter { case ((bin, _), ((gRKL, _), (gRKR, _))) =>
               val startRefBin = computeBinStartRef(gRKL, firstRoundParameters, secondRoundParameters, maxDistance, BINNING_PARAMETER)
               val expStartBin = (gRKR.start / BINNING_PARAMETER).toInt
               (bin == startRefBin || bin == expStartBin) &&
-                (gRKL.strand.equals('*') || gRKR.strand.equals('*') || gRKL.strand.equals(gRKR.strand))
+                (gRKL.strand.equals('*') || gRKR.strand.equals('*') || gRKL.strand.equals(gRKR.strand)) &&
+                refGroups2.contains((gRKL.id, gRKR.id)) &&
+                checkRegionCondition(gRKL, gRKR, firstRoundParameters)
             }
             .map(_._2)
-            .filter { case ((gRKL, valuesL), (gRKR, valuesR)) =>
-              val r = gRKL
-              val e = gRKR
 
-              val distance: Long = distanceCalculator((r.start, r.stop), (e.start, e.stop))
 
-              val intersect_distance =
-                (firstRoundParameters.max.isEmpty || firstRoundParameters.max.get > distance) &&
-                  (firstRoundParameters.min.isEmpty || firstRoundParameters.min.get < distance)
-              val no_stream = firstRoundParameters.stream.isEmpty
-              val UPSTREAM = if (no_stream) true
-              else (
-                firstRoundParameters.stream.get.equals('+') // upstream
-                  &&
-                  (
-                    ((r.strand.equals('+') || r.strand.equals('*')) && e.stop <= r.start) // reference with positive strand =>  experiment must be earlier
-                      ||
-                      (r.strand.equals('-') && e.start >= r.stop) // reference with negative strand => experiment must be later
-                    )
-                )
-              val DOWNSTREAM = if (no_stream) true
-              else
-                (
-                  firstRoundParameters.stream.get.equals('-') // downstream
-                    &&
-                    (
-                      ((r.strand.equals('+') || r.strand.equals('*')) && e.start >= r.stop) // reference with positive strand =>  experiment must be later
-                        ||
-                        (r.strand.equals('-') && e.stop <= r.start) // reference with negative strand => experiment must be earlier
-                      )
-                  )
-              intersect_distance && (no_stream || UPSTREAM || DOWNSTREAM)
+        val firstRound: RDD[(GRECORD, GRECORD)] = if (minDistanceParameter.isDefined) {
+          first
+            .map { case ((gRKL, valuesL), rightRecord) =>
+              val newId = refGroups2((gRKL.id, rightRecord._1.id))
+              (MapKey(newId, gRKL.chrom, gRKL.start, gRKL.stop, gRKL.strand, valuesL.toList), rightRecord)
             }
-
-
-        val firstRound: RDD[((GRecordKey, Array[GValue]), (GRecordKey, Array[GValue]))] = if (minDistanceParameter.isDefined) {
-
-          first.map { case ((gRKL, valuesL), (gRKR, valuesR)) =>
-            (MapKey(gRKL.id, gRKL.chrom, gRKL.start, gRKL.stop, gRKL.strand, valuesL.toList), (gRKR, valuesR))
-          }
             .groupByKey()
             .flatMap { case (mapKey, iter) =>
 
@@ -190,36 +145,42 @@ object GenometricJoin {
             }
         }
         else
-          first.map((x: ((GRecordKey, Array[GValue]), (GRecordKey, Array[GValue]))) => ((x._1._1, x._1._2), x._2))
-
-        val res_pairs: RDD[((GRecordKey, Array[GValue]), (GRecordKey, Array[GValue]))] = if (
-          secondRoundParameters.max.isDefined ||
-            secondRoundParameters.min.isDefined ||
-            secondRoundParameters.stream.isDefined) {
-
-          firstRound.filter {
-            case ((gRKL, _), (gRKR, _)) =>
-              val distance = distanceCalculator((gRKL.start, gRKL.stop), (gRKR.start, gRKR.stop))
-              (secondRoundParameters.max.isEmpty || secondRoundParameters.max.get > distance) &&
-                (secondRoundParameters.min.isEmpty || secondRoundParameters.min.get < distance) &&
-                (secondRoundParameters.stream.isEmpty ||
-                  (secondRoundParameters.stream.get.equals('+') && (
-                    ((gRKL.strand.equals('+') || gRKL.strand.equals('*')) && gRKR.stop <= gRKL.start) // reference with positive strand =>  experiment must be earlier
-                      ||
-                      (gRKL.strand.equals('-') && gRKR.start >= gRKL.stop) // reference with negative strand => experiment must be later
-                    )) || (
-                  secondRoundParameters.stream.get.equals('-') // downstream
-                    &&
-                    (
-                      ((gRKL.strand.equals('+') || gRKL.strand.equals('*')) && gRKR.start >= gRKL.stop) // reference with positive strand =>  experiment must be later
-                        ||
-                        (gRKL.strand.equals('-') && gRKR.stop <= gRKL.start) // reference with negative strand => experiment must be earlier
-                      )))
+          first.map {
+            case ((gRKL, valuesL), rightRecord) =>
+              val newId = refGroups2((gRKL.id, rightRecord._1.id))
+              ((gRKL.copy(id = newId), valuesL), rightRecord)
           }
 
-        } else {
-          firstRound
-        }
+
+        val res_pairs: RDD[(GRECORD, GRECORD)] =
+          if (
+            secondRoundParameters.max.isDefined ||
+              secondRoundParameters.min.isDefined ||
+              secondRoundParameters.stream.isDefined) {
+
+            firstRound.filter {
+              case ((gRKL, _), (gRKR, _)) =>
+                val distance = distanceCalculator((gRKL.start, gRKL.stop), (gRKR.start, gRKR.stop))
+                (secondRoundParameters.max.isEmpty || secondRoundParameters.max.get > distance) &&
+                  (secondRoundParameters.min.isEmpty || secondRoundParameters.min.get < distance) &&
+                  (secondRoundParameters.stream.isEmpty ||
+                    (secondRoundParameters.stream.get.equals('+') && (
+                      ((gRKL.strand.equals('+') || gRKL.strand.equals('*')) && gRKR.stop <= gRKL.start) // reference with positive strand =>  experiment must be earlier
+                        ||
+                        (gRKL.strand.equals('-') && gRKR.start >= gRKL.stop) // reference with negative strand => experiment must be later
+                      )) || (
+                    secondRoundParameters.stream.get.equals('-') // downstream
+                      &&
+                      (
+                        ((gRKL.strand.equals('+') || gRKL.strand.equals('*')) && gRKR.start >= gRKL.stop) // reference with positive strand =>  experiment must be later
+                          ||
+                          (gRKL.strand.equals('-') && gRKR.stop <= gRKL.start) // reference with negative strand => experiment must be earlier
+                        )))
+            }
+
+          } else {
+            firstRound
+          }
 
         val res_pairs_filtd =
           if (regionBuilder == RegionBuilder.INTERSECTION) {
@@ -262,15 +223,53 @@ object GenometricJoin {
   }
 
 
-  //(idRight, bin, chrom), (gRecordKey, values)
-  def binRightDs(ds: RDD[GRECORD], binSize: Long): RDD[((Long, Int, String), (GRecordKey, Array[GValue]))] =
-    ds.flatMap {
-      case (gRecordKey, values) =>
-        val startBin = (gRecordKey.start / binSize).toInt
-        val stopBin = (gRecordKey.stop / binSize).toInt
+  def getValue(index: Int, region: GRecordKey, values: Array[GValue]) = index match {
+    case COORD_POS.CHR_POS => region.chrom
+    case COORD_POS.LEFT_POS => region.start
+    case COORD_POS.RIGHT_POS => region.stop
+    case COORD_POS.START_POS => if (region.strand == '-') region.stop else region.start
+    case COORD_POS.STOP_POS => if (region.strand == '-') region.start else region.stop
+    case COORD_POS.STRAND_POS => region.strand
+    case ind => values(ind)
+  }
 
-        (startBin to stopBin).map(bin => ((gRecordKey.id, bin, gRecordKey.chrom), (gRecordKey, values)))
-    }
+  def checkRegionCondition(gRKL: GRecordKey, gRKR: GRecordKey, firstRoundParameters: JoinExecutionParameter): Boolean = {
+    val distance: Long = distanceCalculator((gRKL.start, gRKL.stop), (gRKR.start, gRKR.stop))
+
+    def intersectDistance =
+      (firstRoundParameters.max.isEmpty || firstRoundParameters.max.get > distance) &&
+        (firstRoundParameters.min.isEmpty || firstRoundParameters.min.get < distance)
+
+    def noStream = firstRoundParameters.stream.isEmpty
+
+    def upstream =
+      if (noStream)
+        true
+      else (
+        firstRoundParameters.stream.get.equals('+') // upstream
+          &&
+          (
+            ((gRKL.strand.equals('+') || gRKL.strand.equals('*')) && gRKR.stop <= gRKL.start) // reference with positive strand =>  experiment must be earlier
+              ||
+              (gRKL.strand.equals('-') && gRKR.start >= gRKL.stop) // reference with negative strand => experiment must be later
+            )
+        )
+
+    def downstream =
+      if (noStream)
+        true
+      else (
+        firstRoundParameters.stream.get.equals('-') // downstream
+          &&
+          (
+            ((gRKL.strand.equals('+') || gRKL.strand.equals('*')) && gRKR.start >= gRKL.stop) // reference with positive strand =>  experiment must be later
+              ||
+              (gRKL.strand.equals('-') && gRKR.stop <= gRKL.start) // reference with negative strand => experiment must be earlier
+            )
+        )
+
+    intersectDistance && (noStream || upstream || downstream)
+  }
 
   def computeBinStartRef(rKey: GRecordKey, firstRound: JoinExecutionParameter, secondRound: JoinExecutionParameter, maxDistance: Long, binSize: Long) =
     (
@@ -299,27 +298,38 @@ object GenometricJoin {
         ) / binSize
       ).toInt
 
-  def binLeftDs(ds: RDD[GRECORD],
-                refGroups: Map[Long, Iterable[(Long, Long)]],
-                firstRound: JoinExecutionParameter,
-                secondRound: JoinExecutionParameter,
-                binSize: Long,
-                maxDistance: Long
-               ): RDD[((Long, Int, String), (GRecordKey, Array[GValue]))] = {
+
+  //(bin, chrom), (gRecordKey, values)
+  def binLeftDs2(ds: RDD[GRECORD],
+                 firstRound: JoinExecutionParameter,
+                 secondRound: JoinExecutionParameter,
+                 binSize: Long,
+                 maxDistance: Long
+                ): RDD[((Int, String), GRECORD)] = {
     ds
       .flatMap {
-        case (rKey: GRecordKey, values: Array[GValue]) =>
+        record: GRECORD =>
+          val rKey: GRecordKey = record._1
+
           val binStart = computeBinStartRef(rKey, firstRound, secondRound, maxDistance, binSize)
           val binEnd = computeBinStopRef(rKey, firstRound, secondRound, maxDistance, binSize)
-          val range = binStart to binEnd
 
-          refGroups.getOrElse(rKey.id, List.empty).iterator.flatMap{ newId =>
-            range.map{bin =>
-              ((newId._1, bin, rKey.chrom), (rKey.copy(id = newId._2), values))
-            }
+          (binStart to binEnd).map { bin =>
+            ((bin, rKey.chrom), record)
           }
       }
   }
+
+  //(bin, chrom), (gRecordKey, values)
+  def binRightDs2(ds: RDD[GRECORD], binSize: Long): RDD[((Int, String), GRECORD)] =
+    ds.flatMap {
+      record: GRECORD =>
+        val gRecordKey = record._1
+        val startBin = (gRecordKey.start / binSize).toInt
+        val stopBin = (gRecordKey.stop / binSize).toInt
+
+        (startBin to stopBin).map(bin => ((bin, gRecordKey.chrom), record))
+    }
 
 
   def joinRegions(left: GRECORD, right: GRECORD, regionBuilder: RegionBuilder) = {
