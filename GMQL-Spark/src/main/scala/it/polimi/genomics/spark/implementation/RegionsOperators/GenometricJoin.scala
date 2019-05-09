@@ -73,7 +73,7 @@ object GenometricJoin {
           else if (firstRoundParameters.min.isDefined) firstRoundParameters.min.get + MAXIMUM_DISTANCE
           else MAXIMUM_DISTANCE
 
-        val repartitionConstant = 24 * Math.ceil(2.0 * maxDistance / BINNING_PARAMETER).toInt
+        val repartitionConstant = 4 * Math.ceil(2.0 * maxDistance / BINNING_PARAMETER).toInt
 
         //(idRight, bin, chrom), (gRecordKey, values, newId)
         val binnedRef = binLeftDs(
@@ -312,10 +312,12 @@ object GenometricJoin {
           val binStart = computeBinStartRef(rKey, firstRound, secondRound, maxDistance, binSize)
           val binEnd = computeBinStopRef(rKey, firstRound, secondRound, maxDistance, binSize)
 
-          for (newId <- refGroups.getOrElse(rKey.id, List.empty); bin <- binStart to binEnd) yield
-            ((newId._1, bin, rKey.chrom), (rKey.copy(id = newId._2), values))
+          refGroups.getOrElse(rKey.id, List.empty).iterator.flatMap{ newId =>
+            (binStart to binEnd).map{bin =>
+              ((newId._1, bin, rKey.chrom), (rKey.copy(id = newId._2), values))
+            }
+          }
       }
-
   }
 
 
