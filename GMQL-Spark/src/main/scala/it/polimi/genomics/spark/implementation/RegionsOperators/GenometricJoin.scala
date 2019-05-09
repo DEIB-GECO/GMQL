@@ -311,9 +311,10 @@ object GenometricJoin {
         case (rKey: GRecordKey, values: Array[GValue]) =>
           val binStart = computeBinStartRef(rKey, firstRound, secondRound, maxDistance, binSize)
           val binEnd = computeBinStopRef(rKey, firstRound, secondRound, maxDistance, binSize)
+          val r = (binStart to binEnd)
 
           refGroups.getOrElse(rKey.id, List.empty).iterator.flatMap{ newId =>
-            (binStart to binEnd).map{bin =>
+            r.map{bin =>
               ((newId._1, bin, rKey.chrom), (rKey.copy(id = newId._2), values))
             }
           }
