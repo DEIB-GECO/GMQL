@@ -10,8 +10,8 @@ import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.core.{GDouble, GRecordKey, GString, GValue}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.RegionsOperators.GenometricMap.MapKey
-import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
+import org.apache.spark.{HashPartitioner, SparkContext}
 import org.slf4j.LoggerFactory
 
 object GenometricJoin {
@@ -53,6 +53,8 @@ object GenometricJoin {
 
     val left_size = refGroups2.keys.map(_._1).toSet.size
     val right_size = refGroups2.keys.map(_._2).toSet.size
+    val join_size = refGroups2.size
+
 
     val output: RDD[(GRecordKey, Array[GValue])] = {
 
@@ -76,18 +78,20 @@ object GenometricJoin {
           else if (firstRoundParameters.min.isDefined) firstRoundParameters.min.get + MAXIMUM_DISTANCE
           else MAXIMUM_DISTANCE
 
-        val repartitionConstant = 24 * Math.ceil(2.0 * maxDistance / BINNING_PARAMETER).toInt
+        val repartitionConstant = 4 * Math.ceil(2.0 * maxDistance / BINNING_PARAMETER).toInt
+
+        val gRecordKeyPartitioner = new GRecordHashPartitioner(BINNING_PARAMETER, repartitionConstant * join_size)
 
         //(bin, chrom), (gRecordKey, values, newId)
         val binnedRef = binLeftDs2(
-          ref.repartition(left_size * repartitionConstant),
+          ref.partitionBy(gRecordKeyPartitioner),
           firstRoundParameters,
           secondRoundParameters,
           BINNING_PARAMETER,
           maxDistance)
 
         //(bin, chrom), (gRecordKey, values)
-        val binnedRight = binRightDs2(exp.repartition(right_size * repartitionConstant), BINNING_PARAMETER)
+        val binnedRight = binRightDs2(exp.partitionBy(gRecordKeyPartitioner), BINNING_PARAMETER)
 
         val joined2: RDD[((Int, String), ((GRecordKey, Array[GValue]), (GRecordKey, Array[GValue])))] =
           binnedRef
@@ -413,3 +417,9 @@ object GenometricJoin {
 
 }
 
+class GRecordHashPartitioner(BINNING_PARAMETER: Long, partitions: Int) extends HashPartitioner(partitions) {
+  override def getPartition(key: Any): Int = {
+    val recordKey = key.asInstanceOf[GRecordKey]
+    super.getPartition(((recordKey.start / BINNING_PARAMETER).toInt, recordKey.chrom))
+  }
+}
