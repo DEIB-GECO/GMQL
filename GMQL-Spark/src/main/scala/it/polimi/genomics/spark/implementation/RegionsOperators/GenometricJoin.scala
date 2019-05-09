@@ -313,7 +313,7 @@ object GenometricJoin {
           val binEnd = computeBinStopRef(rKey, firstRound, secondRound, maxDistance, binSize)
 
           for (newId <- refGroups.getOrElse(rKey.id, List.empty); bin <- binStart to binEnd) yield
-            ((newId._2, bin, rKey.chrom), (rKey, values))
+            ((newId._1, bin, rKey.chrom), (rKey.copy(id = newId._2), values))
       }
 
   }
