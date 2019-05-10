@@ -1,51 +1,49 @@
 package it.polimi.genomics.GMQLServer
 
-import it.polimi.genomics.core.{GMQLLoader, GRecordKey, GValue}
 import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
 import it.polimi.genomics.core.DataStructures._
-import it.polimi.genomics.core.ParsingType.{PARSING_TYPE, _}
+import it.polimi.genomics.core.ParsingType.PARSING_TYPE
+import it.polimi.genomics.core.{GMQLLoader, GRecordKey, GValue}
 
 import scala.collection.mutable
 
 /**
- *
- */
-class GmqlServer(var implementation : Implementation, binning_size : Option[Long] = None) {
+  *
+  */
+class GmqlServer(var implementation: Implementation, binning_size: Option[Long] = None) {
 
   implicit val binning_parameter = BinningParameter(binning_size)
-  var meta_output_path : Option[String] = None
-  var region_output_path : Option[String] = None
-  var materializationList : mutable.MutableList[IRVariable] = mutable.MutableList()
+  var meta_output_path: Option[String] = None
+  var region_output_path: Option[String] = None
+  var materializationList: mutable.MutableList[IRVariable] = mutable.MutableList()
 
-  def run(graph : Boolean = false)={
+  def run(graph: Boolean = false) = {
     implementation.to_be_materialized ++= materializationList
     optimise()
     implementation.go()
   }
 
-  def setMetaPath (path : String) = {
-    meta_output_path=Some(path)
+  def setMetaPath(path: String) = {
+    meta_output_path = Some(path)
     this
   }
 
-  def setRegionPath (path : String) = {
-    region_output_path=Some(path)
+  def setRegionPath(path: String) = {
+    region_output_path = Some(path)
     this
   }
 
-  def setOutputPath (path : String) = {
-    region_output_path=Some(path)
-    meta_output_path=Some(path)
+  def setOutputPath(path: String) = {
+    region_output_path = Some(path)
+    meta_output_path = Some(path)
     this
   }
 
-  def clearMaterializationList(): Unit =
-  {
+  def clearMaterializationList(): Unit = {
     this.materializationList.clear()
   }
 
-  def COLLECT(iRVariable: IRVariable): Any =
-  {
+  def COLLECT(iRVariable: IRVariable): Any = {
     optimise()
     implementation.collect(iRVariable)
   }
@@ -56,26 +54,24 @@ class GmqlServer(var implementation : Implementation, binning_size : Option[Long
     implementation.collectIterator(iRVariable)
   }
 
-  def TAKE(iRVariable: IRVariable, n: Int): Any =
-  {
+  def TAKE(iRVariable: IRVariable, n: Int): Any = {
     optimise()
     implementation.take(iRVariable, n)
   }
 
-  def MATERIALIZE(variable : IRVariable) = {
+  def MATERIALIZE(variable: IRVariable) = {
 
-    if (!meta_output_path.isDefined){
+    if (!meta_output_path.isDefined) {
       println("Disgrace!! The metadata output path has not been specified yet!")
     }
-
 
 
     if (!region_output_path.isDefined) {
       println("Disgrace!! The region output path has not been specified yet!")
     }
-   import scala.collection.JavaConverters._
-    val dag_md = new IRStoreMD(meta_output_path.get, variable.metaDag, IRDataSet(meta_output_path.get, List[(String,PARSING_TYPE)]().asJava))
-    val dag_rd = new IRStoreRD(region_output_path.get, variable.regionDag,variable.metaDag,variable.schema ,IRDataSet(meta_output_path.get, List[(String,PARSING_TYPE)]().asJava))
+    import scala.collection.JavaConverters._
+    val dag_md = new IRStoreMD(meta_output_path.get, variable.metaDag, IRDataSet(meta_output_path.get, List[(String, PARSING_TYPE)]().asJava))
+    val dag_rd = new IRStoreRD(region_output_path.get, variable.regionDag, variable.metaDag, variable.schema, IRDataSet(meta_output_path.get, List[(String, PARSING_TYPE)]().asJava))
 
     val new_var = new IRVariable(dag_md, dag_rd, variable.schema)
     materializationList += new_var
@@ -83,37 +79,37 @@ class GmqlServer(var implementation : Implementation, binning_size : Option[Long
   }
 
   /**
-   *
-   * @param paths
-   * @return UnfinishedREAD(path), to which the USING method must be applied
-   */
-  def READ(paths : List[String]) : UnfinishedREAD = new UnfinishedREAD(paths)
+    *
+    * @param paths
+    * @return UnfinishedREAD(path), to which the USING method must be applied
+    */
+  def READ(paths: List[String]): UnfinishedREAD = new UnfinishedREAD(paths)
 
   /**
-   *
-   * @param paths
-   * @return UnfinishedREAD(path), to which the USING method must be applied
-   */
-  def READ(paths : String) : UnfinishedREAD = new UnfinishedREAD(List(paths))
+    *
+    * @param paths
+    * @return UnfinishedREAD(path), to which the USING method must be applied
+    */
+  def READ(paths: String): UnfinishedREAD = new UnfinishedREAD(List(paths))
 
   /**
-   * Class used to generate a variable reading from the file system
+    * Class used to generate a variable reading from the file system
     *
     * @param paths The list of paths where the dataset is stored. It must contains two sub-directory named "meta" and "files"
-   */
-  class UnfinishedREAD(paths : List[String])  {
+    */
+  class UnfinishedREAD(paths: List[String]) {
     /**
-     * Used to build a new IRVariable
+      * Used to build a new IRVariable
       *
       * @param loader a class containing the region and the metadata parser
-     * @tparam IR Input type of region data
-     * @tparam OR Output type of region data
-     * @tparam IM Input type of meta data
-     * @tparam OM Output type of metadata
-     * @return a new IRVariable
-     */
+      * @tparam IR Input type of region data
+      * @tparam OR Output type of region data
+      * @tparam IM Input type of meta data
+      * @tparam OM Output type of metadata
+      * @return a new IRVariable
+      */
 
-    def USING[IR,OR,IM,OM](loader : GMQLLoader[IR,OR,IM,OM]) = {
+    def USING[IR, OR, IM, OM](loader: GMQLLoader[IR, OR, IM, OM]) = {
 
       val ds = implementation.getDataset(paths.head).get
 
@@ -121,22 +117,36 @@ class GmqlServer(var implementation : Implementation, binning_size : Option[Long
       val dagRD = new IRReadRD(paths, loader, ds)
 
       import scala.collection.JavaConverters._
-      val schema = if(ds.schema.isEmpty)
+      val schema = if (ds.schema.isEmpty)
         loader.schema
       else
         ds.schema.asScala.toList
 
-      new IRVariable(dagMD, dagRD, schema)
+      IRVariable(dagMD, dagRD, schema)
     }
 
     def USING(metaDS: Any, regionDS: Any, sch: List[(String, PARSING_TYPE)]) = {
 
-      val dagMD = new IRReadMEMMD(metaDS)
-      val dagRD = new IRReadMEMRD(regionDS)
+      val dagMD = IRReadMEMMD(metaDS)
+      val dagRD = IRReadMEMRD(regionDS)
 
-      new IRVariable(dagMD, dagRD, sch)
+      IRVariable(dagMD, dagRD, sch)
     }
 
+  }
+
+
+  def readFile[IR, OR, IM, OM](path: String, loader: GMQLLoader[IR, OR, IM, OM]): IRVariable = {
+    val ds = implementation.getDataset(path).get
+    val dagRD = IRReadFileRD(path, loader, ds)
+    val dagMD = IRGenerateMD(dagRD)
+
+    import scala.collection.JavaConverters._
+    val schema = if (ds.schema.isEmpty)
+      loader.schema
+    else
+      ds.schema.asScala.toList
+    IRVariable(dagMD, dagRD, schema)
   }
 
 
