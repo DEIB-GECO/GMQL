@@ -159,6 +159,13 @@ object PythonManager {
     read_dataset(dataset_path, parser)
   }
 
+
+  def readFile(filePath: String, parser: BedParser): Int = {
+    val dataset: IRVariable = this.server.readFile(filePath, parser)
+    this.putNewVariable(dataset)
+  }
+
+
   def read_dataset(dataset_path: String, parser: BedParser): Int = {
     val dataset: IRVariable = this.server READ dataset_path USING parser
     //putting the new variable in the map
@@ -198,7 +205,6 @@ object PythonManager {
           path.toString
         else
           throw new IllegalStateException(s"No schema found in ${path.toUri.getRawPath}")
-
       }
     }
     res
@@ -361,6 +367,12 @@ object PythonManager {
           val newDataset = IRDataSet(dest, x.dataset.schema)
           x.dataset = newDataset
           x.paths = List(dest)
+        }
+      case x: IRReadFileRD[_,_,_,_] =>
+        if (x.dataset.position == source) {
+          val newDataset = IRDataSet(dest, x.dataset.schema)
+          x.dataset = newDataset
+          x.path = dest
         }
       case _ =>
     }
