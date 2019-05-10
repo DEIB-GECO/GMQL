@@ -336,12 +336,12 @@ object PythonManager {
     new CollectedResult(result)
   }
 
-//  def take(index: Int, n: Int): CollectedResult = {
-//    this.checkSparkContext()
-//    val variableToTake = this.getVariable(index)
-//    val result = this.server.TAKE(variableToTake, n)
-//    new CollectedResult(result)
-//  }
+  def take(index: Int, n: Int): CollectedResult = {
+    this.checkSparkContext()
+    val variableToTake = this.getVariable(index)
+    val result = this.server.TAKE_FIRST(variableToTake, n)
+    new CollectedResult( (result._1.toIterator, result._2.toIterator, result._3) )
+  }
 
   def serializeVariable(index: Int): String = {
     val variableToSerialize = this.getVariable(index)

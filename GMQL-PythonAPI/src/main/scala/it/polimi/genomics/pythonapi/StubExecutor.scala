@@ -24,4 +24,6 @@ class StubExecutor extends Implementation {
   override def getParser(name: String, dataset: String): GMQLLoaderBase = ???
 
   override def collectIterator(iRVariable: IRVariable): (Iterator[(GRecordKey, Array[GValue])], Iterator[(Long, (String, String))], List[(String, PARSING_TYPE)]) = ???
+
+  override def takeFirst(iRVariable: IRVariable, n: Int): (Array[(GRecordKey, Array[GValue])], Array[(Long, (String, String))], List[(String, PARSING_TYPE)]) = ???
 }

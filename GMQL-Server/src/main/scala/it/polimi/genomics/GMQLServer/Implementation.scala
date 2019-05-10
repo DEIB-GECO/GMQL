@@ -55,6 +55,8 @@ abstract class Implementation {
 
   def take(iRVariable: IRVariable, n:Int):Any
 
+  def takeFirst(iRVariable: IRVariable, n:Int): (Array[(GRecordKey, Array[GValue])], Array[(Long, (String, String))], List[(String, PARSING_TYPE)])
+
   /** stop GMQL implementation (kill a job)*/
   def stop()
 

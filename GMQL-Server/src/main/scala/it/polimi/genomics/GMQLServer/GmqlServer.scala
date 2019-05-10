@@ -54,6 +54,11 @@ class GmqlServer(var implementation: Implementation, binning_size: Option[Long] 
     implementation.collectIterator(iRVariable)
   }
 
+  def TAKE_FIRST(iRVariable: IRVariable, n: Int): (Array[(GRecordKey, Array[GValue])], Array[(Long, (String, String))], List[(String, PARSING_TYPE)]) = {
+    optimise()
+    implementation.takeFirst(iRVariable, n)
+  }
+
   def TAKE(iRVariable: IRVariable, n: Int): Any = {
     optimise()
     implementation.take(iRVariable, n)
