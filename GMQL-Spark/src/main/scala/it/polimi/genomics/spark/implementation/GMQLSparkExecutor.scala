@@ -27,7 +27,7 @@ import it.polimi.genomics.spark.implementation.MetaOperators.SelectMeta._
 import it.polimi.genomics.spark.implementation.MetaOperators._
 import it.polimi.genomics.spark.implementation.RegionsOperators.GenometricCover.GenometricCover
 import it.polimi.genomics.spark.implementation.RegionsOperators.GenometricMap._
-import it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions.{ReadMEMRD, StoreGTFRD, StoreTABRD, TestingReadRD}
+import it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions._
 import it.polimi.genomics.spark.implementation.RegionsOperators._
 import it.polimi.genomics.spark.implementation.loaders._
 import org.apache.hadoop.conf.Configuration
@@ -231,6 +231,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
           case IROrderMD(ordering: List[(String, Direction)], newAttribute: String, topParameter: TopParameter, inputDataset: MetaOperator) => OrderMD(this, ordering, newAttribute, topParameter, inputDataset, sc)
           case IRGroupMD(keys: MetaGroupByCondition, aggregates: Option[List[MetaAggregateFunction]], groupName: String, inputDataset: MetaOperator, region_dataset: RegionOperator) => GroupMD(this, keys, aggregates, groupName, inputDataset, region_dataset, sc)
           case IRCollapseMD(grouping : Option[MetaGroupOperator], inputDataset : MetaOperator) => CollapseMD(this, grouping, inputDataset, sc)
+          case IRGenerateMD(regionFile: RegionOperator) => GenerateMD(this, regionFile, sc)
         }
       mo.intermediateResult = Some(res)
       res
@@ -269,7 +270,7 @@ class GMQLSparkExecutor(val binSize : BinSize = BinSize(), val maxBinDistance : 
           case irMap:IRGenometricMap => GenometricMap71(this, irMap.grouping, irMap.aggregates, irMap.reference, irMap.samples,binSize.Map,REF_PARALLILISM, sc)
           case IRDifferenceRD(metaJoin: OptionalMetaJoinOperator, leftDataset: RegionOperator, rightDataset: RegionOperator,exact:Boolean) => GenometricDifference(this, metaJoin, leftDataset, rightDataset,exact, sc)
           case IRProjectRD(projectedValues: Option[List[Int]], tupleAggregator: Option[List[RegionExtension]], inputDataset: RegionOperator, inputDatasetMeta: MetaOperator) => ProjectRD(this, projectedValues, tupleAggregator, inputDataset,inputDatasetMeta, sc)
-
+          case IRReadFileRD(path, loader, _) => ReadFileRD(path, loader, sc)
         }
       ro.intermediateResult = Some(res)
       res
