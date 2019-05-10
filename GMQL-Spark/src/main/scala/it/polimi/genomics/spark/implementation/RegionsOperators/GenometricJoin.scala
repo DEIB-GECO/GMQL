@@ -78,21 +78,23 @@ object GenometricJoin {
           else if (firstRoundParameters.min.isDefined) firstRoundParameters.min.get + MAXIMUM_DISTANCE
           else MAXIMUM_DISTANCE
 
-        val repartitionConstant =  Math.ceil(2.0 * maxDistance / BINNING_PARAMETER).toInt
+        val binningParameter = Math.min(2 * maxDistance, BINNING_PARAMETER)
+
+        val repartitionConstant = Math.ceil(2.0 * maxDistance / binningParameter).toInt
 
         val gRecordKeyPartitioner =
-          new GRecordHashPartitioner(BINNING_PARAMETER, repartitionConstant * join_size)
+          new GRecordHashPartitioner(binningParameter, repartitionConstant * join_size)
 
         //(bin, chrom), (gRecordKey, values, newId)
         val binnedRef = binLeftDs2(
           ref.partitionBy(gRecordKeyPartitioner),
           firstRoundParameters,
           secondRoundParameters,
-          BINNING_PARAMETER,
+          binningParameter,
           maxDistance)
 
         //(bin, chrom), (gRecordKey, values)
-        val binnedRight = binRightDs2(exp.partitionBy(gRecordKeyPartitioner), BINNING_PARAMETER)
+        val binnedRight = binRightDs2(exp.partitionBy(gRecordKeyPartitioner), binningParameter)
 
         val joined2: RDD[((Int, String), ((GRecordKey, Array[GValue]), (GRecordKey, Array[GValue])))] =
           binnedRef
@@ -114,11 +116,11 @@ object GenometricJoin {
             joined2
 
 
-        val first: RDD[(GRECORD, GRECORD)] =
+        val filteredRegion: RDD[(GRECORD, GRECORD)] =
           filteredAttribute
             .filter { case ((bin, _), ((gRKL, _), (gRKR, _))) =>
-              val startRefBin = computeBinStartRef(gRKL, firstRoundParameters, secondRoundParameters, maxDistance, BINNING_PARAMETER)
-              val expStartBin = (gRKR.start / BINNING_PARAMETER).toInt
+              val startRefBin = computeBinStartRef(gRKL, firstRoundParameters, secondRoundParameters, maxDistance, binningParameter)
+              val expStartBin = (gRKR.start / binningParameter).toInt
               (bin == startRefBin || bin == expStartBin) &&
                 (gRKL.strand.equals('*') || gRKR.strand.equals('*') || gRKL.strand.equals(gRKR.strand)) &&
                 refGroups2.contains((gRKL.id, gRKR.id)) &&
@@ -128,14 +130,13 @@ object GenometricJoin {
 
 
         val firstRound: RDD[(GRECORD, GRECORD)] = if (minDistanceParameter.isDefined) {
-          first
+          filteredRegion
             .map { case ((gRKL, valuesL), rightRecord) =>
               val newId = refGroups2((gRKL.id, rightRecord._1.id))
               (MapKey(newId, gRKL.chrom, gRKL.start, gRKL.stop, gRKL.strand, valuesL.toList), rightRecord)
             }
             .groupByKey()
             .flatMap { case (mapKey, iter) =>
-
               val itr = iter
                 .toList
                 .map(e =>
@@ -150,7 +151,7 @@ object GenometricJoin {
             }
         }
         else
-          first.map {
+          filteredRegion.map {
             case ((gRKL, valuesL), rightRecord) =>
               val newId = refGroups2((gRKL.id, rightRecord._1.id))
               ((gRKL.copy(id = newId), valuesL), rightRecord)
@@ -418,9 +419,9 @@ object GenometricJoin {
 
 }
 
-class GRecordHashPartitioner(BINNING_PARAMETER: Long, partitions: Int) extends HashPartitioner(partitions) {
+class GRecordHashPartitioner(binningParameter: Long, partitions: Int) extends HashPartitioner(partitions) {
   override def getPartition(key: Any): Int = {
     val recordKey = key.asInstanceOf[GRecordKey]
-    super.getPartition(((recordKey.start / BINNING_PARAMETER).toInt, recordKey.chrom))
+    super.getPartition(((recordKey.start / binningParameter).toInt, recordKey.chrom))
   }
 }
