@@ -33,9 +33,11 @@ class CollectedResult(collectedResult: (Iterator[(GRecordKey, Array[GValue])],
     * chr\tstart\tstop\tstrand\tvalue1\tvalue2\t...\tvalueN\n ..."
     **/
   def getRegionAsString(n: Int = 1): String = {
-    if(regions.hasNext) regions.take(n).map(r => regionsToListOfString(r)
-      .mkString(VALUES_DELIMITER)).mkString(REGIONS_DELIMITER)
-    else END_OF_STREAM
+    if(regions.hasNext){
+      {for (_ <- 1 to n; if regions.hasNext) yield regions.next() }
+        .map(r => regionsToListOfString(r)
+          .mkString(VALUES_DELIMITER)).mkString(REGIONS_DELIMITER)
+    } else END_OF_STREAM
   }
 
 
