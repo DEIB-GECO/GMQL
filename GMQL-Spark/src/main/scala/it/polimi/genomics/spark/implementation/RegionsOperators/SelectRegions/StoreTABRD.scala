@@ -89,14 +89,13 @@ object StoreTABRD {
     //    writeMultiOutputFiles.saveAsMultipleTextFiles(keyedRDD, RegionOutputPath)
 
 
-
     val metaKeyValue = meta
       .partitionBy(metaPartitioner)
-      .mapPartitions({x: Iterator[(Long, (String, String))] =>
+      .mapPartitions({ x: Iterator[(Long, (String, String))] =>
         x.toSeq.sortBy(_._2).toIterator
-      },true)
+      }, true)
       .map { x =>
-        (newMetaFileNames(x._1), x._2)
+        (newMetaFileNames(x._1), x._2.productIterator.mkString("\t"))
       }
 
     metaKeyValue.saveAsHadoopFile(MetaOutputPath, classOf[String], classOf[String], classOf[RDDMultipleTextOutputFormat])
