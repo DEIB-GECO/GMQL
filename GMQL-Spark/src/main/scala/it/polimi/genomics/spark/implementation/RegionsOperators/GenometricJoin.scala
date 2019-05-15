@@ -37,7 +37,7 @@ object GenometricJoin {
       executor.implement_rd(rightDataset, sc)
 
 
-    val groups2 =
+    val groups =
       executor
         .implement_mjd(metajoinCondition, sc)
         .flatMap {
@@ -48,11 +48,11 @@ object GenometricJoin {
         }
 
     //(Left, Right) -> newId
-    val refGroups2: Map[(Long, Long), Long] = sc.broadcast(groups2.collectAsMap()).value.toMap
+    val groupsBroadcast = sc.broadcast(groups.collectAsMap())
 
 
-    val left_size = refGroups2.keys.map(_._1).toSet.size
-    val right_size = refGroups2.keys.map(_._2).toSet.size
+    val left_size = groupsBroadcast.value.keys.map(_._1).toSet.size
+    val right_size = groupsBroadcast.value.keys.map(_._2).toSet.size
     val join_size = Math.max(left_size, right_size)*24//refGroups2.size
 
 
@@ -121,7 +121,7 @@ object GenometricJoin {
               val expStartBin = (gRKR.start / BINNING_PARAMETER).toInt
               (bin == startRefBin || bin == expStartBin) &&
                 (gRKL.strand.equals('*') || gRKR.strand.equals('*') || gRKL.strand.equals(gRKR.strand)) &&
-                refGroups2.contains((gRKL.id, gRKR.id)) &&
+                groupsBroadcast.value.contains((gRKL.id, gRKR.id)) &&
                 checkRegionCondition(gRKL, gRKR, firstRoundParameters)
             }
             .map(_._2)
@@ -130,7 +130,7 @@ object GenometricJoin {
         val firstRound: RDD[(GRECORD, GRECORD)] = if (minDistanceParameter.isDefined) {
           first
             .map { case ((gRKL, valuesL), rightRecord) =>
-              val newId = refGroups2((gRKL.id, rightRecord._1.id))
+              val newId = groupsBroadcast.value((gRKL.id, rightRecord._1.id))
               (MapKey(newId, gRKL.chrom, gRKL.start, gRKL.stop, gRKL.strand, valuesL.toList), rightRecord)
             }
             .groupByKey()
@@ -152,7 +152,7 @@ object GenometricJoin {
         else
           first.map {
             case ((gRKL, valuesL), rightRecord) =>
-              val newId = refGroups2((gRKL.id, rightRecord._1.id))
+              val newId = groupsBroadcast.value((gRKL.id, rightRecord._1.id))
               ((gRKL.copy(id = newId), valuesL), rightRecord)
           }
 
@@ -208,7 +208,7 @@ object GenometricJoin {
       case _ => output
     }
 
-
+    groupsBroadcast.unpersist()
     distinct_output
   }
 
