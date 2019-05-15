@@ -208,7 +208,6 @@ object GenometricJoin {
       case _ => output
     }
 
-    groupsBroadcast.unpersist()
     distinct_output
   }
 

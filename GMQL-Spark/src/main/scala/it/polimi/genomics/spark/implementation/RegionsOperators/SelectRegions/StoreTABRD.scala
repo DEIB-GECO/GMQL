@@ -59,7 +59,6 @@ object StoreTABRD {
         .partitionBy(regionsPartitioner)
 
     //after partition we can destroy the broadcast
-    newIDSBroad.unpersist()
 
 
     val basedRDD =
@@ -91,8 +90,6 @@ object StoreTABRD {
 
     metaKeyValue.saveAsHadoopFile(MetaOutputPath, classOf[String], classOf[String], classOf[RDDMultipleTextOutputFormat])
     writeMultiOutputFiles.fixOutputMetaLocation(MetaOutputPath)
-
-    newRegionFileNamesBroad.unpersist()
 
     regions
   }
