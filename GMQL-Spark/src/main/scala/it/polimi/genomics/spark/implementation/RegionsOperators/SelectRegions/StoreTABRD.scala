@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory
   * Created by abdulrahman kaitoua on 25/05/15.
   */
 object StoreTABRD {
-  private final val logger = LoggerFactory.getLogger(StoreTABRD.getClass);
+  private final val logger = LoggerFactory.getLogger(StoreTABRD.getClass)
   private final val ENCODING = "UTF-8"
 
   @throws[SelectFormatException]
@@ -43,12 +43,12 @@ object StoreTABRD {
     val newRegionFileNamesBroad = sc.broadcast(newRegionFileNames)
 
 
-    val regionsPartitioner = new HashPartitioner(newIDS.size) {
+    val regionsPartitioner = new HashPartitioner(newIDSBroad.value.size) {
       override def getPartition(key: Any): Int = newIDSBroad.value(key.asInstanceOf[GRecordKey].id)
     }
 
 
-    val metaPartitioner = new HashPartitioner(newIDS.size) {
+    val metaPartitioner = new HashPartitioner(newIDSBroad.value.size) {
       override def getPartition(key: Any): Int = newIDSBroad.value(key.asInstanceOf[Long])
     }
 
