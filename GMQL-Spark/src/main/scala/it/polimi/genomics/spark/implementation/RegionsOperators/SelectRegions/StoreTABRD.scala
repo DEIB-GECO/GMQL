@@ -41,26 +41,28 @@ object StoreTABRD {
     val newIDSBroad = sc.broadcast(newIDS)
 
 
-    val newRegionFileIds: Map[Long, Int] = newIDSBroad.value //.map(t => (t._1, outSample + "%05d".format(t._2) + ".gdm"))
+//    val newRegionFileIds: Map[Long, Int] = newIDSBroad.value //.map(t => (t._1, outSample + "%05d".format(t._2) + ".gdm"))
 
-    val newRegionFileNames = newRegionFileIds.map(t => (t._1, outSample + "%05d".format(t._2) + ".gdm"))
+    val newRegionFileNames1 = newIDS.map(t => (t._1, outSample + "%05d".format(t._2) + ".gdm"))
+    val newRegionFileNamesBroad = sc.broadcast(newRegionFileNames1)
 
-    val newMetaFileNames = newRegionFileNames.map(t => (t._1, t._2 + ".meta"))
+
+    //    val newMetaFileNames = newRegionFileNames.map(t => (t._1, t._2 + ".meta"))
 
 
-    val regionsPartitioner = new HashPartitioner(newRegionFileIds.size) {
-      override def getPartition(key: Any): Int = newRegionFileIds(key.asInstanceOf[GRecordKey].id) //super.getPartition(key.asInstanceOf[GRecordKey].id)
+    val regionsPartitioner = new HashPartitioner(newIDSBroad.value.size) {
+      override def getPartition(key: Any): Int = newIDSBroad.value(key.asInstanceOf[GRecordKey].id) //super.getPartition(key.asInstanceOf[GRecordKey].id)
     }
 
 
-    val metaPartitioner = new HashPartitioner(newRegionFileIds.size) {
-      override def getPartition(key: Any): Int = newRegionFileIds(key.asInstanceOf[Long]) //super.getPartition(key.asInstanceOf[GRecordKey].id)
+    val metaPartitioner = new HashPartitioner(newIDSBroad.value.size) {
+      override def getPartition(key: Any): Int = newIDSBroad.value(key.asInstanceOf[Long]) //super.getPartition(key.asInstanceOf[GRecordKey].id)
     }
 
 
     val keyedRDD: RDD[(String, String)] =
       regions //.sortBy(s=>s._1) //disabled sorting
-        .filter(r => newRegionFileNames.contains(r._1.id))
+        .filter(r => newRegionFileNamesBroad.value.contains(r._1.id))
         .partitionBy(regionsPartitioner)
         .map {
           case (recordKey: GRecordKey, values: Array[GValue]) =>
@@ -78,7 +80,7 @@ object StoreTABRD {
               recordKey.strand
             ) ++ values
 
-            (newRegionFileNames(recordKey.id), mergedArray.mkString("\t"))
+            (newRegionFileNamesBroad.value(recordKey.id), mergedArray.mkString("\t"))
         }
 
 
@@ -95,7 +97,7 @@ object StoreTABRD {
         x.toSeq.sortBy(_._2).toIterator
       }, true)
       .map { x =>
-        (newMetaFileNames(x._1), x._2.productIterator.mkString("\t"))
+        (newRegionFileNamesBroad.value(x._1) + ".meta", x._2.productIterator.mkString("\t"))
       }
 
     metaKeyValue.saveAsHadoopFile(MetaOutputPath, classOf[String], classOf[String], classOf[RDDMultipleTextOutputFormat])
