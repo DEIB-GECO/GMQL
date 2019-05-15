@@ -33,63 +33,52 @@ object StoreTABRD {
     logger.debug(meta.toDebugString)
 
 
-    val outSample = "S_"
-
     val idsMeta = meta.keys.distinct().collect().sorted
 
     val newIDS = idsMeta.zipWithIndex.toMap
     val newIDSBroad = sc.broadcast(newIDS)
 
 
-//    val newRegionFileIds: Map[Long, Int] = newIDSBroad.value //.map(t => (t._1, outSample + "%05d".format(t._2) + ".gdm"))
-
-    val newRegionFileNames1 = newIDS.map(t => (t._1, outSample + "%05d".format(t._2) + ".gdm"))
-    val newRegionFileNamesBroad = sc.broadcast(newRegionFileNames1)
+    val newRegionFileNames = newIDS.map(t => (t._1, "S_%05d.gdm".format(t._2)))
+    val newRegionFileNamesBroad = sc.broadcast(newRegionFileNames)
 
 
-    //    val newMetaFileNames = newRegionFileNames.map(t => (t._1, t._2 + ".meta"))
-
-
-    val regionsPartitioner = new HashPartitioner(newIDSBroad.value.size) {
-      override def getPartition(key: Any): Int = newIDSBroad.value(key.asInstanceOf[GRecordKey].id) //super.getPartition(key.asInstanceOf[GRecordKey].id)
+    val regionsPartitioner = new HashPartitioner(newIDS.size) {
+      override def getPartition(key: Any): Int = newIDSBroad.value(key.asInstanceOf[GRecordKey].id)
     }
 
 
-    val metaPartitioner = new HashPartitioner(newIDSBroad.value.size) {
-      override def getPartition(key: Any): Int = newIDSBroad.value(key.asInstanceOf[Long]) //super.getPartition(key.asInstanceOf[GRecordKey].id)
+    val metaPartitioner = new HashPartitioner(newIDS.size) {
+      override def getPartition(key: Any): Int = newIDSBroad.value(key.asInstanceOf[Long])
     }
 
 
-    val keyedRDD: RDD[(String, String)] =
+    val partitionedRDD: RDD[(GRecordKey, Array[GValue])] =
       regions //.sortBy(s=>s._1) //disabled sorting
         .filter(r => newRegionFileNamesBroad.value.contains(r._1.id))
         .partitionBy(regionsPartitioner)
-        .map {
-          case (recordKey: GRecordKey, values: Array[GValue]) =>
-            val newStart =
-              if (coordinateSystem == GMQLSchemaCoordinateSystem.OneBased)
-                recordKey.start + 1
-              else
-                recordKey.start //start: 0-based -> 1-based
+
+    //after partition we can destroy the broadcast
+    newIDSBroad.unpersist()
 
 
-            val mergedArray = Array(
-              recordKey.chrom,
-              newStart,
-              recordKey.stop,
-              recordKey.strand
-            ) ++ values
+    val basedRDD =
+      if (coordinateSystem == GMQLSchemaCoordinateSystem.OneBased)
+        partitionedRDD
+          .map { case (recordKey: GRecordKey, values: Array[GValue]) =>
+            (recordKey.copy(start = recordKey.start + 1), values)
+          }
+      else
+        partitionedRDD
 
-            (newRegionFileNamesBroad.value(recordKey.id), mergedArray.mkString("\t"))
-        }
-
-
-
-    //.mapPartitions(x=>x.toList.sortBy{s=> val data = s._2.split("\t"); (data(0),data(1).toLong,data(2).toLong)}.iterator)
+    val keyedRDD =
+      basedRDD.map {
+        case (recordKey: GRecordKey, values: Array[GValue]) =>
+          //drop 1 removed the file id
+          (newRegionFileNamesBroad.value(recordKey.id), (recordKey.productIterator.drop(1) ++ values).mkString("\t"))
+      }
 
     keyedRDD.saveAsHadoopFile(RegionOutputPath, classOf[String], classOf[String], classOf[RDDMultipleTextOutputFormat])
-    //    writeMultiOutputFiles.saveAsMultipleTextFiles(keyedRDD, RegionOutputPath)
-
 
     val metaKeyValue = meta
       .partitionBy(metaPartitioner)
@@ -102,6 +91,8 @@ object StoreTABRD {
 
     metaKeyValue.saveAsHadoopFile(MetaOutputPath, classOf[String], classOf[String], classOf[RDDMultipleTextOutputFormat])
     writeMultiOutputFiles.fixOutputMetaLocation(MetaOutputPath)
+
+    newRegionFileNamesBroad.unpersist()
 
     regions
   }
