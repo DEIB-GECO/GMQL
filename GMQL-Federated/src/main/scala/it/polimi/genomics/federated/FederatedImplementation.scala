@@ -5,7 +5,8 @@ import it.polimi.genomics.GMQLServer.Implementation
 import it.polimi.genomics.core.DAG._
 import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
 import it.polimi.genomics.core.DataStructures._
-import it.polimi.genomics.core.{GMQLLoaderBase, GMQLSchema, GMQLSchemaCoordinateSystem, GMQLSchemaFormat}
+import it.polimi.genomics.core.ParsingType.PARSING_TYPE
+import it.polimi.genomics.core._
 import it.polimi.genomics.repository.federated.communication._
 import it.polimi.genomics.repository.federated.{GF_Communication, GF_Interface}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
@@ -388,7 +389,11 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
     executionDAGs.roots.foreach(recursiveCall(_, LOCAL_INSTANCE))
   }
 
+  override def collectIterator(iRVariable: IRVariable): (Iterator[(GRecordKey, Array[GValue])], Iterator[(Long, (String, String))], List[(String, PARSING_TYPE)]) =
+    throw new NotImplementedError()
 
+  override def takeFirst(iRVariable: IRVariable, n: Int): (Array[(GRecordKey, Array[GValue])], Array[(Long, (String, String))], List[(String, PARSING_TYPE)]) =
+    throw new NotImplementedError()
 }
 
 

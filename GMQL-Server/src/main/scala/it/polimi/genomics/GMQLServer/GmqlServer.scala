@@ -57,16 +57,13 @@ class GmqlServer(var implementation: Implementation, binning_size: Option[Long] 
     implementation.collect(optimise(List(iRVariable)).head)
   }
 
-  //TODO Nanni
-//  def COLLECT_ITERATOR(iRVariable: IRVariable): (Iterator[(GRecordKey, Array[GValue])], Iterator[(Long, (String, String))], List[(String, PARSING_TYPE)]) = {
-//    optimise()
-//    implementation.collectIterator(iRVariable)
-//  }
-//
-//  def TAKE_FIRST(iRVariable: IRVariable, n: Int): (Array[(GRecordKey, Array[GValue])], Array[(Long, (String, String))], List[(String, PARSING_TYPE)]) = {
-//    optimise()
-//    implementation.takeFirst(iRVariable, n)
-//  }
+  def COLLECT_ITERATOR(iRVariable: IRVariable): (Iterator[(GRecordKey, Array[GValue])], Iterator[(Long, (String, String))], List[(String, PARSING_TYPE)]) = {
+    implementation.collectIterator(optimise(List(iRVariable)).head)
+  }
+
+  def TAKE_FIRST(iRVariable: IRVariable, n: Int): (Array[(GRecordKey, Array[GValue])], Array[(Long, (String, String))], List[(String, PARSING_TYPE)]) = {
+    implementation.takeFirst(optimise(List(iRVariable)).head, n)
+  }
 
 
   def TAKE(iRVariable: IRVariable, n: Int): Any = {
@@ -158,19 +155,18 @@ class GmqlServer(var implementation: Implementation, binning_size: Option[Long] 
 
   }
 
-  //TODO Nanni
-//  def readFile[IR, OR, IM, OM](path: String, loader: GMQLLoader[IR, OR, IM, OM]): IRVariable = {
-//    val ds = implementation.getDataset(path).get
-//    val dagRD = IRReadFileRD(path, loader, ds)
-//    val dagMD = IRGenerateMD(dagRD)
-//
-//    import scala.collection.JavaConverters._
-//    val schema = if (ds.schema.isEmpty)
-//      loader.schema
-//    else
-//      ds.schema.asScala.toList
-//    IRVariable(dagMD, dagRD, schema)
-//  }
+  def readFile[IR, OR, IM, OM](path: String, loader: GMQLLoader[IR, OR, IM, OM]): IRVariable = {
+    val ds = implementation.getDataset(path).get
+    val dagRD = IRReadFileRD(path, loader, ds)
+    val dagMD = IRGenerateMD(dagRD)
+
+    import scala.collection.JavaConverters._
+    val schema = if (ds.schema.isEmpty)
+      loader.schema
+    else
+      ds.schema.asScala.toList
+    IRVariable(dagMD, dagRD, schema)
+  }
 
 
 

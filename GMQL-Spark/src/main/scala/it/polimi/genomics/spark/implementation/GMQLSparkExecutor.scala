@@ -64,13 +64,12 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
   }
 
 
-  //TODO Nanni
-//  override def collectIterator(iRVariable: IRVariable): (Iterator[(GRecordKey, Array[GValue])], Iterator[(Long, (String, String))], List[(String, PARSING_TYPE)]) = {
-//    val metaRDD = implement_md(iRVariable.metaDag, sc).toLocalIterator
-//    val regionRDD = implement_rd(iRVariable.regionDag, sc).toLocalIterator
-//
-//    (regionRDD,metaRDD,iRVariable.schema)
-//  }
+  override def collectIterator(iRVariable: IRVariable): (Iterator[(GRecordKey, Array[GValue])], Iterator[(Long, (String, String))], List[(String, PARSING_TYPE)]) = {
+    val metaRDD = implement_md(iRVariable.metaDag, sc).toLocalIterator
+    val regionRDD = implement_rd(iRVariable.regionDag, sc).toLocalIterator
+
+    (regionRDD,metaRDD,iRVariable.schema)
+  }
 
 
   override def collect(variable: IRVariable): (Array[(GRecordKey, Array[GValue])], Array[(Long, (String, String))], List[(String, PARSING_TYPE)]) = {
@@ -87,13 +86,12 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
     (regionRDD, metaRDD, iRVariable.schema)
   }
 
-  //TODO Nanni
-//  override def takeFirst(iRVariable: IRVariable, n: Int): (Array[(GRecordKey, Array[GValue])], Array[(Long, (String, String))], List[(String, PARSING_TYPE)]) = {
-//    val metaRDD = implement_md(iRVariable.metaDag, sc).collect()
-//    val regionRDD = implement_rd(iRVariable.regionDag, sc).take(n)
-//
-//    (regionRDD, metaRDD, iRVariable.schema)
-//  }
+  override def takeFirst(iRVariable: IRVariable, n: Int): (Array[(GRecordKey, Array[GValue])], Array[(Long, (String, String))], List[(String, PARSING_TYPE)]) = {
+    val metaRDD = implement_md(iRVariable.metaDag, sc).collect()
+    val regionRDD = implement_rd(iRVariable.regionDag, sc).take(n)
+
+    (regionRDD, metaRDD, iRVariable.schema)
+  }
 
   override def stop(): Unit = {
     sc.stop()
