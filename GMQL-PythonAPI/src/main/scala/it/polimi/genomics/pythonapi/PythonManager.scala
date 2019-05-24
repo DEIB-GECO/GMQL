@@ -10,6 +10,8 @@ import it.polimi.genomics.core._
 import it.polimi.genomics.pythonapi.operators.{ExpressionBuilder, OperatorManager}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.loaders._
+import it.polimi.genomics.spark.utilities.FSConfig
+import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.slf4j.LoggerFactory
 
@@ -157,6 +159,13 @@ object PythonManager {
     read_dataset(dataset_path, parser)
   }
 
+
+  def readFile(filePath: String, parser: BedParser): Int = {
+    val dataset: IRVariable = this.server.readFile(filePath, parser)
+    this.putNewVariable(dataset)
+  }
+
+
   def read_dataset(dataset_path: String, parser: BedParser): Int = {
     val dataset: IRVariable = this.server READ dataset_path USING parser
     //putting the new variable in the map
@@ -174,9 +183,41 @@ object PythonManager {
     }
   }
 
+
+  def preProcessPath(datasetPath: String): String = {
+    val path: Path = new Path(datasetPath)
+    val fs: FileSystem = FileSystem.get(path.toUri, FSConfig.getConf)
+
+    val res = {
+      if(fs.listStatus(path).exists{ x => x.isDirectory && x.getPath.getName == "files" }){
+        val filesFolder = new Path(path, "files")
+        //search for a schema.xml
+        val schemaPath = new Path(filesFolder, "schema.xml")
+        if(fs.isFile(schemaPath))
+          filesFolder.toString
+        else
+          throw new IllegalStateException(s"No schema found in ${filesFolder.toUri.getRawPath}")
+      }
+      else{
+        //no files folder...search the schema.xml here
+        val schemaPath = new Path(path, "schema.xml")
+        if(fs.isFile(schemaPath))
+          path.toString
+        else
+          throw new IllegalStateException(s"No schema found in ${path.toUri.getRawPath}")
+      }
+    }
+    res
+  }
+
+  def getParserFromPath(parserPath: String): BedParser = {
+    (new CustomParser).setSchema(parserPath)
+  }
+
+
   def buildParser(delimiter: String, chrPos: Int, startPos: Int, stopPos: Int,
                   strandPos: Option[Int], otherPos: Option[java.util.List[java.util.List[String]]],
-                  parsingType: String, coordinateSystem: String) = {
+                  parsingType: String, coordinateSystem: String): BedParser = {
 
     val pType = GMQLSchemaFormat.getType(parsingType)
     val cSystem = GMQLSchemaCoordinateSystem.getType(coordinateSystem)
@@ -261,6 +302,13 @@ object PythonManager {
 
   def materialize(index: Int, outputPath: String): Unit = {
     logger.info(s"Materializing variable $index at $outputPath")
+
+    val path = new Path(outputPath)
+    val fs = FileSystem.get(path.toUri, FSConfig.getConf)
+
+    if(fs.exists(path))
+      throw new java.io.IOException("Trying to overwrite non empty folder")
+
     // get the variable from the map
     val variableToMaterialize = this.variables.get(index)
     this.server setOutputPath outputPath MATERIALIZE variableToMaterialize.get
@@ -283,7 +331,7 @@ object PythonManager {
     this.checkSparkContext()
 
     val variableToCollect = this.variables.get(index)
-    val result = this.server COLLECT variableToCollect.get
+    val result = this.server COLLECT_ITERATOR variableToCollect.get
     // this.stopSparkContext()
     new CollectedResult(result)
   }
@@ -291,8 +339,8 @@ object PythonManager {
   def take(index: Int, n: Int): CollectedResult = {
     this.checkSparkContext()
     val variableToTake = this.getVariable(index)
-    val result = this.server.TAKE(variableToTake, n)
-    new CollectedResult(result)
+    val result = this.server.TAKE_FIRST(variableToTake, n)
+    new CollectedResult( (result._1.toIterator, result._2.toIterator, result._3) )
   }
 
   def serializeVariable(index: Int): String = {
@@ -320,6 +368,12 @@ object PythonManager {
           x.dataset = newDataset
           x.paths = List(dest)
         }
+      case x: IRReadFileRD[_,_,_,_] =>
+        if (x.dataset.position == source) {
+          val newDataset = IRDataSet(dest, x.dataset.schema)
+          x.dataset = newDataset
+          x.path = dest
+        }
       case _ =>
     }
     dag.getOperatorList.map(operator => modify_dag_source(operator, source, dest))
@@ -331,7 +385,7 @@ object PythonManager {
     /*Check if there is an instantiated spark context*/
     if (this.sparkContext.isEmpty) {
       val sc = this.startSparkContext()
-      this.server.implementation = new GMQLSparkExecutor(sc = sc, stopContext = false)
+      this.server.implementation = new GMQLSparkExecutor(sc = sc, stopContext = false, profileData = false)
       this.setSparkContext(sc)
     }
   }

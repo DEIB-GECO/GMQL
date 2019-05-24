@@ -42,26 +42,6 @@ object GenometricMap71 {
     execute(executor, grouping, aggregator, ref, exp, binningParameter, REF_PARALLILISM, sc)
   }
 
-  case class MapKey(/*sampleId: Long, */ newId: Long, refChr: String, refStart: Long, refStop: Long, refStrand: Char, refValues: List[GValue]) {
-
-    override def equals(obj: scala.Any): Boolean = {
-      if (## == obj.##) {
-        val that = obj.asInstanceOf[MapKey]
-        // val result = this.productIterator.zip(that.productIterator).map(x=>x._1 equals x._2).reduce(_ && _)
-        this.refStart == that.refStart &&
-          this.refStop == that.refStop &&
-          this.refStrand == that.refStrand &&
-          //  this.sampleId == that.sampleId &&
-          this.newId == that.newId &&
-          this.refChr == that.refChr &&
-          this.refValues == that.refValues
-      }
-      else
-        false
-    }
-
-    @transient override lazy val hashCode: Int = MurmurHash3.productHash(this)
-  }
 
   //possible solution is generate GRecordKey and add the others as list
 
@@ -199,8 +179,25 @@ object GenometricMap71 {
         }
 
       }
-
-
   }
 
+}
+
+case class MapKey( newId: Long, refChr: String, refStart: Long, refStop: Long, refStrand: Char, refValues: List[GValue]) {
+
+  override def equals(obj: scala.Any): Boolean = {
+    if (## == obj.##) {
+      val that = obj.asInstanceOf[MapKey]
+      this.refStart == that.refStart &&
+        this.refStop == that.refStop &&
+        this.refStrand == that.refStrand &&
+        this.newId == that.newId &&
+        this.refChr == that.refChr &&
+        this.refValues == that.refValues
+    }
+    else
+      false
+  }
+
+  @transient override lazy val hashCode: Int = MurmurHash3.productHash(this)
 }

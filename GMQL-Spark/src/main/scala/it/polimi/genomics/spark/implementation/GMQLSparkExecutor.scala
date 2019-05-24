@@ -35,6 +35,7 @@ import org.apache.hadoop.fs.{FileSystem, Path, PathFilter}
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.slf4j.LoggerFactory
+import it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions._
 
 import it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions.StoreFed
 
@@ -47,7 +48,7 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
                         testingIOFormats: Boolean = false, sc: SparkContext,
                         outputFormat: GMQLSchemaFormat.Value = GMQLSchemaFormat.TAB,
                         outputCoordinateSystem: GMQLSchemaCoordinateSystem.Value = GMQLSchemaCoordinateSystem.Default,
-                        stopContext: Boolean = true)
+                        stopContext:Boolean = true, profileData: Boolean = true)
   extends Implementation with java.io.Serializable {
 
 
@@ -62,6 +63,16 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
     implementation()
   }
 
+
+  //TODO Nanni
+//  override def collectIterator(iRVariable: IRVariable): (Iterator[(GRecordKey, Array[GValue])], Iterator[(Long, (String, String))], List[(String, PARSING_TYPE)]) = {
+//    val metaRDD = implement_md(iRVariable.metaDag, sc).toLocalIterator
+//    val regionRDD = implement_rd(iRVariable.regionDag, sc).toLocalIterator
+//
+//    (regionRDD,metaRDD,iRVariable.schema)
+//  }
+
+
   override def collect(variable: IRVariable): (Array[(GRecordKey, Array[GValue])], Array[(Long, (String, String))], List[(String, PARSING_TYPE)]) = {
     val metaRDD = implement_md(variable.metaDag, sc).collect()
     val regionRDD = implement_rd(variable.regionDag, sc).collect
@@ -75,6 +86,14 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
 
     (regionRDD, metaRDD, iRVariable.schema)
   }
+
+  //TODO Nanni
+//  override def takeFirst(iRVariable: IRVariable, n: Int): (Array[(GRecordKey, Array[GValue])], Array[(Long, (String, String))], List[(String, PARSING_TYPE)]) = {
+//    val metaRDD = implement_md(iRVariable.metaDag, sc).collect()
+//    val regionRDD = implement_rd(iRVariable.regionDag, sc).take(n)
+//
+//    (regionRDD, metaRDD, iRVariable.schema)
+//  }
 
   override def stop(): Unit = {
     sc.stop()
@@ -148,7 +167,7 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
 
           // store schema
           storeSchema(GMQLSchema.generateSchemaXML(variable.schema, outputFolderName, outputFormat, outputCoordinateSystem), variableDir)
-
+        if(profileData){
           // Compute Profile and store into xml files (one for web, one for optimization)
           val profile = Profiler.profile(regions = regionRDD, meta = metaRDD, sc = sc)
 
@@ -170,6 +189,7 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
               e.printStackTrace()
             }
           }
+        }
 
           fs.deleteOnExit(new Path(RegionOutputPath + "_SUCCESS"))
 
@@ -234,10 +254,8 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
           case IROrderMD(ordering: List[(String, Direction)], newAttribute: String, topParameter: TopParameter, inputDataset: MetaOperator) => OrderMD(this, ordering, newAttribute, topParameter, inputDataset, sc)
           case IRGroupMD(keys: MetaGroupByCondition, aggregates: Option[List[MetaAggregateFunction]], groupName: String, inputDataset: MetaOperator, region_dataset: RegionOperator) => GroupMD(this, keys, aggregates, groupName, inputDataset, region_dataset, sc)
           case IRCollapseMD(grouping: Option[MetaGroupOperator], inputDataset: MetaOperator) => CollapseMD(this, grouping, inputDataset, sc)
-          case IRNoopMD() => sc.emptyRDD[DataTypes.MetaType]
-          case IRStoreFedMD(input, _, path) => StoreFed.storeMeta(this, path.get, input, sc)
-          case IRReadFedMD(_, path) => ReadFed.readMeta(path.get, sc)
-          //TODO: IRReadFedMetaJoin and IRReadFedMetaGroup
+          //         TODO Nanni
+          //          case IRGenerateMD(regionFile: RegionOperator) => GenerateMD(this, regionFile, sc)
         }
       mo.intermediateResult = Some(res)
       res
@@ -271,13 +289,17 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
           case IRMergeRD(dataset: RegionOperator, groups: Option[MetaGroupOperator]) => MergeRD(this, dataset, groups, sc)
           case IRGroupRD(groupingParameters: Option[List[GroupRDParameters.GroupingParameter]], aggregates: Option[List[RegionAggregate.RegionsToRegion]], regionDataset: RegionOperator) => GroupRD(this, groupingParameters, aggregates, regionDataset, sc)
           case IROrderRD(ordering: List[(Int, Direction)], topPar: TopParameter, inputDataset: RegionOperator) => OrderRD(this, ordering: List[(Int, Direction)], topPar, inputDataset, sc)
-          case irJoin: IRGenometricJoin => GenometricJoin4TopMin3(this, irJoin.metajoin_condition, irJoin.join_condition, irJoin.region_builder, irJoin.left_dataset, irJoin.right_dataset, irJoin.join_on_attributes, binSize.Join, maxBinDistance, sc)
+          case irJoin:IRGenometricJoin => GenometricJoin(this, irJoin.metajoin_condition, irJoin.join_condition, irJoin.region_builder, irJoin.left_dataset, irJoin.right_dataset,irJoin.join_on_attributes,binSize.Join,maxBinDistance, sc)
+          case irMap:IRGenometricMap => GenometricMap71(this, irMap.grouping, irMap.aggregates, irMap.reference, irMap.samples,binSize.Map,REF_PARALLILISM, sc)
           case irMap: IRGenometricMap => GenometricMap71(this, irMap.grouping, irMap.aggregates, irMap.reference, irMap.samples, binSize.Map, REF_PARALLILISM, sc)
           case IRDifferenceRD(metaJoin: OptionalMetaJoinOperator, leftDataset: RegionOperator, rightDataset: RegionOperator, exact: Boolean) => GenometricDifference(this, metaJoin, leftDataset, rightDataset, exact, sc)
           case IRProjectRD(projectedValues: Option[List[Int]], tupleAggregator: Option[List[RegionExtension]], inputDataset: RegionOperator, inputDatasetMeta: MetaOperator) => ProjectRD(this, projectedValues, tupleAggregator, inputDataset, inputDatasetMeta, sc)
           case IRNoopRD() => sc.emptyRDD[DataTypes.GRECORD]
           case IRStoreFedRD(input, _, pathOption) => StoreFed.storeRegion(this, pathOption.get, input, sc)
           case IRReadFedRD(_, pathOption) => ReadFed.readRegion(pathOption.get, sc)
+
+          //          TODO Nanni
+          //           case IRReadFileRD(path, loader, _) => ReadFileRD(path, loader, sc)
         }
       ro.intermediateResult = Some(res)
       res
@@ -341,6 +363,5 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
     br.write(schema)
     br.close()
   }
-
 
 }

@@ -4,7 +4,8 @@ import it.polimi.genomics.GMQLServer.optimization.{DefaultOptimizer, GMQLOptimiz
 import it.polimi.genomics.core.GMQLLoader
 import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
 import it.polimi.genomics.core.DataStructures._
-import it.polimi.genomics.core.ParsingType.{PARSING_TYPE, _}
+import it.polimi.genomics.core.ParsingType.PARSING_TYPE
+import it.polimi.genomics.core.{GMQLLoader, GRecordKey, GValue}
 
 import scala.collection.mutable
 
@@ -55,6 +56,18 @@ class GmqlServer(var implementation: Implementation, binning_size: Option[Long] 
   def COLLECT(iRVariable: IRVariable): Any = {
     implementation.collect(optimise(List(iRVariable)).head)
   }
+
+  //TODO Nanni
+//  def COLLECT_ITERATOR(iRVariable: IRVariable): (Iterator[(GRecordKey, Array[GValue])], Iterator[(Long, (String, String))], List[(String, PARSING_TYPE)]) = {
+//    optimise()
+//    implementation.collectIterator(iRVariable)
+//  }
+//
+//  def TAKE_FIRST(iRVariable: IRVariable, n: Int): (Array[(GRecordKey, Array[GValue])], Array[(Long, (String, String))], List[(String, PARSING_TYPE)]) = {
+//    optimise()
+//    implementation.takeFirst(iRVariable, n)
+//  }
+
 
   def TAKE(iRVariable: IRVariable, n: Int): Any = {
     implementation.take(optimise(List(iRVariable)).head, n)
@@ -144,6 +157,21 @@ class GmqlServer(var implementation: Implementation, binning_size: Option[Long] 
     }
 
   }
+
+  //TODO Nanni
+//  def readFile[IR, OR, IM, OM](path: String, loader: GMQLLoader[IR, OR, IM, OM]): IRVariable = {
+//    val ds = implementation.getDataset(path).get
+//    val dagRD = IRReadFileRD(path, loader, ds)
+//    val dagMD = IRGenerateMD(dagRD)
+//
+//    import scala.collection.JavaConverters._
+//    val schema = if (ds.schema.isEmpty)
+//      loader.schema
+//    else
+//      ds.schema.asScala.toList
+//    IRVariable(dagMD, dagRD, schema)
+//  }
+
 
 
   /**

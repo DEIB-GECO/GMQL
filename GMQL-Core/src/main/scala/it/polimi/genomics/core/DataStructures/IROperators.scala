@@ -188,6 +188,29 @@ case class IRStoreFedMetaGroup(input: MetaGroupOperator, name: String, var path:
   override def toString: String = super.toString + "\n" + this.name
 }
 
+//TODO Nanni
+///**
+//  * Dag node to load single files with custom loader
+//  * @param path path of the file
+//  * @param loader class that contains both the region and the metadata parser
+//  * @param dataset dataset class which is a wrapper for the dataset
+//  * @tparam IR Type of the input of the region parser
+//  * @tparam OR Type of the output of the region parser
+//  * @tparam IM Type of the input of the metadata parser
+//  * @tparam OM Type of the output of the metadata parser
+//  */
+//case class IRReadFileRD[IR,OR,IM,OM](var path: String,
+//                                   loader: GMQLLoader[IR,OR,IM,OM],
+//                                   var dataset : IRDataSet) extends RegionOperator
+//
+//
+///**
+//  * Dag node to generate empty metadata values for each key in the region data
+//  * @param regionFile region Dag node
+//  */
+//case class IRGenerateMD(regionFile: RegionOperator) extends MetaOperator
+
+
 /** Dag node to represent the MATERIALIZE operation of a variable's metadata into the repository/storage.
   *
   * @param path   location where to store the metadata
