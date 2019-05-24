@@ -12,7 +12,7 @@ import it.polimi.genomics.federated.FederatedImplementation
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
 import org.apache.log4j.xml.DOMConfigurator
-import org.apache.log4j.{FileAppender, Level, PatternLayout}
+import org.apache.log4j._
 import org.slf4j.LoggerFactory
 
 /**
@@ -23,6 +23,8 @@ import org.slf4j.LoggerFactory
 
 object GMQLExecuteCommandFederated {
   private final val logger = LoggerFactory.getLogger(GMQLExecuteCommandFederated.getClass)
+  LogManager.getRootLogger.addAppender(new ConsoleAppender(new PatternLayout("%d{yyyy-MM-dd HH:mm:ss} %-5p    %c{1}:%L - %m%n")))
+  LogManager.getRootLogger.setLevel(Level.ALL)
   try {
       val root: ch.qos.logback.classic.Logger = org.slf4j.LoggerFactory.getLogger("org").asInstanceOf[ch.qos.logback.classic.Logger];
       root.setLevel(ch.qos.logback.classic.Level.WARN);
@@ -337,9 +339,12 @@ object GMQLExecuteCommandFederated {
 
   def compile(id: String, translator: Translator, script: String, inputs: Map[String, String], outputs: Map[String, String]): List[Operator] = {
     var operators: List[Operator] = List[Operator]()
+    logger.trace(script)
     try {
       //compile the GMQL Code
       val languageParserOperators = translator.phase1(script)
+      logger.debug("DOPO PHASE1")
+
 
       operators = languageParserOperators.map(_ match {
         case d: MaterializeOperator =>
@@ -370,8 +375,8 @@ object GMQLExecuteCommandFederated {
         case s: Operator => s
       })
     } catch {
-      case e: CompilerException => logger.error(e.getMessage)
-      case ex: Exception => logger.error(ex.getMessage)
+      case e: CompilerException => logger.error(e.getMessage,e)
+      case ex: Exception => logger.error(ex.getMessage,ex)
     }
 
     operators
