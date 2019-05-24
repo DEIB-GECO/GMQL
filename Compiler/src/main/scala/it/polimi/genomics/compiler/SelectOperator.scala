@@ -36,6 +36,7 @@ case class SelectOperator(op_pos : Position,
     case "at" => {
       this.parse_named_at(n.param_value)
     }
+    case _ =>
   })
 
   override def check_input_variables(status : CompilerStatus) : Boolean = {
