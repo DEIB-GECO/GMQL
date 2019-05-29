@@ -53,7 +53,7 @@ object GenometricJoin {
 
     val left_size = groupsBroadcast.value.keys.map(_._1).toSet.size
     val right_size = groupsBroadcast.value.keys.map(_._2).toSet.size
-    val join_size = Math.max(left_size, right_size)*24//refGroups2.size
+    val join_size = Math.max(left_size, right_size) * 24 //refGroups2.size
 
 
     val output: RDD[(GRecordKey, Array[GValue])] = {
@@ -78,7 +78,7 @@ object GenometricJoin {
           else if (firstRoundParameters.min.isDefined) firstRoundParameters.min.get + MAXIMUM_DISTANCE
           else MAXIMUM_DISTANCE
 
-        val repartitionConstant =  Math.ceil(2.0 * maxDistance / BINNING_PARAMETER).toInt
+        val repartitionConstant = Math.max(1, Math.ceil(2.0 * maxDistance / BINNING_PARAMETER).toInt)
 
         val gRecordKeyPartitioner =
           new GRecordHashPartitioner(BINNING_PARAMETER, repartitionConstant * join_size)
