@@ -212,18 +212,24 @@ object GenometricJoin {
   }
 
   def distinct(ds: RDD[GRECORD]): RDD[(GRecordKey, Array[GValue])] = {
-    implicit val order = Ordering.by { x: (GRecordKey, Array[GValue]) => x._1 + x._2.mkString(",") }
+//    implicit val order = Ordering.by { x: (GRecordKey, Array[GValue]) => x._1 + x._2.mkString(",") }
     ds
       .groupBy(x => (x._1, x._2.deep))
-      .flatMap { s =>
-        val set = s._2.toList.sorted
-        var buf = set.head
-        if (set.size > 1) buf :: set.tail.flatMap(record => if (buf._2.deep == record._2.deep) None else {
-          buf = record
-          Some(record)
-        })
-        else set
-      }
+      .map(_._2.head)
+//      .flatMap { s: ((GRecordKey, IndexedSeq[Any]), Iterable[(GRecordKey, Array[GValue])]) =>
+//        val set = s._2.toList.sorted
+//        var buf = set.head
+//        if (set.size > 1)
+//          buf :: set.tail.flatMap(record =>
+//            if (buf._2.deep == record._2.deep)
+//              None
+//            else {
+//              buf = record
+//              Some(record)
+//            })
+//        else
+//          set
+//      }
   }
 
 
