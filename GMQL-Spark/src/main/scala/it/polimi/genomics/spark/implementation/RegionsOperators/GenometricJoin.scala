@@ -53,7 +53,7 @@ object GenometricJoin {
 
     val left_size = groupsBroadcast.value.keys.map(_._1).toSet.size
     val right_size = groupsBroadcast.value.keys.map(_._2).toSet.size
-    val join_size = Math.max(left_size, right_size) * 24 //refGroups2.size
+    val join_size = Math.max(left_size, right_size) * 6 //refGroups2.size
 
 
     val output: RDD[(GRecordKey, Array[GValue])] = {
