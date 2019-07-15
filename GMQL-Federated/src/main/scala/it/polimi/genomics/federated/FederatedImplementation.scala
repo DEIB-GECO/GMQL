@@ -184,7 +184,7 @@ class FederatedImplementation(val launcherMode: String,
   /** given the name of a parser, returns it. It must at least provide a parser for the "default" name */
   override def getParser(name: String, dataset: String): GMQLLoaderBase = {
     println("getParser")
-    if (dataset.contains(".")) {
+    if (dataset.contains(".") && !dataset.contains(":") && !dataset.contains("/")) {
       val schema: GMQLSchema = api.getSchema(dataset)
       val parser = new CustomParser
 
