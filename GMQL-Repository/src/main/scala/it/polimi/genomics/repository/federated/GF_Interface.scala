@@ -16,6 +16,9 @@ class GF_Interface private {
   private val api = GF_Communication.instance()
   private val repo = Utilities().getRepository()
 
+
+
+
   def importDataset (jobId: String, dsName: String, location: String) = {
     val path = Utilities().getTempDir("federated")
 
@@ -75,6 +78,20 @@ class GF_Interface private {
       FS_Utilities.deleteDFSDir(path)
     }
 
+  }
+
+  // METADATA BROWSER SUPPORT
+
+  def getFilteredKeys(datasetName: String, requestBody: String): String = {
+    api.getFilteredKeys(datasetName, requestBody)
+  }
+
+  def getFilteredKeys(datasetName: String, key: String, requestBody: String): String = {
+    api.getFilteredKeys(datasetName, key, requestBody)
+  }
+
+  def getFilteredMatrix(datasetName: String, transposed:Boolean = false, requestBody: String): String = {
+    api.getFilteredMatrix(datasetName, transposed, requestBody)
   }
 
 }
