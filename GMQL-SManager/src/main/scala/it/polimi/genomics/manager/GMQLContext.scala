@@ -61,7 +61,7 @@ case class GMQLContext(val implPlatform: core.ImplementationPlatform.Value, val 
     */
   val implementation: Implementation = implPlatform match {
     case ImplementationPlatform.SPARK =>    new GMQLSparkExecutor (binSize = binSize, sc = sc, outputFormat = outputFormat, outputCoordinateSystem = outputCoordinateSystem)
-    case ImplementationPlatform.FEDERATED => new FederatedImplementation
+    case ImplementationPlatform.FEDERATED => new FederatedImplementation(Utilities().LAUNCHER_MODE)
   }
 
 }

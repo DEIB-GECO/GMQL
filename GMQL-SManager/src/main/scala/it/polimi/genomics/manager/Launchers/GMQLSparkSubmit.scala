@@ -76,6 +76,8 @@ class GMQLSparkSubmit(job:GMQLJob) {
         General_Utilities().getResultDir("federated")
       }
 
+    val repPrefix = if(General_Utilities().GMQL_REPO_TYPE == General_Utilities().LOCAL) "file://" else ""
+
     var d =  new SparkLauncher(env.asJava)
       .setSparkHome(SPARK_HOME)
       .setAppResource(GMQLjar)
@@ -104,18 +106,18 @@ class GMQLSparkSubmit(job:GMQLJob) {
       d = d.addAppArgs("-scriptpath", job.script.scriptPath)
     }
     if(job.inputDataSets.nonEmpty) {
-      d = d.addAppArgs("-inputDirs",job.inputDataSets.map{x =>x._1+":::"+x._2+"/"}.mkString(","))
-      d = d.addAppArgs("-schemata",job.inputDataSets.map(x => x._2+":::"+getSchema(job,x._1)).mkString(","))
+      d = d.addAppArgs("-inputDirs",job.inputDataSets.map{x =>x._1+":::"+repPrefix+x._2+"/"}.mkString(","))
+      d = d.addAppArgs("-schemata",job.inputDataSets.map(x => x._2+":::"+repPrefix+getSchema(job,x._1)).mkString(","))
     }
     if(outDir.nonEmpty){
-      d = d.addAppArgs("-outputDirs", outDir)
+      d = d.addAppArgs("-outputDirs", repPrefix + outDir)
     }
 
     if(job.script.dag != null && job.script.dag != "") {
       d = d.addAppArgs("-dag", job.script.dag)
     }
     if(job.script.dagPath != null && job.script.dagPath != "") {
-      d = d.addAppArgs("-dagpath", job.script.dagPath)
+      d = d.addAppArgs("-dagpath", repPrefix + job.script.dagPath)
     }
 
     //d=d.setConf("spark.executor.extraJavaOptions", "-Dlog4j.configuration=file:/Users/canakoglu/GMQL-sources/temp/GMQL/GMQL-Core/src/main/resources/logback.xml")

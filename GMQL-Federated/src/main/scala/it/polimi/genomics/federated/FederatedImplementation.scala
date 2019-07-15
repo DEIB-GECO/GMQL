@@ -5,16 +5,22 @@ import it.polimi.genomics.GMQLServer.Implementation
 import it.polimi.genomics.core.DAG._
 import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
 import it.polimi.genomics.core.DataStructures._
+import it.polimi.genomics.core.GDMSUserClass.GDMSUserClass
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core._
 import it.polimi.genomics.repository.federated.communication._
 import it.polimi.genomics.repository.federated.{GF_Communication, GF_Interface}
+import it.polimi.genomics.repository.{Utilities => General_Utilities}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.loaders.CustomParser
+import org.apache.spark.launcher.{SparkAppHandle, SparkLauncher}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.slf4j.LoggerFactory
 
+import scala.collection.JavaConverters._
 import scala.collection.mutable
+import scala.collection.mutable.Map
+import scala.util.Random
 
 
 trait FederatedStep
@@ -25,7 +31,16 @@ case class LocalExecute(iRVariable: IRVariable) extends FederatedStep
 
 case class RemoteExecute(iRVariable: IRVariable, instance: Instance) extends FederatedStep
 
-class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Option[String] = None) extends Implementation with Serializable {
+class FederatedImplementation(val launcherMode: String,
+                              val tempDir: Option[String] = None,
+                              val jobId: Option[String] = None,
+                              val username: Option[String] = None,
+                              val userClass: Option[GDMSUserClass] = None,
+                              val sparkHome: Option[String] = None,
+                              val cliJarLocal: Option[String] = None,
+                              val masterClass: Option[String] = None,
+                              val sparkCustomOption: Option[Map[String, Map[GDMSUserClass.Value, String]]] = None
+                             ) extends Implementation with Serializable {
 
   val api = GF_Communication.instance()
 
@@ -53,6 +68,104 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
     outputFormat = GMQLSchemaFormat.TAB,
     outputCoordinateSystem = GMQLSchemaCoordinateSystem.Default,
     stopContext = false)
+
+
+  def runSparkSubmit(irVars: List[IRVariable]) = {
+
+
+    println(irVars.head.metaDag)
+    println(irVars.head.regionDag)
+
+    def getOutDsName(path: String): String = path.split("_").last.replaceAll("/", "").trim
+
+    val dsName: String =
+      irVars.head.metaDag match {
+        case ir: IRStoreMD => getOutDsName(ir.path)
+        case ir: IRStoreFedMD => ir.name
+        case _ =>
+          irVars.head.regionDag match {
+            case ir: IRStoreRD => getOutDsName(ir.path)
+            case ir: IRStoreFedRD => ir.name
+            case _ => throw new Exception("UNKNOWN IR TYPE")
+          }
+      }
+
+
+    val repPrefix = if (General_Utilities().GMQL_REPO_TYPE == General_Utilities().LOCAL) "file://" else ""
+
+    val serializedDag = DAGSerializer.serializeDAG(DAGWrapper(irVars))
+
+
+    val SPARK_HOME = sparkHome.get
+    val HADOOP_CONF_DIR = General_Utilities().HADOOP_CONF_DIR
+    val YARN_CONF_DIR = General_Utilities().HADOOP_CONF_DIR
+    val GMQL_HOME = General_Utilities().GMQLHOME
+
+    val GMQLjar: String = cliJarLocal.get
+    val MASTER_CLASS = masterClass.get
+    val APPID = "GMQL_" + Random.nextInt() + "_" + jobId
+
+    val env = Map(
+      "HADOOP_CONF_DIR" -> HADOOP_CONF_DIR,
+      "YARN_CONF_DIR" -> YARN_CONF_DIR
+    )
+
+    var d = new SparkLauncher(env.asJava)
+      .setSparkHome(SPARK_HOME)
+      .setAppResource(GMQLjar)
+      .setMainClass(MASTER_CLASS)
+      //      .setConf("spark.driver.extraClassPath", Utilities().lib_dir_local + "/libs/*")
+      .addAppArgs(
+      "-username", username.get,
+      "-jobid", jobId.get,
+      //      "-outputFormat", job.gMQLContext.outputFormat.toString,
+      //      "-outputCoordinateSystem", job.gMQLContext.outputCoordinateSystem.toString,
+      "-logDir", General_Utilities().getLogDir(username.get),
+      "-userLogDir", General_Utilities().getUserLogDir(username.get),
+      "-devLogDir", General_Utilities().getDevLogDir(username.get),
+      "-tempdirfed", tempDir.get)
+      .setConf("spark.app.id", APPID)
+
+
+    val dagPath = repPrefix + General_Utilities().getRepository().saveDagQuery(username.get, serializedDag, jobId.get + dsName + ".dag")
+
+    d = d.addAppArgs("-dagpath", dagPath)
+
+
+    val sparkCustom: Map[String, Map[GDMSUserClass.Value, String]] = sparkCustomOption.getOrElse(Map.empty)
+
+    // Set user-category-dependent Spark properties, if any
+    if (sparkCustom.nonEmpty) {
+
+      for (spark_property <- sparkCustom.keys) {
+
+        val allClass = GDMSUserClass.ALL
+        val property = sparkCustom(spark_property)
+
+        // Note: A property set for a specific user class overrides the same property possibly defined for all classes
+        if (property.isDefinedAt(userClass.get)) {
+          d = d.setConf(spark_property, property(userClass.get))
+        } else if (property.isDefinedAt(allClass)) {
+          d = d.setConf(spark_property, property(allClass))
+        }
+      }
+    }
+
+
+    val b = d.setVerbose(true).startApplication()
+
+
+    println("SPARK_SUBMIT")
+    while (!isFinished(b))
+      Thread.sleep(500L)
+
+    b
+  }
+
+  def isFinished(b: SparkAppHandle) = b.getState match {
+    case SparkAppHandle.State.FINISHED | SparkAppHandle.State.KILLED | SparkAppHandle.State.FAILED => true
+    case _ => false
+  }
 
 
   /** Starts the execution */
@@ -329,7 +442,10 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
       whereExDag match {
         case LOCAL_INSTANCE =>
           println("call(irVarFiltered)")
-          call(irVarFiltered)
+          if (launcherMode == "LOCAL")
+            call(irVarFiltered)
+          else
+            runSparkSubmit(irVarFiltered)
         case _: GMQLInstance =>
 
           println("callRemote(irVarFiltered)")
@@ -353,8 +469,8 @@ class FederatedImplementation(val tempDir: Option[String] = None, val jobId: Opt
       logger.info("Moving " + dsName + " from " + whereExDag + " to " + destination)
       //      if(remoteServerUriOpt.isDefined) {
       val from = whereExDag match {
-        case LOCAL_INSTANCE=> new NameServer().NS_INSTANCENAME
-        case _=>whereExDag.name
+        case LOCAL_INSTANCE => new NameServer().NS_INSTANCENAME
+        case _ => whereExDag.name
       }
       val tokenOpt = moving(jobId.get, dsName, from, remoteServerUriOpt, destination.name)
       poolingMoving(jobId.get, dsName, remoteServerUriOpt, tokenOpt)

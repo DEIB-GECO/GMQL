@@ -101,7 +101,7 @@ class GMQLLocalLauncher(localJob: GMQLJob) extends GMQLLauncher(localJob) {
             else {
               General_Utilities().getResultDir("federated")
             }
-          job.server.implementation = new FederatedImplementation(Some(tempDir), Some(job.jobId))
+          job.server.implementation = new FederatedImplementation("LOCAL", Some(tempDir), Some(job.jobId))
         }
         //      new GMQLSparkExecutor(
         //      binSize = job.gMQLContext.binSize,

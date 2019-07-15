@@ -40,14 +40,14 @@ class GF_Communication private {
 
   def getDataset(identifier : String) : FederatedDataset = {
 
-    val dataset_xml = ns.get("/api/dataset/"+identifier)
+    val dataset_xml = ns.get("/api/dataset/"+identifier + "/")
     new FederatedDataset(dataset_xml)
 
   }
 
   def getLocation(identifier: String) : Location = {
 
-    val location_xml = ns.get("/api/location/"+identifier)
+    val location_xml = ns.get("/api/location/"+identifier+ "/")
     new Location(location_xml)
 
   }

@@ -412,7 +412,7 @@ object GMQLExecuteCommandFederated {
     //        }
     //
     //      });
-    new FederatedImplementation(tempDir = Some(tempdirfed),jobId = Some(jobid))
+    new FederatedImplementation("LOCAL", tempDir = Some(tempdirfed),jobId = Some(jobid))
     //    }
     //    else /*if(executionType.equals(FLINK)) */ {
     //      new FlinkImplementation()

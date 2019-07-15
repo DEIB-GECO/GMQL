@@ -246,11 +246,12 @@ class GMQLJob(val gMQLContext: GMQLContext, val script: GMQLScript, val username
     * @return the real output datset name given the current job
     **/
   def renameOutputDirs(x: String): String = {
+    val repPrefix = if(General_Utilities().GMQL_REPO_TYPE == General_Utilities().LOCAL) "file://" else ""
     val fsRegDir = FSR_Utilities.gethdfsConfiguration().get("fs.defaultFS") +
       General_Utilities().getHDFSRegionDir(this.username)
     val dir = if (General_Utilities().MODE == General_Utilities().HDFS)
       fsRegDir + x + "/"
-    else General_Utilities().getRegionDir(this.username) + x + "/"
+    else repPrefix + General_Utilities().getRegionDir(this.username) + x + "/"
     dir
   }
 
@@ -309,11 +310,14 @@ class GMQLJob(val gMQLContext: GMQLContext, val script: GMQLScript, val username
     //    else {
     val inputDs = inDs.split('.').last
     val user = if (repositoryHandle.DSExistsInPublic(inputDs)) "public" else this.username
+    val repPrefix = if(General_Utilities().GMQL_REPO_TYPE == General_Utilities().LOCAL) "file://" else ""
+
     val newPath =
       if (Utilities().LAUNCHER_MODE equals Utilities().REMOTE_CLUSTER_LAUNCHER)
         General_Utilities().getSchemaDir(user) + inputDs + ".xml"
-      else getRegionFolder(inputDs, user)
-    newPath
+      else
+        repPrefix + getRegionFolder(inputDs, user) + "/"
+    newPath + "/"
     //    }
   }
 
