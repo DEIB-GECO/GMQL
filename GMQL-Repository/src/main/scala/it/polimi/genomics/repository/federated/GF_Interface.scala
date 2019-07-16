@@ -41,7 +41,7 @@ class GF_Interface private {
       logger.info("Listing folder "+folder)
       FS_Utilities.listFiles(folder)
     } else {
-      logger.error("Folder "+folder+" does not exists.")
+      logger.error("Folder "+folder+" does not exists.", new NotFoundException())
       throw new NotFoundException()
     }
 
@@ -57,7 +57,7 @@ class GF_Interface private {
       logger.info("Streaming file "+file_path)
       FS_Utilities.getStream(file_path)
     } else {
-      logger.error("Folder "+folder_path+" does not exists.")
+      logger.error("Folder "+folder_path+" does not exists.", new NotFoundException())
       throw new NotFoundException()
     }
 

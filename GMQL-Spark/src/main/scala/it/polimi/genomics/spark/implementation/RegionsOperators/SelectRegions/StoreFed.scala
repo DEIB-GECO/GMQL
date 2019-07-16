@@ -13,7 +13,6 @@ object StoreFed {
   private final val logger = LoggerFactory.getLogger(StoreGTFRD.getClass);
   private final val ENCODING = "UTF-8"
 
-//  final val PATH = "/Users/canakoglu/GMQL-sources/gmql_test_ds/test/"
 
   def storeRegion(executor: GMQLSparkExecutor, path: String, value: RegionOperator, sc: SparkContext): RDD[GRECORD] = {
     val regions = executor.implement_rd(value, sc)
@@ -23,15 +22,29 @@ object StoreFed {
     //    val rddReg = sc.objectFile[(GRecordKey, Array[GValue])]("/Users/canakoglu/GMQL-sources/gmql_test_ds/test/")
     //    rddReg.collect().foreach(println)
 
+    logger.info("storeRegion(saved): " + path)
+    for (i <- 1 to 10) {
+      Thread.sleep(10000)
+      logger.info("storeRegion(waiting): " + (i * 10))
+    }
+
+
     regions
   }
 
-  def storeMeta(executor: GMQLSparkExecutor, path: String, value: MetaOperator, sc: SparkContext): RDD[MetaType]  = {
+  def storeMeta(executor: GMQLSparkExecutor, path: String, value: MetaOperator, sc: SparkContext): RDD[MetaType] = {
     val meta = executor.implement_md(value, sc)
     meta.saveAsObjectFile(path)
 
     //    val rddReg = sc.objectFile[(GRecordKey, Array[GValue])]("/Users/canakoglu/GMQL-sources/gmql_test_ds/test/")
     //    rddReg.collect().foreach(println)
+
+    logger.info("storeMeta(saved): " + path)
+    for (i <- 1 to 10) {
+      Thread.sleep(10000)
+      logger.info("storeMeta(waiting): " + (i * 10))
+    }
+
 
     meta
   }
