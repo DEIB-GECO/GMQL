@@ -175,6 +175,40 @@ class GF_Communication private {
       "Locations" -> dataset.locations.reduce((x,y)=>x+", "+y) )
   }
 
+  def getFilteredKeys(dataset_identifier: String, requestBody: String): String = {
+    val dataset = getDataset(dataset_identifier)
+    val location =  getLocation(dataset.locations.head)
+
+    val uri = "metadata/public."+dataset.name+"/filter"
+
+    val res = federation.post(uri, requestBody, location.instance)
+
+    res
+  }
+
+  def getFilteredKeys(dataset_identifier: String, key:String, requestBody: String): String = {
+    val dataset = getDataset(dataset_identifier)
+    val location =  getLocation(dataset.locations.head)
+
+    val uri = "metadata/public."+dataset.name+"/filter/"+key
+
+    val res = federation.post(uri, requestBody, location.instance)
+
+    res
+  }
+
+  def getFilteredMatrix(dataset_identifier: String, transposed:Boolean = false, requestBody: String): String = {
+
+    val dataset = getDataset(dataset_identifier)
+    val location =  getLocation(dataset.locations.head)
+    val uri = "metadata/public."+dataset.name+"/dataset/matrix"
+
+    val res = federation.post(uri, requestBody, location.instance)
+
+    res
+
+  }
+
 
   def getDownloadStatus(job_id: String, dataset_id: String) =  {
 

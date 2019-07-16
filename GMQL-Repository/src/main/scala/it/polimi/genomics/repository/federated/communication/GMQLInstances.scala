@@ -67,6 +67,32 @@ class GMQLInstances(ns: NameServer) {
 
   }
 
+  // perform a post request returning the response string
+  def post(URI: String, body:String, target_location_id: String): String = {
+
+    val location = ns.resolveLocation(target_location_id)
+    val address = location.URI + URI
+
+    logger.info("rest_post->uri " + address)
+    logger.info("rest_post->authorization " + getToken(location.instance))
+    logger.info("rest_post->body " + body)
+
+    val request = sttp.body(body).post(uri"$address").readTimeout(Duration.Inf)
+      .header("Content-Type", "application/json")
+      .header("Accept", "application/json")
+      .header(AUTH_HEADER_NAME_G, AUTH_HEADER_VALUE_G)
+      .header(AUTH_HEADER_NAME_FN, ns.NS_INSTANCENAME)
+      .header(AUTH_HEADER_NAME_FT, getToken(location.instance))
+
+    implicit val backend = HttpURLConnectionBackend()
+    val response = request.send()
+
+    val responseUnsafeBody = response.unsafeBody
+    logger.info("rest_get->response.unsafeBody " + responseUnsafeBody)
+
+    responseUnsafeBody
+  }
+
 
   private def inputToFile(is: java.io.InputStream, f: java.io.File) {
     val in = scala.io.Source.fromInputStream(is)
