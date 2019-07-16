@@ -22,11 +22,11 @@ object StoreFed {
     //    val rddReg = sc.objectFile[(GRecordKey, Array[GValue])]("/Users/canakoglu/GMQL-sources/gmql_test_ds/test/")
     //    rddReg.collect().foreach(println)
 
-    logger.info("storeRegion(saved): " + path)
-    for (i <- 1 to 10) {
-      Thread.sleep(10000)
-      logger.info("storeRegion(waiting): " + (i * 10))
-    }
+//    logger.info("storeRegion(saved): " + path)
+//    for (i <- 1 to 10) {
+//      Thread.sleep(10000)
+//      logger.info("storeRegion(waiting): " + (i * 10))
+//    }
 
 
     regions
@@ -39,11 +39,11 @@ object StoreFed {
     //    val rddReg = sc.objectFile[(GRecordKey, Array[GValue])]("/Users/canakoglu/GMQL-sources/gmql_test_ds/test/")
     //    rddReg.collect().foreach(println)
 
-    logger.info("storeMeta(saved): " + path)
-    for (i <- 1 to 10) {
-      Thread.sleep(10000)
-      logger.info("storeMeta(waiting): " + (i * 10))
-    }
+//    logger.info("storeMeta(saved): " + path)
+//    for (i <- 1 to 10) {
+//      Thread.sleep(10000)
+//      logger.info("storeMeta(waiting): " + (i * 10))
+//    }
 
 
     meta
