@@ -2,12 +2,12 @@ package it.polimi.genomics.federated
 
 import com.softwaremill.sttp.{HttpURLConnectionBackend, sttp, _}
 import it.polimi.genomics.GMQLServer.Implementation
-import it.polimi.genomics.core.DAG._
+import it.polimi.genomics.core.DAG.{DAGFrame, DAGNode, DAGSerializer, DAGWrapper, ExecutionDAG, OperatorDAG}
+import it.polimi.genomics.core.{GDMSUserClass, GMQLLoaderBase, GMQLSchema, GMQLSchemaCoordinateSystem, GMQLSchemaFormat, GRecordKey, GValue}
 import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.GDMSUserClass.GDMSUserClass
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
-import it.polimi.genomics.core._
 import it.polimi.genomics.repository.federated.communication._
 import it.polimi.genomics.repository.federated.{GF_Communication, GF_Interface}
 import it.polimi.genomics.repository.{Utilities => General_Utilities}
