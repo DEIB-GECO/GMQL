@@ -174,8 +174,8 @@ class FederatedImplementation(val launcherMode: String,
     val start_query_fed = System.currentTimeMillis
     implementation()
     val stop_query_fed = System.currentTimeMillis
-    logger.info("Total response time: " + ((stop_query_fed- start_query_fed)/1000) + "s.")
-    
+    logger.info("Total response time: " + ((stop_query_fed - start_query_fed) / 1000) + "s.")
+
   }
 
   override def collect(iRVariable: IRVariable): Any = throw new NotImplementedError()
@@ -426,18 +426,6 @@ class FederatedImplementation(val launcherMode: String,
         }
     }
 
-    //    val remoteServerUri = "http://localhost:8000/gmql-rest" //check slash
-
-    //    println(executionDag.getFederatedsources)
-    //    executionDag.getFederatedsources.foreach {
-    //      case (dsName) =>
-    //        println(s"PRE MOVING ${jobId.get}, $dsName, ${instance.name}, $remoteServerUri")
-    //        moving(jobId.get, dsName, instance.name, remoteServerUri)
-    //        println(s"AFTER MOVING ${jobId.get}, $dsName, ${instance.name}, $remoteServerUri")
-    //
-    //        poolingMoving(jobId.get, dsName, remoteServerUri)
-    //        println(s"AFTER poolingMoving ${jobId.get}, $dsName, ${instance.name}, $remoteServerUri")
-    //    }
 
     val irVarFiltered = irVars.filter { x =>
       !(x.regionDag.isInstanceOf[IRNoopRD] && x.metaDag.isInstanceOf[IRStoreMD])
@@ -449,17 +437,26 @@ class FederatedImplementation(val launcherMode: String,
       whereExDag match {
         case LOCAL_INSTANCE =>
           println("call(irVarFiltered)")
-          if (launcherMode == "LOCAL")
+          val start = System.currentTimeMillis
+          if (launcherMode == "LOCAL") {
             call(irVarFiltered)
-          else
+          }
+          else {
             runSparkSubmit(irVarFiltered)
+          }
+          val time = (System.currentTimeMillis - start) / 1000
+          logger.info("Execution time at local: " + time + "s.")
         case _: GMQLInstance =>
 
           println("callRemote(irVarFiltered)")
           //TODO
           //        call(irVarFiltered)
+
+          val start = System.currentTimeMillis
           callRemote(irVarFiltered, whereExDag)
-        //          println("MOVE DATA from " + whereExDag + " to " + destination)
+          val time = (System.currentTimeMillis - start) / 1000
+          logger.info("Execution time at remote(" + whereExDag +  "): " + time + "s.")
+
       }
       previouslyRunDag.add(executionDag)
     }
@@ -472,24 +469,20 @@ class FederatedImplementation(val launcherMode: String,
       else
         None
 
+    val startMoving = System.currentTimeMillis
     dssNamesToCopy.foreach { dsName =>
       logger.info("Moving " + dsName + " from " + whereExDag + " to " + destination)
-      //      if(remoteServerUriOpt.isDefined) {
+
       val from = whereExDag match {
         case LOCAL_INSTANCE => new NameServer().NS_INSTANCENAME
         case _ => whereExDag.name
       }
       val tokenOpt = moving(jobId.get, dsName, from, remoteServerUriOpt, destination.name)
       poolingMoving(jobId.get, dsName, remoteServerUriOpt, tokenOpt)
-
-      //      }
-      //      else{/**/
-      //        GF_Interface.instance().importDataset(jobId.get,dsName,whereExDag.name)
-      //      }
-
-
     }
-
+    val timeMoving = (System.currentTimeMillis - startMoving) / 1000
+    if(dssNamesToCopy.nonEmpty)
+      logger.info("Execution time of moving(" +  " from " + whereExDag + " to " + destination +  "): " + timeMoving + "s.")
 
   }
 
