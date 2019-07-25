@@ -171,7 +171,11 @@ class FederatedImplementation(val launcherMode: String,
   /** Starts the execution */
   override def go(): Unit = {
     logger.debug("Starting a FEDERATED execution")
+    val start_query_fed = System.currentTimeMillis
     implementation()
+    val stop_query_fed = System.currentTimeMillis
+    logger.info("Total response time: " + ((stop_query_fed- start_query_fed)/1000) + "s.")
+    
   }
 
   override def collect(iRVariable: IRVariable): Any = throw new NotImplementedError()
