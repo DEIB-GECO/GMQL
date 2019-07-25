@@ -2,6 +2,7 @@ package it.polimi.genomics.federated
 
 import it.polimi.genomics.core.DAG.OperatorDAG
 import it.polimi.genomics.core.DataStructures.{EXECUTED_ON, GMQLInstance, IROperator}
+import org.slf4j.LoggerFactory
 
 
 /** General trait for the specification of computation distribution policies
@@ -23,6 +24,7 @@ trait DistributionPolicy {
   * In this way you delay as much as possible data movements.
   */
 class LocalityDistributionPolicy extends DistributionPolicy {
+  final val logger = LoggerFactory.getLogger(this.getClass)
   override def assignLocations(dag: OperatorDAG): OperatorDAG = {
 
     def getDependenciesLocations(deps: List[IROperator]): List[GMQLInstance] = {
@@ -49,6 +51,7 @@ class LocalityDistributionPolicy extends DistributionPolicy {
           op.getExecutedOn
         }
       }
+      logger.debug(op + "will be executed at " + selLoc)
       selLoc
     }
 
