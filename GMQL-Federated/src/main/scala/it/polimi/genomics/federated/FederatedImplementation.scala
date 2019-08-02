@@ -488,7 +488,7 @@ class FederatedImplementation(val launcherMode: String,
 
   def implementation(): Unit = {
     val opDAG = new OperatorDAG(to_be_materialized.flatMap(x => List(x.metaDag, x.regionDag)).toList)
-    logger.info(s"Starting Federated query $jobId")
+    logger.info(s"Starting Federated query ${jobId.getOrElse("")}")
     //val opDAGFrame = new OperatorDAGFrame(opDAG)
     //    showFrame(opDAGFrame, "OperatorDag")
 
