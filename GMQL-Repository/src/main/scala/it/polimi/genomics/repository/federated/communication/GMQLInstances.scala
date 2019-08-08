@@ -88,7 +88,7 @@ class GMQLInstances(ns: NameServer) {
     val response = request.send()
 
     val responseUnsafeBody = response.unsafeBody
-    logger.info("rest_get->response.unsafeBody " + responseUnsafeBody)
+    //logger.info("rest_get->response.unsafeBody " + responseUnsafeBody)
 
     responseUnsafeBody
   }
