@@ -61,9 +61,33 @@ class GMQLInstances(ns: NameServer) {
     val response = request.send()
 
     val responseUnsafeBody = response.unsafeBody
-    logger.info("rest_get->response.unsafeBody " + responseUnsafeBody)
+    //logger.info("rest_get->response.unsafeBody " + responseUnsafeBody)
 
     XML.loadString(response.unsafeBody)
+
+  }
+
+  def getRaw(URI: String, target_location_id: String): String = {
+
+    val location = ns.resolveLocation(target_location_id)
+    val address = location.URI + URI
+
+    logger.info("rest_post->uri " + address)
+    logger.info("rest_post->authorization " + getToken(location.instance))
+
+    val request = sttp.get(uri"$address").readTimeout(Duration.Inf)
+      .header("Accept", "application/json")
+      .header(AUTH_HEADER_NAME_G, AUTH_HEADER_VALUE_G)
+      .header(AUTH_HEADER_NAME_FN, ns.NS_INSTANCENAME)
+      .header(AUTH_HEADER_NAME_FT, getToken(location.instance))
+
+    implicit val backend = HttpURLConnectionBackend()
+    val response = request.send()
+
+    val responseUnsafeBody = response.unsafeBody
+    //logger.info("rest_get->response.unsafeBody " + responseUnsafeBody)
+
+    responseUnsafeBody
 
   }
 

@@ -90,18 +90,9 @@ class GF_Communication private {
 
     val uri = "metadata/public."+dataset.name+"/sample/"+sample
 
-    val metadata_xml = federation.get(uri, location.instance)
+    val res = federation.getRaw(uri, location.instance)
 
-    val metadata =
-      for (meta <- metadata_xml \\ "attribute" )
-        yield {
-          ( (meta \ "key" text) -> (meta \ "value" text) )
-        }
-
-    if (withID)
-      metadata.map(x=>ID+"\t"+x._1+"\t"+x._2).reduce((x,y)=>x+"\n"+y)
-    else
-      metadata.map(x=>x._1+"\t"+x._2).reduce((x,y)=>x+"\n"+y)
+    res
 
   }
 
