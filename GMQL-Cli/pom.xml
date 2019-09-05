@@ -83,15 +83,6 @@
 
     <build>
 
-        <resources>
-            <resource>
-                <directory>../GMQL-Core</directory>
-                <includes>
-                    <include>log4j.dtd</include>
-                </includes>
-            </resource>
-        </resources>
-
         <sourceDirectory>./src/main/scala</sourceDirectory>
         <plugins>
             <!--UBER-JAR plugin (optional)-->
