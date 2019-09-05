@@ -174,7 +174,7 @@ class FederatedImplementation(val launcherMode: String,
     val start_query_fed = System.currentTimeMillis
     implementation()
     val stop_query_fed = System.currentTimeMillis
-    logger.info("Total response time: " + ((stop_query_fed - start_query_fed) / 1000) + "s.")
+    logger.info(s"Total response time: ${(stop_query_fed - start_query_fed) / 1000} s.")
 
   }
 
@@ -373,6 +373,20 @@ class FederatedImplementation(val launcherMode: String,
       .header(ins.AUTH_HEADER_NAME_FT, token)
       .post(uri)
 
+    val (tempName, tempType) = irVars.flatMap{ t=>List(t.metaDag,t.regionDag)}
+      .filter(_.isInstanceOf[Federated])
+      .map { t =>
+        val name = t.asInstanceOf[Federated].name
+        val opType = t match {
+          case _: MetaOperator => "metadata"
+          case _: RegionOperator => "region data"
+          case _ => "unknown"
+        }
+
+        (name, opType)
+      }.head
+
+//    logger.info(s"Sending sub-query of $tempName ($tempType) to $instance")
     logger.info(s"Sending sub-query to $instance")
     try {
       val response = request.send()
@@ -445,7 +459,7 @@ class FederatedImplementation(val launcherMode: String,
             runSparkSubmit(irVarFiltered)
           }
           val time = (System.currentTimeMillis - start) / 1000
-          logger.info("Execution time at local: " + time + "s.")
+          logger.info(s"Execution time at local: $time s.")
         case _: GMQLInstance =>
 
           println("callRemote(irVarFiltered)")
@@ -455,13 +469,27 @@ class FederatedImplementation(val launcherMode: String,
           val start = System.currentTimeMillis
           callRemote(irVarFiltered, whereExDag)
           val time = (System.currentTimeMillis - start) / 1000
-          logger.info("Execution time at remote(" + whereExDag +  "): " + time + "s.")
+          logger.info(s"Execution time at remote ($whereExDag): $time s.")
 
       }
       previouslyRunDag.add(executionDag)
     }
 
-    val dssNamesToCopy: Seq[String] = executionDag.dag.flatMap(_.roots).filter(_.isInstanceOf[Federated]).map(_.asInstanceOf[Federated].name)
+
+
+    val dssNamesToCopy: Seq[(String, String)] = executionDag.dag
+      .flatMap(_.roots)
+      .filter(_.isInstanceOf[Federated])
+      .map { t =>
+      val name = t.asInstanceOf[Federated].name
+      val opType = t match {
+        case _: MetaOperator => "metadata"
+        case _: RegionOperator => "region"
+        case _ => "unknown"
+      }
+
+      (name, opType)
+    }
 
     val remoteServerUriOpt =
       if (destination != LOCAL_INSTANCE)
@@ -470,8 +498,8 @@ class FederatedImplementation(val launcherMode: String,
         None
 
     val startMoving = System.currentTimeMillis
-    dssNamesToCopy.foreach { dsName =>
-      logger.info("Moving " + dsName + " from " + whereExDag + " to " + destination)
+    dssNamesToCopy.foreach { case (dsName, opType) =>
+      logger.info(s"Moving $dsName ($opType) from $whereExDag to $destination")
 
       val from = whereExDag match {
         case LOCAL_INSTANCE => new NameServer().NS_INSTANCENAME
@@ -481,8 +509,8 @@ class FederatedImplementation(val launcherMode: String,
       poolingMoving(jobId.get, dsName, remoteServerUriOpt, tokenOpt)
     }
     val timeMoving = (System.currentTimeMillis - startMoving) / 1000
-    if(dssNamesToCopy.nonEmpty)
-      logger.info("Execution time of moving(" +  " from " + whereExDag + " to " + destination +  "): " + timeMoving + "s.")
+    if (dssNamesToCopy.nonEmpty)
+      logger.info(s"Execution time of moving from $whereExDag to $destination: $timeMoving s.")
 
   }
 
