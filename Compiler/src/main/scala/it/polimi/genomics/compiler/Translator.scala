@@ -169,7 +169,9 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
   val selectStatement =
     ((variableId <~ assignment_symbol) ~ ((SELECT <~ "(") ~ operator_parameters <~ ")")) ~
       ( (onlyPath ^^ { (_, None)} ) | (variableIdSelect ^^ { (_, None)} ) | operatorInput) <~ ";" ^^ {
-      x => SelectOperator(x._1._2._1.pos, x._2._1, x._2._2, x._1._1, x._1._2._2)
+      x => {
+        SelectOperator(x._1._2._1.pos, x._2._1, x._2._2, x._1._1, x._1._2._2)
+      }
     }
 
   val projectStatement =
@@ -306,9 +308,45 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
     query.replaceAll("[#].*", "").replaceAll("\\s+$", "")
   }
 
+  def process_directives(query: String): (String, Set[String]) = {
+
+    val protected_ds : collection.mutable.Set[String] = collection.mutable.Set()
+    var new_query = ""
+
+    for ((line, index) <- query.lines.zipWithIndex) {
+
+      if(line.toLowerCase.startsWith("@protected")) {
+        val s = line.split(" ")
+        if (s.length == 2) {
+          protected_ds += s(1)
+        }
+        else
+        {
+          val msg = "Invalid directive '" + line + "' at line " + (index+1).toString
+          println(msg)
+          throw new CompilerException(msg)
+        }
+        new_query = "\n"
+      }
+      else if(line.toLowerCase.startsWith("@policy")) {
+        new_query = "\n"
+      }
+      else {
+        new_query = new_query + line + "\n"
+      }
+    }
+
+    (new_query, protected_ds.toSet)
+  }
+
   def phase1(query_raw: String): List[Operator] = {
 
-    val query = remove_comments(query_raw)
+    val (query_1, protected_ds) = process_directives(query_raw)
+    val query = remove_comments(query_1)
+
+    println("%%%%\n" + query + "\n%%%%")
+    println("protected_ds")
+    protected_ds.foreach(println)
 
     var remaining: Input = new CharSequenceReader(query)
     var failed = false
@@ -332,7 +370,6 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
       wrongStatement
 
     val filler = rep("""(.|\n)""".r) ~ ";"
-
     do {
       val outcome = parse(validStatement, remaining)
       outcome match {
@@ -355,8 +392,26 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
         }
       }
     } while (!remaining.atEnd)
+
     if (failed) throw new CompilerException(error_message)
-    result
+
+    val prot_res = result.map(op =>
+      op match {
+        case SelectOperator(op_pos, input1, input2, output, parameters, is_protected) => {
+          if (protected_ds.contains(input1.name)) {
+            SelectOperator(op_pos, input1, input2, output, parameters, true)
+          }
+          else {
+            op
+          }
+        }
+        case _=> op
+      }
+
+    )
+
+    prot_res
+
   }
 
   def phase2(list_statements: List[Operator]): Boolean = {
@@ -384,8 +439,7 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
       }
     }
 
-    if (!has_materialize) throw new CompilerException("At list one MATERIALIZE statement is required in order to run the query")
-
+    if (!has_materialize) throw new CompilerException("At least one MATERIALIZE statement is required in order to run the query")
     true
 
   }
