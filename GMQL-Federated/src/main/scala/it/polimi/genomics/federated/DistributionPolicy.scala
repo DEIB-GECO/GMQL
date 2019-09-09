@@ -1,7 +1,7 @@
 package it.polimi.genomics.federated
 
 import it.polimi.genomics.core.DAG.OperatorDAG
-import it.polimi.genomics.core.DataStructures.{EXECUTED_ON, GMQLInstance, IROperator, ReadOperator}
+import it.polimi.genomics.core.DataStructures.{EXECUTED_ON, GMQLInstance, IROperator, LOCAL_INSTANCE, ReadOperator}
 import org.slf4j.LoggerFactory
 
 
@@ -13,6 +13,15 @@ import org.slf4j.LoggerFactory
   */
 trait DistributionPolicy {
   def assignLocations(dag: OperatorDAG) : OperatorDAG
+}
+
+class StoreAtLocalDistributionPolicy extends DistributionPolicy {
+  override def assignLocations(dag: OperatorDAG): OperatorDAG = {
+    dag.roots.foreach {
+      x => if(!x.hasExecutedOn) x.addAnnotation(EXECUTED_ON(LOCAL_INSTANCE))
+    }
+    dag
+  }
 }
 
 class ProtectedDistributionPolicy extends DistributionPolicy {
