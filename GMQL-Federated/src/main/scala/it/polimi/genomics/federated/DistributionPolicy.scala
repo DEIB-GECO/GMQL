@@ -1,8 +1,7 @@
 package it.polimi.genomics.federated
 
 import it.polimi.genomics.core.DAG.OperatorDAG
-import it.polimi.genomics.core.DataStructures.{EXECUTED_ON, GMQLInstance, IROperator, ReadOperator}
-import org.slf4j.LoggerFactory
+import it.polimi.genomics.core.DataStructures.{EXECUTED_ON, GMQLInstance, IROperator}
 
 
 /** General trait for the specification of computation distribution policies
@@ -15,39 +14,6 @@ trait DistributionPolicy {
   def assignLocations(dag: OperatorDAG) : OperatorDAG
 }
 
-class ProtectedDistributionPolicy extends DistributionPolicy {
-  override def assignLocations(dag: OperatorDAG): OperatorDAG = {
-
-    def getDependenciesConstraints(deps: List[IROperator]): List[GMQLInstance] = {
-      deps.map(decideLocation).filter(_.isDefined).map(_.get)
-    }
-
-    def decideLocation(op: IROperator): Option[GMQLInstance] = {
-      val loc = op match {
-        case operator: ReadOperator if operator.isProtected => Some(operator.getExecutedOn)
-        case _ => {
-          val depConstr: List[GMQLInstance] = if(op.hasDependencies)
-            getDependenciesConstraints(op.getDependencies) else List()
-          val constr = if(op.hasExecutedOn) op.getExecutedOn :: depConstr else depConstr
-          val uniqueNames = constr.map(_.name).distinct
-          if(uniqueNames.length > 1)
-            throw new GmqlFederatedException("Impossible to allocate resources:\n" +
-              s"Conflicting protection requirements (${uniqueNames.mkString(" VS ")})")
-          else if(uniqueNames.length == 1)
-            Some(constr.head)
-          else
-            None
-          }
-        }
-      if(!op.hasExecutedOn && loc.isDefined)
-        op.addAnnotation(EXECUTED_ON(loc.get))
-      loc
-    }
-    dag.roots.foreach(decideLocation)
-    dag
-  }
-}
-
 
 /** Very simple location distribution policy based on the locality principle
   *
@@ -57,7 +23,6 @@ class ProtectedDistributionPolicy extends DistributionPolicy {
   * In this way you delay as much as possible data movements.
   */
 class LocalityDistributionPolicy extends DistributionPolicy {
-  final val logger = LoggerFactory.getLogger(this.getClass)
   override def assignLocations(dag: OperatorDAG): OperatorDAG = {
 
     def getDependenciesLocations(deps: List[IROperator]): List[GMQLInstance] = {
@@ -84,7 +49,6 @@ class LocalityDistributionPolicy extends DistributionPolicy {
           op.getExecutedOn
         }
       }
-      logger.debug(op + "will be executed at " + selLoc)
       selLoc
     }
 
@@ -92,5 +56,3 @@ class LocalityDistributionPolicy extends DistributionPolicy {
     dag
   }
 }
-
-

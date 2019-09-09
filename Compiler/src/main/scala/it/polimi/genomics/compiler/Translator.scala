@@ -3,11 +3,8 @@ package it.polimi.genomics.compiler
 
 import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
-import it.polimi.genomics.core.DataStructures.MetadataCondition.{META_OP, MetadataCondition}
+import it.polimi.genomics.core.DataStructures.MetadataCondition.{MetadataCondition, META_OP}
 import it.polimi.genomics.core.DataStructures.RegionCondition._
-import it.polimi.genomics.federated.{FederatedImplementation, LocalityDistributionPolicy}
-import it.polimi.genomics.core.DataStructures.Instance
-
 import scala.util.parsing.input.{CharSequenceReader, Positional}
 
 
@@ -172,9 +169,7 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
   val selectStatement =
     ((variableId <~ assignment_symbol) ~ ((SELECT <~ "(") ~ operator_parameters <~ ")")) ~
       ( (onlyPath ^^ { (_, None)} ) | (variableIdSelect ^^ { (_, None)} ) | operatorInput) <~ ";" ^^ {
-      x => {
-        SelectOperator(x._1._2._1.pos, x._2._1, x._2._2, x._1._1, x._1._2._2)
-      }
+      x => SelectOperator(x._1._2._1.pos, x._2._1, x._2._2, x._1._1, x._1._2._2)
     }
 
   val projectStatement =
@@ -311,104 +306,9 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
     query.replaceAll("[#].*", "").replaceAll("\\s+$", "")
   }
 
-  def process_directives(query: String): (String, Set[String], Option[FederatedPolicyCompiler]) = {
-
-    val protected_ds : collection.mutable.Set[String] = collection.mutable.Set()
-    var policy: Option[FederatedPolicyCompiler] = None
-    var new_query = ""
-
-    for ((line, index) <- query.lines.zipWithIndex) {
-
-      if(line.toLowerCase.startsWith("@protected")) {
-        val s = line.split(" ")
-        if (s.length == 2) {
-          protected_ds += s(1)
-        }
-        else
-        {
-          val msg = "Invalid directive '" + line + "' at line " + (index+1).toString
-          println(msg)
-          throw new CompilerException(msg)
-        }
-        new_query = new_query + "\n"
-      }
-      else if(line.toLowerCase.startsWith("@policy")) {
-
-        val s = line.split(" ")
-        if (s.length < 2){
-          val msg = "Invalid directive '" + line + "' at line " + (index+1).toString +
-            ": a policy has to be specified (distributed, centralized <instance>, externalized <instance>)"
-          println(msg)
-          throw new CompilerException(msg)
-        } else {
-          s(1).toLowerCase match {
-            case "distributed" =>{
-              if (s.length == 2) {
-                policy = Some(DistributedPolicyCompiler())
-              }
-              else
-              {
-                val msg = "Invalid directive '" + line + "' at line " + (index+1).toString +
-                  ": valid policies are : distributed, centralized <instance>, externalized <instance>"
-                println(msg)
-                throw new CompilerException(msg)
-              }
-            }
-            case "centralized" => {
-              if (s.length == 3){
-                policy = Some(CentralizedPolicyCompiler(Instance(s(2))))
-              }
-              else
-                {
-                  val msg = "Invalid directive '" + line + "' at line " + (index+1).toString +
-                    ": valid policies are : distributed, centralized <instance>, externalized <instance>"
-                  println(msg)
-                  throw new CompilerException(msg)
-                }
-            }
-            case "externalized" => {
-              if (s.length == 3){
-                policy = Some(ExternalizedPolicyCompiler(Instance(s(2))))
-              }
-              else
-              {
-                val msg = "Invalid directive '" + line + "' at line " + (index+1).toString +
-                  ": valid policies are : distributed, centralized <instance>, externalized <instance>"
-                println(msg)
-                throw new CompilerException(msg)
-              }
-            }
-            case _ => {
-              val msg = "Invalid directive '" + line + "' at line " + (index+1).toString +
-                ": valid policies are : distributed, centralized <instance>, externalized <instance>"
-              println(msg)
-              throw new CompilerException(msg)
-            }
-          }
-        }
-
-        new_query = new_query + "\n"
-      }
-      else {
-        new_query = new_query + line + "\n"
-      }
-    }
-
-    (new_query, protected_ds.toSet, policy)
-  }
-
   def phase1(query_raw: String): List[Operator] = {
 
-    val (query_1, protected_ds, policy) = process_directives(query_raw)
-    val query = remove_comments(query_1)
-
-    if (policy.isDefined && this.server.implementation.isInstanceOf[FederatedImplementation]) {
-      policy.get match {
-        case p:DistributedPolicyCompiler => this.server.implementation.asInstanceOf[FederatedImplementation].distributionPolicy = Some(new LocalityDistributionPolicy())
-        case _ =>
-
-      }
-    }
+    val query = remove_comments(query_raw)
 
     var remaining: Input = new CharSequenceReader(query)
     var failed = false
@@ -432,6 +332,7 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
       wrongStatement
 
     val filler = rep("""(.|\n)""".r) ~ ";"
+
     do {
       val outcome = parse(validStatement, remaining)
       outcome match {
@@ -454,26 +355,8 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
         }
       }
     } while (!remaining.atEnd)
-
     if (failed) throw new CompilerException(error_message)
-
-    val prot_res = result.map(op =>
-      op match {
-        case SelectOperator(op_pos, input1, input2, output, parameters, is_protected) => {
-          if (protected_ds.contains(input1.name)) {
-            SelectOperator(op_pos, input1, input2, output, parameters, true)
-          }
-          else {
-            op
-          }
-        }
-        case _=> op
-      }
-
-    )
-
-    prot_res
-
+    result
   }
 
   def phase2(list_statements: List[Operator]): Boolean = {
@@ -501,7 +384,8 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
       }
     }
 
-    if (!has_materialize) throw new CompilerException("At least one MATERIALIZE statement is required in order to run the query")
+    if (!has_materialize) throw new CompilerException("At list one MATERIALIZE statement is required in order to run the query")
+
     true
 
   }

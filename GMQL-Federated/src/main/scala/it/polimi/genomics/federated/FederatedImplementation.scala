@@ -39,8 +39,7 @@ class FederatedImplementation(val launcherMode: String,
                               val sparkHome: Option[String] = None,
                               val cliJarLocal: Option[String] = None,
                               val masterClass: Option[String] = None,
-                              val sparkCustomOption: Option[Map[String, Map[GDMSUserClass.Value, String]]] = None,
-                              var distributionPolicy: Option[DistributionPolicy] = None
+                              val sparkCustomOption: Option[Map[String, Map[GDMSUserClass.Value, String]]] = None
                              ) extends Implementation with Serializable {
 
   val api = GF_Communication.instance()
@@ -517,11 +516,6 @@ class FederatedImplementation(val launcherMode: String,
 
   def implementation(): Unit = {
     val opDAG = new OperatorDAG(to_be_materialized.flatMap(x => List(x.metaDag, x.regionDag)).toList)
-    if(this.distributionPolicy.isDefined) {
-      logger.info("Applying Distribution Policy")
-      distributionPolicy.get.assignLocations(opDAG)
-    }
-    logger.info(s"Starting Federated query $jobId")
     logger.info(s"Starting Federated query ${jobId.getOrElse("")}")
     //val opDAGFrame = new OperatorDAGFrame(opDAG)
     //    showFrame(opDAGFrame, "OperatorDag")

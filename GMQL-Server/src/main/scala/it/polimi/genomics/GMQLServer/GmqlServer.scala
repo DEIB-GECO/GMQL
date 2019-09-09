@@ -94,8 +94,7 @@ class GmqlServer(var implementation: Implementation, binning_size: Option[Long] 
     * @param paths
     * @return UnfinishedREAD(path), to which the USING method must be applied
     */
-  def READ(paths: List[String], location : GMQLInstance, is_protected : Boolean ): UnfinishedREAD =
-    new UnfinishedREAD(paths, location, is_protected)
+  def READ(paths: List[String], location : GMQLInstance ): UnfinishedREAD = new UnfinishedREAD(paths, location)
 
   def READ(paths: List[String]): UnfinishedREAD = new UnfinishedREAD(paths)
 
@@ -115,7 +114,7 @@ class GmqlServer(var implementation: Implementation, binning_size: Option[Long] 
     *
     * @param paths The list of paths where the dataset is stored. It must contains two sub-directory named "meta" and "files"
     */
-  class UnfinishedREAD(paths: List[String], location : GMQLInstance = LOCAL_INSTANCE, is_protected : Boolean = false) {
+  class UnfinishedREAD(paths: List[String], location : GMQLInstance = LOCAL_INSTANCE) {
     /**
       * Used to build a new IRVariable
       *
@@ -133,10 +132,8 @@ class GmqlServer(var implementation: Implementation, binning_size: Option[Long] 
 
       val dagMD = IRReadMD(paths, loader, ds)
       dagMD.addAnnotation(EXECUTED_ON(location))
-      if(is_protected) dagMD.addAnnotation(PROTECTED)
       val dagRD = IRReadRD(paths, loader, ds)
       dagRD.addAnnotation(EXECUTED_ON(location))
-      if(is_protected) dagRD.addAnnotation(PROTECTED)
 
       import scala.collection.JavaConverters._
       val schema = if (ds.schema.isEmpty)

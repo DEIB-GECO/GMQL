@@ -16,7 +16,3 @@ case class EXECUTED_ON(instance: GMQLInstance) extends OperatorAnnotation{
 case class SPLIT_ID(id: Int) extends OperatorAnnotation{
   override val message: String = "SPLIT ID " + id
 }
-
-case object PROTECTED extends OperatorAnnotation{
-  override val message: String = "PROTECTED VARIABLE"
-}

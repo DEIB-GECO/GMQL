@@ -6,7 +6,6 @@ import it.polimi.genomics.core.DataStructures.RegionAggregate.RegionsToRegion
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core.{GDouble, GMQLLoader, GValue, ParsingType}
-
 import collection.JavaConverters._
 
 
@@ -24,13 +23,11 @@ object TestUtils {
     override def region_parser(input: IR): OR = ???
   }
 
-  def getInitialIRVariable(datasetName: String, instance: GMQLInstance = LOCAL_INSTANCE, protect: Boolean = false): IRVariable = {
+  def getInitialIRVariable(datasetName: String, instance: GMQLInstance = LOCAL_INSTANCE): IRVariable = {
     val readMD = IRReadMD(List(datasetName), new FakeGMQLLoader, IRDataSet(datasetName,emptySchema, instance))
     readMD.addAnnotation(EXECUTED_ON(instance))
-    if(protect) readMD.addAnnotation(PROTECTED)
     val readRD = IRReadRD(List(datasetName), new FakeGMQLLoader, IRDataSet(datasetName,emptySchema, instance))
     readRD.addAnnotation(EXECUTED_ON(instance))
-    if(protect) readRD.addAnnotation(PROTECTED)
     val v = IRVariable(readMD, readRD, emptySchema.asScala.toList)(binning)
     v
   }

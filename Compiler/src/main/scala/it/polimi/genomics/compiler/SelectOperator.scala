@@ -14,8 +14,7 @@ case class SelectOperator(op_pos : Position,
                            input1 : Variable,
                            input2 : Option[Variable] = None,
                            output : VariableIdentifier,
-                           parameters : OperatorParameters,
-                           is_protected : Boolean = false)
+                           parameters : OperatorParameters)
   extends Operator(op_pos,input1, input2, parameters)
   with BuildingOperator2 with Serializable
 {
@@ -76,7 +75,7 @@ case class SelectOperator(op_pos : Position,
       case p:VariablePath => Some({
         val sel_loader = status.get_server.implementation.getParser(loader.getOrElse("default"),p.path)
           .asInstanceOf[GMQLLoader[(Long,String), FlinkRegionType, (Long,String), FlinkMetaType]]
-        status.get_server.READ(List(p.path), operator_location.getOrElse(LOCAL_INSTANCE), is_protected).USING(sel_loader)})
+        status.get_server.READ(List(p.path), operator_location.getOrElse(LOCAL_INSTANCE)).USING(sel_loader)})
       case i:VariableIdentifier => Some({
         val var_in_scope = status.getVariable(i.name)
         if(var_in_scope.isDefined){
@@ -85,7 +84,7 @@ case class SelectOperator(op_pos : Position,
           logger.debug("i.name: " + i.name)
           val sel_loader = status.get_server.implementation.getParser(loader.getOrElse("default"),i.name)
             .asInstanceOf[GMQLLoader[(Long,String), FlinkRegionType, (Long,String), FlinkMetaType]]
-          status.get_server.READ(List(i.name), operator_location.getOrElse(LOCAL_INSTANCE), is_protected).USING(sel_loader)
+          status.get_server.READ(List(i.name), operator_location.getOrElse(LOCAL_INSTANCE)).USING(sel_loader)
         }
       })
     }
@@ -170,8 +169,7 @@ case class SelectOperator(op_pos : Position,
           sj_con,
           metadata_condition,
           region_condition,
-          execute_location = operator_location
-        ))
+          operator_location))
   }
 
 }
