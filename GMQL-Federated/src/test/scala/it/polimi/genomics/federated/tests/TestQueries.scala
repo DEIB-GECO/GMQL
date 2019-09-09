@@ -132,4 +132,79 @@ object TestQueries {
       TestUtils.materializeIRVariable(geneMutationCount, "", Some(LOCAL_INSTANCE))
     )
   }
+
+  /**
+   * Policy query
+   *
+   * X = SELECT() A@S1
+   * X1 = COVER() X
+   * X2 = MERGE() X1
+   *
+   * Y = SELECT() B@S2
+   * XY = JOIN() X2 Y
+   *
+   * Z = SELECT() C@S3
+   * XYZ = MAP() XY Z
+   * XYZ1 = COVER() XYZ
+   * MATERIALIZE XYZ1 @S4
+   */
+
+  val queryLocationPolicy: List[IRVariable] = {
+    val X = TestUtils.getInitialIRVariable("A", Instance("S1"))
+      .add_select_statement(None, None, None, None)
+    val X1 = X.COVER(CoverFlag.COVER, CoverParameterManager.getCoverParam("N", Some(2)),
+      CoverParameterManager.getCoverParam("ANY"), List.empty, None)
+    val X2 = X1.MERGE(None)
+
+    val Y = TestUtils.getInitialIRVariable("B", Instance("S2"))
+      .add_select_statement(None, None, None, None)
+    val XY = X2.JOIN(None, List(), RegionBuilder.RIGHT, Y, None, None, None)
+
+    val Z = TestUtils.getInitialIRVariable("C", Instance("S3"))
+      .add_select_statement(None, None, None, None)
+    val XYZ = XY.MAP(None, List.empty, Z, None, None, None)
+    val XYZ1 = XYZ.COVER(CoverFlag.COVER, CoverParameterManager.getCoverParam("N", Some(2)),
+      CoverParameterManager.getCoverParam("ANY"), List.empty, None)
+    List(
+      TestUtils.materializeIRVariable(XYZ1, "", Some(LOCAL_INSTANCE))
+    )
+  }
+
+
+  /**
+   * Protected policy query
+   *
+   * X = SELECT() A@S1 (PROTECTED)
+   * X1 = COVER() X
+   * X2 = MERGE() X1
+   *
+   * Y = SELECT() B@S2
+   * XY = JOIN() X2 Y
+   *
+   * Z = SELECT() C@S3
+   * XYZ = MAP() XY Z
+   * XYZ1 = COVER() XYZ
+   * MATERIALIZE XYZ1 @S4
+   */
+
+  val queryProtectedPolicy: List[IRVariable] = {
+    val X = TestUtils.getInitialIRVariable("A", Instance("S1"), protect = true)
+      .add_select_statement(None, None, None, None)
+    val X1 = X.COVER(CoverFlag.COVER, CoverParameterManager.getCoverParam("N", Some(2)),
+      CoverParameterManager.getCoverParam("ANY"), List.empty, None)
+    val X2 = X1.MERGE(None)
+
+    val Y = TestUtils.getInitialIRVariable("B", Instance("S2"))
+      .add_select_statement(None, None, None, None)
+    val XY = X2.JOIN(None, List(), RegionBuilder.RIGHT, Y, None, None, None)
+
+    val Z = TestUtils.getInitialIRVariable("C", Instance("S3"))
+      .add_select_statement(None, None, None, None)
+    val XYZ = XY.MAP(None, List.empty, Z, None, None, None)
+    val XYZ1 = XYZ.COVER(CoverFlag.COVER, CoverParameterManager.getCoverParam("N", Some(2)),
+      CoverParameterManager.getCoverParam("ANY"), List.empty, None)
+    List(
+      TestUtils.materializeIRVariable(XYZ1, "", Some(LOCAL_INSTANCE))
+    )
+  }
 }
