@@ -404,7 +404,10 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
 
     if (policy.isDefined && this.server.implementation.isInstanceOf[FederatedImplementation]) {
       policy.get match {
-        case p:DistributedPolicyCompiler => this.server.implementation.asInstanceOf[FederatedImplementation].distributionPolicy = Some(new LocalityDistributionPolicy())
+        case p:DistributedPolicyCompiler => {
+          val policies = this.server.implementation.asInstanceOf[FederatedImplementation].distributionPolicy
+          this.server.implementation.asInstanceOf[FederatedImplementation].distributionPolicy = policies :+ new LocalityDistributionPolicy()
+        }
         case _ =>
 
       }
