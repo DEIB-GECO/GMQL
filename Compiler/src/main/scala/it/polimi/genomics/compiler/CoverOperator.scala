@@ -105,7 +105,8 @@ case class CoverOperator(op_pos : Position,
 
   def translate_operator(status : CompilerStatus):CompilerDefinedVariable = {
 
-    val covered = super_variable_left.get.COVER(CoverFlag.COVER,minAcc,maxAcc,refined_agg_function_list,meta_group)
+    val covered = super_variable_left.get.COVER(CoverFlag.COVER,minAcc,maxAcc,refined_agg_function_list,meta_group,
+      operator_location)
     CompilerDefinedVariable(output.name,output.pos,covered)
   }
 }
@@ -120,7 +121,9 @@ case class HistogramOperator(op_pos : Position,
   override val operator_name = "HISTOGRAM"
   def translate_operator(status : CompilerStatus):CompilerDefinedVariable = {
 
-    val covered = super_variable_left.get.COVER(CoverFlag.HISTOGRAM,minAcc,maxAcc,refined_agg_function_list,meta_group)
+    val covered = super_variable_left.get.COVER(CoverFlag.HISTOGRAM,
+      minAcc,maxAcc,refined_agg_function_list,meta_group,
+      operator_location)
     CompilerDefinedVariable(output.name,output.pos,covered)
   }
 
@@ -136,7 +139,8 @@ case class SummitOperator(op_pos : Position,
   override val operator_name = "SUMMIT"
   def translate_operator(status : CompilerStatus):CompilerDefinedVariable = {
 
-    val covered = super_variable_left.get.COVER(CoverFlag.SUMMIT,minAcc,maxAcc,refined_agg_function_list,meta_group)
+    val covered = super_variable_left.get.COVER(CoverFlag.SUMMIT,minAcc,maxAcc,refined_agg_function_list,meta_group,
+      operator_location)
     CompilerDefinedVariable(output.name,output.pos,covered)
   }
 

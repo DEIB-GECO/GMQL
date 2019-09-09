@@ -13,6 +13,8 @@
 
     <property name="GUEST_ENABLED">true</property>
 
+    <property name="ADMIN_EMAIL">admin@example.com</property>
+
     <!--property name="DISK_QUOTA" user-category="GUEST">500000</property-->
     <!--property name="DISK_QUOTA" user-category="BASIC">5000000</property-->
     <!--property name="DISK_QUOTA" user-category="PRO">20000000</property-->

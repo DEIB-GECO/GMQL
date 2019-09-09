@@ -40,6 +40,8 @@ class Utilities() {
   var GMQL_CONF_DIR:String = null
   var REMOTE_HDFS_NAMESPACE:String = null
 
+  var ADMIN_EMAIL: Option[String]= None
+
   // User Quota in KB
   var USER_QUOTA: Map[GDMSUserClass, Long] = Map()
 
@@ -85,6 +87,8 @@ class Utilities() {
           case Conf.HADOOP_HOME =>  HADOOP_HOME = value
           case Conf.GMQL_CONF_DIR => GMQL_CONF_DIR = value
           case Conf.REMOTE_HDFS_NAMESPACE => REMOTE_HDFS_NAMESPACE = value
+
+          case Conf.ADMIN_EMAIL => ADMIN_EMAIL = Some(value)
 
           case Conf.DISK_QUOTA  => {
 
@@ -436,6 +440,8 @@ object Conf {
   val HADOOP_CONF_DIR = "HADOOP_CONF_DIR"
   val GMQL_CONF_DIR = "GMQL_CONF_DIR"
   val REMOTE_HDFS_NAMESPACE = "REMOTE_HDFS_NAMESPACE"
+
+  val ADMIN_EMAIL = "ADMIN_EMAIL"
 
   val GF_ENABLED = "GF_ENABLED"
   val GF_NAMESERVER_ADDRESS = "GF_NAMESERVER_ADDRESS"

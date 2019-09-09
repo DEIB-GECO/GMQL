@@ -63,7 +63,7 @@ class GMQLLocalLauncher(localJob: GMQLJob) extends GMQLLauncher(localJob) {
 
     val logbackLogger = LoggerFactory.getLogger(classOf[FederatedImplementation]).asInstanceOf[ch.qos.logback.classic.Logger]
     logbackLogger.addAppender(fileAppender)
-    logbackLogger.setLevel(Level.ALL)
+    logbackLogger.setLevel(Level.INFO)
     logbackLogger.setAdditive(false)
 
     (ple, fileAppender)

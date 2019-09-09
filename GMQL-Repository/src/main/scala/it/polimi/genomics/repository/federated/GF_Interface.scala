@@ -82,6 +82,10 @@ class GF_Interface private {
 
   // METADATA BROWSER SUPPORT
 
+  def getSampleMetadata(datasetName: String, sampleName: String): String = {
+    api.getSampleMeta(datasetName, sampleName)
+  }
+
   def getFilteredKeys(datasetName: String, requestBody: String): String = {
     api.getFilteredKeys(datasetName, requestBody)
   }
