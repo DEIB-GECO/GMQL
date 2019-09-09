@@ -3,8 +3,11 @@ package it.polimi.genomics.compiler
 
 import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
-import it.polimi.genomics.core.DataStructures.MetadataCondition.{MetadataCondition, META_OP}
+import it.polimi.genomics.core.DataStructures.MetadataCondition.{META_OP, MetadataCondition}
 import it.polimi.genomics.core.DataStructures.RegionCondition._
+import it.polimi.genomics.federated.{FederatedImplementation, LocalityDistributionPolicy}
+import it.polimi.genomics.core.DataStructures.Instance
+
 import scala.util.parsing.input.{CharSequenceReader, Positional}
 
 
@@ -308,9 +311,10 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
     query.replaceAll("[#].*", "").replaceAll("\\s+$", "")
   }
 
-  def process_directives(query: String): (String, Set[String]) = {
+  def process_directives(query: String): (String, Set[String], Option[FederatedPolicyCompiler]) = {
 
     val protected_ds : collection.mutable.Set[String] = collection.mutable.Set()
+    var policy: Option[FederatedPolicyCompiler] = None
     var new_query = ""
 
     for ((line, index) <- query.lines.zipWithIndex) {
@@ -326,27 +330,85 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
           println(msg)
           throw new CompilerException(msg)
         }
-        new_query = "\n"
+        new_query = new_query + "\n"
       }
       else if(line.toLowerCase.startsWith("@policy")) {
-        new_query = "\n"
+
+        val s = line.split(" ")
+        if (s.length < 2){
+          val msg = "Invalid directive '" + line + "' at line " + (index+1).toString +
+            ": a policy has to be specified (distributed, centralized <instance>, externalized <instance>)"
+          println(msg)
+          throw new CompilerException(msg)
+        } else {
+          s(1).toLowerCase match {
+            case "distributed" =>{
+              if (s.length == 2) {
+                policy = Some(DistributedPolicyCompiler())
+              }
+              else
+              {
+                val msg = "Invalid directive '" + line + "' at line " + (index+1).toString +
+                  ": valid policies are : distributed, centralized <instance>, externalized <instance>"
+                println(msg)
+                throw new CompilerException(msg)
+              }
+            }
+            case "centralized" => {
+              if (s.length == 3){
+                policy = Some(CentralizedPolicyCompiler(Instance(s(2))))
+              }
+              else
+                {
+                  val msg = "Invalid directive '" + line + "' at line " + (index+1).toString +
+                    ": valid policies are : distributed, centralized <instance>, externalized <instance>"
+                  println(msg)
+                  throw new CompilerException(msg)
+                }
+            }
+            case "externalized" => {
+              if (s.length == 3){
+                policy = Some(ExternalizedPolicyCompiler(Instance(s(2))))
+              }
+              else
+              {
+                val msg = "Invalid directive '" + line + "' at line " + (index+1).toString +
+                  ": valid policies are : distributed, centralized <instance>, externalized <instance>"
+                println(msg)
+                throw new CompilerException(msg)
+              }
+            }
+            case _ => {
+              val msg = "Invalid directive '" + line + "' at line " + (index+1).toString +
+                ": valid policies are : distributed, centralized <instance>, externalized <instance>"
+              println(msg)
+              throw new CompilerException(msg)
+            }
+          }
+        }
+
+        new_query = new_query + "\n"
       }
       else {
         new_query = new_query + line + "\n"
       }
     }
 
-    (new_query, protected_ds.toSet)
+    (new_query, protected_ds.toSet, policy)
   }
 
   def phase1(query_raw: String): List[Operator] = {
 
-    val (query_1, protected_ds) = process_directives(query_raw)
+    val (query_1, protected_ds, policy) = process_directives(query_raw)
     val query = remove_comments(query_1)
 
-    println("%%%%\n" + query + "\n%%%%")
-    println("protected_ds")
-    protected_ds.foreach(println)
+    if (policy.isDefined && this.server.implementation.isInstanceOf[FederatedImplementation]) {
+      policy.get match {
+        case p:DistributedPolicyCompiler => this.server.implementation.asInstanceOf[FederatedImplementation].distributionPolicy = Some(new LocalityDistributionPolicy())
+        case _ =>
+
+      }
+    }
 
     var remaining: Input = new CharSequenceReader(query)
     var failed = false

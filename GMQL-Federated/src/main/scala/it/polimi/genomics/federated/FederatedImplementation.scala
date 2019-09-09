@@ -40,7 +40,7 @@ class FederatedImplementation(val launcherMode: String,
                               val cliJarLocal: Option[String] = None,
                               val masterClass: Option[String] = None,
                               val sparkCustomOption: Option[Map[String, Map[GDMSUserClass.Value, String]]] = None,
-                              val distributionPolicy: Option[DistributionPolicy] = None
+                              var distributionPolicy: Option[DistributionPolicy] = None
                              ) extends Implementation with Serializable {
 
   val api = GF_Communication.instance()
