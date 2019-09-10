@@ -33,14 +33,14 @@ class ProtectedDistributionPolicy extends DistributionPolicy {
 
     def decideLocation(op: IROperator): Option[GMQLInstance] = {
       val loc = op match {
-        case operator: ReadOperator if operator.isProtected => Some(operator.getExecutedOn)
+        case operator: ReadOperator => if(operator.isProtected) Some(operator.getExecutedOn) else None
         case _ => {
           val depConstr: List[GMQLInstance] = if(op.hasDependencies)
             getDependenciesConstraints(op.getDependencies) else List()
           val constr = if(op.hasExecutedOn) op.getExecutedOn :: depConstr else depConstr
           val uniqueNames = constr.map(_.name).distinct
           if(uniqueNames.length > 1)
-            throw new GmqlFederatedException("Impossible to allocate resources:\n" +
+            throw new GmqlFederatedException(s"[$op] Impossible to allocate resources:\n" +
               s"Conflicting protection requirements (${uniqueNames.mkString(" VS ")})")
           else if(uniqueNames.length == 1)
             Some(constr.head)
@@ -84,7 +84,7 @@ class LocalityDistributionPolicy extends DistributionPolicy {
             op.addAnnotation(EXECUTED_ON(selectedLocation))
             selectedLocation
           } else {
-            throw new IllegalStateException("Not possible to have a node without dependencies" +
+            throw new IllegalStateException(s"[$op] Not possible to have a node without dependencies" +
               "and without location specification")
           }
         } else {
