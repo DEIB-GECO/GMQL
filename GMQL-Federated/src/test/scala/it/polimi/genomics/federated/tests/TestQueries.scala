@@ -188,7 +188,7 @@ object TestQueries {
    */
 
   val queryProtectedPolicy: List[IRVariable] = {
-    val X = TestUtils.getInitialIRVariable("A", Instance("S1"), protect = true)
+    val X = TestUtils.getInitialIRVariable("A", LOCAL_INSTANCE, protect = true)
       .add_select_statement(None, None, None, None)
     val X1 = X.COVER(CoverFlag.COVER, CoverParameterManager.getCoverParam("N", Some(2)),
       CoverParameterManager.getCoverParam("ANY"), List.empty, None)
@@ -204,7 +204,7 @@ object TestQueries {
     val XYZ1 = XYZ.COVER(CoverFlag.COVER, CoverParameterManager.getCoverParam("N", Some(2)),
       CoverParameterManager.getCoverParam("ANY"), List.empty, None)
     List(
-      TestUtils.materializeIRVariable(XYZ1, "", Some(LOCAL_INSTANCE))
+      TestUtils.materializeIRVariable(XYZ1, "", None)
     )
   }
 }

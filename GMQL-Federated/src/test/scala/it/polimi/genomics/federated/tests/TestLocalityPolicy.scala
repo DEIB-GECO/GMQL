@@ -1,13 +1,14 @@
 package it.polimi.genomics.federated.tests
 
 import it.polimi.genomics.core.DAG.{DAGDraw, OperatorDAGFrame, VariableDAG, VariableDAGFrame}
-import it.polimi.genomics.federated.{LocalityDistributionPolicy, ProtectedDistributionPolicy}
+import it.polimi.genomics.federated.{LocalityDistributionPolicy, ProtectedDistributionPolicy, StoreAtLocalDistributionPolicy}
 
 object TestLocalityPolicy extends App {
 
-  val policy = new ProtectedDistributionPolicy()
+  val storeLocalPolicty = new StoreAtLocalDistributionPolicy()
+  val protectedPolicy = new ProtectedDistributionPolicy()
 
-  val query = TestQueries.queryLocationPolicy
+  val query = TestQueries.queryProtectedPolicy
   val variableDAG = new VariableDAG(query)
   val operatorDAG = variableDAG.toOperatorDAG
 
@@ -16,7 +17,8 @@ object TestLocalityPolicy extends App {
   val operatorDAGFrame = new OperatorDAGFrame(operatorDAG, squeeze = true)
   DAGDraw.showFrame(operatorDAGFrame, "Operator DAG")
 
-  policy.assignLocations(operatorDAG)
+  storeLocalPolicty.assignLocations(operatorDAG)
+  protectedPolicy.assignLocations(operatorDAG)
   val opDAGFrameWithLocations = new OperatorDAGFrame(operatorDAG, squeeze = true)
   DAGDraw.showFrame(opDAGFrameWithLocations, "Operator DAG with locations")
 }
