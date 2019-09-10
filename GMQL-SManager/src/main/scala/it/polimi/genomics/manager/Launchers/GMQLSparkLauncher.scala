@@ -55,6 +55,7 @@ class GMQLSparkLauncher(sparkJob: GMQLJob) extends GMQLLauncher(sparkJob) {
             else {
               General_Utilities().getResultDir("federated")
             }
+          val policies = job.server.implementation.asInstanceOf[FederatedImplementation].distributionPolicy
           job.server.implementation = new FederatedImplementation(Utilities().LAUNCHER_MODE,
             Some(tempDir),
             Some(job.jobId),
@@ -63,7 +64,8 @@ class GMQLSparkLauncher(sparkJob: GMQLJob) extends GMQLLauncher(sparkJob) {
             Some(Utilities().SPARK_HOME),
             Some(Utilities().CLI_JAR_local()),
             Some(Utilities().CLI_CLASS),
-            Some(Utilities().SPARK_CUSTOM)
+            Some(Utilities().SPARK_CUSTOM),
+            policies
           )
 
           //      new GMQLSparkExecutor(

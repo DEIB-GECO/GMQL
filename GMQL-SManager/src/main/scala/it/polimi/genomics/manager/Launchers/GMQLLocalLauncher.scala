@@ -101,7 +101,8 @@ class GMQLLocalLauncher(localJob: GMQLJob) extends GMQLLauncher(localJob) {
             else {
               General_Utilities().getResultDir("federated")
             }
-          job.server.implementation = new FederatedImplementation("LOCAL", Some(tempDir), Some(job.jobId))
+          val policies = job.server.implementation.asInstanceOf[FederatedImplementation].distributionPolicy
+          job.server.implementation = new FederatedImplementation("LOCAL", Some(tempDir), Some(job.jobId), distributionPolicy = policies)
         }
         //      new GMQLSparkExecutor(
         //      binSize = job.gMQLContext.binSize,
@@ -115,7 +116,9 @@ class GMQLLocalLauncher(localJob: GMQLJob) extends GMQLLauncher(localJob) {
           job.server.run()
           job.status = Status.EXEC_SUCCESS
         } catch {
-          case _: GmqlFederatedException => job.status = Status.EXEC_FAILED
+          case e: GmqlFederatedException =>
+            logger.error("GmqlFederatedException: ", e)
+            job.status = Status.EXEC_FAILED
         }
         logs._2.stop()
         logs._1.stop()
