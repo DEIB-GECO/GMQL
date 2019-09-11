@@ -5,7 +5,7 @@ import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
 import it.polimi.genomics.core.DataStructures.MetadataCondition.{META_OP, MetadataCondition}
 import it.polimi.genomics.core.DataStructures.RegionCondition._
-import it.polimi.genomics.federated.{DistributedPolicy, FederatedImplementation}
+import it.polimi.genomics.federated.{CentralizedPolicy, DistributedPolicy, FederatedImplementation}
 import it.polimi.genomics.core.DataStructures.Instance
 
 import scala.util.parsing.input.{CharSequenceReader, Positional}
@@ -404,12 +404,15 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
 
     if (policy.isDefined && this.server.implementation.isInstanceOf[FederatedImplementation]) {
       policy.get match {
-        case p:DistributedPolicyCompiler => {
-          val policies = this.server.implementation.asInstanceOf[FederatedImplementation].distributionPolicy
+        case p:DistributedPolicyCompiler =>
           this.server.implementation.asInstanceOf[FederatedImplementation].distributionPolicy =  DistributedPolicy
-        }
+        case p:CentralizedPolicyCompiler =>
+          this.server.implementation.asInstanceOf[FederatedImplementation].distributionPolicy = CentralizedPolicy(p.instance)
+        case p:ExternalizedPolicyCompiler =>
+          if(p.instance.name.toLowerCase.equals("local"))
+            throw new CompilerException(s"@policy externalized: Cannot externalized to ${p.instance.name}")
+          this.server.implementation.asInstanceOf[FederatedImplementation].distributionPolicy = CentralizedPolicy(p.instance)
         case _ =>
-
       }
     }
 
@@ -465,6 +468,9 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
         case SelectOperator(op_pos, input1, input2, output, parameters, is_protected) => {
           if (protected_ds.contains(input1.name)) {
             SelectOperator(op_pos, input1, input2, output, parameters, true)
+          }
+          else if(protected_ds.contains(output.name)){
+            throw new CompilerException(s"Intermediate variable (${output.name}) cannot be protected")
           }
           else {
             op
