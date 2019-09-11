@@ -3,7 +3,7 @@ package it.polimi.genomics.compiler
 import it.polimi.genomics.core.DataStructures.CoverParameters.CoverParam
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.Direction
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.TopParameter
-import it.polimi.genomics.core.DataStructures.{IRVariable, Instance}
+import it.polimi.genomics.core.DataStructures.{GMQLInstance, IRVariable, Instance, LOCAL_INSTANCE}
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.AtomicCondition
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
 import it.polimi.genomics.core.DataStructures.MetaAggregate.{MENode, MetaAggregateFunction}
@@ -33,7 +33,7 @@ abstract class Operator (op_pos : Position,
   var super_variable_left : Option[IRVariable] = None
   var super_variable_right : Option[IRVariable] = None
 
-  var operator_location: Option[Instance] = None
+  var operator_location: Option[GMQLInstance] = None
 
   val unsupported_default_parameter = "Operator " + operator_name + " at line " + op_pos.line +
     " does not support default parameters"
@@ -140,7 +140,10 @@ abstract class Operator (op_pos : Position,
   }
 
   def parse_named_at(value : String) = {
-    operator_location = Some(Instance(value))
+    operator_location = if (value.toLowerCase().equals("local"))
+      Some(LOCAL_INSTANCE)
+    else
+      Some(Instance(value))
   }
 
 
