@@ -80,8 +80,8 @@ class GMQLSparkLauncher(sparkJob: GMQLJob) extends GMQLLauncher(sparkJob) {
             job.server.run()
             job.status = Status.EXEC_SUCCESS
           } catch {
-            case e: GmqlFederatedException =>
-              logger.error("GmqlFederatedException: ", e)
+            case e: Exception =>
+              logger.error("Error: " + e.getMessage, e)
               job.status = Status.EXEC_FAILED
           }
           logs._2.stop()

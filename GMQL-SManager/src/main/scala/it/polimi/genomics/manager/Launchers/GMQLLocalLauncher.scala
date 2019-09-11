@@ -116,8 +116,8 @@ class GMQLLocalLauncher(localJob: GMQLJob) extends GMQLLauncher(localJob) {
           job.server.run()
           job.status = Status.EXEC_SUCCESS
         } catch {
-          case e: GmqlFederatedException =>
-            logger.error("GmqlFederatedException: ", e)
+          case e: Exception =>
+            logger.error("Error: " + e.getMessage, e)
             job.status = Status.EXEC_FAILED
         }
         logs._2.stop()
