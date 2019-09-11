@@ -384,7 +384,7 @@ object GMQLExecuteCommand {
           case p: VariableIdentifier => VariableIdentifier(inputs.get(p.IDName).getOrElse(p.IDName));
         };
 
-          SelectOperator(select.op_pos, dsinput, select.input2, select.output, select.parameters)
+          SelectOperator(select.op_pos, dsinput, select.input2, select.output, select.parameters, select.is_protected)
         //new SelectOperator(select.op_pos, dsinput, select.input2, select.output, select.sj_condition, select.meta_condition, select.region_condition)
         case s: Operator => s
       })

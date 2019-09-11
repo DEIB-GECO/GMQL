@@ -5,7 +5,7 @@ import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
 import it.polimi.genomics.core.DataStructures.MetadataCondition.{META_OP, MetadataCondition}
 import it.polimi.genomics.core.DataStructures.RegionCondition._
-import it.polimi.genomics.federated.{FederatedImplementation, LocalityDistributionPolicy}
+import it.polimi.genomics.federated.{DistributedPolicy, FederatedImplementation}
 import it.polimi.genomics.core.DataStructures.Instance
 
 import scala.util.parsing.input.{CharSequenceReader, Positional}
@@ -406,7 +406,7 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
       policy.get match {
         case p:DistributedPolicyCompiler => {
           val policies = this.server.implementation.asInstanceOf[FederatedImplementation].distributionPolicy
-          this.server.implementation.asInstanceOf[FederatedImplementation].distributionPolicy = policies :+ new LocalityDistributionPolicy()
+          this.server.implementation.asInstanceOf[FederatedImplementation].distributionPolicy =  DistributedPolicy
         }
         case _ =>
 

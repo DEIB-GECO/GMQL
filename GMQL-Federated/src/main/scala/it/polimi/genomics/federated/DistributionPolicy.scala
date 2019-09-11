@@ -1,7 +1,7 @@
 package it.polimi.genomics.federated
 
 import it.polimi.genomics.core.DAG.OperatorDAG
-import it.polimi.genomics.core.DataStructures.{EXECUTED_ON, GMQLInstance, IROperator, LOCAL_INSTANCE, ReadOperator}
+import it.polimi.genomics.core.DataStructures.{EXECUTED_ON, GMQLInstance, IROperator, IRStoreMD, IRStoreRD, LOCAL_INSTANCE, ReadOperator}
 import org.slf4j.LoggerFactory
 
 
@@ -15,7 +15,7 @@ trait DistributionPolicy {
   def assignLocations(dag: OperatorDAG) : OperatorDAG
 }
 
-class StoreAtLocalDistributionPolicy extends DistributionPolicy {
+object StoreAtLocalDistributionPolicy extends DistributionPolicy {
   override def assignLocations(dag: OperatorDAG): OperatorDAG = {
     dag.roots.foreach {
       x => if(!x.hasExecutedOn) x.addAnnotation(EXECUTED_ON(LOCAL_INSTANCE))
@@ -24,34 +24,20 @@ class StoreAtLocalDistributionPolicy extends DistributionPolicy {
   }
 }
 
-class ProtectedDistributionPolicy extends DistributionPolicy {
+object ProtectedPolicy extends DistributionPolicy {
+  def decideLocation(op: IROperator):Unit = {
+    if(op.isProtected){
+      if(!op.hasExecutedOn){
+        op.addAnnotation(EXECUTED_ON(LOCAL_INSTANCE))
+      }
+      else if (op.getExecutedOn != LOCAL_INSTANCE) {
+        throw new GmqlFederatedException("Protected dataset cannot be moved to " + op.getExecutedOn)
+      }
+      op.getDependencies.foreach(decideLocation)
+    }
+  }
+
   override def assignLocations(dag: OperatorDAG): OperatorDAG = {
-
-    def getDependenciesConstraints(deps: List[IROperator]): List[GMQLInstance] = {
-      deps.map(decideLocation).filter(_.isDefined).map(_.get)
-    }
-
-    def decideLocation(op: IROperator): Option[GMQLInstance] = {
-      val loc = op match {
-        case operator: ReadOperator => if(operator.isProtected) Some(operator.getExecutedOn) else None
-        case _ => {
-          val depConstr: List[GMQLInstance] = if(op.hasDependencies)
-            getDependenciesConstraints(op.getDependencies) else List()
-          val constr = if(op.hasExecutedOn) op.getExecutedOn :: depConstr else depConstr
-          val uniqueNames = constr.map(_.name).distinct
-          if(uniqueNames.length > 1)
-            throw new GmqlFederatedException(s"[$op] Impossible to allocate resources:\n" +
-              s"Conflicting protection requirements (${uniqueNames.mkString(" VS ")})")
-          else if(uniqueNames.length == 1)
-            Some(constr.head)
-          else
-            None
-          }
-        }
-      if(!op.hasExecutedOn && loc.isDefined)
-        op.addAnnotation(EXECUTED_ON(loc.get))
-      loc
-    }
     dag.roots.foreach(decideLocation)
     dag
   }
@@ -65,38 +51,36 @@ class ProtectedDistributionPolicy extends DistributionPolicy {
   * parents if it has more than one dependency.
   * In this way you delay as much as possible data movements.
   */
-class LocalityDistributionPolicy extends DistributionPolicy {
+object DistributedPolicy extends DistributionPolicy {
   final val logger = LoggerFactory.getLogger(this.getClass)
-  override def assignLocations(dag: OperatorDAG): OperatorDAG = {
+  def getDependenciesLocations(deps: List[IROperator]): List[GMQLInstance] = {
+    deps.map(decideLocation)
+  }
 
-    def getDependenciesLocations(deps: List[IROperator]): List[GMQLInstance] = {
-      deps.map(decideLocation)
-    }
-
-    def decideLocation(op: IROperator): GMQLInstance = {
-      val selLoc = {
-        if(!op.hasExecutedOn){
-          // the current operator does not have a location specification
-          // we have to ask to the dependencies
-          if(op.hasDependencies){
-            val depLocs = getDependenciesLocations(op.getDependencies)
-            val selectedLocation = depLocs.head //trivial policy
-            op.addAnnotation(EXECUTED_ON(selectedLocation))
-            selectedLocation
-          } else {
-            throw new IllegalStateException(s"[$op] Not possible to have a node without dependencies" +
-              "and without location specification")
-          }
+  def decideLocation(op: IROperator): GMQLInstance = {
+    val selLoc = {
+      if(!op.hasExecutedOn){
+        // the current operator does not have a location specification
+        // we have to ask to the dependencies
+        if(op.hasDependencies){
+          val depLocs = getDependenciesLocations(op.getDependencies)
+          val selectedLocation = depLocs.head //trivial policy
+          op.addAnnotation(EXECUTED_ON(selectedLocation))
+          selectedLocation
         } else {
-          if(op.hasDependencies)
-            getDependenciesLocations(op.getDependencies)
-          op.getExecutedOn
+          throw new IllegalStateException(s"[$op] Not possible to have a node without dependencies" +
+            "and without location specification")
         }
+      } else {
+        if(op.hasDependencies)
+          getDependenciesLocations(op.getDependencies)
+        op.getExecutedOn
       }
-      logger.debug(op + "will be executed at " + selLoc)
-      selLoc
     }
-
+    logger.debug(op + "will be executed at " + selLoc)
+    selLoc
+  }
+  override def assignLocations(dag: OperatorDAG): OperatorDAG = {
     dag.roots.foreach(decideLocation)
     dag
   }

@@ -174,7 +174,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script: GMQLScript, val username
               }
             }
           }
-          new SelectOperator(select.op_pos, dsinput, select.input2, select.output, select.parameters)
+          new SelectOperator(select.op_pos, dsinput, select.input2, select.output, select.parameters, select.is_protected)
         /*val ds = new IRDataSet(DSname, List[(String, PARSING_TYPE)]().asJava)
         if (repositoryHandle.DSExists(ds, username)) {
           val user = if (repositoryHandle.DSExistsInPublic(ds)) "public" else this.username

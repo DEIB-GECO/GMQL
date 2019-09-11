@@ -20,10 +20,14 @@ abstract class IROperator extends Serializable with DAGNode[IROperator] {
   })
   def getExecutedOn: GMQLInstance = this.annotations.collectFirst { case EXECUTED_ON(instance) => instance}.get
 
+  /**
+   * check if this or any of its ancestors is protected
+   * @return
+   */
   def isProtected: Boolean = this.annotations.exists({
     case PROTECTED => true
     case _ => false
-  })
+  }) || this.getDependencies.foldLeft(false)((x, y) => x || y.isProtected)
 
   /** Optional intermediate result stored to speed up computations */
   var intermediateResult: Option[AnyRef] = None
