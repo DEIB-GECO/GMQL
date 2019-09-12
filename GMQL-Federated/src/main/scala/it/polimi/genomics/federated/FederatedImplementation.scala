@@ -524,10 +524,10 @@ class FederatedImplementation(val launcherMode: String,
 
   def implementation(): Unit = {
     val opDAG = new OperatorDAG(to_be_materialized.flatMap(x => List(x.metaDag, x.regionDag)).toList)
-    logger.info("Applying Policies")
+    logger.debug("Applying Policies")
 
     List(StoreAtLocalDistributionPolicy, ProtectedPolicy, distributionPolicy).foreach{x =>
-      logger.info(x + " being applied")
+      logger.debug(x.toString + " being applied")
       x.assignLocations(opDAG)
     }
 

@@ -24,6 +24,8 @@ object StoreAtLocalDistributionPolicy extends DistributionPolicy {
     }
     dag
   }
+
+  override def toString: String = "StoreAtLocalDistributionPolicy"
 }
 
 object ProtectedPolicy extends DistributionPolicy {
@@ -43,6 +45,9 @@ object ProtectedPolicy extends DistributionPolicy {
     dag.roots.foreach(decideLocation)
     dag
   }
+
+  override def toString: String = "ProtectedPolicy"
+
 }
 
 
@@ -88,6 +93,9 @@ object DistributedPolicy extends DistributionPolicy {
     dag.roots.foreach(decideLocation)
     dag
   }
+
+  override def toString: String = "DistributedPolicy"
+
 }
 
 
@@ -121,6 +129,9 @@ case class CentralizedPolicy(instance: Instance) extends DistributionPolicy {
     dag.roots.foreach(setLocation)
     dag
   }
+
+  override def toString: String = s"CentralizedPolicy($instance)"
+
 }
 
 
