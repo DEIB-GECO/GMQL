@@ -402,6 +402,7 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
     val (query_1, protected_ds, policy) = process_directives(query_raw)
     val query = remove_comments(query_1)
 
+
     if (policy.isDefined && this.server.implementation.isInstanceOf[FederatedImplementation]) {
       policy.get match {
         case p:DistributedPolicyCompiler =>
@@ -462,6 +463,16 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
     } while (!remaining.atEnd)
 
     if (failed) throw new CompilerException(error_message)
+
+    for (ds <- protected_ds) {
+      val ln = result
+                 .filter(x=>x.isInstanceOf[SelectOperator])
+                 .filter(x=>x.asInstanceOf[SelectOperator].input1.name.equals(ds)).length
+      if (ln == 0) {
+        val msg = "Protected dataset \"" + ds + "\" is never used in the query. Correct the directive."
+        throw new CompilerException(msg)
+      }
+    }
 
     val prot_res = result.map(op =>
       op match {
