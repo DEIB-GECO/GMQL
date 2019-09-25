@@ -179,6 +179,9 @@ class FederatedImplementation(val launcherMode: String,
       logger.info(s"Total response time: ${(stop_query_fed - start_query_fed) / 1000} s.")
     }
     catch {
+      case e:GmqlFederatedException =>
+        logger.error(e.getMessage)
+        throw e
       case e: Exception =>
         logger.error(e.getMessage, e)
         throw e
