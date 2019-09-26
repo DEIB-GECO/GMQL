@@ -389,6 +389,10 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
 
         new_query = new_query + "\n"
       }
+      else if (line.toLowerCase.startsWith("@")) {
+        val msg = "Invalid directive '" + line + "' at line " + (index+1).toString
+        throw new CompilerException(msg)
+      }
       else {
         new_query = new_query + line + "\n"
       }
