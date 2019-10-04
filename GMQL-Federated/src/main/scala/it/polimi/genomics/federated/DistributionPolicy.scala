@@ -35,7 +35,7 @@ object ProtectedPolicy extends DistributionPolicy {
         op.addAnnotation(EXECUTED_ON(LOCAL_INSTANCE))
       }
       else if (op.getExecutedOn != LOCAL_INSTANCE) {
-        throw new GmqlFederatedException("Protected dataset cannot be moved to " + op.getExecutedOn)
+        throw new GmqlFederatedException("Protected dataset cannot be moved from/to " + op.getExecutedOn)
       }
       op.getDependencies.foreach(decideLocation)
     }

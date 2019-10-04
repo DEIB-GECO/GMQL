@@ -334,7 +334,7 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
       }
       else if(line.toLowerCase.startsWith("@policy")) {
 
-        val s = line.split(" ")
+        val s = line.split("\\s+")
         if (s.length < 2){
           val msg = "Invalid directive '" + line + "' at line " + (index+1).toString +
             ": a policy has to be specified (distributed, centralized <instance>, externalized <instance>)"
@@ -403,8 +403,7 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
 
   def phase1(query_raw: String): List[Operator] = {
 
-    val (query_1, protected_ds, policy) = process_directives(query_raw)
-    val query = remove_comments(query_1)
+    val (query, protected_ds, policy) = process_directives(remove_comments(query_raw))
 
 
     if (policy.isDefined && this.server.implementation.isInstanceOf[FederatedImplementation]) {
