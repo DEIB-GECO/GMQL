@@ -2,7 +2,8 @@ package it.polimi.genomics.spark.test
 
 import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.core.DataStructures
-import it.polimi.genomics.core.DataStructures.IRVariable
+import it.polimi.genomics.core.DataStructures.{GMQLOperator, IRVariable}
+import it.polimi.genomics.core.Debug.OperatorDescr
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import it.polimi.genomics.spark.implementation.loaders.BedParser
 import org.apache.spark.{SparkConf, SparkContext}
@@ -48,7 +49,7 @@ object TestSelect {
     //META SELECTION
     val input = "/home/abdulrahman/V2Spark_TestFiles/Samples/meta/exp.narrowPeak,/home/abdulrahman/V2Spark_TestFiles/Samples/meta/exp1.narrowPeak"
     val s: IRVariable = server READ input.split(",").toList USING BedParser
-    val metaSelection: IRVariable = s.SELECT(meta_con,reg_con)
+    val metaSelection: IRVariable = s.SELECT(meta_con,reg_con, OperatorDescr(GMQLOperator.Select))
 
     server setOutputPath output MATERIALIZE metaSelection
     server.run()

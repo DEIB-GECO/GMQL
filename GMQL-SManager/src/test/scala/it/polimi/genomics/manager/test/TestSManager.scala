@@ -74,6 +74,6 @@ object TestSManager extends App {
     do {
       logger.info("Waiting for completion")
       Thread.sleep(1000)
-    } while(executionJob.getJobStatus != manager.Status.SUCCESS)
+    } while(executionJob.getJobStatus != manager.Status.SUCCESS && executionJob.getJobStatus!=manager.Status.EXEC_FAILED)
   }
 }

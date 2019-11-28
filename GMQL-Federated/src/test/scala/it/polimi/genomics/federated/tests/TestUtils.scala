@@ -4,8 +4,10 @@ import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParamet
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.{JoinQuadruple, RegionBuilder}
 import it.polimi.genomics.core.DataStructures.RegionAggregate.RegionsToRegion
 import it.polimi.genomics.core.DataStructures._
+import it.polimi.genomics.core.Debug.OperatorDescr
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core.{GDouble, GMQLLoader, GValue, ParsingType}
+
 import collection.JavaConverters._
 
 
@@ -26,16 +28,21 @@ object TestUtils {
   def getInitialIRVariable(datasetName: String, instance: GMQLInstance = LOCAL_INSTANCE): IRVariable = {
     val readMD = IRReadMD(List(datasetName), new FakeGMQLLoader, IRDataSet(datasetName,emptySchema, instance))
     readMD.addAnnotation(EXECUTED_ON(instance))
+    readMD.addAnnotation(OPERATOR(OperatorDescr(GMQLOperator.Select)))
     val readRD = IRReadRD(List(datasetName), new FakeGMQLLoader, IRDataSet(datasetName,emptySchema, instance))
     readRD.addAnnotation(EXECUTED_ON(instance))
-    val v = IRVariable(readMD, readRD, emptySchema.asScala.toList)(binning)
-    v
+    readRD.addAnnotation(OPERATOR(OperatorDescr(GMQLOperator.Select)))
+    IRVariable(readMD, readRD, emptySchema.asScala.toList)(binning)
   }
 
   def materializeIRVariable(v: IRVariable, outputName: String, location: Option[GMQLInstance] = None): IRVariable = {
+    val operator = OperatorDescr(GMQLOperator.Materialize)
     val dag_md = IRStoreMD(outputName, v.metaDag, IRDataSet(outputName, List[(String,PARSING_TYPE)]().asJava))
+    dag_md.addAnnotation(OPERATOR(operator))
     val dag_rd = IRStoreRD(outputName, v.regionDag, v.metaDag, v.schema ,IRDataSet(outputName, List[(String,PARSING_TYPE)]().asJava))
-    IRVariable(v.insert_node(dag_md, location), v.insert_node(dag_rd, location), v.schema, dependencies = List(v))(binning)
+    dag_md.addAnnotation(OPERATOR(operator))
+    IRVariable(v.insert_node(dag_md, location, operator), v.insert_node(dag_rd, location,operator), v.schema, dependencies = List(v))(binning)
+
   }
 
   def getRegionsToRegion = new RegionsToRegion {

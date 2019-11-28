@@ -26,6 +26,7 @@ object DAGDraw {
 abstract class DAGFrame[T <: DAGNode[T]](dag: GenericDAG[T, _], squeeze: Boolean = true) extends JFrame {
   protected final val ORANGE = "#f89610"
   protected final val GREEN = "#32e113"
+  protected final val GREY = "lightblue"
 
   private val mappingNodeToVertex = collection.mutable.Map[T, Object]()
   private val mappingNodeToOpEdge = collection.mutable.Map[(Object, Object), Object]()
@@ -84,7 +85,10 @@ abstract class DAGFrame[T <: DAGNode[T]](dag: GenericDAG[T, _], squeeze: Boolean
 class OperatorDAGFrame(dag: OperatorDAG, squeeze: Boolean = true) extends DAGFrame[IROperator](dag, squeeze) {
   override protected def getStyle(node: IROperator): String = {
     val fillColor = "fillColor=" + {
-      if (node.isMetaOperator) ORANGE
+
+      if (node.isInstanceOf[IRDebugMJ] || node.isInstanceOf[IRDebugRD] || node.isInstanceOf[IRDebugMD] || node.isInstanceOf[IRDebugMG])
+        GREY
+      else if (node.isMetaOperator || node.isMetaGroupOperator || node.isMetaJoinOperator) ORANGE
       else GREEN
     } + ";"
     fillColor

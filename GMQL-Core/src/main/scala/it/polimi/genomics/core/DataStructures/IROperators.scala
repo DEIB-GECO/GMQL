@@ -13,6 +13,7 @@ import it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinConditio
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
 import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionFunction, RegionsToMeta, RegionsToRegion}
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
+import it.polimi.genomics.core.Debug.OperatorDescr
 import it.polimi.genomics.core.GMQLLoader
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 
@@ -606,7 +607,7 @@ case class IRMergeMD(var dataset: MetaOperator,
 case class IRMergeRD(var dataset: RegionOperator,
                      groups: Option[MetaGroupOperator]) extends RegionOperator {
   override def getDependencies: List[IROperator] =
-    if (groups.isDefined) List(dataset, groups.get) else List(dataset)
+    if (groups.isDefined) List (dataset, groups.get) else List(dataset)
 
   override def substituteDependency(oldDep: IROperator, newDep: IROperator): IROperator = {
     if (oldDep == dataset && newDep.isRegionOperator)
@@ -978,5 +979,86 @@ case class IRUnionRD(schema_reformatting: List[Int], var left_dataset: RegionOpe
 
     if (hasMatch) res
     else throw new DependencyException
+  }
+}
+
+
+// TIME ESTIMATION (added by @andreagulino)
+
+/**
+  * DAG node that performs the performance / statistical debug of its dependency
+  *
+  * @param inputRegion      input region operator
+  */
+case class IRDebugRD(var inputRegion: RegionOperator) extends RegionOperator {
+  override def getDependencies: List[IROperator] = List(inputRegion)
+
+  override def substituteDependency(oldDep: IROperator, newDep: IROperator): IROperator = {
+    if (oldDep == inputRegion && newDep.isRegionOperator)
+      this.copy(inputRegion = newDep.asInstanceOf[RegionOperator])
+    else throw new DependencyException
+  }
+}
+
+/**
+  * DAG node that performs the performance / statistical debug of its dependency
+  *
+  * @param inputMeta      input meta operator
+  */
+case class IRDebugMD(var inputMeta: MetaOperator) extends MetaOperator {
+  override def getDependencies: List[IROperator] = List(inputMeta)
+
+  override def substituteDependency(oldDep: IROperator, newDep: IROperator): IROperator = {
+  if (oldDep == inputMeta && newDep.isMetaOperator)
+      this.copy(inputMeta = newDep.asInstanceOf[MetaOperator])
+    else throw new DependencyException
+  }
+}
+
+/**
+  * DAG node that performs the performance / statistical debug of its dependency
+  *
+  * @param inputMetaGroup      input meta operator
+  */
+case class IRDebugMG(var inputMetaGroup: MetaGroupOperator) extends MetaGroupOperator {
+  override def getDependencies: List[IROperator] = List(inputMetaGroup)
+
+  override def substituteDependency(oldDep: IROperator, newDep: IROperator): IROperator = {
+    if (oldDep == inputMetaGroup)
+      this.copy(inputMetaGroup = newDep.asInstanceOf[MetaGroupOperator])
+    else throw new DependencyException
+  }
+}
+
+/**
+  * DAG node that performs the performance / statistical debug of its dependency
+  *
+  * @param inputMetaJoin      input meta operator
+  */
+case class IRDebugMJ(var inputMetaJoin: MetaJoinOperator) extends MetaJoinOperator {
+  override def getDependencies: List[IROperator] = List(inputMetaJoin)
+
+  override def substituteDependency(oldDep: IROperator, newDep: IROperator): IROperator = {
+    if (oldDep == inputMetaJoin)
+      this.copy(inputMetaJoin = newDep.asInstanceOf[MetaJoinOperator])
+    else throw new DependencyException
+  }
+}
+
+case class IRStartup() extends RegionOperator {
+  /** Returns the list of dependencies of the node */
+  override def getDependencies: List[IROperator] = List()
+
+  override def substituteDependency(oldDep: IROperator, newDep: IROperator): IROperator = {
+    this
+  }
+}
+
+case class IRShutdown() extends RegionOperator {
+  /** Returns the list of dependencies of the node */
+  override def getDependencies: List[IROperator] = List()
+
+  override def substituteDependency(oldDep: IROperator, newDep: IROperator): IROperator = {
+    this
   }
 }

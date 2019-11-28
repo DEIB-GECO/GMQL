@@ -1,8 +1,10 @@
 package it.polimi.genomics.compiler
 
+import it.polimi.genomics.core.DataStructures.GMQLOperator
 import it.polimi.genomics.core.DataStructures.JoinParametersRD._
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinCondition
+import it.polimi.genomics.core.Debug.OperatorDescr
 
 import scala.util.parsing.input.Position
 
@@ -131,6 +133,25 @@ case class JoinOperator(op_pos : Position,
 
     }
 
+
+    var (max, min, stream, md) = (100000L, 0L, 1L, None)
+
+    genometric_condition.head.toList().foreach {
+      case DistLess(v) => max = v
+      case DistGreater(v) =>  min = v
+      case Upstream() => stream = 2
+      case DownStream() =>  stream = 2
+      case MinDistance(v) => Some(v)
+    }
+
+    val search_space = 2*(max-min)/stream
+
+    val params: Option[Map[String,String]] = Some(Map(
+      "join_output_type"->output_builder.toString,
+      "join_search_space"->search_space.toString,
+      "join_md"->md.getOrElse("none")))
+    val operatorDescr = OperatorDescr(GMQLOperator.Join, params)
+
     val joined = super_variable_left.get.JOIN(
       meta_join_param,
       genometric_condition,
@@ -139,7 +160,8 @@ case class JoinOperator(op_pos : Position,
       Some(input1.name),
       Some(input2.get.name),
       join_on_attributes = on_positions,
-      operator_location
+      operator_location,
+      operatorDescription=operatorDescr
     )
 
     CompilerDefinedVariable(output.name,output.pos,joined)

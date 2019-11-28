@@ -6,9 +6,11 @@ package it.polimi.genomics.spark.test
 
 
 import it.polimi.genomics.GMQLServer.{DefaultMetaExtensionFactory, DefaultRegionExtensionFactory, GmqlServer}
+import it.polimi.genomics.core.DataStructures.GMQLOperator
 import it.polimi.genomics.core.DataStructures.MetaAggregate._
 import it.polimi.genomics.core.DataStructures.RegionAggregate.{REStringConstant, RegionExtension}
 import it.polimi.genomics.core.DataStructures.RegionCondition.{MetaAccessor, Predicate, REG_OP}
+import it.polimi.genomics.core.Debug.OperatorDescr
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core._
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
@@ -90,7 +92,7 @@ object Project {
 
           val projectrd = dataAsTheyAre.PROJECT(Some(List("filename","A", "B", "C")), None, false, None)
           val projectrd2 = projectrd.PROJECT(None, None, false, None)
-          projectrd2.SELECT(reg_con = Predicate(0, REG_OP.EQ, "+ 1000.0"))
+          projectrd2.SELECT(reg_con = Predicate(0, REG_OP.EQ, "+ 1000.0"), operatorDescription = OperatorDescr(GMQLOperator.Select))
         }
 
         case 3 => {

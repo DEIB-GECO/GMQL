@@ -1,6 +1,7 @@
 package it.polimi.genomics.core.DataStructures
 
 import it.polimi.genomics.core.DAG.DAGNode
+import it.polimi.genomics.core.Debug.OperatorDescr
 import it.polimi.genomics.core.GMQLLoader
 
 /**
@@ -19,6 +20,11 @@ abstract class IROperator extends Serializable with DAGNode[IROperator] {
     if (this.hasExecutedOn) this.annotations.collectFirst {
       case EXECUTED_ON(instance) => instance
     }.getOrElse(LOCAL_INSTANCE) else LOCAL_INSTANCE
+
+  // Get the GMQL operator that translates into this IROperator
+  def getOperator: OperatorDescr = this.annotations.collectFirst {
+      case OPERATOR(operator) => operator
+    }.getOrElse(OperatorDescr(GMQLOperator.Undefined))
 
   /** Optional intermediate result stored to speed up computations */
   var intermediateResult: Option[AnyRef] = None

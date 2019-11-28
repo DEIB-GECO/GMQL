@@ -3,6 +3,47 @@ package it.polimi.genomics.core.DataStructures
 import it.polimi.genomics.core.DataStructures.Feature.Feature
 import scala.collection.Map
 
+
+class ExecutionProfile( user: String,
+                        queryname: String,
+                        query: List[IRVariable],
+                        inputDatasets: Map[String, GMQLDatasetProfile],
+                        rootTimestamp: Long ){
+
+  var profileDAG : List[IntermediateProfile] = _
+
+
+}
+
+
+abstract class IntermediateProfile( operator: IROperator,
+                                //outputProfile: GMQLDatasetProfile,
+                                leftProfile: IntermediateProfile,
+                                rightProfile: Option[IntermediateProfile],
+                                initialTimestamp: Long,
+                                finalTimestamp: Long,
+                                rootTimestamp: Long) {
+
+  val executionTime: Long = initialTimestamp - rootTimestamp
+  val profilingTime: Long = finalTimestamp - initialTimestamp
+
+  var operatorParams: Map[String, String] = Map()
+
+  if( operator.isInstanceOf[IRSelectRD] ){
+    val rtOp = operator.asInstanceOf[IRSelectRD]
+    rtOp.reg_cond.getOrElse("NULL")
+    operatorParams = operatorParams + ("reg_cond"->rtOp.reg_cond.getOrElse("NULL").toString )
+   // operatorParams = operatorParams + ("reg_cond"->rtOp.filtered_meta.get.)
+
+  }
+
+  def getOutputProfile
+
+}
+
+
+
+
 /**
   *
   *  Set of profiling information needed to be collected for every dataset.
