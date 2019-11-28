@@ -18,6 +18,7 @@ import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionExtension, 
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.DataTypes._
+import it.polimi.genomics.core.Debug.EPDAG
 import it.polimi.genomics.core.ParsingType._
 import it.polimi.genomics.core._
 import it.polimi.genomics.core.exception.SelectFormatException
@@ -54,6 +55,8 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
   final val logger = LoggerFactory.getLogger(this.getClass)
 
   var fs: FileSystem = null
+
+  var ePDAG: EPDAG = _
 
   def go(): Unit = {
     logger.debug(to_be_materialized.toString())
@@ -129,15 +132,28 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
 
   def implementation(): Unit = {
 
+    ePDAG = EPDAG.build(to_be_materialized.toList)
+
+    // Initialize the execution profile DAG
+    ePDAG.executionStarted()
+    sc.parallelize(List(1,2,3)).count() // dummy operation to measure startup time
+    ePDAG.startupEnded()
+
+
     try {
       for (variable <- to_be_materialized) {
 
         val metaRDD = implement_md(variable.metaDag, sc)
         val regionRDD = implement_rd(variable.regionDag, sc)
 
-        if (variable.metaDag.isInstanceOf[IRStoreMD]) {
+        if (variable.metaDag.isInstanceOf[IRStoreMD] || variable.metaDag.getDependencies.exists(_.isInstanceOf[IRStoreMD])) {
 
-          val variableDir = variable.metaDag.asInstanceOf[IRStoreMD].path.toString
+          val storeOperator: IRStoreMD = variable.metaDag match {
+            case s: IRStoreMD => variable.metaDag.asInstanceOf[IRStoreMD]
+            case v: IRDebugMD => variable.metaDag.getDependencies.filter(_.isInstanceOf[IRStoreMD]).head.asInstanceOf[IRStoreMD]
+          }
+
+          val variableDir = storeOperator.path.toString
           val MetaOutputPath = variableDir + "/meta/"
           val RegionOutputPath = variableDir + "/files/"
           logger.debug("meta out: " + MetaOutputPath)
@@ -150,9 +166,9 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
             case _: Throwable => variableDir
           }
 
-          val conf = new Configuration();
-          val path = new org.apache.hadoop.fs.Path(RegionOutputPath);
-          fs = FileSystem.get(path.toUri(), conf);
+          val conf = new Configuration()
+          val path = new org.apache.hadoop.fs.Path(RegionOutputPath)
+          fs = FileSystem.get(path.toUri(), conf)
 
           if (testingIOFormats) {
             metaRDD.map(x => x._1 + "," + x._2._1 + "," + x._2._2).saveAsTextFile(MetaOutputPath)
@@ -163,6 +179,9 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
           // store schema
           storeSchema(GMQLSchema.generateSchemaXML(variable.schema, outputFolderName, outputFormat, outputCoordinateSystem), variableDir)
           if (profileData) {
+
+            ePDAG.profilerStarted()
+
             // Compute Profile and store into xml files (one for web, one for optimization)
             val profile = Profiler.profile(regions = regionRDD, meta = metaRDD, sc = sc)
 
@@ -178,6 +197,9 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
 
               os.close()
               os_web.close()
+
+              ePDAG.profilerEnded()
+
             } catch {
               case e: Throwable => {
                 logger.error(e.getMessage, e)
@@ -251,6 +273,8 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
           case IRStoreFedMD(input, _, path) => StoreFed.storeMeta(this, path.get, input, sc)
           case IRReadFedMD(_, path) => ReadFed.readMeta(path.get, sc)
 
+          case IRDebugMD(input) => DebugOperators.DebugMD(this, input, mo, sc)
+
 
           //         TODO Nanni
           //          case IRGenerateMD(regionFile: RegionOperator) => GenerateMD(this, regionFile, sc)
@@ -296,6 +320,8 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
           case IRStoreFedRD(input, _, pathOption) => StoreFed.storeRegion(this, pathOption.get, input, sc)
           case IRReadFedRD(_, pathOption) => ReadFed.readRegion(pathOption.get, sc)
 
+          case IRDebugRD(input) => DebugOperators.DebugRD(this, input, ro, sc)
+
           //          TODO Nanni
           //           case IRReadFileRD(path, loader, _) => ReadFileRD(path, loader, sc)
         }
@@ -312,6 +338,8 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
       val res =
         mgo match {
           case IRGroupBy(groupAttributes: MetaGroupByCondition, inputDataset: MetaOperator) => MetaGroupMGD(this, groupAttributes, inputDataset, sc)
+          case IRDebugMG(input) => DebugOperators.DebugMG(this, input, mgo, sc)
+
         }
       mgo.intermediateResult = Some(res)
       res
@@ -320,6 +348,13 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
 
   @throws[SelectFormatException]
   def implement_mjd(mjo: OptionalMetaJoinOperator, sc: SparkContext): RDD[SparkMetaJoinType] = {
+
+
+    //todo: checl if this is correct
+    if(mjo.getOperator.isInstanceOf[IRDebugMJ])
+      return DebugOperators.DebugMJ(this, mjo.getOperator.asInstanceOf[IRDebugMJ].inputMetaJoin, mjo.getOperator, sc)
+
+
     if (mjo.isInstanceOf[NoMetaJoinOperator]) {
       if (mjo.asInstanceOf[NoMetaJoinOperator].operator.intermediateResult.isDefined)
         mjo.asInstanceOf[NoMetaJoinOperator].operator.intermediateResult.get.asInstanceOf[RDD[SparkMetaJoinType]]

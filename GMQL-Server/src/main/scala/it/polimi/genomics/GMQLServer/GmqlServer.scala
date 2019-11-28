@@ -4,10 +4,13 @@ import it.polimi.genomics.GMQLServer.optimization.{DefaultOptimizer, GMQLOptimiz
 import it.polimi.genomics.core.GMQLLoader
 import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
 import it.polimi.genomics.core.DataStructures._
+import it.polimi.genomics.core.Debug.OperatorDescr
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core.{GMQLLoader, GRecordKey, GValue}
 
 import scala.collection.mutable
+import scala.collection.JavaConverters._
+
 
 /**
   * The manager of the reading, materialization and optimization of the IRVariable.
@@ -84,6 +87,11 @@ class GmqlServer(var implementation: Implementation, binning_size: Option[Long] 
     val dag_md = new IRStoreMD(meta_output_path.get, variable.metaDag, IRDataSet(meta_output_path.get, List[(String, PARSING_TYPE)]().asJava))
     val dag_rd = new IRStoreRD(region_output_path.get, variable.regionDag, variable.metaDag, variable.schema, IRDataSet(meta_output_path.get, List[(String, PARSING_TYPE)]().asJava))
 
+
+    val operatorDescription = OPERATOR(OperatorDescr(GMQLOperator.Materialize))
+    dag_md.addAnnotation(operatorDescription)
+    dag_rd.addAnnotation(operatorDescription)
+
     val new_var = new IRVariable(dag_md, dag_rd, variable.schema, dependencies = List(variable))
     materializationList += new_var
     //implementation.to_be_materialized += new_var
@@ -131,9 +139,16 @@ class GmqlServer(var implementation: Implementation, binning_size: Option[Long] 
       val ds = implementation.getDataset(paths.head).get
 
       val dagMD = IRReadMD(paths, loader, ds)
-      dagMD.addAnnotation(EXECUTED_ON(location))
       val dagRD = IRReadRD(paths, loader, ds)
+      dagMD.addAnnotation(EXECUTED_ON(location))
       dagRD.addAnnotation(EXECUTED_ON(location))
+
+
+      val schemastr:String = ds.schema.asScala.map(f=>f._1+":"+f._2).mkString(",")
+      val params: Option[Map[String,String]] = Some(Map("path"->ds.position, "schema"->schemastr))
+      val operatorDescr = OperatorDescr(GMQLOperator.Select, params=params)
+      dagMD.addAnnotation(OPERATOR(operatorDescr))
+      dagRD.addAnnotation(OPERATOR(operatorDescr))
 
       import scala.collection.JavaConverters._
       val schema = if (ds.schema.isEmpty)
@@ -146,8 +161,12 @@ class GmqlServer(var implementation: Implementation, binning_size: Option[Long] 
 
     def USING(metaDS: Any, regionDS: Any, sch: List[(String, PARSING_TYPE)]) = {
 
+      val operatorDescr = OperatorDescr(GMQLOperator.SelectMem)
+
       val dagMD = IRReadMEMMD(metaDS)
+      dagMD.addAnnotation(OPERATOR(operatorDescr))
       val dagRD = IRReadMEMRD(regionDS)
+      dagMD.addAnnotation(OPERATOR(operatorDescr))
 
 
       IRVariable(dagMD, dagRD, sch)

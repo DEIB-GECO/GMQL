@@ -2,8 +2,10 @@ package it.polimi.genomics.spark.test
 
 import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.core.DataStructures.CoverParameters.{CoverFlag, N}
+import it.polimi.genomics.core.DataStructures.GMQLOperator
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.{Direction, NoTop, TopP}
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition.{Default, MetaJoinCondition}
+import it.polimi.genomics.core.Debug.OperatorDescr
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core._
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
@@ -48,8 +50,8 @@ object SemiJoin {
 
     val semiJoinSelect = REFDS.SELECT(
       MetaJoinCondition(List(Default("hi")),true),
-      dataAsTheyAre
-
+      dataAsTheyAre,
+      operatorDescription = OperatorDescr(GMQLOperator.Select)
     )
 
     val cover = dataAsTheyAre.COVER(CoverFlag.HISTOGRAM, new N{override val n=2}, new N{override val n=3}, List(), None )

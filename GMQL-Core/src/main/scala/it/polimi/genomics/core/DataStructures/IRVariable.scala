@@ -15,6 +15,7 @@ import it.polimi.genomics.core.DataStructures.MetaJoinCondition.{AttributeEvalua
 import it.polimi.genomics.core.DataStructures.MetadataCondition.MetadataCondition
 import it.polimi.genomics.core.DataStructures.RegionAggregate._
 import it.polimi.genomics.core.DataStructures.RegionCondition.{MetaAccessor, RegionCondition}
+import it.polimi.genomics.core.Debug.OperatorDescr
 import it.polimi.genomics.core.ParsingType
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 //import org.apache.log4j.Logger
@@ -46,46 +47,47 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
   @deprecated
   override def sources: Set[IRDataSet] = this.metaDag.sources union this.regionDag.sources
 
-  def insert_node[T<:IROperator](iROperator: T, at: Option[GMQLInstance]) : T = {
+  def insert_node[T<:IROperator](iROperator: T, at: Option[GMQLInstance], operator: OperatorDescr) : T = {
     if (at.isDefined){
       iROperator.addAnnotation(EXECUTED_ON(at.get))
     }
+    iROperator.addAnnotation(OPERATOR(operator))
     iROperator
   }
 
 
-  def SELECT(meta_con: MetadataCondition): IRVariable = {
-    add_select_statement(external_meta = None, semi_join_condition = None, meta_condition = Some(meta_con), region_condition = None)
+  def SELECT(meta_con: MetadataCondition, operatorDescription: OperatorDescr): IRVariable = {
+    add_select_statement(external_meta = None, semi_join_condition = None, meta_condition = Some(meta_con), region_condition = None, operatorDescription=operatorDescription)
       .copy(dependencies = List(this), name = "SELECT")
   }
 
-  def SELECT(reg_con: RegionCondition): IRVariable = {
-    add_select_statement(external_meta = None, semi_join_condition = None, meta_condition = None, region_condition = Some(reg_con))
+  def SELECT(reg_con: RegionCondition, operatorDescription: OperatorDescr): IRVariable = {
+    add_select_statement(external_meta = None, semi_join_condition = None, meta_condition = None, region_condition = Some(reg_con), operatorDescription=operatorDescription)
       .copy(dependencies = List(this), name = "SELECT")
   }
 
-  def SELECT(meta_con: MetadataCondition, reg_con: RegionCondition): IRVariable = {
-    add_select_statement(external_meta = None, semi_join_condition = None, meta_condition = Some(meta_con), region_condition = Some(reg_con))
+  def SELECT(meta_con: MetadataCondition, reg_con: RegionCondition, operatorDescription: OperatorDescr): IRVariable = {
+    add_select_statement(external_meta = None, semi_join_condition = None, meta_condition = Some(meta_con), region_condition = Some(reg_con), operatorDescription=operatorDescription)
       .copy(dependencies = List(this), name = "SELECT")
   }
 
-  def SELECT(semi_con: MetaJoinCondition, meta_join_variable: IRVariable): IRVariable = {
-    add_select_statement(external_meta = Some(meta_join_variable.metaDag), semi_join_condition = Some(semi_con), meta_condition = None, region_condition = None)
+  def SELECT(semi_con: MetaJoinCondition, meta_join_variable: IRVariable, operatorDescription: OperatorDescr): IRVariable = {
+    add_select_statement(external_meta = Some(meta_join_variable.metaDag), semi_join_condition = Some(semi_con), meta_condition = None, region_condition = None, operatorDescription=operatorDescription)
       .copy(dependencies = List(this, meta_join_variable), name = "SELECT")
   }
 
-  def SELECT(semi_con: MetaJoinCondition, meta_join_variable: IRVariable, meta_con: MetadataCondition): IRVariable = {
-    add_select_statement(external_meta = Some(meta_join_variable.metaDag), semi_join_condition = Some(semi_con), meta_condition = Some(meta_con), region_condition = None)
+  def SELECT(semi_con: MetaJoinCondition, meta_join_variable: IRVariable, meta_con: MetadataCondition, operatorDescription: OperatorDescr): IRVariable = {
+    add_select_statement(external_meta = Some(meta_join_variable.metaDag), semi_join_condition = Some(semi_con), meta_condition = Some(meta_con), region_condition = None, operatorDescription=operatorDescription)
       .copy(dependencies = List(this, meta_join_variable), name = "SELECT")
   }
 
-  def SELECT(semi_con: MetaJoinCondition, meta_join_variable: IRVariable, reg_con: RegionCondition): IRVariable = {
-    add_select_statement(external_meta = Some(meta_join_variable.metaDag), semi_join_condition = Some(semi_con), meta_condition = None, region_condition = Some(reg_con))
+  def SELECT(semi_con: MetaJoinCondition, meta_join_variable: IRVariable, reg_con: RegionCondition, operatorDescription: OperatorDescr): IRVariable = {
+    add_select_statement(external_meta = Some(meta_join_variable.metaDag), semi_join_condition = Some(semi_con), meta_condition = None, region_condition = Some(reg_con), operatorDescription=operatorDescription)
       .copy(dependencies = List(this, meta_join_variable), name = "SELECT")
   }
 
-  def SELECT(semi_con: MetaJoinCondition, meta_join_variable: IRVariable, meta_con: MetadataCondition, reg_con: RegionCondition): IRVariable = {
-    add_select_statement(external_meta = Some(meta_join_variable.metaDag), semi_join_condition = Some(semi_con), meta_condition = Some(meta_con), region_condition = Some(reg_con))
+  def SELECT(semi_con: MetaJoinCondition, meta_join_variable: IRVariable, meta_con: MetadataCondition, reg_con: RegionCondition, operatorDescription: OperatorDescr): IRVariable = {
+    add_select_statement(external_meta = Some(meta_join_variable.metaDag), semi_join_condition = Some(semi_con), meta_condition = Some(meta_con), region_condition = Some(reg_con), operatorDescription=operatorDescription)
       .copy(dependencies = List(this, meta_join_variable), name = "SELECT")
   }
 
@@ -102,41 +104,42 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
                            semi_join_condition: Option[MetaJoinCondition],
                            meta_condition: Option[MetadataCondition],
                            region_condition: Option[RegionCondition],
-                           execute_location: Option[GMQLInstance] = None) : IRVariable = {
+                           execute_location: Option[GMQLInstance] = None,
+                           operatorDescription: OperatorDescr = OperatorDescr(GMQLOperator.Select)) : IRVariable = {
 
 
     var metaset_for_SelectRD: Option[MetaOperator] = None
     var new_meta_dag = this.metaDag
     var new_region_dag = this.regionDag
     if (meta_condition.isDefined) {
-      new_meta_dag = insert_node(IRSelectMD(meta_condition.get, new_meta_dag), execute_location)
+      new_meta_dag = insert_node(IRSelectMD(meta_condition.get, new_meta_dag), execute_location, operatorDescription)
       metaset_for_SelectRD = Some(new_meta_dag)
       if (!(semi_join_condition.isDefined || region_condition.isDefined)) {
-        new_region_dag = insert_node(IRSelectRD(None, Some(new_meta_dag), this.regionDag), execute_location)
+        new_region_dag = insert_node(IRSelectRD(None, Some(new_meta_dag), this.regionDag), execute_location, operatorDescription)
       }
     }
     if (semi_join_condition.isDefined) {
-      new_meta_dag = insert_node(IRSemiJoin(external_meta.get, semi_join_condition.get, new_meta_dag), execute_location)
+      new_meta_dag = insert_node(IRSemiJoin(external_meta.get, semi_join_condition.get, new_meta_dag), execute_location, operatorDescription)
       metaset_for_SelectRD = Some(new_meta_dag)
       if (region_condition.isEmpty) {
-        new_region_dag = insert_node(IRSelectRD(None, Some(new_meta_dag), this.regionDag), execute_location)
+        new_region_dag = insert_node(IRSelectRD(None, Some(new_meta_dag), this.regionDag), execute_location, operatorDescription)
       }
     }
     if (region_condition.isDefined) {
       if (metaset_for_SelectRD.isEmpty && uses_metadata(region_condition.get)) metaset_for_SelectRD = Some(new_meta_dag)
-      new_region_dag = insert_node(IRSelectRD(region_condition, metaset_for_SelectRD, regionDag), execute_location)
+      new_region_dag = insert_node(IRSelectRD(region_condition, metaset_for_SelectRD, regionDag), execute_location, operatorDescription)
     } else {
 
     }
     if (region_condition.isDefined && meta_condition.isEmpty && semi_join_condition.isEmpty) {
       new_meta_dag = this.metaDag
-      new_region_dag = insert_node(IRSelectRD(region_condition, Some(new_meta_dag), this.regionDag), execute_location)
+      new_region_dag = insert_node(IRSelectRD(region_condition, Some(new_meta_dag), this.regionDag), execute_location, operatorDescription)
     }
 
     if (region_condition.isDefined)
-      new_meta_dag = insert_node(IRPurgeMD(new_region_dag, new_meta_dag), execute_location)
+      new_meta_dag = insert_node(IRPurgeMD(new_region_dag, new_meta_dag), execute_location, operatorDescription)
 
-    IRVariable(new_meta_dag, new_region_dag, this.schema)
+   IRVariable(new_meta_dag, new_region_dag, this.schema)
 
   }
 
@@ -146,7 +149,8 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
               projected_values: Option[List[Int]] = None,
               all_but_reg: Option[List[String]] = None,
               extended_values: Option[List[RegionFunction]] = None,
-              execute_location: Option[GMQLInstance] = None): IRVariable = {
+              execute_location: Option[GMQLInstance] = None,
+              operatorDescription: OperatorDescr= OperatorDescr(GMQLOperator.Project)): IRVariable = {
 
 
     val new_projected_values = if (all_but_reg.isDefined)
@@ -157,7 +161,7 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
     if (projected_meta.isDefined || extended_meta.isDefined) {
       new_meta_dag = insert_node(
         IRProjectMD(projected_meta, extended_meta, all_but_meta, new_meta_dag),
-        execute_location)
+        execute_location, operatorDescription)
     }
     if (new_projected_values.isDefined || extended_values.isDefined) {
 
@@ -183,7 +187,7 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
           all_proj_values,
           extended_values,
           this.regionDag, this.metaDag),
-        execute_location)
+        execute_location, operatorDescription)
 
       val modified_fields = extended_values
         .getOrElse(List.empty)
@@ -223,6 +227,7 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
             )
           )
 
+
       IRVariable(new_meta_dag, new_region_dag, new_schema, List(this), name = "PROJECT")
 
     } else {
@@ -242,14 +247,15 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
 
   }
 
-  def EXTEND(region_aggregates: List[RegionsToMeta], execute_location: Option[GMQLInstance] = None): IRVariable = {
+  def EXTEND(region_aggregates: List[RegionsToMeta], execute_location: Option[GMQLInstance] = None,
+             operatorDescription: OperatorDescr = OperatorDescr(GMQLOperator.Extend)): IRVariable = {
     new IRVariable(
       insert_node(
         IRUnionAggMD(
           this.metaDag,
-          insert_node(IRAggregateRD(region_aggregates, this.regionDag), execute_location)
+          insert_node(IRAggregateRD(region_aggregates, this.regionDag), execute_location, operatorDescription)
         ),
-        execute_location),
+        execute_location, operatorDescription),
       this.regionDag,
       this.schema, List(this), name = "EXTEND")
   }
@@ -261,7 +267,8 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
             meta_group_name: String = "_group",
             region_keys: Option[List[GroupingParameter]],
             region_aggregates: Option[List[RegionsToRegion]],
-            execute_location: Option[GMQLInstance] = None): IRVariable = {
+            execute_location: Option[GMQLInstance] = None,
+            operatorDescription: OperatorDescr = OperatorDescr(GMQLOperator.Group)): IRVariable = {
 
     //only region grouping
     if (!meta_keys.isDefined && !meta_aggregates.isDefined) {
@@ -277,7 +284,7 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
 
       new IRVariable(
         this.metaDag,
-        insert_node(IRGroupRD(region_keys, region_aggregates, this.regionDag), execute_location),
+        insert_node(IRGroupRD(region_keys, region_aggregates, this.regionDag), execute_location, operatorDescription),
         new_schema, List(this)
       )
     }
@@ -291,7 +298,7 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
             meta_group_name,
             this.metaDag,
             this.regionDag),
-          execute_location),
+          execute_location, operatorDescription),
         this.regionDag,
         this.schema, List(this), name = "GROUP"
       )
@@ -306,7 +313,7 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
           .getOrElse(List.empty)
           .map(x => (x.output_name.get, x.resType))
 
-      val new_region_dag = insert_node(IRGroupRD(region_keys, region_aggregates, this.regionDag), execute_location)
+      val new_region_dag = insert_node(IRGroupRD(region_keys, region_aggregates, this.regionDag), execute_location, operatorDescription)
       val new_meta_dag = insert_node(
         IRGroupMD(
           meta_keys.getOrElse(new MetaGroupByCondition(List.empty)),
@@ -314,7 +321,7 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
           meta_group_name,
           this.metaDag,
           new_region_dag),
-        execute_location)
+        execute_location, operatorDescription)
       new IRVariable(
         new_meta_dag,
         new_region_dag,
@@ -331,13 +338,14 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
             meta_top_par: TopParameter = NoTop(),
             region_ordering: Option[List[(Int, Direction)]],
             region_top_par: TopParameter = NoTop(),
-            execute_location: Option[GMQLInstance] = None): IRVariable = {
+            execute_location: Option[GMQLInstance] = None,
+            operatorDescription: OperatorDescr = OperatorDescr(GMQLOperator.Order)): IRVariable = {
 
     //only region ordering
     if (!meta_ordering.isDefined) {
       val new_schema = this.schema ++ List(("order", ParsingType.INTEGER))
       new IRVariable(this.metaDag,
-        insert_node(IROrderRD(region_ordering.get, region_top_par, this.regionDag), execute_location),
+        insert_node(IROrderRD(region_ordering.get, region_top_par, this.regionDag), execute_location, operatorDescription),
         new_schema,
         List(this),
         name = "ORDER")
@@ -346,22 +354,22 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
     else if (!region_ordering.isDefined) {
       val new_meta_dag = insert_node(
         IROrderMD(meta_ordering.get, meta_new_attribute, meta_top_par, this.metaDag),
-        execute_location)
+        execute_location, operatorDescription)
       val new_region_dag = insert_node(
         IRPurgeRD(new_meta_dag, this.regionDag),
-        execute_location)
+        execute_location, operatorDescription)
 
       new IRVariable(new_meta_dag, new_region_dag, this.schema, List(this), name = "ORDER")
     }
     else {
       val new_meta_dag = insert_node(
         IROrderMD(meta_ordering.get, meta_new_attribute, meta_top_par, this.metaDag),
-        execute_location)
+        execute_location, operatorDescription)
       val new_region_dag = insert_node(
         IRPurgeRD(
           new_meta_dag,
-          insert_node(IROrderRD(region_ordering.get, region_top_par, this.regionDag), execute_location)
-        ), execute_location)
+          insert_node(IROrderRD(region_ordering.get, region_top_par, this.regionDag), execute_location, operatorDescription)
+        ), execute_location, operatorDescription)
 
       val new_schema = this.schema ++ List(("order", ParsingType.INTEGER))
       new IRVariable(new_meta_dag, new_region_dag, new_schema, List(this), name = "ORDER")
@@ -374,14 +382,15 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
             maxAcc: CoverParam,
             aggregates: List[RegionsToRegion],
             groupBy: Option[List[AttributeEvaluationStrategy]],
-            execute_location: Option[GMQLInstance] = None): IRVariable = {
+            execute_location: Option[GMQLInstance] = None,
+            operatorDescription: OperatorDescr = OperatorDescr(GMQLOperator.Cover)): IRVariable = {
 
     val grouping: Option[MetaGroupOperator] =
       if (groupBy.isDefined) {
         Some(
           insert_node(
             IRGroupBy(MetaGroupByCondition.MetaGroupByCondition(groupBy.get), this.metaDag),
-            execute_location)
+            execute_location, operatorDescription)
         )
       } else {
         None
@@ -389,10 +398,10 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
 
     val new_region_operator = insert_node(
       IRRegionCover(flag, minAcc, maxAcc, aggregates, grouping, this.regionDag),
-      execute_location)
+      execute_location,  operatorDescription)
     new_region_operator.binSize = binS.size
 
-    val new_meta = insert_node(IRCollapseMD(grouping, this.metaDag), execute_location)
+    val new_meta = insert_node(IRCollapseMD(grouping, this.metaDag), execute_location, operatorDescription)
 
     val new_schema = List(("AccIndex", ParsingType.INTEGER),
       ("JaccardIntersect", ParsingType.DOUBLE),
@@ -408,26 +417,26 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
     * @param name     the new name
     * @param parsType the type
     */
-  def new_schema_field(name: String, parsType: PARSING_TYPE) = {
+  def new_schema_field(name: String, parsType: PARSING_TYPE)= {
     List((name, parsType))
   }
 
   def MERGE(groupBy: Option[List[AttributeEvaluationStrategy]],
-            execute_location: Option[GMQLInstance] = None): IRVariable = {
+            execute_location: Option[GMQLInstance] = None, operatorDescription: OperatorDescr = OperatorDescr(GMQLOperator.Merge)): IRVariable = {
     if (!groupBy.isDefined) {
       new IRVariable(
-        insert_node(IRMergeMD(this.metaDag, None), execute_location),
-        insert_node(IRMergeRD(this.regionDag, None), execute_location),
+        insert_node(IRMergeMD(this.metaDag, None), execute_location, operatorDescription),
+        insert_node(IRMergeRD(this.regionDag, None), execute_location, operatorDescription),
         this.schema, List(this),
         name = "MERGE")
     }
     else {
       val grouping = Some(
-        insert_node(IRGroupBy(MetaGroupByCondition.MetaGroupByCondition(groupBy.get), this.metaDag), execute_location)
+        insert_node(IRGroupBy(MetaGroupByCondition.MetaGroupByCondition(groupBy.get), this.metaDag), execute_location, operatorDescription)
       )
       new IRVariable(
-        insert_node(IRMergeMD(this.metaDag, grouping), execute_location),
-        insert_node(IRMergeRD(this.regionDag, grouping), execute_location),
+        insert_node(IRMergeMD(this.metaDag, grouping), execute_location, operatorDescription),
+        insert_node(IRMergeRD(this.regionDag, grouping), execute_location, operatorDescription),
         this.schema, List(this), name = "MERGE")
     }
   }
@@ -436,11 +445,12 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
   def DIFFERENCE(condition: Option[MetaJoinCondition] = None,
                  subtrahend: IRVariable,
                  is_exact: Boolean = false,
-                 execute_location: Option[GMQLInstance] = None) = {
+                 execute_location: Option[GMQLInstance] = None,
+                 operatorDescription: OperatorDescr = OperatorDescr(GMQLOperator.Difference)) = {
 
     val meta_join_cond = if (condition.isDefined) {
       SomeMetaJoinOperator(
-        insert_node(IRJoinBy(condition.get, this.metaDag, subtrahend.metaDag), execute_location)
+        insert_node(IRJoinBy(condition.get, this.metaDag, subtrahend.metaDag), execute_location, operatorDescription)
       )
     }
     else {
@@ -450,12 +460,12 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
             it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinCondition(List.empty),
             this.metaDag,
             subtrahend.metaDag),
-          execute_location))
+          execute_location, operatorDescription))
     }
 
     val new_region_dag = insert_node(
       IRDifferenceRD(meta_join_cond, this.regionDag, subtrahend.regionDag, is_exact),
-      execute_location)
+      execute_location, operatorDescription)
 
     new_region_dag.binSize = binS.size
     val new_meta_dag = /*this.metaDag*/
@@ -466,7 +476,7 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
           subtrahend.metaDag,
           "",
           ""),
-        execute_location)
+        execute_location, operatorDescription)
 
     //difference does not change the schema
     IRVariable(new_meta_dag, new_region_dag, this.schema, List(this, subtrahend), name = "DIFFERENCE")
@@ -475,15 +485,16 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
   def UNION(right_dataset: IRVariable,
             left_name: String = "",
             right_name: String = "",
-            execute_location: Option[GMQLInstance] = None): IRVariable = {
+            execute_location: Option[GMQLInstance] = None,
+            operatorDescription: OperatorDescr = OperatorDescr(GMQLOperator.Union)): IRVariable = {
 
     val schema_reformatting: List[Int] = for (f <- this.schema) yield {
       right_dataset.get_field_by_name(f._1).getOrElse(-1)
     }
 
     IRVariable(
-      insert_node(IRUnionMD(right_dataset.metaDag, this.metaDag, left_name, right_name), execute_location),
-      insert_node(IRUnionRD(schema_reformatting, right_dataset.regionDag, this.regionDag), execute_location),
+      insert_node(IRUnionMD(right_dataset.metaDag, this.metaDag, left_name, right_name), execute_location, operatorDescription),
+      insert_node(IRUnionRD(schema_reformatting, right_dataset.regionDag, this.regionDag), execute_location, operatorDescription),
       this.schema, List(this, right_dataset), name = "UNION")
 
   }
@@ -503,7 +514,8 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
            reference_name: Option[String] = None,
            experiment_name: Option[String] = None,
            join_on_attributes: Option[List[(Int, Int)]] = None,
-           execute_location: Option[GMQLInstance] = None
+           execute_location: Option[GMQLInstance] = None,
+           operatorDescription: OperatorDescr = OperatorDescr(GMQLOperator.Join)
           ): IRVariable = {
 
     if (region_join_condition.isEmpty &&
@@ -519,13 +531,13 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
 
     val new_meta_join_result = if (meta_join.isDefined) {
       SomeMetaJoinOperator(
-        insert_node(IRJoinBy(meta_join.get, this.metaDag, right_dataset.metaDag), execute_location)
+        insert_node(IRJoinBy(meta_join.get, this.metaDag, right_dataset.metaDag), execute_location, operatorDescription)
       )
     } else {
       NoMetaJoinOperator(
         insert_node(
           IRJoinBy(it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinCondition(List.empty), this.metaDag, right_dataset.metaDag),
-          execute_location)
+          execute_location, operatorDescription)
         )
     }
 
@@ -536,7 +548,7 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
         Some(region_builder),
         reference_name.getOrElse("left"),
         experiment_name.getOrElse("right")),
-      execute_location)
+      execute_location, operatorDescription)
 
     val new_region_dag = insert_node(
       IRGenometricJoin(
@@ -546,7 +558,7 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
         join_on_attributes,
         this.regionDag,
         right_dataset.regionDag),
-      execute_location)
+      execute_location, operatorDescription)
 
     new_region_dag.binSize = binS.size
 
@@ -573,7 +585,8 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
           reference_name: Option[String] = None,
           experiment_name: Option[String] = None,
           count_name: Option[String] = None,
-          execute_location: Option[GMQLInstance] = None) = {
+          execute_location: Option[GMQLInstance] = None,
+          operatorDescription: OperatorDescr = OperatorDescr(GMQLOperator.Map)) = {
 
     apply_genometric_map(
       condition,
@@ -582,7 +595,8 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
       reference_name,
       experiment_name,
       count_name,
-      execute_location
+      execute_location,
+      operatorDescription
     )
   }
 
@@ -599,10 +613,11 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
                            reference_name: Option[String],
                            experiment_name: Option[String],
                            count_name_opt: Option[String],
-                           execute_location: Option[GMQLInstance] = None): IRVariable = {
+                           execute_location: Option[GMQLInstance] = None,
+                           operatorDescription: OperatorDescr): IRVariable = {
     val new_join_result: OptionalMetaJoinOperator = if (condition.isDefined) {
       SomeMetaJoinOperator(
-        insert_node(IRJoinBy(condition.get, this.metaDag, experiments.metaDag), execute_location)
+        insert_node(IRJoinBy(condition.get, this.metaDag, experiments.metaDag), execute_location, operatorDescription)
       )
     } else {
       NoMetaJoinOperator(
@@ -611,7 +626,7 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
             it.polimi.genomics.core.DataStructures.MetaJoinCondition.MetaJoinCondition(List.empty),
             this.metaDag,
             experiments.metaDag),
-          execute_location))
+          execute_location, operatorDescription))
     }
 
     val new_meta_dag = insert_node(
@@ -620,10 +635,10 @@ case class IRVariable(metaDag: MetaOperator, regionDag: RegionOperator,
         experiments.metaDag,
         None,
         reference_name.getOrElse("left"),
-        experiment_name.getOrElse("right")), execute_location)
+        experiment_name.getOrElse("right")), execute_location, operatorDescription)
     val new_region_dag = insert_node(
       IRGenometricMap(new_join_result, aggregates, this.regionDag, experiments.regionDag),
-      execute_location)
+      execute_location, operatorDescription)
     new_region_dag.binSize = binS.size
 
     val count_name = count_name_opt

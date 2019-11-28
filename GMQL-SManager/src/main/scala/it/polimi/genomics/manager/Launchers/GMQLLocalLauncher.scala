@@ -79,7 +79,7 @@ class GMQLLocalLauncher(localJob: GMQLJob) extends GMQLLauncher(localJob) {
     new Thread(new Runnable {
       def run() {
 
-        val logs: (PatternLayoutEncoder, FileAppender[ILoggingEvent]) = createLoggerFor(job.jobId, false, General_Utilities().getUserLogDir(job.username))
+        //val logs: (PatternLayoutEncoder, FileAppender[ILoggingEvent]) = createLoggerFor(job.jobId, false, General_Utilities().getUserLogDir(job.username))
 
         if (job.federated) {
           val serializedDag = readFile(job.script.dagPath)
@@ -101,7 +101,13 @@ class GMQLLocalLauncher(localJob: GMQLJob) extends GMQLLauncher(localJob) {
             else {
               General_Utilities().getResultDir("federated")
             }
+          //todo: why was Federated?
           job.server.implementation = new FederatedImplementation("LOCAL", Some(tempDir), Some(job.jobId))
+          job.server.implementation =
+                new GMQLSparkExecutor(
+                binSize = job.gMQLContext.binSize,
+                outputFormat = job.gMQLContext.outputFormat,
+                outputCoordinateSystem = job.gMQLContext.outputCoordinateSystem, sc= SparkContext.getOrCreate())
         }
         //      new GMQLSparkExecutor(
         //      binSize = job.gMQLContext.binSize,
@@ -117,8 +123,8 @@ class GMQLLocalLauncher(localJob: GMQLJob) extends GMQLLauncher(localJob) {
         } catch {
           case _: GmqlFederatedException => job.status = Status.EXEC_FAILED
         }
-        logs._2.stop()
-        logs._1.stop()
+        //logs._2.stop()
+        //logs._1.stop()
 
 
       }

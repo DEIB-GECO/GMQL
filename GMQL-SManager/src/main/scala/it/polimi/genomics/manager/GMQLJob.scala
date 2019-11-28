@@ -8,15 +8,18 @@ import java.util.concurrent.TimeUnit
 
 import it.polimi.genomics.GMQLServer.GmqlServer
 import it.polimi.genomics.compiler._
-import it.polimi.genomics.core.DAG.{DAGSerializer, DAGWrapper}
+import it.polimi.genomics.core.DAG._
+import it.polimi.genomics.core.DataStructures.ExecutionParameters.BinningParameter
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.{GMQLSchemaCoordinateSystem, GMQLSchemaFormat, GMQLScript}
+import it.polimi.genomics.core.Debug.{DAGInjector, EPDAG, EPDAGDraw, EPDAGFrame}
 import it.polimi.genomics.manager.Launchers.{GMQLLauncher, GMQLLocalLauncher}
 import it.polimi.genomics.manager.Status._
 import it.polimi.genomics.repository.FSRepository.FS_Utilities.{deleteDFSDir, deleteFromLocalFSRecursive}
 import it.polimi.genomics.repository.FSRepository.{FS_Utilities => FSR_Utilities}
 import it.polimi.genomics.repository.GMQLExceptions.GMQLNotValidDatasetNameException
 import it.polimi.genomics.repository.{GMQLRepository, RepositoryType, Utilities => General_Utilities}
+import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
@@ -107,6 +110,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script: GMQLScript, val username
           if (!d.store_path.isEmpty)
             Some(res_name + "_" + d.store_path.replace("/", "_"))
           else Some(res_name)
+
         case _ => None
       })
 
@@ -209,7 +213,17 @@ class GMQLJob(val gMQLContext: GMQLContext, val script: GMQLScript, val username
         status = Status.COMPILE_SUCCESS
       else
         status = Status.COMPILE_FAILED
+
+      // Inject debug operators in the DAG
+      server.materializationList = DAGInjector.inject(server.materializationList)
+
       DAG = server.materializationList
+
+
+      val epdag = EPDAG.build(DAG.toList)
+      val frame = new EPDAGFrame(epdag)
+      EPDAGDraw.showFrame(frame, "Execution Profile DAG")
+
     } catch {
       case e: CompilerException => status = Status.COMPILE_FAILED; logError(e.getMessage); e.printStackTrace()
       case ex: Exception => status = Status.COMPILE_FAILED; logError(ex.getMessage); ex.printStackTrace()
@@ -479,6 +493,9 @@ class GMQLJob(val gMQLContext: GMQLContext, val script: GMQLScript, val username
 
         val dsmeta = Map("Query name" -> this.queryName, "Execution time" -> execTime)
 
+        println("outputVariablesList quiii")
+        outputVariablesList.foreach(println)
+
         outputVariablesList.map { ds =>
 
           val (samples, sch) = repositoryHandle.listResultDSSamples(ds + "/files/", this.username)
@@ -498,6 +515,21 @@ class GMQLJob(val gMQLContext: GMQLContext, val script: GMQLScript, val username
         logger.info("DataSet creation Time: " + (elapsedTime.createDsTime / 1000))
 
         this.status = Status.SUCCESS
+
+        if( server.implementation.isInstanceOf[GMQLSparkExecutor] ){
+          val ePDAG = server.implementation.asInstanceOf[GMQLSparkExecutor].ePDAG
+          ePDAG.executionEnded()
+
+          val frame = new EPDAGFrame(ePDAG)
+          EPDAGDraw.showFrame(frame, "Final EPDAG")
+
+        } else {
+          println("not an instance of GMQLSparkExecutor, instead: "+server.implementation.getClass.getName)
+        }
+
+
+
+
       } catch {
         case ex: GMQLNotValidDatasetNameException => status = Status.DS_CREATION_FAILED; logger.error("The Dataset name is not valid..."); ex.printStackTrace(); throw ex
         case ex: Exception => this.status = Status.DS_CREATION_FAILED; logError("Input Dataset is empty , (error in process or Wrong input Selection query)."); ex.printStackTrace(); throw ex
