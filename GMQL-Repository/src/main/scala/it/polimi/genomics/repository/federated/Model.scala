@@ -12,6 +12,8 @@ class Location (location:NodeSeq) {
             else
               (location \ "URI").text + "/"
 
+  val alive: Boolean = (location \ "alive").text == "True"
+
   override def toString: String = s"$name ($URI)"
 
 }

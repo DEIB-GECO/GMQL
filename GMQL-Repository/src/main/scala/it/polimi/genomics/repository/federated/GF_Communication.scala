@@ -28,11 +28,26 @@ class GF_Communication private {
 
   def listDatasets() : util.List[IRDataSet] = {
 
-    val datasets  = ns.get("/api/dataset")
+    val datasets  = ns.get("/api/dataset") \ "list-item"
 
-    val names: NodeSeq = datasets \ "list-item" \ "identifier"
+    val list = for (item<-datasets) yield {
 
-    val result = for( name <- names ) yield new IRDataSet(name.text, List[(String,PARSING_TYPE)]().asJava)
+      val id = item \"identifier" text
+      val copies = (item \ "copies" \ "list-item").map(_.text)
+
+      var someAlive = false
+
+      for( copy<-copies ) {
+        val location = getLocation(copy)
+        if(location.alive) someAlive = true
+      }
+
+      (id,someAlive)
+
+    }
+
+
+    val result = for( ds <- list ) yield new IRDataSet(ds._1, List[(String,PARSING_TYPE)]().asJava, online = ds._2)
 
     return result.asJava
 

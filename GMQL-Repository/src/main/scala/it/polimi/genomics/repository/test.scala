@@ -5,6 +5,7 @@ import java.io.File
 import it.polimi.genomics.core.GDMSUserClass
 import it.polimi.genomics.repository.FSRepository.LFSRepository
 import it.polimi.genomics.repository.FSRepository.DFSRepository
+import it.polimi.genomics.repository.federated.GF_Decorator
 
 /**
   * Created by abdulrahman on 15/02/2017.
@@ -29,11 +30,12 @@ object test {
     //    println("Showing profile for sample "+samplename+" :")
     //    repo.getSampleProfile(dsname,samplename,username).foreach(x=>println(x._1+"\t"+x._2))
 
-        Utilities.confFolder = "./"
-        val repo: GMQLRepository = new DFSRepository()
+        Utilities.confFolder = "/Users/andreagulino/Projects/GMQL-WEB/conf/gmql_conf"
+        val repo: GMQLRepository = Utilities().getRepository()
 
-    val quota  = repo.getUserQuotaInfo(args(0), GDMSUserClass.ADMIN)
-    println("Quota info for user "+args(0)+" used: "+quota._1+" KB \t available: "+quota._2+" KB")
+
+    val ans  = repo.listAllDSs("federated")
+    println(ans)
 
 
   }
