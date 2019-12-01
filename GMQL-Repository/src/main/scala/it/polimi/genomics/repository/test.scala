@@ -12,11 +12,11 @@ import it.polimi.genomics.repository.FSRepository.DFSRepository
 object test {
   def main(args: Array[String]): Unit = {
 
-//    println(new File(".").getAbsoluteFile.toString)
-//    val rep = new LFSRepository();
-//    println(rep.readSchemaFile("/Users/abdulrahman/Downloads/chr1_only/test.schema"))
+    //    println(new File(".").getAbsoluteFile.toString)
+    //    val rep = new LFSRepository();
+    //    println(rep.readSchemaFile("/Users/abdulrahman/Downloads/chr1_only/test.schema"))
 
-//    val username = if (args.length >= 1) args(0) else "public"
+    //    val username = if (args.length >= 1) args(0) else "public"
     //    val dsname   = if (args.length >= 2) args(1) else "GRCh38_ENCODE_BROAD_AUG_2017"
     //    val samplename  = if (args.length >= 3) args(2) else "ENCFF986QSO.bed"
     //
@@ -29,12 +29,12 @@ object test {
     //    println("Showing profile for sample "+samplename+" :")
     //    repo.getSampleProfile(dsname,samplename,username).foreach(x=>println(x._1+"\t"+x._2))
 
-        Utilities.confFolder = "./"
-        val repo: GMQLRepository = new DFSRepository()
+    Utilities.confFolder = "/Users/andreagulino/Projects/GMQL-WEB/conf/gmql_conf"
+    val repo: GMQLRepository = Utilities().getRepository()
 
-    val quota  = repo.getUserQuotaInfo(args(0), GDMSUserClass.ADMIN)
-    println("Quota info for user "+args(0)+" used: "+quota._1+" KB \t available: "+quota._2+" KB")
 
+    val ans  = repo.listAllDSs("federated")
+    println(ans)
 
   }
 }

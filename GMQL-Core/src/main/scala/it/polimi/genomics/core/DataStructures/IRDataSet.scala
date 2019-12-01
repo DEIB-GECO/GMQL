@@ -4,7 +4,8 @@ import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 
 case class IRDataSet(var position:String,
                      schema:java.util.List[(String,PARSING_TYPE)],
-                     instance: GMQLInstance = LOCAL_INSTANCE //TODO: consider an other position
+                     instance: GMQLInstance = LOCAL_INSTANCE, //TODO: consider an other position
+                     online: Boolean = true
                     ) {
   override def toString: String = position + "@" + instance
 }

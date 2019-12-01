@@ -7,6 +7,7 @@ class Location (location:NodeSeq) {
   val instance: String = (location \ "instance").text
   val name: String = (location \ "name").text
   val details: String =  (location \ "details").text
+  val alive: Boolean = (location \ "alive").text == "True"
   val URI: String = if( (location \ "URI").text.endsWith("/") )
               (location \ "URI").text
             else
