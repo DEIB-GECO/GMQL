@@ -10,7 +10,6 @@ object EPDAG {
     t
   }
 
-
   // Builds the upper EPDag given a root node
   // alreadyAdded: list of EPNodes already generated starting from a different root
   private def getUpperStructure(root: IROperator, alreadyAdded: scala.collection.mutable.MutableList[EPNode], startupNode: EPNode) : List[EPNode] = {
@@ -61,7 +60,6 @@ object EPDAG {
 
   }
 
-
   private def getShutDownNode : EPNode = {
     val shutdownOp = IRShutdown()
     val debugShutdOp =  IRDebugRD(shutdownOp)
@@ -69,7 +67,6 @@ object EPDAG {
 
     new EPNode(debugShutdOp)
   }
-
 
   def build( dag: List[IRVariable]): EPDAG  = {
 
@@ -95,6 +92,7 @@ object EPDAG {
 
 
 class EPDAG(val exitNodes: List[EPNode], allNodes: List[EPNode], val startupNode: EPNode, val shutdownNode: EPNode) {
+
 
 
   var executionStartTime: Option[Long] = None
@@ -143,6 +141,19 @@ class EPDAG(val exitNodes: List[EPNode], allNodes: List[EPNode], val startupNode
     }
   }
 
+  def save( name:String, path: String ): Unit = {
+
+    val fullPath = path+name+".xml"
+
+    println("Saving EPDAG as "+fullPath)
+
+    val xml = <dag>
+      {allNodes.map(_.toXml())}
+    </dag>
+
+
+    scala.xml.XML.save(fullPath, xml)
+  }
 
 }
 
@@ -244,7 +255,7 @@ class EPNode(val iRDebugOperator: IROperator) {
 
   override def toString: String = {
 
-    var str = "IROperator: "+getiROperator.getClass.getName+
+    var str = "IROperator: "+getiROperator.getClass.getSimpleName+
     "\n\t"+"GMQLOperator: "+getGMQLOperator.name+" id:"+getGMQLOperator.id
 
     try {
@@ -284,6 +295,20 @@ class EPNode(val iRDebugOperator: IROperator) {
 
     str
 
+  }
+
+  def toXml() = {
+    <node>
+      <operatorName>{iROperator.getClass.getSimpleName}</operatorName>
+      <GMQLoperator>
+        <name>{GMQLoperator.name}</name>
+        <id>{GMQLoperator.id}</id>
+      </GMQLoperator>
+      <executionTime>{try{getOperatorExecutionTime} catch{ case e: Exception => "n/a"}}</executionTime>
+      <profilingTime>{try{getProfilingTime}catch{ case e: Exception => "n/a"}}</profilingTime>
+      <inputs>
+      </inputs>
+    </node>
   }
 
 }
