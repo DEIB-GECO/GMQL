@@ -516,12 +516,16 @@ class GMQLJob(val gMQLContext: GMQLContext, val script: GMQLScript, val username
 
         this.status = Status.SUCCESS
 
+
+        //@andrea
         if( server.implementation.isInstanceOf[GMQLSparkExecutor] ){
           val ePDAG = server.implementation.asInstanceOf[GMQLSparkExecutor].ePDAG
           ePDAG.executionEnded()
 
           val frame = new EPDAGFrame(ePDAG)
           EPDAGDraw.showFrame(frame, "Final EPDAG")
+
+          ePDAG.save(jobId, General_Utilities().getDagQueryDir(username))
 
         } else {
           println("not an instance of GMQLSparkExecutor, instead: "+server.implementation.getClass.getName)
