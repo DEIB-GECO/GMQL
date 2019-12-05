@@ -398,7 +398,7 @@ class Translator(server: GmqlServer, output_path : String) extends GmqlParsers {
       }
     }
 
-    (new_query, protected_ds.toSet, policy)
+    (new_query.replaceAll("\\s+$", ""), protected_ds.toSet, policy)
   }
 
   def phase1(query_raw: String): List[Operator] = {
