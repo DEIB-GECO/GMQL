@@ -63,7 +63,7 @@ object ProfilerLoader {
     val startTime = System.currentTimeMillis()
 
     // Profile the dataset
-    val dsprofile: GMQLDatasetProfile = Profiler.profile(regions, meta, sc, Some(samples))
+    val dsprofile: GMQLDatasetProfile = Profiler.profile(regions, Some(meta), sc, Some(samples))
 
     val elapsedTime = (System.currentTimeMillis() - startTime)/1000
 

@@ -183,7 +183,7 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
             ePDAG.profilerStarted()
 
             // Compute Profile and store into xml files (one for web, one for optimization)
-            val profile = Profiler.profile(regions = regionRDD, meta = metaRDD, sc = sc)
+            val profile = Profiler.profile(regions = regionRDD, meta = Some(metaRDD), sc = sc)
 
             try {
               val output = fs.create(new Path(variableDir + "/files/" + "profile.xml"));
@@ -199,6 +199,8 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
               os_web.close()
 
               ePDAG.profilerEnded()
+
+              ePDAG.save("ddag", variableDir + "/files/")
 
             } catch {
               case e: Throwable => {

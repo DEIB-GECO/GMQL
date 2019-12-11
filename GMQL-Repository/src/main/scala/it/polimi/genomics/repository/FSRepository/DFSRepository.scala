@@ -35,6 +35,7 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
     */
   override def createDs(dataSet:IRDataSet, userName: String, Samples: java.util.List[GMQLSample], GMQLScriptPath: String,schemaType:GMQLSchemaFormat.Value, schemaCoordinateSystem:GMQLSchemaCoordinateSystem.Value,dsmeta: Map[String, String]): Unit = {
 
+
     val dsname = dataSet.position
 
     //Create Temp folder to place the meta files temporarly in Local file system
@@ -63,6 +64,10 @@ class DFSRepository extends GMQLRepository with XMLDataSetRepository{
       val destFilePath = General_Utilities().getProfileDir(userName) + "/" + dsname + ".profile"
 
       FS_Utilities.copyfiletoLocal(sourceProfile, destFilePath)
+
+      val sourceDDag = fulldspath + "/ddag.xml"
+      val destDDagFilePath = General_Utilities().getDDagDir(userName) + "/" + dsname + ".ddag"
+      FS_Utilities.copyfiletoLocal(sourceDDag, destDDagFilePath)
 
       dssize = getFileSize(fulldspath) / 1000
     }

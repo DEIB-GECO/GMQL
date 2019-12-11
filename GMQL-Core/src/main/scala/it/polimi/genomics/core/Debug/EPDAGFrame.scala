@@ -2,8 +2,10 @@ package it.polimi.genomics.core.Debug
 
 import com.mxgraph.layout.hierarchical.mxHierarchicalLayout
 import com.mxgraph.swing.mxGraphComponent
+import com.mxgraph.util.mxConstants
 import com.mxgraph.view.mxGraph
 import javax.swing.JFrame
+
 
 
 object EPDAGDraw {
@@ -13,6 +15,7 @@ object EPDAGDraw {
     val maxWidth = lines.map(x => x.length).max
 
     (maxWidth * 10, nLines * 20)
+
   }
 
   def showFrame(dagFrame: EPDAGFrame, title: String): Unit = {
@@ -36,7 +39,7 @@ class EPDAGFrame(dag: EPDAG) extends JFrame {
 
   graph.getModel.beginUpdate()
 
-  private def getStyle = "fillColor="+GREEN
+  private def getStyle = mxConstants.STYLE_FILLCOLOR+"="+GREEN+";"+mxConstants.STYLE_ALIGN+"="+mxConstants.ALIGN_LEFT
 
   private def getText(node: EPNode) = node.toString
 

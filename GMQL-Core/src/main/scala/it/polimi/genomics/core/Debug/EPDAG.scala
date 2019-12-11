@@ -155,6 +155,33 @@ class EPDAG(val exitNodes: List[EPNode], allNodes: List[EPNode], val startupNode
     scala.xml.XML.save(fullPath, xml)
   }
 
+
+  private def criticalRecursion(n:EPNode, cost: Long): Unit = {
+    println("RECURSION")
+
+    if(n.getChildren.isEmpty) {
+      println("CHILD")
+      // Leaf node
+      val costUpToHere = cost+n.getOperatorExecutionTime
+      if( n.getExpectedFinishedAfter.isEmpty || n.getExpectedFinishedAfter.isDefined &&  n.getExpectedFinishedAfter.get <= costUpToHere ) {
+        n.setExpectedFinishedAfter(costUpToHere)
+        println("mod")
+      }
+    } else {
+      println("NOCHILD")
+      n.getChildren.foreach(c=>criticalRecursion(c,cost+n.getOperatorExecutionTime))
+    }
+
+  }
+
+  def computeCriticalPath() : Unit = {
+
+    val root = startupNode
+    criticalRecursion(root,0)
+
+
+  }
+
 }
 
 
@@ -163,7 +190,8 @@ class EPNode(val iRDebugOperator: IROperator) {
   final private val logger =  LoggerFactory.getLogger(this.getClass)
 
   private val parents  =  scala.collection.mutable.MutableList[EPNode]()
-  private var outputProfile: DataProfile = _
+  private val children =  scala.collection.mutable.MutableList[EPNode]()
+  //private var outputProfile: DataProfile = _
   private var GMQLoperator: OperatorDescr = iRDebugOperator.getDependencies.head.getOperator
   private var iROperator: IROperator = iRDebugOperator.getDependencies.head
 
@@ -171,12 +199,21 @@ class EPNode(val iRDebugOperator: IROperator) {
   var globalStartTime: Option[Long] = None
 
   private var outputReadyTime: Option[Long] = None
+  private var expectedOutputReadyTime: Option[Long] = None
   private var outputProfileStartTime: Option[Long] = None
   private var outputProfileEndTime: Option[Long] = None
 
+  private var outputProfile: Map[String, String] = Map()
 
-  def setParent(node: EPNode) : Unit = parents += node
+
+  def setParent(node: EPNode) : Unit = {
+    parents += node
+    node.setChild(this)
+  }
   def getParents:List[EPNode] = parents.toList
+
+  def setChild(node:EPNode) : Unit = children += node
+  def getChildren:List[EPNode] = children.toList
 
   //def setGMQLOperator(operator: OperatorDescr): Unit =  {GMQLoperator = operator}
   def getGMQLOperator: OperatorDescr = GMQLoperator
@@ -225,6 +262,14 @@ class EPNode(val iRDebugOperator: IROperator) {
       throw  new Exception("Either outputReadyTime or globalStartTime was not set." )
   }
 
+  def getExpectedFinishedAfter: Option[Long] = expectedOutputReadyTime
+  def setExpectedFinishedAfter(time: Long): Unit = {
+    expectedOutputReadyTime = Some(time)
+    println("setting "+time)
+    println(this)
+  }
+
+
   def getOperatorExecutionTime: Long = {
     if(outputReadyTime.isEmpty)
       throw new Exception("outputReadyTime is not set")
@@ -250,7 +295,9 @@ class EPNode(val iRDebugOperator: IROperator) {
     globalStartTime = Some(time)
   }
 
-  def setOutputProfile(profile: DataProfile): Unit = outputProfile = profile
+  def setOutputProfile(profile: Map[String, String]): Unit = {
+    outputProfile = profile
+  }
 
 
   override def toString: String = {
@@ -290,6 +337,13 @@ class EPNode(val iRDebugOperator: IROperator) {
       case e: Exception =>  str += "\n\t"+"Profiling Time: N/A"
     }
 
+    if(expectedOutputReadyTime.isDefined)
+      str += "\n\t"+"Expected Finish Time: "+getExpectedFinishedAfter.get
+
+
+    str += "\n\t"+"Profile: "
+    outputProfile.foreach((k)=>str += "\n\t\t"+k._1+":"+k._2)
+
 
 
 
@@ -306,8 +360,9 @@ class EPNode(val iRDebugOperator: IROperator) {
       </GMQLoperator>
       <executionTime>{try{getOperatorExecutionTime} catch{ case e: Exception => "n/a"}}</executionTime>
       <profilingTime>{try{getProfilingTime}catch{ case e: Exception => "n/a"}}</profilingTime>
-      <inputs>
-      </inputs>
+      <output>
+        {outputProfile.map(v=> <property name={v._1}>{v._2}</property>)}
+      </output>
     </node>
   }
 

@@ -214,7 +214,24 @@ class Utilities() {
     dag_dir
   }
 
+  /**
+    * Retrieve the debug dag folder for each user on local
+    *
+    * @param userName [[ String]] of the user name
+    * @param create [[Boolean]] tells local to create the folder or not
+    * @return Directory location of the dag folder in local
+    *
+    * */
+  def getDDagDir(userName: String = USERNAME, create: Boolean = true): String = {
+    val dag_dir = RepoDir + userName + "/ddag/"
 
+    if(create) {
+      println("CREO DDAG")
+      val creationMessage = if(new File(dag_dir).mkdirs()) "\t DDag folder created..." else "\t Dag folder not created..."
+      logger.info( dag_dir + creationMessage)
+    }
+    dag_dir
+  }
 
   /**
     *

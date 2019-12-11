@@ -101,111 +101,120 @@ object Profiler extends java.io.Serializable {
     * @return the profile object
     */
   //TODO remove meta and make name mandatory
-  def profile(regions: RDD[GRECORD], meta: RDD[(Long, (String, String))], sc: SparkContext, namesOpt: Option[Map[Long, String]] = None): GMQLDatasetProfile = {
+  def profile(regions: RDD[GRECORD], meta: Option[RDD[(Long, (String, String))]] = None, sc: SparkContext, namesOpt: Option[Map[Long, String]] = None): GMQLDatasetProfile = {
 
-    //TODO move to profile function
-    val names = {
-      namesOpt.getOrElse {
-        val outSample = s"S_%05d"
-        val ids: Array[Long] = meta.keys.distinct().collect().sorted
-        val newIDS: Map[Long, String] = ids.zipWithIndex.map(s => (s._1, outSample.format(s._2))).toMap
-        val bc = sc.broadcast(newIDS)
-        val res = bc.value
-        bc.unpersist()
-        res
+    var filtered = regions
+    var names:Map[Long, String]  = Map()
+
+    if(meta.isDefined) {
+
+      //TODO move to profile function
+      names= {
+        namesOpt.getOrElse {
+          val outSample = s"S_%05d"
+          val ids: Array[Long] = meta.get.keys.distinct().collect().sorted
+          val newIDS: Map[Long, String] = ids.zipWithIndex.map(s => (s._1, outSample.format(s._2))).toMap
+          val bc = sc.broadcast(newIDS)
+          val res = bc.value
+          bc.unpersist()
+          res
+        }
+      }
+
+      if (names.isEmpty) {
+        logger.warn("Samples set is empty, returning.")
+        GMQLDatasetProfile(List())
+      } else {
+        //remove the one that doesn't have corresponding meta
+        filtered = regions.filter(x => names.contains(x._1.id))
       }
     }
 
-    if (names.isEmpty) {
-      logger.warn("Samples set is empty, returning.")
-      GMQLDatasetProfile(List())
-    } else {
-      //remove the one that doesn't have corresponding meta
-      val filtered = regions.filter(x => names.contains(x._1.id))
-      val samples_count = regions.map(_._1.id).distinct().count()
+    val samples_count = regions.map(_._1.id).distinct().count()
+    println("Ci sono "+samples_count+" samples.")
 
-      // CHROMOSOME
-      //if we need chromosome
-      val mappedSampleChrom = filtered
-        .map { x =>
-          val gRecordKey = x._1
-          val distance = gRecordKey.stop - gRecordKey.start
-          val profiler = ProfilerValue(gRecordKey.start, gRecordKey.stop, distance, distance, distance, distance * distance, 1)
-          ((gRecordKey.id, gRecordKey.chrom), profiler)
-        }
-
-      val reducedSampleChrom = mappedSampleChrom.foldByKey(zeroProfilerValue)(reduceFunc)
-
-      // is ready to use !! uncomment the line below and it is ready to save into the profiler data
-      // val resultSampleChromToSave = reducedSampleChrom.map { inp => (inp._1, calculateResult(inp._2)) }
-
-      // SAMPLE
-      val mappedSample = reducedSampleChrom
-        .map { x: ((Long, String), ProfilerValue) =>
-          (x._1._1, x._2)
-        }
-
-      val reducedSample = mappedSample.foldByKey(zeroProfilerValue)(reduceFunc)
-
-      val resultSamples: Map[Long, ProfilerValue] = reducedSample.collectAsMap()
-
-      val resultSamplesToSave = resultSamples.map { inp => (inp._1, calculateResult(inp._2)) }
-
-      // DATASET
-      val mappedDs = reducedSample.map(_._2)
-
-      val reducedDs = mappedDs.fold(zeroProfilerValue)(reduceFunc)
-
-      val resultDsToSave = calculateResult(reducedDs)
-
-
-      def numToString(x: Double): String = {
-        if (x % 1 == 0) {
-          "%.0f".format(x)
-        } else {
-          "%.2f".format(x)
-        }
+    // CHROMOSOME
+    //if we need chromosome
+    val mappedSampleChrom = filtered
+      .map { x =>
+        val gRecordKey = x._1
+        val distance = gRecordKey.stop - gRecordKey.start
+        val profiler = ProfilerValue(gRecordKey.start, gRecordKey.stop, distance, distance, distance, distance * distance, 1)
+        ((gRecordKey.id, gRecordKey.chrom), profiler)
       }
 
-      logger.debug("Profiling "+samples_count+" samples ...")
+    val reducedSampleChrom = mappedSampleChrom.foldByKey(zeroProfilerValue)(reduceFunc)
 
-      val sampleProfiles = resultSamplesToSave.map { case (sampleId: Long, profile: ProfilerResult) =>
+    // is ready to use !! uncomment the line below and it is ready to save into the profiler data
+    // val resultSampleChromToSave = reducedSampleChrom.map { inp => (inp._1, calculateResult(inp._2)) }
 
-        val sample = GMQLSampleStats(ID = sampleId.toString)
-        sample.name = names(sampleId)
-
-        sample.stats_num += Feature.NUM_REG.toString -> profile.count
-        sample.stats_num += Feature.AVG_REG_LEN.toString -> profile.avgLength
-        sample.stats_num += Feature.MIN_COORD.toString -> profile.leftMost
-        sample.stats_num += Feature.MAX_COORD.toString -> profile.rightMost
-
-        sample.stats_num += Feature.MIN_LENGTH.toString -> profile.minLength
-        sample.stats_num += Feature.MAX_LENGTH.toString -> profile.maxLength
-        sample.stats_num += Feature.VARIANCE_LENGTH.toString -> profile.varianceLength
-
-        sample.stats = sample.stats_num.map(x => (x._1, numToString(x._2)))
-
-        sample
+    // SAMPLE
+    val mappedSample = reducedSampleChrom
+      .map { x: ((Long, String), ProfilerValue) =>
+        (x._1._1, x._2)
       }
 
-      val dsProfile = GMQLDatasetProfile(samples = sampleProfiles.toList)
+    val reducedSample = mappedSample.foldByKey(zeroProfilerValue)(reduceFunc)
 
-      dsProfile.stats += Feature.NUM_SAMP.toString -> numToString(samples_count)
+    val resultSamples: Map[Long, ProfilerValue] = reducedSample.collectAsMap()
 
-      dsProfile.stats += Feature.NUM_REG.toString -> numToString(resultDsToSave.count)
-      dsProfile.stats += Feature.AVG_REG_LEN.toString -> numToString(resultDsToSave.avgLength)
-      dsProfile.stats += Feature.MIN_COORD.toString -> numToString(resultDsToSave.leftMost)
-      dsProfile.stats += Feature.MAX_COORD.toString -> numToString(resultDsToSave.rightMost)
+    val resultSamplesToSave = resultSamples.map { inp => (inp._1, calculateResult(inp._2)) }
 
-      dsProfile.stats += Feature.MIN_LENGTH.toString -> numToString(resultDsToSave.minLength)
-      dsProfile.stats += Feature.MAX_LENGTH.toString -> numToString(resultDsToSave.maxLength)
-      dsProfile.stats += Feature.VARIANCE_LENGTH.toString -> numToString(resultDsToSave.varianceLength)
+    // DATASET
+    val mappedDs = reducedSample.map(_._2)
 
-      dsProfile
+    val reducedDs = mappedDs.fold(zeroProfilerValue)(reduceFunc)
 
+    val resultDsToSave = calculateResult(reducedDs)
+
+
+    def numToString(x: Double): String = {
+      if (x % 1 == 0) {
+        "%.0f".format(x)
+      } else {
+        "%.2f".format(x)
+      }
     }
+
+    logger.debug("Profiling "+samples_count+" samples ...")
+
+    val sampleProfiles = resultSamplesToSave.map { case (sampleId: Long, profile: ProfilerResult) =>
+
+      val sample = GMQLSampleStats(ID = sampleId.toString)
+      sample.name = if(meta.isDefined) names(sampleId) else sampleId.toString
+
+      sample.stats_num += Feature.NUM_REG.toString -> profile.count
+      sample.stats_num += Feature.AVG_REG_LEN.toString -> profile.avgLength
+      sample.stats_num += Feature.MIN_COORD.toString -> profile.leftMost
+      sample.stats_num += Feature.MAX_COORD.toString -> profile.rightMost
+
+      sample.stats_num += Feature.MIN_LENGTH.toString -> profile.minLength
+      sample.stats_num += Feature.MAX_LENGTH.toString -> profile.maxLength
+      sample.stats_num += Feature.VARIANCE_LENGTH.toString -> profile.varianceLength
+
+      sample.stats = sample.stats_num.map(x => (x._1, numToString(x._2)))
+
+      sample
+    }
+
+    val dsProfile = GMQLDatasetProfile(samples = sampleProfiles.toList)
+
+    dsProfile.stats += Feature.NUM_SAMP.toString -> numToString(samples_count)
+
+    dsProfile.stats += Feature.NUM_REG.toString -> numToString(resultDsToSave.count)
+    dsProfile.stats += Feature.AVG_REG_LEN.toString -> numToString(resultDsToSave.avgLength)
+    dsProfile.stats += Feature.MIN_COORD.toString -> numToString(resultDsToSave.leftMost)
+    dsProfile.stats += Feature.MAX_COORD.toString -> numToString(resultDsToSave.rightMost)
+
+    dsProfile.stats += Feature.MIN_LENGTH.toString -> numToString(resultDsToSave.minLength)
+    dsProfile.stats += Feature.MAX_LENGTH.toString -> numToString(resultDsToSave.maxLength)
+    dsProfile.stats += Feature.VARIANCE_LENGTH.toString -> numToString(resultDsToSave.varianceLength)
+
+    dsProfile
 
   }
+
+
 
 }
 
