@@ -41,7 +41,7 @@ class EPDAGFrame(dag: EPDAG) extends JFrame {
 
   private def getStyle = mxConstants.STYLE_FILLCOLOR+"="+GREEN+";"+mxConstants.STYLE_ALIGN+"="+mxConstants.ALIGN_LEFT
 
-  private def getText(node: EPNode) = node.toString
+  private def getText(node: EPNode) = node.toString+node.getiROperator.getOperator.params.toList.map(_.toString()).mkString(",")
 
   private def drawDAG(node: EPNode): Object = {
     val style = getStyle

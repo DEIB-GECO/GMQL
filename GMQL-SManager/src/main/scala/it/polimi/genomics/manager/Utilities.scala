@@ -15,7 +15,6 @@ class Utilities {
 
   import Utilities.logger
 
-
   var SPARK_HOME: String = System.getenv("SPARK_HOME")
   var CLI_JAR: String = "GMQL-Cli-2.0-jar-with-dependencies.jar"
   var CLI_CLASS: String = "it.polimi.genomics.cli.GMQLExecuteCommand"
@@ -30,6 +29,9 @@ class Utilities {
   final val CLUSTER_LAUNCHER: String = "CLUSTER"
   final val REMOTE_CLUSTER_LAUNCHER: String = "REMOTE_CLUSTER"
   var LAUNCHER_MODE: String =  LOCAL_LAUNCHER
+
+  var DRAW_DAG = false
+  var DEBUG_MODE = false
 
   def apply() = {
 
@@ -49,6 +51,9 @@ class Utilities {
           case Conf.LIB_DIR_LOCAL => lib_dir_local = value
           case Conf.CLI_CLASS => CLI_CLASS = value
           case Conf.LAUNCHER_MODE => LAUNCHER_MODE = value
+
+          case Conf.DRAW_DAG => DRAW_DAG = value=="true"
+          case Conf.DEBUG_MODE => DEBUG_MODE = value=="true"
 
           case Conf.SPARK_CUSTOM  => {
 
@@ -120,6 +125,9 @@ object Conf {
   val LIB_DIR_LOCAL = "LIB_DIR_LOCAL"
   val LIB_DIR_HDFS = "LIB_DIR_HDFS"
   val CLI_CLASS = "CLI_CLASS"
+
+  val DEBUG_MODE = "DEBUG_MODE"
+  val DRAW_DAG = "DRAW_DAG"
 
   val SPARK_CUSTOM = "SPARK_CUSTOM"
 }

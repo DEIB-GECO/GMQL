@@ -41,7 +41,7 @@ object TestOptim {
 
     logConfig(repoUtilities)
 
-    val datasetName = "HG19_BED_ANNOTATIONS"
+    val datasetName = "ds_1_1_3 "
 
     var query = s"DATASET = SELECT() $datasetName;" + s"DATASET1= SELECT() $datasetName; JN=JOIN(DGE(500),DLE(30000),UP) DATASET DATASET1;" +
     s"MATERIALIZE DATASET INTO DATASET_RESULT; MATERIALIZE JN INTO DATASET_RESULT_1;"

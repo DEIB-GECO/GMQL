@@ -105,9 +105,9 @@ object DAGInjector {
 
 
     // Show the new DAG
-    val vd = new VariableDAG(editedDAG.toList)
-    val operatorDAGFrame = new OperatorDAGFrame(vd.toOperatorDAG, squeeze = true)
-    DAGDraw.showFrame(operatorDAGFrame, "New DAG")
+    //val vd = new VariableDAG(editedDAG.toList)
+    //val operatorDAGFrame = new OperatorDAGFrame(vd.toOperatorDAG, squeeze = true)
+    //DAGDraw.showFrame(operatorDAGFrame, "New DAG")
 
     editedDAG
 

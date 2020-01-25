@@ -222,7 +222,7 @@ class Utilities() {
     * @return Directory location of the dag folder in local
     *
     * */
-  def getDDagDir(userName: String = USERNAME, create: Boolean = true): String = {
+  def getDDagDir(userName: String = USERNAME, create: Boolean = false): String = {
     val dag_dir = RepoDir + userName + "/ddag/"
 
     if(create) {

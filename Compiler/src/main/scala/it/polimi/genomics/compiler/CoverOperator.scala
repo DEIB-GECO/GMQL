@@ -2,8 +2,10 @@ package it.polimi.genomics.compiler
 
 import com.sun.org.apache.xalan.internal.xsltc.compiler.CompilerException
 import it.polimi.genomics.core.DataStructures.CoverParameters.{ALL, CoverFlag, CoverParam, N}
+import it.polimi.genomics.core.DataStructures.GMQLOperator
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition.AttributeEvaluationStrategy
 import it.polimi.genomics.core.DataStructures.RegionAggregate.RegionsToRegion
+import it.polimi.genomics.core.Debug.OperatorDescr
 
 import scala.util.parsing.input.Position
 
@@ -105,8 +107,14 @@ case class CoverOperator(op_pos : Position,
 
   def translate_operator(status : CompilerStatus):CompilerDefinedVariable = {
 
+    val params: Option[Map[String,String]] = Some(Map(
+      "minAcc"->minAcc.toString,
+      "maxAcc"->maxAcc.toString,
+      "coverType"->CoverFlag.COVER.toString))
+    val operatorDescr = OperatorDescr(GMQLOperator.Cover, params)
+
     val covered = super_variable_left.get.COVER(CoverFlag.COVER,minAcc,maxAcc,refined_agg_function_list,meta_group,
-      operator_location)
+      operator_location,operatorDescr)
     CompilerDefinedVariable(output.name,output.pos,covered)
   }
 }
@@ -121,9 +129,15 @@ case class HistogramOperator(op_pos : Position,
   override val operator_name = "HISTOGRAM"
   def translate_operator(status : CompilerStatus):CompilerDefinedVariable = {
 
+    val params: Option[Map[String,String]] = Some(Map(
+      "minAcc"->minAcc.toString,
+      "maxAcc"->maxAcc.toString,
+      "coverType"->CoverFlag.HISTOGRAM.toString))
+    val operatorDescr = OperatorDescr(GMQLOperator.Histogtam, params)
+
     val covered = super_variable_left.get.COVER(CoverFlag.HISTOGRAM,
       minAcc,maxAcc,refined_agg_function_list,meta_group,
-      operator_location)
+      operator_location,operatorDescr)
     CompilerDefinedVariable(output.name,output.pos,covered)
   }
 
@@ -139,8 +153,13 @@ case class SummitOperator(op_pos : Position,
   override val operator_name = "SUMMIT"
   def translate_operator(status : CompilerStatus):CompilerDefinedVariable = {
 
+    val params: Option[Map[String,String]] = Some(Map(
+      "minAcc"->minAcc.toString,
+      "maxAcc"->maxAcc.toString))
+    val operatorDescr = OperatorDescr(GMQLOperator.Summit, params)
+
     val covered = super_variable_left.get.COVER(CoverFlag.SUMMIT,minAcc,maxAcc,refined_agg_function_list,meta_group,
-      operator_location)
+      operator_location,operatorDescr)
     CompilerDefinedVariable(output.name,output.pos,covered)
   }
 
@@ -156,13 +175,18 @@ case class FlatOperator(op_pos : Position,
   override val operator_name = "FLAT"
   def translate_operator(status : CompilerStatus):CompilerDefinedVariable = {
 
+    val params: Option[Map[String,String]] = Some(Map(
+      "minAcc"->minAcc.toString,
+      "maxAcc"->maxAcc.toString))
+    val operatorDescr = OperatorDescr(GMQLOperator.Flat, params)
+
     val covered = super_variable_left.get.COVER(
       CoverFlag.FLAT,
       minAcc,
       maxAcc,
       refined_agg_function_list,
       meta_group,
-      operator_location)
+      operator_location,operatorDescr)
     CompilerDefinedVariable(output.name,output.pos,covered)
   }
 

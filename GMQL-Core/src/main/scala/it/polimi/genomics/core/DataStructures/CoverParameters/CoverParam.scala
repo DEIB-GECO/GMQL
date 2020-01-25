@@ -8,11 +8,17 @@ sealed trait CoverParam extends Serializable
   val fun : Int => Int = (x) => x
 }
 
-trait ALL extends CoverParam
-trait ANY extends CoverParam
+trait ALL extends CoverParam {
+  override def toString: String = "ALL"
+}
+trait ANY extends CoverParam {
+  override def toString: String = "ANY"
+}
 trait N extends CoverParam
 {
   val n: Int
+
+  override def toString: String = n.toString
 }
 
 object CoverParameterManager{
@@ -59,5 +65,6 @@ object CoverParameterManager{
       }
       case _ => throw new IllegalArgumentException(paramName + " is an invalid COVER parameter")
     }
+
   }
 }

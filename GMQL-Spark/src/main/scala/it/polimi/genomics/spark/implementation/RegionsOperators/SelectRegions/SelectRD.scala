@@ -17,9 +17,12 @@ object SelectRD {
   def apply(executor: GMQLSparkExecutor, regionCondition: Option[RegionCondition], filteredMeta: Option[MetaOperator], inputDataset: RegionOperator, sc: SparkContext): RDD[GRECORD] = {
     PredicateRD.executor = executor
 
+
     val optimized_reg_cond = if (regionCondition.isDefined) Some(PredicateRD.optimizeConditionTree(regionCondition.get, false, filteredMeta, sc)) else None
 
     val input = executor.implement_rd(inputDataset, sc)
+
+    println("SELECTRD INPUT HAS "+input.count()+" entries FILTERED META: "+filteredMeta.isDefined)
     val filteredRegion =
       if (filteredMeta.isDefined) {
         val metaIdList = executor.implement_md(filteredMeta.get, sc).keys.distinct.collect
@@ -29,7 +32,10 @@ object SelectRD {
     if (regionCondition.isDefined) {
       filteredRegion.filter((region: GRECORD) => PredicateRD.applyRegionSelect(optimized_reg_cond.get, region))
     } else {
-      filteredRegion
+      val res = filteredRegion
+      println("SELECTRD OUTPUT HAS "+res.count()+" entries")
+      res
+
     }
   }
 }

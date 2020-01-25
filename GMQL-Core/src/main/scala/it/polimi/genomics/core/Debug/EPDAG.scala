@@ -3,10 +3,13 @@ package it.polimi.genomics.core.Debug
 import it.polimi.genomics.core.DataStructures._
 import org.slf4j.LoggerFactory
 
+import scala.xml.NodeSeq
+
 object EPDAG {
 
-  def getCurrentTime:Long = {
-    val t = System.currentTimeMillis() / 1000
+  def getCurrentTime:Float = {
+    val t = System.nanoTime() / 1000000000F
+    println("returning time "+t)
     t
   }
 
@@ -21,20 +24,20 @@ object EPDAG {
       } else {
         alreadyAdded += ePNode
 
-          var upperStructure = root.getDependencies.flatMap(d => getUpperStructure(d, alreadyAdded, startupNode))
+        var upperStructure = root.getDependencies.flatMap(d => getUpperStructure(d, alreadyAdded, startupNode))
 
-          // Check if IRCombineMD or IRDifferenceRD have an actual dependency on the metajoin
-          if (root.getDependencies.head.isInstanceOf[IRCombineMD] &&
-            root.getDependencies.head.asInstanceOf[IRCombineMD].grouping.isInstanceOf[NoMetaJoinOperator] ||
-            root.getDependencies.head.isInstanceOf[IRDifferenceRD] &&
-              root.getDependencies.head.asInstanceOf[IRDifferenceRD].meta_join.isInstanceOf[NoMetaJoinOperator])
-            upperStructure = upperStructure.filter(!_.getiROperator.isInstanceOf[IRJoinBy])
+        // Check if IRCombineMD or IRDifferenceRD have an actual dependency on the metajoin
+        if (root.getDependencies.head.isInstanceOf[IRCombineMD] &&
+          root.getDependencies.head.asInstanceOf[IRCombineMD].grouping.isInstanceOf[NoMetaJoinOperator] ||
+          root.getDependencies.head.isInstanceOf[IRDifferenceRD] &&
+            root.getDependencies.head.asInstanceOf[IRDifferenceRD].meta_join.isInstanceOf[NoMetaJoinOperator])
+          upperStructure = upperStructure.filter(!_.getiROperator.isInstanceOf[IRJoinBy])
 
-          upperStructure.foreach(ePNode.setParent)
+        upperStructure.foreach(ePNode.setParent)
 
-          if(upperStructure.isEmpty)
-            // If there is no dependency add as depenednecy the startup node
-            ePNode.setParent(startupNode)
+        if(upperStructure.isEmpty)
+        // If there is no dependency add as depenednecy the startup node
+          ePNode.setParent(startupNode)
 
 
       }
@@ -95,8 +98,8 @@ class EPDAG(val exitNodes: List[EPNode], allNodes: List[EPNode], val startupNode
 
 
 
-  var executionStartTime: Option[Long] = None
-  var executionEndTime: Option[Long] = None
+  var executionStartTime: Option[Float] = None
+  var executionEndTime: Option[Float] = None
 
 
   def startupEnded():Unit = {
@@ -125,7 +128,7 @@ class EPDAG(val exitNodes: List[EPNode], allNodes: List[EPNode], val startupNode
     shutdownNode.trackOutputReady()
   }
 
-  def executionTime: Long = {
+  def executionTime: Float = {
     if(executionEndTime.isDefined && executionEndTime.isDefined)
       executionEndTime.get - executionStartTime.get
     else throw new Exception("Start and end of the execution must be both set before calling this method.")
@@ -156,19 +159,18 @@ class EPDAG(val exitNodes: List[EPNode], allNodes: List[EPNode], val startupNode
   }
 
 
-  private def criticalRecursion(n:EPNode, cost: Long): Unit = {
-    println("RECURSION")
+  private def criticalRecursion(n:EPNode, cost: Float): Unit = {
 
     if(n.getChildren.isEmpty) {
-      println("CHILD")
+      //println("CHILD")
       // Leaf node
       val costUpToHere = cost+n.getOperatorExecutionTime
       if( n.getExpectedFinishedAfter.isEmpty || n.getExpectedFinishedAfter.isDefined &&  n.getExpectedFinishedAfter.get <= costUpToHere ) {
         n.setExpectedFinishedAfter(costUpToHere)
-        println("mod")
+        //println("mod")
       }
     } else {
-      println("NOCHILD")
+      //println("NOCHILD")
       n.getChildren.foreach(c=>criticalRecursion(c,cost+n.getOperatorExecutionTime))
     }
 
@@ -196,12 +198,12 @@ class EPNode(val iRDebugOperator: IROperator) {
   private var iROperator: IROperator = iRDebugOperator.getDependencies.head
 
 
-  var globalStartTime: Option[Long] = None
+  var globalStartTime: Option[Float] = None
 
-  private var outputReadyTime: Option[Long] = None
-  private var expectedOutputReadyTime: Option[Long] = None
-  private var outputProfileStartTime: Option[Long] = None
-  private var outputProfileEndTime: Option[Long] = None
+  private var outputReadyTime: Option[Float] = None
+  private var expectedOutputReadyTime: Option[Float] = None
+  private var outputProfileStartTime: Option[Float] = None
+  private var outputProfileEndTime: Option[Float] = None
 
   private var outputProfile: Map[String, String] = Map()
 
@@ -241,36 +243,36 @@ class EPNode(val iRDebugOperator: IROperator) {
       logger.warn("The profile end time was already set.")
   }
 
-  def getProfilingTime: Long = {
+  def getProfilingTime: Float = {
     if(outputProfileStartTime.isDefined && outputProfileEndTime.isDefined)
       outputProfileEndTime.get-outputProfileStartTime.get
     else
       throw new Exception("Either outputProfileStartTime or outputProfileEndTime was note set.")
   }
 
-  def getStartedAfter: Long = {
+  def getStartedAfter: Float = {
     if(globalStartTime.isDefined)
       getStartedAt - globalStartTime.get
     else
       throw  new Exception("globalStartTime was not set." )
   }
 
-  def getFinishedAfter: Long = {
+  def getFinishedAfter: Float = {
     if(outputReadyTime.isDefined && globalStartTime.isDefined)
       outputReadyTime.get - globalStartTime.get
     else
       throw  new Exception("Either outputReadyTime or globalStartTime was not set." )
   }
 
-  def getExpectedFinishedAfter: Option[Long] = expectedOutputReadyTime
-  def setExpectedFinishedAfter(time: Long): Unit = {
+  def getExpectedFinishedAfter: Option[Float] = expectedOutputReadyTime
+  def setExpectedFinishedAfter(time: Float): Unit = {
     expectedOutputReadyTime = Some(time)
     println("setting "+time)
     println(this)
   }
 
 
-  def getOperatorExecutionTime: Long = {
+  def getOperatorExecutionTime: Float = {
     if(outputReadyTime.isEmpty)
       throw new Exception("outputReadyTime is not set")
     else
@@ -278,7 +280,7 @@ class EPNode(val iRDebugOperator: IROperator) {
 
   }
 
-  def getStartedAt: Long = {
+  def getStartedAt: Float = {
     if(parents.nonEmpty &&  !parents.forall(_.outputReadyTime.isDefined))
       throw new Exception("All parents must have finished executing before calling getStartedAt")
     else if(parents.isEmpty) {
@@ -291,7 +293,7 @@ class EPNode(val iRDebugOperator: IROperator) {
     }
   }
 
-  def setGlobalStartTime(time: Long):Unit = {
+  def setGlobalStartTime(time: Float):Unit = {
     globalStartTime = Some(time)
   }
 
@@ -303,7 +305,7 @@ class EPNode(val iRDebugOperator: IROperator) {
   override def toString: String = {
 
     var str = "IROperator: "+getiROperator.getClass.getSimpleName+
-    "\n\t"+"GMQLOperator: "+getGMQLOperator.name+" id:"+getGMQLOperator.id
+      "\n\t"+"GMQLOperator: "+getGMQLOperator.name+" id:"+getGMQLOperator.id
 
     try {
       str += "\n\t"+"outputReadyTime: "+outputReadyTime.get
@@ -357,20 +359,28 @@ class EPNode(val iRDebugOperator: IROperator) {
       <GMQLoperator>
         <name>{GMQLoperator.name}</name>
         <id>{GMQLoperator.id}</id>
+        <params>
+          {
+          if(iROperator.getOperator.params.isDefined)
+            iROperator.getOperator.params.get.map(p => <param name={p._1}>{p._2}</param>)
+          }
+        </params>
       </GMQLoperator>
       <executionTime>{try{getOperatorExecutionTime} catch{ case e: Exception => "n/a"}}</executionTime>
       <profilingTime>{try{getProfilingTime}catch{ case e: Exception => "n/a"}}</profilingTime>
+      <inputs>
+        {
+        parents.map( p=> {
+        <input operatorName={p.iROperator.getClass.getSimpleName}
+               isRegion={p.iROperator.isRegionOperator.toString}>
+          {p.outputProfile.map(v=> <property name={v._1}>{v._2}</property>)}
+        </input>})
+        }
+      </inputs>
       <output>
         {outputProfile.map(v=> <property name={v._1}>{v._2}</property>)}
       </output>
     </node>
   }
-
-}
-
-class DataProfile {
-
-  val schema = -1L
-  val meta  = -1L
 
 }

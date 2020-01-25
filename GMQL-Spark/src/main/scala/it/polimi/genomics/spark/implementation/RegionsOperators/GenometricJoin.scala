@@ -36,7 +36,6 @@ object GenometricJoin {
     val exp =
       executor.implement_rd(rightDataset, sc)
 
-
     val groups =
       executor
         .implement_mjd(metajoinCondition, sc)
@@ -207,6 +206,9 @@ object GenometricJoin {
       case RegionBuilder.LEFT_DISTINCT => distinct(output)
       case _ => output
     }
+
+
+    println("OUTPUT OF JOIN CONTAINS "+distinct_output.count()+" ITEMS")
 
     distinct_output
   }

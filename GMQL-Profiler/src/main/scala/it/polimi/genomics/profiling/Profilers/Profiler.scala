@@ -4,6 +4,7 @@ import it.polimi.genomics.core.DataTypes._
 import it.polimi.genomics.profiling.Profiles.{GMQLDatasetProfile, GMQLSampleStats}
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
+import org.apache.spark.util.SizeEstimator
 import org.slf4j.LoggerFactory
 
 import scala.collection.Map
@@ -208,7 +209,13 @@ object Profiler extends java.io.Serializable {
 
     dsProfile.stats += Feature.MIN_LENGTH.toString -> numToString(resultDsToSave.minLength)
     dsProfile.stats += Feature.MAX_LENGTH.toString -> numToString(resultDsToSave.maxLength)
-    dsProfile.stats += Feature.VARIANCE_LENGTH.toString -> numToString(resultDsToSave.varianceLength)
+
+    val first = regions.first()
+    val col_num = 5 + first._2.length
+    val tuple_size = SizeEstimator.estimate(regions) / regions.count()
+
+    dsProfile.stats += Feature.NUM_COLS.toString -> numToString(col_num)
+    dsProfile.stats += Feature.TUPLE_SIZE.toString -> numToString(tuple_size)
 
     dsProfile
 
@@ -230,4 +237,7 @@ object Feature extends Enumeration {
   val MIN_LENGTH: Feature.Value = Value("min_length")
   val MAX_LENGTH: Feature.Value = Value("max_length")
   val VARIANCE_LENGTH: Feature.Value = Value("variance_length")
+
+  val NUM_COLS: Feature.Value = Value("num_cols")
+  val TUPLE_SIZE: Feature.Value = Value("tuple_size")
 }

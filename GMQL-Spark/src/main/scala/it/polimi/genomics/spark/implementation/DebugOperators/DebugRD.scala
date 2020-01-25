@@ -2,7 +2,7 @@ package it.polimi.genomics.spark.implementation.DebugOperators
 
 import it.polimi.genomics.core.DataStructures.{IROperator, RegionOperator}
 import it.polimi.genomics.core.DataTypes.GRECORD
-import it.polimi.genomics.profiling.Profilers.Profiler
+import it.polimi.genomics.profiling.Profilers.{Feature, Profiler}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
@@ -16,13 +16,16 @@ object DebugRD {
     logger.info("----------------DebugRD executing..")
 
     val res = executor.implement_rd(input, sc).cache()
-    res.count()
+    val num_rows = res.count()
 
     val epnode = executor.ePDAG.getNodeByDebugOperator(debugOperator)
 
     epnode.trackProfilingStarted()
+
     // Profile
+    logger.info("Profiling "+input.getClass.getName)
     val profile = Profiler.profile(res, None, sc)
+    logger.info("Resulting profile has "+profile.get(Feature.NUM_SAMP).toString+" SAMPLES.")
 
     epnode.setOutputProfile(profile.stats.toMap)
 

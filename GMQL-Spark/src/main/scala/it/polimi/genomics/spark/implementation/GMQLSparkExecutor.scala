@@ -23,6 +23,7 @@ import it.polimi.genomics.core.ParsingType._
 import it.polimi.genomics.core._
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.profiling.Profilers.Profiler
+import it.polimi.genomics.spark.implementation.DebugOperators.DebugMJ
 import it.polimi.genomics.spark.implementation.MetaOperators.GroupOperator.{MetaGroupMGD, MetaJoinMJD2}
 import it.polimi.genomics.spark.implementation.MetaOperators.SelectMeta._
 import it.polimi.genomics.spark.implementation.MetaOperators._
@@ -56,6 +57,7 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
 
   var fs: FileSystem = null
 
+  var debugMode: Boolean = true //todo: never set
   var ePDAG: EPDAG = _
 
   def go(): Unit = {
@@ -132,12 +134,14 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
 
   def implementation(): Unit = {
 
-    ePDAG = EPDAG.build(to_be_materialized.toList)
+    if(debugMode) {
+      ePDAG = EPDAG.build(to_be_materialized.toList)
 
-    // Initialize the execution profile DAG
-    ePDAG.executionStarted()
-    sc.parallelize(List(1,2,3)).count() // dummy operation to measure startup time
-    ePDAG.startupEnded()
+      // Initialize the execution profile DAG
+      ePDAG.executionStarted()
+      sc.parallelize(List(1, 2, 3)).count() // dummy operation to measure startup time
+      ePDAG.startupEnded()
+    }
 
 
     try {
@@ -180,7 +184,7 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
           storeSchema(GMQLSchema.generateSchemaXML(variable.schema, outputFolderName, outputFormat, outputCoordinateSystem), variableDir)
           if (profileData) {
 
-            ePDAG.profilerStarted()
+            if(debugMode) ePDAG.profilerStarted()
 
             // Compute Profile and store into xml files (one for web, one for optimization)
             val profile = Profiler.profile(regions = regionRDD, meta = Some(metaRDD), sc = sc)
@@ -198,9 +202,10 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
               os.close()
               os_web.close()
 
-              ePDAG.profilerEnded()
+              if(debugMode) ePDAG.profilerEnded()
 
-              ePDAG.save("ddag", variableDir + "/files/")
+
+              if(debugMode) ePDAG.save("ddag", variableDir + "/files/")
 
             } catch {
               case e: Throwable => {
@@ -353,8 +358,8 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
 
 
     //todo: checl if this is correct
-    if(mjo.getOperator.isInstanceOf[IRDebugMJ])
-      return DebugOperators.DebugMJ(this, mjo.getOperator.asInstanceOf[IRDebugMJ].inputMetaJoin, mjo.getOperator, sc)
+    //if(mjo.getOperator.isInstanceOf[IRDebugMJ] && mjo.getOperator.asInstanceOf[IRDebugMJ].inputMetaJoin.isInstanceOf[SomeMetaJoinOperator])
+      //return DebugOperators.DebugMJ(this, mjo.getOperator.asInstanceOf[IRDebugMJ].inputMetaJoin, mjo.getOperator, sc)
 
 
     if (mjo.isInstanceOf[NoMetaJoinOperator]) {
@@ -364,6 +369,7 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
         val res =
           mjo.asInstanceOf[NoMetaJoinOperator].operator match {
             case IRJoinBy(condition: MetaJoinCondition, left_dataset: MetaOperator, right_dataset: MetaOperator) => MetaJoinMJD2(this, condition, left_dataset, right_dataset, true, sc)
+            case IRDebugMJ(inputMetaJoin: MetaJoinOperator) => DebugMJ(this, inputMetaJoin,mjo.asInstanceOf[NoMetaJoinOperator].operator, sc)
           }
         mjo.asInstanceOf[NoMetaJoinOperator].operator.intermediateResult = Some(res)
         res
@@ -375,6 +381,7 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
         val res =
           mjo.asInstanceOf[SomeMetaJoinOperator].operator match {
             case IRJoinBy(condition: MetaJoinCondition, leftDataset: MetaOperator, rightDataset: MetaOperator) => MetaJoinMJD2(this, condition, leftDataset, rightDataset, false, sc)
+            case IRDebugMJ(inputMetaJoin: MetaJoinOperator) => DebugMJ(this, inputMetaJoin,mjo.asInstanceOf[NoMetaJoinOperator].operator, sc)
           }
         mjo.asInstanceOf[SomeMetaJoinOperator].operator.intermediateResult = Some(res)
         res

@@ -52,8 +52,12 @@ class GMQLJob(val gMQLContext: GMQLContext, val script: GMQLScript, val username
   }
 
   def jobId: String = {
-    generateJobId(username, queryName)
+    val res = generateJobId(username, queryName)
+    println("Called, returning jobiid "+res)
+    res
   }
+
+
 
   private final val logger: Logger = LoggerFactory.getLogger(this.getClass);
   final val loggerPath = General_Utilities().getLogDir(username) + jobId.toLowerCase() + ".log"
@@ -215,14 +219,23 @@ class GMQLJob(val gMQLContext: GMQLContext, val script: GMQLScript, val username
         status = Status.COMPILE_FAILED
 
       // Inject debug operators in the DAG
-      server.materializationList = DAGInjector.inject(server.materializationList)
+      if(Utilities().DEBUG_MODE)
+        server.materializationList = DAGInjector.inject(server.materializationList, Utilities().DRAW_DAG)
 
       DAG = server.materializationList
 
+      if(Utilities().DEBUG_MODE && Utilities().DRAW_DAG) {
+        val vd = new VariableDAG(DAG.toList)
+        val operatorDAGFrame = new OperatorDAGFrame(vd.toOperatorDAG, squeeze = true)
+        DAGDraw.showFrame(operatorDAGFrame, "Operator DAG")
+      }
 
-      val epdag = EPDAG.build(DAG.toList)
-      val frame = new EPDAGFrame(epdag)
-      EPDAGDraw.showFrame(frame, "Execution Profile DAG")
+
+      if(Utilities().DEBUG_MODE && Utilities().DRAW_DAG) {
+        val epdag = EPDAG.build(DAG.toList)
+        val frame = new EPDAGFrame(epdag)
+        EPDAGDraw.showFrame(frame, "Execution Profile DAG")
+      }
 
     } catch {
       case e: CompilerException => status = Status.COMPILE_FAILED; logError(e.getMessage); e.printStackTrace()
@@ -389,6 +402,8 @@ class GMQLJob(val gMQLContext: GMQLContext, val script: GMQLScript, val username
     this.status = Status.PENDING
 
     this submitHandle = submitHand
+
+
     this.submitHandle run
 
     //timer to find the execution time
@@ -518,17 +533,20 @@ class GMQLJob(val gMQLContext: GMQLContext, val script: GMQLScript, val username
 
 
         //@andrea
-        if( server.implementation.isInstanceOf[GMQLSparkExecutor] ){
+        if( Utilities().DEBUG_MODE && server.implementation.isInstanceOf[GMQLSparkExecutor] ){
           val ePDAG = server.implementation.asInstanceOf[GMQLSparkExecutor].ePDAG
           ePDAG.executionEnded()
 
           ePDAG.computeCriticalPath()
 
-          val frame = new EPDAGFrame(ePDAG)
-          EPDAGDraw.showFrame(frame, "Final EPDAG")
+
+          if(Utilities().DRAW_DAG) {
+            val frame = new EPDAGFrame(ePDAG)
+            EPDAGDraw.showFrame(frame, "Final EPDAG")
+          }
 
 
-          ePDAG.save(jobId, General_Utilities().getDagQueryDir(username))
+          ePDAG.save(jobId, General_Utilities().getDDagDir(username))
 
 
         } else {

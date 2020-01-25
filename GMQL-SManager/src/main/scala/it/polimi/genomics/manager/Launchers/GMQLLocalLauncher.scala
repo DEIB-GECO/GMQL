@@ -7,8 +7,9 @@ import ch.qos.logback.core.FileAppender
 import ch.qos.logback.core.filter.Filter
 import ch.qos.logback.core.spi.FilterReply
 import it.polimi.genomics.core.DAG.DAGSerializer
+import it.polimi.genomics.core.GDMSUserClass
 import it.polimi.genomics.federated.{FederatedImplementation, GmqlFederatedException}
-import it.polimi.genomics.manager.{GMQLJob, Status}
+import it.polimi.genomics.manager.{GMQLJob, Status, Utilities}
 import it.polimi.genomics.repository.FSRepository.FS_Utilities
 import it.polimi.genomics.repository.{Utilities => General_Utilities}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
@@ -79,6 +80,30 @@ class GMQLLocalLauncher(localJob: GMQLJob) extends GMQLLauncher(localJob) {
     new Thread(new Runnable {
       def run() {
 
+        var sparkConf = new SparkConf().setAppName(job.jobId).setMaster("local[*]")
+
+
+        // Set user-category-dependent Spark properties, if any
+        if( Utilities().SPARK_CUSTOM.nonEmpty ) {
+
+          for( spark_property <- Utilities().SPARK_CUSTOM.keys ) {
+
+            val userClass = job.gMQLContext.userClass
+            val allClass  = GDMSUserClass.ALL
+            val property  =  Utilities().SPARK_CUSTOM(spark_property)
+
+            // Note: A property set for a specific user class overrides the same property possibly defined for all classes
+            if ( property.isDefinedAt(userClass) ) {
+              sparkConf = sparkConf.set(spark_property, property(userClass))
+            } else if( property.isDefinedAt(allClass)  ) {
+              sparkConf = sparkConf.set(spark_property, property(allClass))
+            }
+          }
+        }
+
+        val sc = SparkContext.getOrCreate(sparkConf)
+
+
         //val logs: (PatternLayoutEncoder, FileAppender[ILoggingEvent]) = createLoggerFor(job.jobId, false, General_Utilities().getUserLogDir(job.username))
 
         if (job.federated) {
@@ -89,11 +114,11 @@ class GMQLLocalLauncher(localJob: GMQLJob) extends GMQLLauncher(localJob) {
           job.server.implementation = new GMQLSparkExecutor(
             binSize = job.gMQLContext.binSize,
             outputFormat = job.gMQLContext.outputFormat,
-            outputCoordinateSystem = job.gMQLContext.outputCoordinateSystem,
-            sc = SparkContext.getOrCreate(new SparkConf().setAppName(job.jobId).setMaster("local[*]")),
+            outputCoordinateSystem = job.gMQLContext.outputCoordinateSystem, sc=sc,
             stopContext = false)
         }
         else {
+
           val tempDir: String =
             if (General_Utilities().GMQL_REPO_TYPE == General_Utilities().HDFS) {
               General_Utilities().getHDFSNameSpace() + General_Utilities().getResultDir("federated")
@@ -107,7 +132,7 @@ class GMQLLocalLauncher(localJob: GMQLJob) extends GMQLLauncher(localJob) {
                 new GMQLSparkExecutor(
                 binSize = job.gMQLContext.binSize,
                 outputFormat = job.gMQLContext.outputFormat,
-                outputCoordinateSystem = job.gMQLContext.outputCoordinateSystem, sc= SparkContext.getOrCreate())
+                outputCoordinateSystem = job.gMQLContext.outputCoordinateSystem, sc=sc)
         }
         //      new GMQLSparkExecutor(
         //      binSize = job.gMQLContext.binSize,

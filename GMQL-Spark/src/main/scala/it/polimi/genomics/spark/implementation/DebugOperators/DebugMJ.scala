@@ -1,7 +1,8 @@
 package it.polimi.genomics.spark.implementation.DebugOperators
 
-import it.polimi.genomics.core.DataStructures.{IROperator, MetaJoinOperator, SomeMetaJoinOperator}
+import it.polimi.genomics.core.DataStructures.{IRJoinBy, IROperator, MetaJoinOperator, SomeMetaJoinOperator}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
+import it.polimi.genomics.spark.implementation.MetaOperators.GroupOperator.MetaJoinMJD2
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.slf4j.LoggerFactory
@@ -13,8 +14,8 @@ object DebugMJ {
   def apply(executor : GMQLSparkExecutor, input : MetaJoinOperator, debugOperator: IROperator, sc : SparkContext) : RDD[(Long, Array[Long])] = {
     logger.info("----------------DebugMJ executing..")
 
-
-    val res = executor.implement_mjd(SomeMetaJoinOperator(input), sc).cache()
+    val operator = input.asInstanceOf[IRJoinBy]
+    val res = MetaJoinMJD2(executor, operator.condition, operator.left_dataset, operator.right_dataset, true, sc).cache()
     res.count()
 
     val epnode = executor.ePDAG.getNodeByDebugOperator(debugOperator)
@@ -28,8 +29,6 @@ object DebugMJ {
 
 
     res
-
-
 
 
   }

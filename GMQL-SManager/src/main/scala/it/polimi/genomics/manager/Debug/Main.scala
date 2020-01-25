@@ -2,9 +2,11 @@ package it.polimi.genomics.manager.Debug
 
 import java.io.File
 
+import it.polimi.genomics.repository.{Utilities=>RepoUtilities}
 import org.apache.log4j.{Level, Logger}
 import org.slf4j
 import org.slf4j.LoggerFactory
+
 
 import scala.xml.XML
 
@@ -35,6 +37,13 @@ object Main {
     def outDir: String = properties("out_dir")
     def skipGen: Boolean = properties("skip_gen") == "true"
 
+
+    def cpuFreq: Float = properties("cpu_freq").toFloat
+    def minNumCores: Long =  properties("min_num_cores").toLong
+    def maxNumCores: Long = properties("max_num_cores").toLong
+    def minMemSize: Long =  properties("min_mem_size").toLong
+    def maxMemSize: Long = properties("max_mem_size").toLong
+
     def log(): Unit = {
       println(s"TempDir: $tempDir \nOutDir: $outDir \nGenDir: $genDir \nSkipGen: $skipGen")
     }
@@ -62,6 +71,10 @@ object Main {
     // Read main configuration file
     val conf = new Conf(confDir)
 
+    val gmqlConfDir = confDir+"/"+GMQL_CONF_DIR
+
+    RepoUtilities.confFolder = gmqlConfDir
+
     conf.log()
 
     if(!conf.skipGen) {
@@ -72,14 +85,23 @@ object Main {
 
     // Query
     val dss = getListOfSubDirectories(conf.genDir)
-    println(dss.mkString(","))
 
+    for(cpus <- conf.minNumCores to conf.maxNumCores)
+      for(mem <- conf.minMemSize to conf.maxMemSize)
+        for(ds <- dss){
 
+          val name = new File(ds) .getName
+          println(s"Querying Dataset $ds")
+          //val query = s"D1=SELECT() $name; D2=SELECT() $name; D3=JOIN(DLE(0)) D1 D2; MATERIALIZE D3 INTO query_$name;"
+          val query = s"D1=SELECT() $name; D2=COVER(2,ANY) D1; MATERIALIZE D2 INTO query_$name;"
+          val query_name = s"query_$name"
 
+          // Add execution settings
 
+          Executor.go(confDir = gmqlConfDir, datasets = List(ds),
+            query, queryName = query_name, username = "public", conf.outDir, cores = cpus, memory = mem, cpu_freq = conf.cpuFreq)
 
-
-
+        }
 
   }
 

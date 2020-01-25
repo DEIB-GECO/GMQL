@@ -98,29 +98,29 @@
                 </configuration>
             </plugin>
 
-            <!--<plugin>-->
-                <!--<artifactId>maven-assembly-plugin</artifactId>-->
-                <!--<version>2.4.1</version>-->
-                <!--<configuration>-->
-                    <!--<descriptorRefs>-->
-                        <!--<descriptorRef>jar-with-dependencies</descriptorRef>-->
-                    <!--</descriptorRefs>-->
-                    <!--<archive>-->
-                        <!--<manifestEntries>-->
-                            <!--<Main-Class>it.polimi.genomics.manager.CLI</Main-Class>-->
-                        <!--</manifestEntries>-->
-                    <!--</archive>-->
-                <!--</configuration>-->
-                <!--<executions>-->
-                    <!--<execution>-->
-                        <!--<id>make-assembly</id>-->
-                        <!--<phase>package</phase>-->
-                        <!--<goals>-->
-                            <!--<goal>single</goal>-->
-                        <!--</goals>-->
-                    <!--</execution>-->
-                <!--</executions>-->
-            <!--</plugin>-->
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>2.4.1</version>
+                <configuration>
+                   <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                   </descriptorRefs>
+                    <archive>
+                       <manifestEntries>
+                            <Main-Class>it.polimi.genomics.manager.MakeDebug</Main-Class>
+                        </manifestEntries>
+                    </archive>
+               </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -128,7 +128,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>it.polimi.genomics.cli.GMQLExecuteCommand</mainClass>
+                            <mainClass>it.polimi.genomics.manager.MakeDebug</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
