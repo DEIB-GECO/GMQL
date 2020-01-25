@@ -132,7 +132,6 @@ object Profiler extends java.io.Serializable {
     }
 
     val samples_count = regions.map(_._1.id).distinct().count()
-    println("Ci sono "+samples_count+" samples.")
 
     // CHROMOSOME
     //if we need chromosome

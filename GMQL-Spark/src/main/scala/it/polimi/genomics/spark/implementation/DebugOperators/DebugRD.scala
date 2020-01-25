@@ -25,7 +25,6 @@ object DebugRD {
     // Profile
     logger.info("Profiling "+input.getClass.getName)
     val profile = Profiler.profile(res, None, sc)
-    logger.info("Resulting profile has "+profile.get(Feature.NUM_SAMP).toString+" SAMPLES.")
 
     epnode.setOutputProfile(profile.stats.toMap)
 

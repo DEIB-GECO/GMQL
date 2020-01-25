@@ -53,7 +53,6 @@ class GMQLJob(val gMQLContext: GMQLContext, val script: GMQLScript, val username
 
   def jobId: String = {
     val res = generateJobId(username, queryName)
-    println("Called, returning jobiid "+res)
     res
   }
 

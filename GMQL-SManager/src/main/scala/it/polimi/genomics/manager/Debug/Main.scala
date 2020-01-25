@@ -39,13 +39,15 @@ object Main {
 
 
     def cpuFreq: Float = properties("cpu_freq").toFloat
-    def minNumCores: Long =  properties("min_num_cores").toLong
-    def maxNumCores: Long = properties("max_num_cores").toLong
-    def minMemSize: Long =  properties("min_mem_size").toLong
-    def maxMemSize: Long = properties("max_mem_size").toLong
+    def minNumCores: Int =  properties("min_num_cores").toInt
+    def maxNumCores: Int = properties("max_num_cores").toInt
+    def stepNumCores: Int = properties("step_num_cores").toInt
+    def minMemSize: Int =  properties("min_mem_size").toInt
+    def maxMemSize: Int = properties("max_mem_size").toInt
+    def stepMemSize: Int = properties("step_mem_size").toInt
 
     def log(): Unit = {
-      println(s"TempDir: $tempDir \nOutDir: $outDir \nGenDir: $genDir \nSkipGen: $skipGen")
+      properties.map(p=>p._1+"->"+p._2).foreach(println)
     }
   }
 
@@ -77,8 +79,18 @@ object Main {
 
     conf.log()
 
+    val cpu_range = Array.range(conf.minNumCores, conf.maxNumCores, conf.stepNumCores)
+    val memory_range = Array.range(conf.minMemSize, conf.maxMemSize, conf.stepMemSize)
+    val ds_num = AutomatedGenerator.getNumDatasets(confDir+"/"+GENERATOR_FILE)
+
+    val totalExecutions = cpu_range.length * memory_range.length * ds_num
+
+    println("Total number of executions: "+totalExecutions+". Do you want to continue?[y/N]: ")
+    val ans = scala.io.StdIn.readLine()
+    if(ans.trim!="y")
+      System.exit(0)
+
     if(!conf.skipGen) {
-      println("Generating Datasets: ")
       AutomatedGenerator.go(confDir+"/"+GENERATOR_FILE, conf.tempDir, conf.genDir)
     }
 
@@ -86,12 +98,12 @@ object Main {
     // Query
     val dss = getListOfSubDirectories(conf.genDir)
 
-    for(cpus <- conf.minNumCores to conf.maxNumCores)
-      for(mem <- conf.minMemSize to conf.maxMemSize)
+    for(cpus <- cpu_range)
+      for(mem <- memory_range)
         for(ds <- dss){
 
           val name = new File(ds) .getName
-          println(s"Querying Dataset $ds")
+          logger.info(s"Querying Dataset $ds")
           //val query = s"D1=SELECT() $name; D2=SELECT() $name; D3=JOIN(DLE(0)) D1 D2; MATERIALIZE D3 INTO query_$name;"
           val query = s"D1=SELECT() $name; D2=COVER(2,ANY) D1; MATERIALIZE D2 INTO query_$name;"
           val query_name = s"query_$name"

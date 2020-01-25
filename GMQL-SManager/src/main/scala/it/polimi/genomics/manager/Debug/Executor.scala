@@ -68,11 +68,14 @@ object Executor {
 
     var jobID = compilationJob.jobId
 
+    var skip = false
+
 
     compilationJob.compile()
-    if (compilationJob.getJobStatus == manager.Status.COMPILE_FAILED)
+    if (compilationJob.getJobStatus == manager.Status.COMPILE_FAILED) {
       logger.error("FAILED COMPILATION")
-    else {
+      skip = true
+    } else {
       logger.info("COMPILATION SUCCESS")
       val executionJob = server.registerJob(gmqlScript, gmqlContext, "")
       jobID = executionJob.jobId
@@ -82,30 +85,37 @@ object Executor {
       do {
         logger.info("Waiting for completion")
         Thread.sleep(1000)
-      } while (executionJob.getJobStatus != manager.Status.SUCCESS)
+      } while (executionJob.getJobStatus != manager.Status.SUCCESS &&
+         executionJob.getJobStatus != manager.Status.EXEC_FAILED &&
+        executionJob.getJobStatus != manager.Status.EXEC_STOPPED &&
+        executionJob.getJobStatus != manager.Status.DS_CREATION_FAILED)
+
+      if(executionJob.getJobStatus != manager.Status.SUCCESS)
+        skip = true
     }
 
     val dagFolder = RepoUtilities().getDDagDir(username)
     var fileList: List[File] = getListOfFiles(dagFolder)
 
+    if(!skip) {
 
-    val filePath = dagFolder+"/"+jobID+".xml"
+      val filePath = dagFolder + "/" + jobID + ".xml"
 
-    println("Looking for "+filePath)
+      println("Looking for " + filePath)
 
-    while(! (new File(filePath) exists())) {
-      println("DAG not found retrying...")
-      Thread.sleep(1000)
-    }
+      while (!(new File(filePath) exists())) {
+        println("DAG not found retrying...")
+        Thread.sleep(1000)
+      }
 
 
-    val ddagFile = new File(filePath)
+      val ddagFile = new File(filePath)
 
-    // Move results into destination folder
+      // Move results into destination folder
 
-    println(s"DAG folder: $dagFolder")
+      println(s"DAG folder: $dagFolder")
 
-    /*val temp  = getListOfFiles(dagFolder).filter(_.getName.contains(jobID))
+      /*val temp  = getListOfFiles(dagFolder).filter(_.getName.contains(jobID))
     var ddagFile:File = null
     if(temp.isEmpty) { // todo: this is a bad fix
       ddagFile =
@@ -113,17 +123,22 @@ object Executor {
       ddagFile = temp.head
     }*/
 
-    println(s"JobID: $jobID")
+      println(s"JobID: $jobID")
 
-    val destDir = resultDir+"/ddag/"
-    new File(destDir).mkdirs()
+      val destDir = resultDir + "/ddag/"
+      new File(destDir).mkdirs()
 
-    val destFile = destDir+jobID+".xml"
-    moveRenameFile(ddagFile.getAbsolutePath, destDir+jobID+".xml")
+      val destFile = destDir + jobID + ".xml"
+      moveRenameFile(ddagFile.getAbsolutePath, destDir + jobID + ".xml")
 
 
-    val add = Map("cores"->cores.toString, "memory"->memory.toString, "cpu_freq"->cpu_freq.toString, "job_id"->jobID)
-    MatrixConverter.convert(destFile, 12, 123, resultDir, add)
+      val add = Map("cores" -> cores.toString, "memory" -> memory.toString, "cpu_freq" -> cpu_freq.toString, "job_id" -> jobID)
+      MatrixConverter.convert(destFile, 12, 123, resultDir, add)
+
+    } else {
+
+      logger.error("EXECUTION FAILED for datasets : "+datasets.mkString(", ")+" with "+cores.toString+"cores and "+memory.toString+"g memory.")
+    }
 
 
   }

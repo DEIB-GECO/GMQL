@@ -22,7 +22,6 @@ object SelectRD {
 
     val input = executor.implement_rd(inputDataset, sc)
 
-    println("SELECTRD INPUT HAS "+input.count()+" entries FILTERED META: "+filteredMeta.isDefined)
     val filteredRegion =
       if (filteredMeta.isDefined) {
         val metaIdList = executor.implement_md(filteredMeta.get, sc).keys.distinct.collect
@@ -33,7 +32,6 @@ object SelectRD {
       filteredRegion.filter((region: GRECORD) => PredicateRD.applyRegionSelect(optimized_reg_cond.get, region))
     } else {
       val res = filteredRegion
-      println("SELECTRD OUTPUT HAS "+res.count()+" entries")
       res
 
     }

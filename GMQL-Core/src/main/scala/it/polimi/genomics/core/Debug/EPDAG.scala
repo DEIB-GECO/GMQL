@@ -9,7 +9,6 @@ object EPDAG {
 
   def getCurrentTime:Float = {
     val t = System.nanoTime() / 1000000000F
-    println("returning time "+t)
     t
   }
 
@@ -139,7 +138,6 @@ class EPDAG(val exitNodes: List[EPNode], allNodes: List[EPNode], val startupNode
     if(!allNodes.exists(_.iRDebugOperator==debugOperator))
       throw new Exception("Not found DebugOperator: "+debugOperator.getOperator.name+" in a list of "+allNodes.length+" operators.")
     else {
-      println("There are "+allNodes.length+" operators.")
       allNodes.filter(_.iRDebugOperator == debugOperator).head
     }
   }
@@ -226,21 +224,18 @@ class EPNode(val iRDebugOperator: IROperator) {
   def trackOutputReady(): Unit = {
     if(outputReadyTime.isEmpty)
       outputReadyTime = Some(EPDAG.getCurrentTime)
-    else
-      logger.warn("The output ready time was already set.")
+    //else logger.warn("The output ready time was already set.")
   }
   def trackProfilingStarted(): Unit =  {
     if(outputProfileStartTime.isEmpty)
       outputProfileStartTime = Some(EPDAG.getCurrentTime)
-    else
-      logger.warn("The profile start time was already set.")
+    //else logger.warn("The profile start time was already set.")
   }
 
   def trackProfilingEnded(): Unit = {
     if(outputProfileEndTime.isEmpty)
       outputProfileEndTime = Some(EPDAG.getCurrentTime)
-    else
-      logger.warn("The profile end time was already set.")
+    // else logger.warn("The profile end time was already set.")
   }
 
   def getProfilingTime: Float = {
@@ -267,8 +262,6 @@ class EPNode(val iRDebugOperator: IROperator) {
   def getExpectedFinishedAfter: Option[Float] = expectedOutputReadyTime
   def setExpectedFinishedAfter(time: Float): Unit = {
     expectedOutputReadyTime = Some(time)
-    println("setting "+time)
-    println(this)
   }
 
 
