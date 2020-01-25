@@ -107,7 +107,7 @@
                    </descriptorRefs>
                     <archive>
                        <manifestEntries>
-                            <Main-Class>it.polimi.genomics.manager.MakeDebug</Main-Class>
+                            <Main-Class>it.polimi.genomics.manager.Debug.Main</Main-Class>
                         </manifestEntries>
                     </archive>
                </configuration>
@@ -128,7 +128,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>it.polimi.genomics.manager.MakeDebug</mainClass>
+                            <mainClass>it.polimi.genomics.manager.Debug.Main</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
