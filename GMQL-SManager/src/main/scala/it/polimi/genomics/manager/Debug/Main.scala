@@ -45,6 +45,8 @@ object Main {
     def outDir: String = properties("out_dir")
     def skipGen: Boolean = properties("skip_gen") == "true"
 
+    def maxExperiments: Int = properties("max_experiments").toInt
+
     def cpuFreq: Float = properties("cpu_freq").toFloat
 
     def getCoresRange: Array[Int] = getTriplet(exec_xml, "execution", "num_cores")
@@ -99,7 +101,7 @@ object Main {
       "MEMORY: "+memory_range.length+" ("+memory_range.mkString(",")+")\n"+
       "DATASETS: "+ds_num+"\n"+
       "BINNING: "+bin_range.length+" ("+bin_range.mkString(",")+")\n"+
-      "MIN_ACC: "+min_acc_range.length+" ("+bin_range.mkString(",")+")")
+      "MIN_ACC: "+min_acc_range.length+" ("+min_acc_range.mkString(",")+")")
 
     val totalExecutions = cpu_range.length * memory_range.length * ds_num * bin_range.length*min_acc_range.length
 
@@ -117,30 +119,45 @@ object Main {
     // Query
     val dss = getListOfSubDirectories(conf.genDir)
 
-    for(bin_size <- bin_range)
-      for(min_acc <- min_acc_range)
-        for(cpus <- cpu_range) {
-          //for(mem <- memory_range)
-          for (ds <- dss) {
+    case class RunninConfig(bin:Int, minAcc: Int, cpus: Int, ds: String)
 
-            val name = new File(ds).getName
-            val query_name = s"query_${name}_bin_${bin_size}_minAcc_${min_acc}_cpus_${cpus}_mem_${mem}g"
-            logger.info(s"Querying Dataset $ds")
-            //val query = s"D1=SELECT() $name; D2=SELECT() $name; D3=JOIN(DLE(0)) D1 D2; MATERIALIZE D3 INTO query_$name;"
-            val query = s"D1=SELECT() $name; D2=COVER($min_acc,ANY) D1; MATERIALIZE D2 INTO query_$query_name;"
-            println(query)
+    var configurations = scala.collection.mutable.ArrayBuffer[RunninConfig]()
+
+      for(bin_size <- bin_range)
+        for(min_acc <- min_acc_range)
+          for(cpus <- cpu_range)
+            for (ds <- dss)
+              configurations += RunninConfig(bin_size, min_acc, cpus, ds)
 
 
-            // Add execution settings
+    import java.util.Random
+    val rand = new Random(System.currentTimeMillis())
 
-            Executor.go(confDir = gmqlConfDir, datasets = List(ds),
-              query, queryName = query_name, username = "public",
-              conf.outDir, cores = cpus, memory = mem,
-              cpu_freq = conf.cpuFreq,
-              bin_size=bin_size)
 
-          }
-        }
+    for(i <- 1 to conf.maxExperiments) {
+
+      val random_index = rand.nextInt(configurations.length)
+      val cc = configurations(random_index)
+
+      configurations.remove(random_index)
+
+      val name = new File(cc.ds).getName
+      val query_name = s"query_${name}_bin_${cc.bin}_minAcc_${cc.minAcc}_cpus_${cc.cpus}_mem_${mem}g"
+      logger.info(s"Querying Dataset ${cc.ds}")
+      //val query = s"D1=SELECT() $name; D2=SELECT() $name; D3=JOIN(DLE(0)) D1 D2; MATERIALIZE D3 INTO query_$name;"
+      val query = s"D1=SELECT() $name; D2=COVER(${cc.minAcc},ANY) D1; MATERIALIZE D2 INTO query_$query_name;"
+      println(query)
+
+
+      // Add execution settings
+
+      Executor.go(confDir = gmqlConfDir, datasets = List(cc.ds),
+        query, queryName = query_name, username = "public",
+        conf.outDir, cores = cc.cpus, memory = mem,
+        cpu_freq = conf.cpuFreq,
+        bin_size = cc.bin)
+
+    }
 
   }
 
