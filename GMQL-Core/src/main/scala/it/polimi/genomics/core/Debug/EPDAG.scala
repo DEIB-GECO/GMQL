@@ -1,5 +1,6 @@
 package it.polimi.genomics.core.Debug
 
+import it.polimi.genomics.core.BinSize
 import it.polimi.genomics.core.DataStructures._
 import org.slf4j.LoggerFactory
 
@@ -100,6 +101,9 @@ class EPDAG(val exitNodes: List[EPNode], allNodes: List[EPNode], val startupNode
   var executionStartTime: Option[Float] = None
   var executionEndTime: Option[Float] = None
 
+  var binSize: BinSize = BinSize()
+
+  def setBinSize(b: BinSize) = {binSize = b}
 
   def startupEnded():Unit = {
     startupNode.trackOutputReady()
@@ -149,6 +153,11 @@ class EPDAG(val exitNodes: List[EPNode], allNodes: List[EPNode], val startupNode
     println("Saving EPDAG as "+fullPath)
 
     val xml = <dag>
+      <binSize>
+        <cover>{binSize.Cover}</cover>
+        <map>{binSize.Map}</map>
+        <join>{binSize.Join}</join>
+      </binSize>
       {allNodes.map(_.toXml())}
     </dag>
 

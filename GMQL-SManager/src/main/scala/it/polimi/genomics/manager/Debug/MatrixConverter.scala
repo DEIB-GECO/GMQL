@@ -15,6 +15,8 @@ object MatrixConverter {
     "memory"
   )
 
+  val bin_size = Array("bin_size")
+
   val input_left = Array(
     "in_num_samples",
     "in_avg_num_reg",
@@ -61,14 +63,15 @@ object MatrixConverter {
 
     irOperatorName match {
       case "IRSelectRD" => basic_features++input_left++outcome++output
-      case "IRRegionCover" => basic_features++input_left++getExtraFeatures(node)++outcome++output
+      case "IRRegionCover" => basic_features++bin_size++input_left++getExtraFeatures(node)++outcome++output
       case "IRReadRD" => basic_features++output++outcome
+      case "IRStoreRD" => basic_features++output++outcome
       case _ => basic_features++outcome
     }
   }
 
 
-  def addNode(node: Node, dirPath: String, date: String,  add: Map[String, String] ) = {
+  def addNode(node: Node, dirPath: String, date: String,  add: Map[String, String] , binSize: Int) = {
 
     val irOperatorName = (node \\ "operatorName").text
 
@@ -106,6 +109,10 @@ object MatrixConverter {
     values(schema.indexOf("cores")) = add("cores")
     values(schema.indexOf("memory")) = add("memory")
     values(schema.indexOf("cpu_freq")) = add("cpu_freq")
+
+
+    if(schema contains bin_size.head)
+      values(schema.indexOf("bin_size")) = binSize.toString
 
 
     // Add input features
@@ -175,11 +182,12 @@ object MatrixConverter {
     val outFolder = outDir+"/table/"
     new File(outFolder) mkdirs()
 
+    val binSize = (xml \\ "binSize" \\ "cover" text).toInt
     val nodes = xml \\ "node"
 
 
 
-    for(node <- nodes) addNode(node, outFolder, date.toString, add)
+    for(node <- nodes) addNode(node, outFolder, date.toString, add, binSize)
 
 
 

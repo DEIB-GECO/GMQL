@@ -50,6 +50,8 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
                         stopContext: Boolean = true, profileData: Boolean = true)
   extends Implementation with java.io.Serializable {
 
+  println("USING BIN SIZE: cover:"+binSize.Cover+" map:"+binSize.Map+" join:"+binSize.Join)
+
 
   final val ENCODING = "UTF-8"
   final val ms = System.currentTimeMillis();
@@ -136,9 +138,11 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
 
     if(debugMode) {
       ePDAG = EPDAG.build(to_be_materialized.toList)
+      ePDAG.setBinSize(binSize)
 
       // Initialize the execution profile DAG
       ePDAG.executionStarted()
+
       sc.parallelize(List(1, 2, 3)).count() // dummy operation to measure startup time
       ePDAG.startupEnded()
     }

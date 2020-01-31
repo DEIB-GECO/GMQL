@@ -80,7 +80,13 @@ class GMQLLocalLauncher(localJob: GMQLJob) extends GMQLLauncher(localJob) {
     new Thread(new Runnable {
       def run() {
 
+        var master = "local[*]"
         var sparkConf = new SparkConf().setAppName(job.jobId).setMaster("local[*]")
+        if(Utilities().SPARK_CUSTOM.keys.exists(k=>k=="spark.master")) {
+          val master = Utilities().SPARK_CUSTOM("spark.master").head._2
+          sparkConf = sparkConf.setMaster(master)
+          println("setting spark master to "+master)
+        }
 
 
         // Set user-category-dependent Spark properties, if any

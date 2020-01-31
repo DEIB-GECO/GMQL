@@ -209,9 +209,15 @@ object Profiler extends java.io.Serializable {
     dsProfile.stats += Feature.MIN_LENGTH.toString -> numToString(resultDsToSave.minLength)
     dsProfile.stats += Feature.MAX_LENGTH.toString -> numToString(resultDsToSave.maxLength)
 
-    val first = regions.first()
-    val col_num = 5 + first._2.length
-    val tuple_size = SizeEstimator.estimate(regions) / regions.count()
+    var col_num = 0
+    var tuple_size = 0L
+
+    if(!regions.isEmpty()){
+      val first = regions.first()
+       col_num = 5 + first._2.length
+       tuple_size = SizeEstimator.estimate(regions) / regions.count()
+    }
+
 
     dsProfile.stats += Feature.NUM_COLS.toString -> numToString(col_num)
     dsProfile.stats += Feature.TUPLE_SIZE.toString -> numToString(tuple_size)

@@ -110,6 +110,8 @@ class BedParser(val delimiter: String, var chrPos: Int, var startPos: Int, var s
     */
   @throws(classOf[ParsingException])
   override def region_parser(t: (Long, String)): Option[DataTypes.GRECORD] = {
+
+    println("I AM READING ")
     import BedParserHelper._
     try {
       val s: Array[String] = t._2.split(delimiter, -1)

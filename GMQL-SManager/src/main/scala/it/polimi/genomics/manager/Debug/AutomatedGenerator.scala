@@ -7,10 +7,6 @@ import scala.xml.{Elem, XML}
 
 object AutomatedGenerator {
 
-  private def getTriplet(xml: Elem, property: String): Array[Int] = {
-    Array.range( (xml \\ "conf" \\ "datasets" \\ property \@ "from").toInt, (xml \\ property \@ "to").toInt, (xml \\ property \@ "step").toInt)
-  }
-
 
   def getNumDatasets(confFile: String): Int = {
 
@@ -18,10 +14,10 @@ object AutomatedGenerator {
 
     val chromosome_max = (xmlFile  \\ "conf" \\ "datasets" \\ "chromosome" \@ "max").toLong
 
-    val num_samples = getTriplet(xmlFile, "num_samples")
-    val num_regions = getTriplet(xmlFile, "num_regions")
-    val avg_length = getTriplet(xmlFile, "avg_length")
-    val num_columns = getTriplet(xmlFile, "num_columns")
+    val num_samples = Main.getTriplet(xmlFile, "datasets", "num_samples")
+    val num_regions = Main.getTriplet(xmlFile, "datasets", "num_regions")
+    val avg_length = Main.getTriplet(xmlFile, "datasets", "avg_length")
+    val num_columns = Main.getTriplet(xmlFile, "datasets","num_columns")
 
     val total_num = num_samples.length * num_regions.length * avg_length.length * num_columns.length
 
@@ -44,10 +40,10 @@ object AutomatedGenerator {
     }
 
 
-    val num_samples = getTriplet(xmlFile, "num_samples")
-    val num_regions = getTriplet(xmlFile, "num_regions")
-    val avg_length = getTriplet(xmlFile, "avg_length")
-    val num_columns = getTriplet(xmlFile, "num_columns")
+    val num_samples = Main.getTriplet(xmlFile, "datasets", "num_samples")
+    val num_regions = Main.getTriplet(xmlFile, "datasets", "num_regions")
+    val avg_length = Main.getTriplet(xmlFile, "datasets", "avg_length")
+    val num_columns = Main.getTriplet(xmlFile, "datasets", "num_columns")
 
     val total_num = num_samples.length * num_regions.length * avg_length.length * num_columns.length
 

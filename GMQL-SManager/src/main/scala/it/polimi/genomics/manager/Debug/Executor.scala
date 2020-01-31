@@ -3,11 +3,12 @@ package it.polimi.genomics.manager.Debug
 import java.io.File
 import java.nio.file.{Files, Paths, StandardCopyOption}
 
-import it.polimi.genomics.core.{GDMSUserClass, GMQLSchemaFormat, GMQLScript, ImplementationPlatform}
+import it.polimi.genomics.core._
 import it.polimi.genomics.repository.{GMQLSample, Utilities => RepoUtilities}
 import it.polimi.genomics.manager
 import it.polimi.genomics.manager.{GMQLContext, GMQLExecute, GMQLJob, Utilities}
 import org.apache.log4j.{Level, Logger}
+import org.apache.spark.{SparkConf, SparkContext}
 import org.slf4j.LoggerFactory
 
 import collection.JavaConverters._
@@ -22,7 +23,7 @@ object Executor {
   val logger = LoggerFactory.getLogger(Executor.getClass)
 
   def go(confDir: String, datasets: List[String], query: String, queryName: String,
-         username: String, resultDir:String,  cores: Long, memory: Long, cpu_freq:Float): Unit = {
+         username: String, resultDir:String,  cores: Long, memory: Long, cpu_freq:Float, bin_size:Long): Unit = {
 
     // Set the configutation folder path and get the utilities object
     RepoUtilities.confFolder = confDir
@@ -32,10 +33,30 @@ object Executor {
     val server = GMQLExecute()
 
 
-    Utilities().SPARK_CUSTOM = scala.collection.mutable.Map(
+    /*Utilities().SPARK_CUSTOM = scala.collection.mutable.Map(
       "spark.driver.memory" -> scala.collection.mutable.Map(GDMSUserClass.ALL -> (memory+"g")),
-      "spark.driver.cores" -> scala.collection.mutable.Map(GDMSUserClass.ALL -> cores.toString)
-    )
+      "spark.driver.cores" -> scala.collection.mutable.Map(GDMSUserClass.ALL -> cores.toString),
+      "spark.master" -> scala.collection.mutable.Map(GDMSUserClass.ALL -> ("local["+cores.toString+"]")),
+      "spark.eventLog.dir"->scala.collection.mutable.Map(GDMSUserClass.ALL -> (resultDir+"/logs/")),
+      "spark.eventLog.enabled"->scala.collection.mutable.Map(GDMSUserClass.ALL -> "true")
+      )*/
+
+
+    val logFolder = resultDir+"/logs/"
+    new File(logFolder) mkdirs()
+
+    val sparkConf = new SparkConf()
+      .set("spark.driver.memory", "1g")
+      .set("spark.driver.cores",  cores.toString)
+      .set("spark.driver.cores",  cores.toString)
+      .set("spark.eventLog.enabled",  "true")
+      .set("spark.eventLog.dir",  resultDir+"/logs/")
+      .setMaster("local["+cores.toString+"]")
+      .setAppName(queryName)
+
+
+
+
 
     // Move the dataset on the user repo
     for(ds<-datasets) {
@@ -62,8 +83,11 @@ object Executor {
     }
 
     val gmqlScript = GMQLScript(query, queryName)
+
+    val sc = new SparkContext(sparkConf)
+
     val gmqlContext = GMQLContext(ImplementationPlatform.SPARK, repository, GMQLSchemaFormat.TAB,
-      username = "public", userClass = GDMSUserClass.GUEST)
+      username = "public", userClass = GDMSUserClass.ADMIN, sc=sc, binSize = BinSize(bin_size,bin_size,bin_size))
     val compilationJob = new GMQLJob(gmqlContext, gmqlScript, "public")
 
     var jobID = compilationJob.jobId
@@ -93,6 +117,8 @@ object Executor {
       if(executionJob.getJobStatus != manager.Status.SUCCESS)
         skip = true
     }
+
+    sc.stop()
 
     val dagFolder = RepoUtilities().getDDagDir(username)
     var fileList: List[File] = getListOfFiles(dagFolder)
