@@ -9,16 +9,16 @@ import it.polimi.genomics.core.Debug.OperatorDescr
 import scala.util.parsing.input.Position
 
 /**
- * Created by pietro on 27/09/15.
- */
+  * Created by pietro on 27/09/15.
+  */
 @SerialVersionUID(12L)
 case class JoinOperator(op_pos : Position,
-                          input1 : Variable,
-                          input2 : Option[Variable] = None,
-                          output : VariableIdentifier,
-                          parameters : OperatorParameters)
+                        input1 : Variable,
+                        input2 : Option[Variable] = None,
+                        output : VariableIdentifier,
+                        parameters : OperatorParameters)
   extends Operator(op_pos,input1, input2, parameters)
-  with BuildingOperator2 with Serializable {
+    with BuildingOperator2 with Serializable {
 
   override val operator_name = "JOIN"
   override val accepted_named_parameters = List("joinby", "output", "on_attributes")
@@ -119,12 +119,12 @@ case class JoinOperator(op_pos : Position,
     //if the distal condition is present then there are no limitations on the builder
     //conversely, (when only the on_attributes is present) the accepted builder are LEFT and RIGHT
     if (genometric_condition.isEmpty &&
-        on_positions.isDefined &&
-        !(output_builder == RegionBuilder.LEFT ||
-          output_builder == RegionBuilder.RIGHT ||
-          output_builder == RegionBuilder.RIGHT_DISTINCT ||
-          output_builder == RegionBuilder.LEFT_DISTINCT ||
-          output_builder == RegionBuilder.BOTH)) {
+      on_positions.isDefined &&
+      !(output_builder == RegionBuilder.LEFT ||
+        output_builder == RegionBuilder.RIGHT ||
+        output_builder == RegionBuilder.RIGHT_DISTINCT ||
+        output_builder == RegionBuilder.LEFT_DISTINCT ||
+        output_builder == RegionBuilder.BOTH)) {
 
       val msg = "JOIN operator at line " + op_pos.line +
         ": when a condition on distance is not provided, the only possible " +
@@ -134,22 +134,24 @@ case class JoinOperator(op_pos : Position,
     }
 
 
-    var (max, min, stream, md) = (100000L, 0L, 1L, None)
+    var (max, min:String, stream, md:String) = (100000L, "NULL", "false", "NULL")
 
     genometric_condition.head.toList().foreach {
       case DistLess(v) => max = v
-      case DistGreater(v) =>  min = v
-      case Upstream() => stream = 2
-      case DownStream() =>  stream = 2
-      case MinDistance(v) => Some(v)
+      case DistGreater(v) =>  min = v.toString
+      case Upstream() => stream =  "true"
+      case DownStream() =>  stream = "true"
+      case MinDistance(v) => v.toString
     }
 
-    val search_space = 2*(max-min)/stream
 
     val params: Option[Map[String,String]] = Some(Map(
-      "join_output_type"->output_builder.toString,
-      "join_search_space"->search_space.toString,
-      "join_md"->md.getOrElse("none")))
+      "output_type"->output_builder.toString,
+      "DL"-> max.toString,
+      "DG"-> min,
+      "stream"->stream,
+      "MD"->md
+    ))
     val operatorDescr = OperatorDescr(GMQLOperator.Join, params)
 
     val joined = super_variable_left.get.JOIN(

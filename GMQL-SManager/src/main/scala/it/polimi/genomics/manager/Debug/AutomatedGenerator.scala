@@ -3,36 +3,74 @@ package it.polimi.genomics.manager.Debug
 import java.io.File
 
 import scala.reflect.io.Directory
-import scala.xml.{Elem, XML}
+import scala.xml.{NodeSeq, XML}
 
 object AutomatedGenerator {
 
 
-  def getNumDatasets(confFile: String): Int = {
+  def generate(confFile: String, tempDir: String, outDir: String, binary: Boolean): Unit = {
 
     val xmlFile = XML.load(confFile)
 
-    val chromosome_max = (xmlFile  \\ "conf" \\ "datasets" \\ "chromosome" \@ "max").toLong
+    /*
+      - unary
+      - binary
+      -- reference
+      -- experiment
+     */
 
-    val num_samples = Main.getTriplet(xmlFile, "datasets", "num_samples")
-    val num_regions = Main.getTriplet(xmlFile, "datasets", "num_regions")
-    val avg_length = Main.getTriplet(xmlFile, "datasets", "avg_length")
-    val num_columns = Main.getTriplet(xmlFile, "datasets","num_columns")
+    val destinationFolder = if(binary) outDir+"/binary" else outDir+"/unary"
+    val clean_out = (xmlFile  \\ "conf" \\ "execution" \\ "clean_out").text == "true"
+
+    if(binary) {
+      println("GENERATING DATASETS FOR BINARY OPERATOR")
+      val ref_conf =  xmlFile \\ "conf" \\ "datasets" \\ "binary" \\ "reference"
+      val exp_conf =  xmlFile \\ "conf" \\ "datasets" \\ "binary" \\ "experiment"
+
+      _generate(ref_conf, tempDir, destinationFolder+"/reference/",clean_out)
+      _generate(exp_conf, tempDir, destinationFolder+"/experiment/",clean_out)
+    } else {
+      println("GENERATING DATASETS FOR UNARY OPERATOR")
+      val conf =  xmlFile \\ "conf" \\ "datasets" \\ "unary"
+      _generate(conf, tempDir, destinationFolder, clean_out)
+    }
+
+
+  }
+
+
+  def getNumDatasets(confFile: String, binary:Boolean): Int = {
+
+    val xmlFile = XML.load(confFile)
+    if(binary) {
+      val ref = _getNumDatasets(xmlFile \\ "conf" \\ "datasets" \\ "binary" \\ "reference")
+      val exp = _getNumDatasets(xmlFile \\ "conf" \\ "datasets" \\ "binary" \\ "experiment")
+      ref*exp
+    } else {
+      _getNumDatasets(xmlFile \\ "conf" \\ "datasets" \\ "unary")
+    }
+
+
+  }
+
+
+  private def _getNumDatasets(conf: NodeSeq): Int = {
+    val num_samples = Main.getTriplet(conf, "num_samples")
+    val num_regions = Main.getTriplet(conf, "num_regions")
+    val avg_length = Main.getTriplet(conf, "avg_length")
+    val num_columns = Main.getTriplet(conf,"num_columns")
 
     val total_num = num_samples.length * num_regions.length * avg_length.length * num_columns.length
 
     total_num
   }
 
+  private def _generate(conf: NodeSeq, tempDir: String, outDir: String, clean_out: Boolean): Unit = {
 
-  def go(confFile: String, tempDir: String, outDir: String): Unit = {
+
+    val chromosome_max = (conf \\ "chromosome" \@ "max").toLong
 
 
-    val xmlFile = XML.load(confFile)
-
-    val chromosome_max = (xmlFile  \\ "conf" \\ "datasets" \\ "chromosome" \@ "max").toLong
-
-    val clean_out = (xmlFile  \\ "conf" \\ "execution" \\ "clean_out").text == "true"
 
     if(clean_out) {
       new Directory(new File(outDir)).deleteRecursively()
@@ -40,14 +78,14 @@ object AutomatedGenerator {
     }
 
 
-    val num_samples = Main.getTriplet(xmlFile, "datasets", "num_samples")
-    val num_regions = Main.getTriplet(xmlFile, "datasets", "num_regions")
-    val avg_length = Main.getTriplet(xmlFile, "datasets", "avg_length")
-    val num_columns = Main.getTriplet(xmlFile, "datasets", "num_columns")
+    val num_samples = Main.getTriplet(conf, "num_samples")
+    val num_regions = Main.getTriplet(conf, "num_regions")
+    val avg_length = Main.getTriplet(conf, "avg_length")
+    val num_columns = Main.getTriplet(conf, "num_columns")
 
     val total_num = num_samples.length * num_regions.length * avg_length.length * num_columns.length
 
-    println("GENERATING "+total_num+" DATASETS")
+    println("GENERATING DS")
 
     for (samp_num <- num_samples) {
       for (reg_num <- num_regions) {
@@ -73,17 +111,4 @@ object AutomatedGenerator {
     }
   }
 
-  def main(args: Array[String]): Unit = {
-
-    var tempDir= "/Users/andreagulino/tmp/"
-    var outDir = "/Users/andreagulino/tmp/"
-
-    var confFile = "/Users/andreagulino/tmp/generator/conf.xml"
-
-    if(args.length>0)
-      confFile = args(0)
-
-    go(confFile, tempDir, outDir)
-
-  }
 }

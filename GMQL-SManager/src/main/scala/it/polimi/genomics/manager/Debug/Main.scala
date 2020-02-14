@@ -7,12 +7,16 @@ import org.apache.log4j.{Level, Logger}
 import org.slf4j
 import org.slf4j.LoggerFactory
 
-import scala.xml.{Elem, XML}
+import scala.xml.{NodeSeq, XML}
+import java.util.Random
+
 
 object Main {
 
-  def getTriplet(xml: Elem, root: String, property: String): Array[Int] = {
-    Array.range( (xml \\ "conf" \\ root \\ property \@ "from").toInt, (xml \\ property \@ "to").toInt, (xml \\ property \@ "step").toInt)
+
+
+  def getTriplet(root: NodeSeq, property: String): Array[Int] = {
+    Array.range( ( root \\ property \@ "from").toInt, (root \\ property \@ "to").toInt, (root \\ property \@ "step").toInt)
   }
 
 
@@ -35,8 +39,6 @@ object Main {
 
     private val conf_xml = XML.load(confDir+"/"+MAIN_FILE)
     private val exec_xml = XML.load(confDir+"/"+EXECUTOR_FILE)
-    private val query_xml = XML.load(confDir+"/"+QUERY_FILE)
-
 
     // Parse
     val properties: Map[String, String] = (conf_xml \\ "property").map(n=> (n \\ "name").text -> (n \\ "value").text).toMap[String, String]
@@ -49,14 +51,9 @@ object Main {
 
     def cpuFreq: Float = properties("cpu_freq").toFloat
 
-    def getCoresRange: Array[Int] = getTriplet(exec_xml, "execution", "num_cores")
-    def getMemoryRange: Array[Int] = getTriplet(exec_xml, "execution", "mem_size")
-    def getBinRange: Array[Int] = getTriplet(exec_xml, "execution", "bin_size")
-
-
-    def getCoverMinAccRange: Array[Int] = getTriplet(query_xml, "query", "min_acc_cover")
-
-
+    def getCoresRange: Array[Int] = getTriplet(exec_xml \\ "conf" \\ "execution", "num_cores")
+    def getMemoryRange: Array[Int] = getTriplet(exec_xml \\ "conf" \\ "execution", "mem_size")
+    def getBinRange: Array[Int] = getTriplet(exec_xml \\ "conf" \\"execution", "bin_size")
 
     def log(): Unit = {
       properties.map(p=>p._1+"->"+p._2).foreach(println)
@@ -66,7 +63,7 @@ object Main {
 
   def main(args: Array[String]): Unit = {
 
-    var confDir =  "/Users/andreagulino/Desktop/conf/"
+    var confDir =  "/Users/andreagulino/Desktop/TEX/conf/"
 
     // Read Options
     for (i <- args.indices if i % 2 == 0) {
@@ -86,73 +83,83 @@ object Main {
     val conf = new Conf(confDir)
 
     val gmqlConfDir = confDir+"/"+GMQL_CONF_DIR
-
     RepoUtilities.confFolder = gmqlConfDir
 
     conf.log()
 
     val cpu_range = conf.getCoresRange
-    val memory_range = conf.getMemoryRange
+    val memory_range = conf.getMemoryRange // actually not used
+    val mem = memory_range.head // because is set as an option of JVM in local mode
     val bin_range = conf.getBinRange
-    val min_acc_range = conf.getCoverMinAccRange
-    val ds_num = AutomatedGenerator.getNumDatasets(confDir+"/"+GENERATOR_FILE)
+    val query = new Query(confDir+"/"+QUERY_FILE)
+    val ds_num = AutomatedGenerator.getNumDatasets(confDir+"/"+GENERATOR_FILE, query.isBinary)
 
     println("CORES: "+cpu_range.length+" ("+cpu_range.mkString(",")+")\n"+
       "MEMORY: "+memory_range.length+" ("+memory_range.mkString(",")+")\n"+
       "DATASETS: "+ds_num+"\n"+
-      "BINNING: "+bin_range.length+" ("+bin_range.mkString(",")+")\n"+
-      "MIN_ACC: "+min_acc_range.length+" ("+min_acc_range.mkString(",")+")")
+      "BINNING: "+bin_range.length+" ("+bin_range.mkString(",")+")\n")
 
-    val totalExecutions = cpu_range.length * memory_range.length * ds_num * bin_range.length*min_acc_range.length
+    val totalExecutions = cpu_range.length * memory_range.length * ds_num * bin_range.length * query.getNumQueries
 
-    println("Total number of executions: "+totalExecutions+". Do you want to continue?[y/N]: ")
+    println("["+query.operatorName+"]Total number of executions: "+totalExecutions+". Do you want to continue?[y/N]: ")
     val ans = scala.io.StdIn.readLine()
     if(ans.trim!="y")
       System.exit(0)
 
+
+    // Generate Datasets and Import them into the repository
     if(!conf.skipGen) {
-      AutomatedGenerator.go(confDir+"/"+GENERATOR_FILE, conf.tempDir, conf.genDir)
+      AutomatedGenerator.generate(confDir+"/"+GENERATOR_FILE, conf.tempDir, conf.genDir, query.isBinary)
     }
 
 
-    val mem = memory_range.head
-    // Query
-    val dss = getListOfSubDirectories(conf.genDir)
+    // Get List of datasets
+    val dss : List[List[String]] =
+      if(!query.isBinary)
+        getListOfSubDirectories(conf.genDir+"/unary/").map(d=>List(d)).toList
+      else {
+        val references = getListOfSubDirectories(conf.genDir+"/binary/reference/")
+        val experiments = getListOfSubDirectories(conf.genDir+"/binary/experiment/")
 
-    case class RunninConfig(bin:Int, minAcc: Int, cpus: Int, ds: String)
+        references.flatMap(r => experiments.map(e => List(r,e))).toList
+
+      }
+
+
+    case class RunninConfig(bin:Int, query: String, cpus: Int, datasets: List[String], queryName: String)
 
     var configurations = scala.collection.mutable.ArrayBuffer[RunninConfig]()
 
-      for(bin_size <- bin_range)
-        for(min_acc <- min_acc_range)
-          for(cpus <- cpu_range)
-            for (ds <- dss)
-              configurations += RunninConfig(bin_size, min_acc, cpus, ds)
+    for(bin_size <- bin_range)
+        for(cpus <- cpu_range)
+          for (ds <- dss) {
+            val dss_name = ds.map(f=>new File(f).getName).mkString("_")
+            val id = s"query_${dss_name}_bin_${bin_size}_cpus_${cpus}_mem_${mem}g"
+            val queries = query.getQueries(ds.map(fp=>new File(fp).getName), id)
+            for (q <- queries)
+              //q: (queryName, query)
+              configurations += RunninConfig(bin_size, q._2, cpus, ds, q._1)
+          }
 
 
-    import java.util.Random
+
     val rand = new Random(System.currentTimeMillis())
 
+    val max = Math.min(conf.maxExperiments, configurations.length)
 
-    for(i <- 1 to conf.maxExperiments) {
+    for(i <- 1 to max) {
+
 
       val random_index = rand.nextInt(configurations.length)
       val cc = configurations(random_index)
 
       configurations.remove(random_index)
 
-      val name = new File(cc.ds).getName
-      val query_name = s"query_${name}_bin_${cc.bin}_minAcc_${cc.minAcc}_cpus_${cc.cpus}_mem_${mem}g"
-      logger.info(s"Querying Dataset ${cc.ds}")
-      //val query = s"D1=SELECT() $name; D2=SELECT() $name; D3=JOIN(DLE(0)) D1 D2; MATERIALIZE D3 INTO query_$name;"
-      val query = s"D1=SELECT() $name; D2=COVER(${cc.minAcc},ANY) D1; MATERIALIZE D2 INTO query_$query_name;"
-      println(query)
+      println("executing query: "+cc.query)
 
 
-      // Add execution settings
-
-      Executor.go(confDir = gmqlConfDir, datasets = List(cc.ds),
-        query, queryName = query_name, username = "public",
+      Executor.go(confDir = gmqlConfDir, datasets = cc.datasets,
+        cc.query, queryName = cc.queryName, username = "public",
         conf.outDir, cores = cc.cpus, memory = mem,
         cpu_freq = conf.cpuFreq,
         bin_size = cc.bin)
