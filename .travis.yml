@@ -1,4 +1,6 @@
 language: java
+jdk: openjdk8
+
 before_install: python modify_versions.py $TRAVIS_BRANCH
 install: mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V --quiet
 script: mvn test -B --quiet
