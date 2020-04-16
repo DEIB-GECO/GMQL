@@ -139,8 +139,8 @@ object MatrixConverter {
       values(schema.indexOf("in_R_num_samples")) = right_properties("num_samp")
       values(schema.indexOf("in_R_avg_num_reg")) = right_properties("num_reg")
       values(schema.indexOf("in_R_avg_reg_len")) = right_properties("avg_reg_length")
-      values(schema.indexOf("in_R_avg_max_coord")) = right_properties("num_cols")
-      values(schema.indexOf("in_R_avg_min_coord")) = right_properties("tuple_size")
+      values(schema.indexOf("in_R_avg_max_coord")) = right_properties("max")
+      values(schema.indexOf("in_R_avg_min_coord")) = right_properties("min")
       values(schema.indexOf("in_R_num_cols")) = right_properties("num_cols")
       values(schema.indexOf("in_R_tuple_size")) = right_properties("tuple_size")
     }
