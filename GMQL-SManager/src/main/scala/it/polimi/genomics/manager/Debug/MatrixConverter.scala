@@ -66,6 +66,7 @@ object MatrixConverter {
       case "IRSelectRD" => basic_features++input_left++outcome++output
       case "IRRegionCover" => basic_features++bin_size++input_left++getExtraFeatures(node)++outcome++output
       case "IRGenometricJoin" => basic_features++bin_size++input_left++input_right++getExtraFeatures(node)++outcome++output
+      case "IRGenometricMap" => basic_features++bin_size++input_left++input_right++outcome++output
       case "IRReadRD" => basic_features++output++outcome
       case "IRStoreRD" => basic_features++output++outcome
       case _ => basic_features++outcome

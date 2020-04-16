@@ -10,6 +10,7 @@ class Query(confFile: String) {
   def isBinary = operatorName match {
     case "JOIN" => true
     case "COVER" => false
+    case "MAP" => true
   }
 
 
@@ -17,6 +18,7 @@ class Query(confFile: String) {
 
     case "JOIN" => Main.getTriplet(xml \\ "conf" \\ "query", "distless").length
     case "COVER" => Main.getTriplet(xml \\ "conf" \\ "query", "min_acc_cover").length
+    case "MAP" => 1
   }
 
   // for unary operators datasets is a list of 1 datasets, for binary operators 2 datasets(0: ref, 1: exp)
@@ -30,6 +32,14 @@ class Query(confFile: String) {
           (query_name, s"D1 = SELECT() ${datasets(0)}; D2 = SELECT() ${datasets(1)}; R = JOIN(DLE($d)) D1 D2; MATERIALIZE R INTO $query_name;")
         }).toList
       }
+      case "MAP" => {
+        val distless =  Main.getTriplet(xml \\ "conf" \\ "query", "distless")
+        distless.map(d => {
+          val query_name = resultName + "_dle_" + d
+          (query_name, s"D1 = SELECT() ${datasets(0)}; D2 = SELECT() ${datasets(1)}; R = MAP() D1 D2; MATERIALIZE R INTO $query_name;")
+        }).toList
+      }
+
       case "COVER" => {
         val minAcc = Main.getTriplet(xml \\ "conf" \\ "query", "min_acc_cover")
         minAcc.map(m => {
