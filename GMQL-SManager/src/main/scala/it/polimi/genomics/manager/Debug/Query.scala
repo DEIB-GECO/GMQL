@@ -33,7 +33,6 @@ class Query(confFile: String) {
         }).toList
       }
       case "MAP" => {
-
           val query_name = resultName
           List((query_name, s"D1 = SELECT() ${datasets(0)}; D2 = SELECT() ${datasets(1)}; R = MAP() D1 D2; MATERIALIZE R INTO $query_name;"))
       }

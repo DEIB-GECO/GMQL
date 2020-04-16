@@ -81,12 +81,17 @@ object DSGenerator {
 
 
 
-    // Remove and create the output folder
+    // Return if it already exists
 
-    //println("removing/creating dir " + out_folder + out_name)
     val file = new File(out_folder + out_name)
-    file.delete()
-    file.mkdirs()
+    if(file.exists()) {
+      println("Already existing: "+out_folder + out_name)
+      return
+    } else {
+      file.mkdirs()
+    }
+    //file.delete()
+    //file.mkdirs()
 
 
     val schema_file = out_folder + "/" + out_name + "/test.schema"

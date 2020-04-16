@@ -45,7 +45,6 @@ object Main {
     def tempDir : String = properties("temp_dir")
     def genDir: String = properties("gen_dir")
     def outDir: String = properties("out_dir")
-    def skipGen: Boolean = properties("skip_gen") == "true"
 
     def maxExperiments: Int = properties("max_experiments").toInt
 
@@ -92,79 +91,86 @@ object Main {
     val mem = memory_range.head // because is set as an option of JVM in local mode
     val bin_range = conf.getBinRange
     val query = new Query(confDir+"/"+QUERY_FILE)
-    val ds_num = AutomatedGenerator.getNumDatasets(confDir+"/"+GENERATOR_FILE, query.isBinary)
+
+    // Generate datasets configurations
+    val dsConfigs = AutomatedGenerator.getConfigurations(confDir+"/"+GENERATOR_FILE, query.isBinary, conf.genDir)
+
 
     println("CORES: "+cpu_range.length+" ("+cpu_range.mkString(",")+")\n"+
       "MEMORY: "+memory_range.length+" ("+memory_range.mkString(",")+")\n"+
-      "DATASETS: "+ds_num+"\n"+
+      "DATASETS: "+dsConfigs.length+"\n"+
       "BINNING: "+bin_range.length+" ("+bin_range.mkString(",")+")\n")
 
-    val totalExecutions = cpu_range.length * memory_range.length * ds_num * bin_range.length * query.getNumQueries
+    val totalExecutions = cpu_range.length * memory_range.length * dsConfigs.length * bin_range.length * query.getNumQueries
 
-    println("["+query.operatorName+"]Total number of executions: "+totalExecutions+". Do you want to continue?[y/N]: ")
-    val ans = scala.io.StdIn.readLine()
-    if(ans.trim!="y")
-      System.exit(0)
+    println("["+query.operatorName+"]Original number of configurations: "+totalExecutions+". At most "+conf.maxExperiments+" configurations will be executed.")
 
 
-    // Generate Datasets and Import them into the repository
-    if(!conf.skipGen) {
-      AutomatedGenerator.generate(confDir+"/"+GENERATOR_FILE, conf.tempDir, conf.genDir, query.isBinary)
-    }
+
+    // Generate all configurations (oncluding different bin size, cpu, datasets and queries)
+    case class RunninConfig(bin:Int, query: String, cpus: Int, datasets: List[AutomatedGenerator.DatasetConfig], queryName: String)
 
 
-    // Get List of datasets
-    val dss : List[List[String]] =
-      if(!query.isBinary)
-        getListOfSubDirectories(conf.genDir+"/unary/").map(d=>List(d)).toList
-      else {
-        val references = getListOfSubDirectories(conf.genDir+"/binary/reference/")
-        val experiments = getListOfSubDirectories(conf.genDir+"/binary/experiment/")
+    val cfgs = bin_range.flatMap(
+      bs => cpu_range.flatMap(
+        cpu => dsConfigs.flatMap(
+          ds => {
 
-        references.flatMap(r => experiments.map(e => List(r,e))).toList
+            val dss_name = ds.map(_.name).mkString("_")
+            val id = s"query_${dss_name}_bin_${bs}_cpus_${cpu}_mem_${mem}g"
+            val queries = query.getQueries( ds.map(_.name), id)
 
-      }
+            queries.map(
+              q=> {
+                RunninConfig(bs, q._2, cpu, ds, q._1)
+              }
+            )
 
-
-    case class RunninConfig(bin:Int, query: String, cpus: Int, datasets: List[String], queryName: String)
-
-    var configurations = scala.collection.mutable.ArrayBuffer[RunninConfig]()
-
-    for(bin_size <- bin_range)
-        for(cpus <- cpu_range)
-          for (ds <- dss) {
-            val dss_name = ds.map(f=>new File(f).getName).mkString("_")
-            val id = s"query_${dss_name}_bin_${bin_size}_cpus_${cpus}_mem_${mem}g"
-            val queries = query.getQueries(ds.map(fp=>new File(fp).getName), id)
-            for (q <- queries)
-              //q: (queryName, query)
-              configurations += RunninConfig(bin_size, q._2, cpus, ds, q._1)
           }
+        )
+      )
+    ).toList
+
+    var configs = scala.collection.mutable.ArrayBuffer[RunninConfig]()
+    cfgs.foreach(e=>{configs+=e})
 
 
+    // Delete output folders
+    AutomatedGenerator.cleanGenFolder(conf.genDir)
 
+
+    // Execute a limited number of configurations randomly chosen among all the possible configurartions
     val rand = new Random(System.currentTimeMillis())
+    val max = Math.min(conf.maxExperiments, configs.length)
+    var i = 0
 
-    val max = Math.min(conf.maxExperiments, configurations.length)
+    while(i <= max && configs.nonEmpty) {
 
-    for(i <- 1 to max) {
+      val random_index = rand.nextInt(configs.length)
+      val cc = configs(random_index)
 
+      configs.remove(random_index)
 
-      val random_index = rand.nextInt(configurations.length)
-      val cc = configurations(random_index)
+      println("generating datasets")
 
-      configurations.remove(random_index)
+      cc.datasets.foreach( d =>  AutomatedGenerator.generate(d, conf.tempDir))
+
 
       println("executing query: "+cc.query)
+      println("passing datasets: "+cc.datasets.map( d=> {d.folder_path + d.name}).mkString(","))
 
-
-      Executor.go(confDir = gmqlConfDir, datasets = cc.datasets,
+      Executor.go(confDir = gmqlConfDir, datasets = cc.datasets.map( d=> {d.folder_path + d.name}),
         cc.query, queryName = cc.queryName, username = "public",
         conf.outDir, cores = cc.cpus, memory = mem,
         cpu_freq = conf.cpuFreq,
         bin_size = cc.bin)
 
+      i=i+1
+
+
     }
+
+
 
   }
 

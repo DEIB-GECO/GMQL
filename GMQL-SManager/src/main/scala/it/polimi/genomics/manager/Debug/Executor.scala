@@ -66,6 +66,7 @@ object Executor {
       //getListOfFiles(ds).map(_.getAbsolutePath).filter(_.endsWith(".gdm")).foreach(println)
       val samples = getListOfFiles(ds).map(_.getAbsolutePath).filter(_.endsWith(".gdm")).map(s=>GMQLSample(name = s, meta = s+".meta"))
 
+
       val schemaFile = ds+"/test.schema"
 
       val dsName = new File(ds) .getName
@@ -89,6 +90,7 @@ object Executor {
     val gmqlContext = GMQLContext(ImplementationPlatform.SPARK, repository, GMQLSchemaFormat.TAB,
       username = "public", userClass = GDMSUserClass.ADMIN, sc=sc, binSize = BinSize(bin_size,bin_size,bin_size))
     val compilationJob = new GMQLJob(gmqlContext, gmqlScript, "public")
+    print(gmqlScript);
 
     var jobID = compilationJob.jobId
 
