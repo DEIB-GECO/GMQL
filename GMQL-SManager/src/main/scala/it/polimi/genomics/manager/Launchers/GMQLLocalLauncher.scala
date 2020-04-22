@@ -138,7 +138,7 @@ class GMQLLocalLauncher(localJob: GMQLJob) extends GMQLLauncher(localJob) {
                 new GMQLSparkExecutor(
                 binSize = job.gMQLContext.binSize,
                 outputFormat = job.gMQLContext.outputFormat,
-                outputCoordinateSystem = job.gMQLContext.outputCoordinateSystem, sc=sc)
+                outputCoordinateSystem = job.gMQLContext.outputCoordinateSystem, sc=job.gMQLContext.sc)
         }
         //      new GMQLSparkExecutor(
         //      binSize = job.gMQLContext.binSize,
