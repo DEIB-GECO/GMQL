@@ -19,7 +19,7 @@ object MatrixConverter {
 
   val input_left = Array(
     "in_num_samples",
-    "in_avg_num_reg",
+    "in_tot_num_reg",
     "in_avg_reg_len",
     "in_avg_min_coord",
     "in_avg_max_coord",
@@ -28,7 +28,7 @@ object MatrixConverter {
 
   val input_right = Array(
     "in_R_num_samples",
-    "in_R_avg_num_reg",
+    "in_R_tot_num_reg",
     "in_R_avg_reg_len",
     "in_R_avg_min_coord",
     "in_R_avg_max_coord",
@@ -39,7 +39,7 @@ object MatrixConverter {
 
   val output = Array(
     "out_num_samples",
-    "out_avg_num_reg",
+    "out_tot_num_reg",
     "out_avg_reg_len",
     "out_avg_max_coord",
     "out_avg_min_coord",
@@ -125,7 +125,7 @@ object MatrixConverter {
 
 
       values(schema.indexOf("in_num_samples")) = left_properties("num_samp")
-      values(schema.indexOf("in_avg_num_reg")) = left_properties("num_reg")
+      values(schema.indexOf("in_tot_num_reg")) = left_properties("num_reg")
       values(schema.indexOf("in_avg_reg_len")) = left_properties("avg_reg_length")
       values(schema.indexOf("in_avg_max_coord")) = left_properties("max")
       values(schema.indexOf("in_avg_min_coord")) = left_properties("min")
@@ -137,7 +137,7 @@ object MatrixConverter {
       val right_input = (node \\ "inputs" \\ "input").filter(_ \@ "isRegion" == "true").tail
       val right_properties = (right_input \\ "property").map(n => (n \@ "name") -> n.text).toMap[String, String]
       values(schema.indexOf("in_R_num_samples")) = right_properties("num_samp")
-      values(schema.indexOf("in_R_avg_num_reg")) = right_properties("num_reg")
+      values(schema.indexOf("in_R_tot_num_reg")) = right_properties("num_reg")
       values(schema.indexOf("in_R_avg_reg_len")) = right_properties("avg_reg_length")
       values(schema.indexOf("in_R_avg_max_coord")) = right_properties("max")
       values(schema.indexOf("in_R_avg_min_coord")) = right_properties("min")
@@ -158,7 +158,7 @@ object MatrixConverter {
       val out_properties = (out \\ "property").map(n=> (n \@ "name") -> n.text).toMap[String, String]
 
       values(schema.indexOf("out_num_samples")) = out_properties("num_samp")
-      values(schema.indexOf("out_avg_num_reg")) = out_properties("num_reg")
+      values(schema.indexOf("out_tot_num_reg")) = out_properties("num_reg")
       values(schema.indexOf("out_avg_reg_len")) = out_properties("avg_reg_length")
       values(schema.indexOf("out_avg_max_coord")) = out_properties("max")
       values(schema.indexOf("out_avg_min_coord")) = out_properties("min")
