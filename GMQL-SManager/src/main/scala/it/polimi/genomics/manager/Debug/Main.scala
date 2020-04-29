@@ -16,7 +16,11 @@ object Main {
 
 
   def getTriplet(root: NodeSeq, property: String): Array[Int] = {
-    Array.range( ( root \\ property \@ "from").toInt, (root \\ property \@ "to").toInt, (root \\ property \@ "step").toInt)
+
+    if( (root \\ property).head.attribute("exact").isDefined )
+      ( root \\ property \@ "exact").split(",").map(_.toInt)
+    else
+      Array.range( ( root \\ property \@ "from").toInt, (root \\ property \@ "to").toInt, (root \\ property \@ "step").toInt)
   }
 
 
