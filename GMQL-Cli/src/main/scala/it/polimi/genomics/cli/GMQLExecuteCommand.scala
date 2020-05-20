@@ -276,8 +276,6 @@ object GMQLExecuteCommand {
       server.materializationList ++= dag.get.dag
 
 
-      server.materializationList = DAGInjector.inject(server.materializationList, false)
-
       server.run()
     }
     else {
@@ -287,7 +285,10 @@ object GMQLExecuteCommand {
         compile(jobid, translator, query, inputs, outputs)
 
       try {
+
         if (translator.phase2(translation)) {
+
+          server.materializationList =   DAGInjector.inject(server.materializationList, false)
           server.run()
         } else {
           logger.error("Compile failed..")
