@@ -141,7 +141,9 @@ object Executor {
       }
 
       val ddag_files = getListOfFiles(dagFolder)
-      val ddag_full_path = ddag_files.filter(f => f.getName.contains(queryName)).head.getAbsolutePath
+      var ddag_full_path = ddag_files.filter(f =>
+        f.getName.contains(queryName) && !f.getName.contains(".crc")
+      ).head.getAbsolutePath
 
 
       //val filePath = dagFolder + "/" + compilationJob.generateResultName(queryName)+"_"+queryName+ ".ddag"
@@ -151,6 +153,16 @@ object Executor {
       while (!(new File(ddag_full_path) exists())) {
         println("DAG not found retrying...")
         Thread.sleep(1000)
+
+        ddag_full_path = ddag_files.filter(f =>
+          f.getName.contains(queryName) && !f.getName.contains(".crc")
+        ).head.getAbsolutePath
+
+
+        //val filePath = dagFolder + "/" + compilationJob.generateResultName(queryName)+"_"+queryName+ ".ddag"
+
+        println("Looking for " + ddag_full_path)
+
       }
 
 
