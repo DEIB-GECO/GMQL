@@ -3,12 +3,13 @@ package it.polimi.genomics.manager.Debug
 import java.io.File
 
 import it.polimi.genomics.repository.{Utilities => RepoUtilities}
-import org.apache.log4j.{Level, Logger}
-import org.slf4j
-import org.slf4j.LoggerFactory
+import it.polimi.genomics.manager.{Utilities => ManagerUtilities}
+
 
 import scala.xml.{NodeSeq, XML}
 import java.util.Random
+
+import it.polimi.genomics.repository.FSRepository.FS_Utilities
 
 
 object Main {
@@ -24,10 +25,10 @@ object Main {
   }
 
 
-  Logger.getLogger("org").setLevel(Level.WARN)
-  Logger.getLogger("akka").setLevel(Level.WARN)
+  //Logger.getLogger("org").setLevel(Level.WARN)
+  //Logger.getLogger("akka").setLevel(Level.WARN)
 
-  val logger: slf4j.Logger = LoggerFactory.getLogger(Main.getClass)
+  //val logger: slf4j.Logger = LoggerFactory.getLogger(Main.getClass)
 
   private final val usage: String = "TrainGen Options: \n" +
     "\t"+"-conf"+" : "+"folder containing the TrainGen configuration files;"
@@ -75,9 +76,9 @@ object Main {
         System.exit(0)
       } else if ("-conf".equals(args(i))) {
         confDir = args(i + 1)
-        logger.info("-conf: " + confDir)
+        //logger.info("-conf: " + confDir)
       } else {
-        logger.warn(s"Command option is not found ${args(i)}")
+        //logger.warn(s"Command option is not found ${args(i)}")
         System.exit(0)
       }
     }
@@ -89,6 +90,11 @@ object Main {
     RepoUtilities.confFolder = gmqlConfDir
 
     conf.log()
+
+
+    val hadoop_conf = FS_Utilities.gethdfsConfiguration()
+    println("###### DEFAULT FS SET TO: "+hadoop_conf.get("fs.defaultFS"))
+    println("###### GMQL JAR PATH: "+ManagerUtilities().CLI_JAR_local)
 
     val cpu_range = conf.getCoresRange
     val memory_range = conf.getMemoryRange // actually not used
