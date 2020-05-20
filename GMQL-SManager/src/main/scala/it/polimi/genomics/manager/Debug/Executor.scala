@@ -88,7 +88,7 @@ object Executor {
     val sc = new SparkContext(sparkConf)
 
     val gmqlContext = GMQLContext(ImplementationPlatform.SPARK, repository, GMQLSchemaFormat.TAB,
-      username = "public", userClass = GDMSUserClass.ADMIN, sc=sc, binSize = BinSize(bin_size,bin_size,bin_size))
+      username = "public", userClass = GDMSUserClass.ADMIN, binSize = BinSize(bin_size,bin_size,bin_size))
     val compilationJob = new GMQLJob(gmqlContext, gmqlScript, "public")
     print(gmqlScript);
 
