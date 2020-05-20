@@ -165,6 +165,22 @@ class EPDAG(val exitNodes: List[EPNode], allNodes: List[EPNode], val startupNode
     scala.xml.XML.save(fullPath, xml)
   }
 
+  def toXML(): String = {
+
+    val xml = <dag>
+      <binSize>
+        <cover>{binSize.Cover}</cover>
+        <map>{binSize.Map}</map>
+        <join>{binSize.Join}</join>
+      </binSize>
+      {allNodes.map(_.toXml())}
+    </dag>
+
+
+    xml.toString()
+
+  }
+
 
   private def criticalRecursion(n:EPNode, cost: Float): Unit = {
 

@@ -209,7 +209,18 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
               if(debugMode) ePDAG.profilerEnded()
 
 
-              if(debugMode) ePDAG.save("ddag", variableDir + "/files/")
+              if(debugMode) {
+
+                print("STORING DDAG XML")
+
+                val ddag = fs.create(new Path(variableDir + "/files/" + "ddag.xml"));
+
+                val ddagos = new java.io.BufferedOutputStream(ddag)
+
+                ddagos.write(ePDAG.toXML().getBytes("UTF-8"))
+                ddagos.close()
+
+              }
 
             } catch {
               case e: Throwable => {

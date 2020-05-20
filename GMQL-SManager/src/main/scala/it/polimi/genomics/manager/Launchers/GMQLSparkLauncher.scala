@@ -37,56 +37,8 @@ class GMQLSparkLauncher(sparkJob: GMQLJob) extends GMQLLauncher(sparkJob) {
     * @return [[ GMQLSparkLauncher]] handle
     */
   def run(): GMQLSparkLauncher = {
-    if (job.federated) {
-      val importController = new GMQLSparkSubmit(job);
-      launcherHandler = importController.runSparkJob()
-    }
-    else {
-      new Thread(new Runnable {
-        def run() {
-
-          val logs: (PatternLayoutEncoder, FileAppender[ILoggingEvent]) = createLoggerFor(job.jobId, false, General_Utilities().getUserLogDir(job.username))
-
-
-          val tempDir: String =
-            if (General_Utilities().GMQL_REPO_TYPE == General_Utilities().HDFS) {
-              General_Utilities().getHDFSNameSpace() + General_Utilities().getResultDir("federated")
-            }
-            else {
-              General_Utilities().getResultDir("federated")
-            }
-          job.server.implementation = new FederatedImplementation(Utilities().LAUNCHER_MODE,
-            Some(tempDir),
-            Some(job.jobId),
-            Some(job.username),
-            Some(job.gMQLContext.userClass),
-            Some(Utilities().SPARK_HOME),
-            Some(Utilities().CLI_JAR_local()),
-            Some(Utilities().CLI_CLASS),
-            Some(Utilities().SPARK_CUSTOM)
-          )
-
-          //      new GMQLSparkExecutor(
-          //      binSize = job.gMQLContext.binSize,
-          //      outputFormat = job.gMQLContext.outputFormat,
-          //      outputCoordinateSystem = job.gMQLContext.outputCoordinateSystem,
-          //      sc = new SparkContext(new SparkConf().setAppName(job.jobId).setMaster("local[*]")))
-
-          job.status = Status.RUNNING
-          logger.info(String.format("Job %s is under execution.. ", job.jobId))
-          try {
-            job.server.run()
-            job.status = Status.EXEC_SUCCESS
-          } catch {
-            case _: GmqlFederatedException => job.status = Status.EXEC_FAILED
-          }
-          logs._2.stop()
-          logs._1.stop()
-
-
-        }
-      }, job.jobId).start()
-    }
+    val importController = new GMQLSparkSubmit(job);
+    launcherHandler = importController.runSparkJob()
     this
   }
 
