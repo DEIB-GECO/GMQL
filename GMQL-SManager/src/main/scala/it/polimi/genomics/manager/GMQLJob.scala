@@ -532,7 +532,7 @@ class GMQLJob(val gMQLContext: GMQLContext, val script: GMQLScript, val username
 
 
         //@andrea
-        if( Utilities().DEBUG_MODE && server.implementation.isInstanceOf[GMQLSparkExecutor] ){
+        if( Utilities().DEBUG_MODE && server.implementation.isInstanceOf[GMQLSparkExecutor]  && Utilities().LAUNCHER_MODE=="LOCAL"){
           val ePDAG = server.implementation.asInstanceOf[GMQLSparkExecutor].ePDAG
           ePDAG.executionEnded()
 

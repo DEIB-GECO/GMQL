@@ -7,6 +7,7 @@ import java.util.Date
 import it.polimi.genomics.GMQLServer.{GmqlServer, Implementation}
 import it.polimi.genomics.compiler._
 import it.polimi.genomics.core.DAG.{DAGSerializer, DAGWrapper}
+import it.polimi.genomics.core.Debug.DAGInjector
 import it.polimi.genomics.core._
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.hadoop.conf.Configuration
@@ -273,6 +274,10 @@ object GMQLExecuteCommand {
       // If we are executing a DAG we simply add the List[IRVariable] to the
       // materialization list and execute
       server.materializationList ++= dag.get.dag
+
+
+      server.materializationList = DAGInjector.inject(server.materializationList, false)
+
       server.run()
     }
     else {

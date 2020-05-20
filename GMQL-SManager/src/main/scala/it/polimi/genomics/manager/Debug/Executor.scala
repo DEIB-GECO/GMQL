@@ -85,14 +85,16 @@ object Executor {
 
     val gmqlScript = GMQLScript(query, queryName)
 
-    val sc = new SparkContext(sparkConf)
+    var sc:SparkContext = if(Utilities().LAUNCHER_MODE == "LOCAL") new SparkContext(sparkConf) else null
 
-    val gmqlContext = GMQLContext(ImplementationPlatform.SPARK, repository, GMQLSchemaFormat.TAB,
+
+    val gmqlContext = GMQLContext(ImplementationPlatform.SPARK, repository, GMQLSchemaFormat.TAB, sc=sc,
       username = "public", userClass = GDMSUserClass.ADMIN, binSize = BinSize(bin_size,bin_size,bin_size))
     val compilationJob = new GMQLJob(gmqlContext, gmqlScript, "public")
     print(gmqlScript);
 
     var jobID = compilationJob.jobId
+
 
     var skip = false
 
@@ -120,24 +122,39 @@ object Executor {
         skip = true
     }
 
-    sc.stop()
+    if(Utilities().LAUNCHER_MODE == "LOCAL")  sc.stop()
 
     val dagFolder = RepoUtilities().getDDagDir(username)
     var fileList: List[File] = getListOfFiles(dagFolder)
 
     if(!skip) {
 
-      val filePath = dagFolder + "/" + jobID + ".xml"
+      print("Query name:"+queryName)
 
-      println("Looking for " + filePath)
+      def getListOfFiles(dir: String):List[File] = {
+        val d = new File(dir)
+        if (d.exists && d.isDirectory) {
+          d.listFiles.filter(_.isFile).toList
+        } else {
+          List[File]()
+        }
+      }
 
-      while (!(new File(filePath) exists())) {
+      val ddag_files = getListOfFiles(dagFolder)
+      val ddag_full_path = ddag_files.filter(f => f.getName.contains(queryName)).head.getAbsolutePath
+
+
+      //val filePath = dagFolder + "/" + compilationJob.generateResultName(queryName)+"_"+queryName+ ".ddag"
+
+      println("Looking for " + ddag_full_path)
+
+      while (!(new File(ddag_full_path) exists())) {
         println("DAG not found retrying...")
         Thread.sleep(1000)
       }
 
 
-      val ddagFile = new File(filePath)
+      val ddagFile = new File(ddag_full_path)
 
       // Move results into destination folder
 

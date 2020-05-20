@@ -18,7 +18,7 @@ import it.polimi.genomics.core.DataStructures.RegionAggregate.{RegionExtension, 
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.DataTypes._
-import it.polimi.genomics.core.Debug.EPDAG
+import it.polimi.genomics.core.Debug.{EPDAG, EPDAGDraw, EPDAGFrame}
 import it.polimi.genomics.core.ParsingType._
 import it.polimi.genomics.core._
 import it.polimi.genomics.core.exception.SelectFormatException
@@ -210,8 +210,11 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
 
 
               if(debugMode) {
+                ePDAG.executionEnded()
 
-                print("STORING DDAG XML")
+                ePDAG.computeCriticalPath()
+
+                logger.info("STORING DDAG XML")
 
                 val ddag = fs.create(new Path(variableDir + "/files/" + "ddag.xml"));
 
