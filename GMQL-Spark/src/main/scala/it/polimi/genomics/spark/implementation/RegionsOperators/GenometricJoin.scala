@@ -208,8 +208,6 @@ object GenometricJoin {
     }
 
 
-    println("OUTPUT OF JOIN CONTAINS "+distinct_output.count()+" ITEMS")
-
     distinct_output
   }
 
