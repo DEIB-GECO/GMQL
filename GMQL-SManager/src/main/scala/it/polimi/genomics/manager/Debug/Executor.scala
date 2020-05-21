@@ -55,7 +55,9 @@ object Executor {
       .setAppName(queryName)
 
 
-
+    // Clean the repository: warning: don't run it on a real repository
+    repository.unregisterUser("public")
+    repository.registerUser("public")
 
 
     // Move the dataset on the user repo

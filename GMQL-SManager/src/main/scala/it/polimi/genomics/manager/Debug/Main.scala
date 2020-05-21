@@ -117,7 +117,7 @@ object Main {
 
 
 
-    // Generate all configurations (oncluding different bin size, cpu, datasets and queries)
+    // Generate all configurations (including different bin size, cpu, datasets and queries)
     case class RunninConfig(bin:Int, query: String, cpus: Int, datasets: List[AutomatedGenerator.DatasetConfig], queryName: String)
 
 
@@ -174,6 +174,11 @@ object Main {
         conf.outDir, cores = cc.cpus, memory = mem,
         cpu_freq = conf.cpuFreq,
         bin_size = cc.bin)
+
+      // Remove the generate datasets
+      AutomatedGenerator.cleanGenFolder(conf.genDir)
+
+      // Clean the repository
 
       i=i+1
 
