@@ -267,7 +267,7 @@ object GMQLExecuteCommand {
 
     logger.info("Start to execute GMQL query..")
 
-    val implementation: Implementation = getImplemenation(executionType, jobid, outputFormat, outputCoordinateSystem)
+    val implementation: Implementation = getImplemenation(executionType, jobid, outputFormat, outputCoordinateSystem, bin)
 
     val server = new GmqlServer(implementation, Some(1000))
     if (dag.isDefined) {
@@ -402,7 +402,7 @@ object GMQLExecuteCommand {
     operators
   }
 
-  def getImplemenation(executionType: String, jobid: String, outputFormat: GMQLSchemaFormat.Value, outputCoordinateSystem: GMQLSchemaCoordinateSystem.Value) = {
+  def getImplemenation(executionType: String, jobid: String, outputFormat: GMQLSchemaFormat.Value, outputCoordinateSystem: GMQLSchemaCoordinateSystem.Value, bin: Long) = {
     //    if (executionType.equals(it.polimi.genomics.core.ImplementationPlatform.SPARK.toString.toLowerCase())) {
     val conf = new SparkConf().setAppName("GMQL V2.1 Spark " + jobid)
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "128")
@@ -427,7 +427,7 @@ object GMQLExecuteCommand {
     //        }
     //
     //      });
-    new GMQLSparkExecutor(testingIOFormats = false, sc = sc, outputFormat = outputFormat, outputCoordinateSystem = outputCoordinateSystem)
+    new GMQLSparkExecutor(binSize = BinSize(bin,bin,bin), testingIOFormats = false, sc = sc, outputFormat = outputFormat, outputCoordinateSystem = outputCoordinateSystem)
     //    }
     //    else /*if(executionType.equals(FLINK)) */ {
     //      new FlinkImplementation()
