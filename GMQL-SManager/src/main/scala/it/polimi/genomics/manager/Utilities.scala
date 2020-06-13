@@ -32,6 +32,7 @@ class Utilities {
 
   var DRAW_DAG = false
   var DEBUG_MODE = false
+  var PROFILE_DATA = true
 
   def apply() = {
 
@@ -54,6 +55,7 @@ class Utilities {
 
           case Conf.DRAW_DAG => DRAW_DAG = value=="true"
           case Conf.DEBUG_MODE => DEBUG_MODE = value=="true"
+          case Conf.PROFILE_DATA => PROFILE_DATA = value=="true"
 
           case Conf.SPARK_CUSTOM  => {
 
@@ -127,6 +129,7 @@ object Conf {
   val CLI_CLASS = "CLI_CLASS"
 
   val DEBUG_MODE = "DEBUG_MODE"
+  val PROFILE_DATA = "PROFILE_DATA"
   val DRAW_DAG = "DRAW_DAG"
 
   val SPARK_CUSTOM = "SPARK_CUSTOM"

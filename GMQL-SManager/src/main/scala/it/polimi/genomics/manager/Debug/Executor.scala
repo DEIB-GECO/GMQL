@@ -32,6 +32,7 @@ object Executor {
     val repository = repoUtilities.getRepository()
     val server = GMQLExecute()
 
+    println( "PROFILE_DATA: "+Utilities().PROFILE_DATA)
 
     /*Utilities().SPARK_CUSTOM = scala.collection.mutable.Map(
       "spark.driver.memory" -> scala.collection.mutable.Map(GDMSUserClass.ALL -> (memory+"g")),
@@ -143,6 +144,8 @@ object Executor {
       }
 
       val ddag_files = getListOfFiles(dagFolder)
+
+      print("DAG FOLDER: "+dagFolder+" QUERYNAME: "+queryName)
       var ddag_full_path = ddag_files.filter(f =>
         f.getName.contains(queryName) && !f.getName.contains(".crc")
       ).head.getAbsolutePath
@@ -192,7 +195,9 @@ object Executor {
 
 
       val add = Map("cores" -> cores.toString, "memory" -> memory.toString, "cpu_freq" -> cpu_freq.toString, "job_id" -> jobID)
-      MatrixConverter.convert(destFile, 12, 123, resultDir, add)
+
+      if(Utilities().PROFILE_DATA)
+        MatrixConverter.convert(destFile, 12, 123, resultDir, add)
 
     } else {
 

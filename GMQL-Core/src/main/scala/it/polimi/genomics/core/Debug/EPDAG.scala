@@ -146,6 +146,14 @@ class EPDAG(val exitNodes: List[EPNode], allNodes: List[EPNode], val startupNode
     }
   }
 
+  def getExpectedTimeSum : Float = {
+    return allNodes.map(n=>n.getOperatorExecutionTime+n.getProfilingTime).sum
+  }
+
+  def getExpectedTimeCritical : Float = {
+    return shutdownNode.getExpectedFinishedAfter.getOrElse(-1)
+  }
+
   def save( name:String, path: String ): Unit = {
 
     val fullPath = path+name+".xml"
@@ -158,6 +166,9 @@ class EPDAG(val exitNodes: List[EPNode], allNodes: List[EPNode], val startupNode
         <map>{binSize.Map}</map>
         <join>{binSize.Join}</join>
       </binSize>
+      <responseTime>{this.executionTime}</responseTime>
+      <expectedTimeSum>{this.getExpectedTimeSum}</expectedTimeSum>
+      <expectedTimeCritical>{this.getExpectedTimeCritical}</expectedTimeCritical>
       {allNodes.map(_.toXml())}
     </dag>
 
@@ -173,6 +184,9 @@ class EPDAG(val exitNodes: List[EPNode], allNodes: List[EPNode], val startupNode
         <map>{binSize.Map}</map>
         <join>{binSize.Join}</join>
       </binSize>
+      <responseTime>{this.executionTime}</responseTime>
+      <expectedTimeSum>{this.getExpectedTimeSum}</expectedTimeSum>
+      <expectedTimeCritical>{this.getExpectedTimeCritical}</expectedTimeCritical>
       {allNodes.map(_.toXml())}
     </dag>
 
@@ -194,7 +208,7 @@ class EPDAG(val exitNodes: List[EPNode], allNodes: List[EPNode], val startupNode
       }
     } else {
       //println("NOCHILD")
-      n.getChildren.foreach(c=>criticalRecursion(c,cost+n.getOperatorExecutionTime))
+      n.getChildren.foreach(c=>criticalRecursion(c,cost+n.getOperatorExecutionTime+n.getProfilingTime))
     }
 
   }
@@ -211,6 +225,8 @@ class EPDAG(val exitNodes: List[EPNode], allNodes: List[EPNode], val startupNode
 
 
 class EPNode(val iRDebugOperator: IROperator) {
+
+  final val uid = java.util.UUID.randomUUID.toString
 
   final private val logger =  LoggerFactory.getLogger(this.getClass)
 
@@ -229,6 +245,11 @@ class EPNode(val iRDebugOperator: IROperator) {
   private var outputProfileEndTime: Option[Float] = None
 
   private var outputProfile: Map[String, String] = Map()
+
+
+  def isEntryNode: Boolean = {
+    iROperator.isInstanceOf[IRReadRD[_, _, _, _]]
+  }
 
 
   def setParent(node: EPNode) : Unit = {
@@ -267,7 +288,8 @@ class EPNode(val iRDebugOperator: IROperator) {
     if(outputProfileStartTime.isDefined && outputProfileEndTime.isDefined)
       outputProfileEndTime.get-outputProfileStartTime.get
     else
-      throw new Exception("Either outputProfileStartTime or outputProfileEndTime was note set.")
+      logger.info("Either outputProfileStartTime or outputProfileEndTime was note set for "+this.GMQLoperator.name)
+      0
   }
 
   def getStartedAfter: Float = {
@@ -376,7 +398,7 @@ class EPNode(val iRDebugOperator: IROperator) {
       <operatorName>{iROperator.getClass.getSimpleName}</operatorName>
       <GMQLoperator>
         <name>{GMQLoperator.name}</name>
-        <id>{GMQLoperator.id}</id>
+        <id>{uid}</id>
         <params>
           {
           if(iROperator.getOperator.params.isDefined)
@@ -389,7 +411,7 @@ class EPNode(val iRDebugOperator: IROperator) {
       <inputs>
         {
         parents.map( p=> {
-        <input operatorName={p.iROperator.getClass.getSimpleName}
+        <input operatorName={p.iROperator.getClass.getSimpleName} id={p.uid}
                isRegion={p.iROperator.isRegionOperator.toString}>
           {p.outputProfile.map(v=> <property name={v._1}>{v._2}</property>)}
         </input>})

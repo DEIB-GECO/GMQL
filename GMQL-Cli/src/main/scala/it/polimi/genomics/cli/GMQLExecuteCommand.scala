@@ -116,6 +116,7 @@ object GMQLExecuteCommand {
     var devLogDir: String = null
     var verbose = false
     var sparkConfFile: String = null
+    var profileData = false
     var i = 0
 
     // DAG OPTIONS
@@ -135,6 +136,9 @@ object GMQLExecuteCommand {
         bin = args(i + 1).toLong
         logger.debug("Bin size set to: " + bin)
 
+      } else if ("-profileData".equals(args(i))) {
+        profileData = args(i + 1) == "true"
+        logger.debug("profileData set to: " + profileData)
       } else if ("-username".equals(args(i))) {
         username = args(i + 1).toLowerCase()
         logger.debug("Username set to: " + username)
@@ -267,7 +271,7 @@ object GMQLExecuteCommand {
 
     logger.info("Start to execute GMQL query..")
 
-    val implementation: Implementation = getImplemenation(executionType, jobid, outputFormat, outputCoordinateSystem, bin)
+    val implementation: Implementation = getImplemenation(executionType, jobid, outputFormat, outputCoordinateSystem, bin, profileData)
 
     val server = new GmqlServer(implementation, Some(1000))
     if (dag.isDefined) {
@@ -402,7 +406,7 @@ object GMQLExecuteCommand {
     operators
   }
 
-  def getImplemenation(executionType: String, jobid: String, outputFormat: GMQLSchemaFormat.Value, outputCoordinateSystem: GMQLSchemaCoordinateSystem.Value, bin: Long) = {
+  def getImplemenation(executionType: String, jobid: String, outputFormat: GMQLSchemaFormat.Value, outputCoordinateSystem: GMQLSchemaCoordinateSystem.Value, bin: Long, profileData: Boolean) = {
     //    if (executionType.equals(it.polimi.genomics.core.ImplementationPlatform.SPARK.toString.toLowerCase())) {
     val conf = new SparkConf().setAppName("GMQL V2.1 Spark " + jobid)
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "128")
@@ -427,7 +431,7 @@ object GMQLExecuteCommand {
     //        }
     //
     //      });
-    new GMQLSparkExecutor(binSize = BinSize(bin,bin,bin), testingIOFormats = false, sc = sc, outputFormat = outputFormat, outputCoordinateSystem = outputCoordinateSystem)
+    new GMQLSparkExecutor(binSize = BinSize(bin,bin,bin), testingIOFormats = false, sc = sc, outputFormat = outputFormat, outputCoordinateSystem = outputCoordinateSystem, profileData=profileData)
     //    }
     //    else /*if(executionType.equals(FLINK)) */ {
     //      new FlinkImplementation()

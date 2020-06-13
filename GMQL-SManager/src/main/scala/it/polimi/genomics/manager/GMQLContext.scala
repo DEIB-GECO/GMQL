@@ -60,7 +60,7 @@ case class GMQLContext(val implPlatform: core.ImplementationPlatform.Value, val 
     * the implementation instance as the executor that will run GMQL script.
     */
   val implementation: Implementation = implPlatform match {
-    case ImplementationPlatform.SPARK =>    new GMQLSparkExecutor (binSize = binSize, sc = sc, outputFormat = outputFormat, outputCoordinateSystem = outputCoordinateSystem)
+    case ImplementationPlatform.SPARK =>    new GMQLSparkExecutor (binSize = binSize, sc = sc, outputFormat = outputFormat, outputCoordinateSystem = outputCoordinateSystem, profileData = Utilities().PROFILE_DATA)
     case ImplementationPlatform.FEDERATED => new FederatedImplementation(Utilities().LAUNCHER_MODE)
   }
 

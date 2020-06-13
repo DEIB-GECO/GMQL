@@ -20,15 +20,22 @@ object DebugRD {
 
     val epnode = executor.ePDAG.getNodeByDebugOperator(debugOperator)
 
-    epnode.trackProfilingStarted()
+
 
     // Profile
-    logger.info("Profiling "+input.getClass.getName)
-    val profile = Profiler.profile(res, None, sc)
+    if(executor.profileData || epnode.isEntryNode) {
+      epnode.trackProfilingStarted()
+      println( "Profiling " + input.getClass.getName)
+      logger.info("Profiling " + input.getClass.getName)
+      val profile = Profiler.profile(res, None, sc)
 
-    epnode.setOutputProfile(profile.stats.toMap)
+      epnode.setOutputProfile(profile.stats.toMap)
 
-    epnode.trackProfilingEnded()
+      epnode.trackProfilingEnded()
+    } else {
+      println("Skipping profiling for  "+input.getClass.getName)
+      logger.info("Skipping profiling for  "+input.getClass.getName)
+    }
 
 
     epnode.trackOutputReady()

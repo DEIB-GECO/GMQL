@@ -91,6 +91,7 @@ class GMQLSparkSubmit(job:GMQLJob) {
         //TODO: Check how to get the schema path from the repository manager.
 //        "-schemata",job.inputDataSets.map(x => x._2+":::"+getSchema(job,x._1)).mkString(","),
         "-bin", job.gMQLContext.binSize.Cover.toString,
+        "-profileData", Utilities().PROFILE_DATA.toString,
         "-jobid", job.jobId,
         "-outputFormat",job.gMQLContext.outputFormat.toString,
         "-outputCoordinateSystem", job.gMQLContext.outputCoordinateSystem.toString,

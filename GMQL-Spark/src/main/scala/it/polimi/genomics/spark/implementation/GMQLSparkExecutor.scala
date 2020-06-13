@@ -47,10 +47,12 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
                         testingIOFormats: Boolean = false, sc: SparkContext,
                         outputFormat: GMQLSchemaFormat.Value = GMQLSchemaFormat.TAB,
                         outputCoordinateSystem: GMQLSchemaCoordinateSystem.Value = GMQLSchemaCoordinateSystem.Default,
-                        stopContext: Boolean = true, profileData: Boolean = true)
+                        stopContext: Boolean = true, val profileData: Boolean = true)
   extends Implementation with java.io.Serializable {
 
+
   println("USING BIN SIZE: cover:"+binSize.Cover+" map:"+binSize.Map+" join:"+binSize.Join)
+  println("PROFILE_DATA: "+profileData)
 
 
   final val ENCODING = "UTF-8"
