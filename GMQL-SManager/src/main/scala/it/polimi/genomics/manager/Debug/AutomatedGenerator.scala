@@ -3,6 +3,7 @@ package it.polimi.genomics.manager.Debug
 import java.io.File
 
 import scala.reflect.io.Directory
+import scala.util.Random
 import scala.xml.{NodeSeq, XML}
 
 object AutomatedGenerator {
@@ -16,19 +17,57 @@ object AutomatedGenerator {
   }
 
 
-  def getConfigurations(confFile: String, binary: Boolean, destFolder: String) : List[List[DatasetConfig]] = {
+  def getConfigurations(confFile: String, binary: Boolean, destFolder: String, complex:Boolean = false, numDatasets:Array[Int] = Array(), maxDatasetsPerNum:Int = -1) : List[List[DatasetConfig]] = {
+
 
 
     val xmlFile = XML.load(confFile)
 
-    if(!binary) {
-      List(_getConfigurations(xmlFile \\ "conf" \\ "datasets" \\ "unary", destFolder+"/"))
-    } else {
 
-      val ref= _getConfigurations(xmlFile \\ "conf" \\ "datasets" \\ "binary" \\ "reference", destFolder)
+    if(complex) {
+
+      val ref = _getConfigurations(xmlFile \\ "conf" \\ "datasets" \\ "binary" \\ "reference", destFolder)
       val exp = _getConfigurations(xmlFile \\ "conf" \\ "datasets" \\ "binary" \\ "experiment", destFolder)
 
-      ref.flatMap( r => exp.map( e => List(r,e)))
+
+      var finalSet: List[List[DatasetConfig]] = List[List[DatasetConfig]]()
+
+      numDatasets.foreach(N=>{
+
+        var NSet: List[List[DatasetConfig]] = ref.map(r=>List(r))
+
+        //finalSet = finalSet.map(r => List(r))
+
+        1 until N foreach { _ => {
+
+          NSet = NSet.flatMap(current_tuple => exp.map(e => e :: current_tuple))
+
+        }
+
+        }
+
+        finalSet = finalSet.union(Random.shuffle(NSet).take(maxDatasetsPerNum))
+
+
+      })
+
+
+      println("Generated ==>",finalSet.length+" datasets")
+      println("Each conf num ==>", finalSet.head.length)
+      Random.shuffle(finalSet)
+
+
+    } else {
+
+      if (!binary) {
+        List(_getConfigurations(xmlFile \\ "conf" \\ "datasets" \\ "unary", destFolder + "/"))
+      } else {
+
+        val ref = _getConfigurations(xmlFile \\ "conf" \\ "datasets" \\ "binary" \\ "reference", destFolder)
+        val exp = _getConfigurations(xmlFile \\ "conf" \\ "datasets" \\ "binary" \\ "experiment", destFolder)
+
+        ref.flatMap(r => exp.map(e => List(r, e)))
+      }
     }
 
 

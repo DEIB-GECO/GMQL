@@ -24,6 +24,15 @@ object Main {
       Array.range( ( root \\ property \@ "from").toInt, (root \\ property \@ "to").toInt, (root \\ property \@ "step").toInt)
   }
 
+  def getExact(root: NodeSeq, property: String): Array[String] = {
+
+    if( (root \\ property).head.attribute("exact").isDefined )
+      (root \\ property \@ "exact").split(",")
+    else
+      Array()
+
+  }
+
 
   //Logger.getLogger("org").setLevel(Level.WARN)
   //Logger.getLogger("akka").setLevel(Level.WARN)
@@ -103,7 +112,7 @@ object Main {
     val query = new Query(confDir+"/"+QUERY_FILE)
 
     // Generate datasets configurations
-    val dsConfigs = AutomatedGenerator.getConfigurations(confDir+"/"+GENERATOR_FILE, query.isBinary, conf.genDir)
+    val dsConfigs = AutomatedGenerator.getConfigurations(confDir+"/"+GENERATOR_FILE, query.isBinary, conf.genDir, complex = query.isComplex, numDatasets = query.numSelects, maxDatasetsPerNum = query.maxQueriesPerNum)
 
 
     println("CORES: "+cpu_range.length+" ("+cpu_range.mkString(",")+")\n"+

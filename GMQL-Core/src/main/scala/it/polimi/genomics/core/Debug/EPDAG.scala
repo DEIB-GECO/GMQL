@@ -287,9 +287,10 @@ class EPNode(val iRDebugOperator: IROperator) {
   def getProfilingTime: Float = {
     if(outputProfileStartTime.isDefined && outputProfileEndTime.isDefined)
       outputProfileEndTime.get-outputProfileStartTime.get
-    else
-      logger.info("Either outputProfileStartTime or outputProfileEndTime was note set for "+this.GMQLoperator.name)
+    else {
+      logger.info("Either outputProfileStartTime or outputProfileEndTime was note set for " + this.GMQLoperator.name)
       0
+    }
   }
 
   def getStartedAfter: Float = {
