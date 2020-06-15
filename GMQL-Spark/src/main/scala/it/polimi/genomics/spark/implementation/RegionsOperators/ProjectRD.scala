@@ -5,6 +5,7 @@ import it.polimi.genomics.core.DataStructures.RegionAggregate.{COORD_POS, Region
 import it.polimi.genomics.core.DataStructures.RegionCondition.MetaAccessor
 import it.polimi.genomics.core.DataStructures.{MetaOperator, RegionOperator}
 import it.polimi.genomics.core.DataTypes._
+import it.polimi.genomics.core.Debug.EPDAG
 import it.polimi.genomics.core._
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
@@ -19,11 +20,14 @@ object ProjectRD {
   private final val logger = LoggerFactory.getLogger(this.getClass);
 
   @throws[SelectFormatException]
-  def apply(executor : GMQLSparkExecutor, projectedValues : Option[List[Int]], tupleAggregator : Option[List[RegionExtension]], inputDataset : RegionOperator, inputMeta: MetaOperator, env : SparkContext) : RDD[GRECORD] = {
+  def apply(executor : GMQLSparkExecutor, projectedValues : Option[List[Int]], tupleAggregator : Option[List[RegionExtension]], inputDataset : RegionOperator, inputMeta: MetaOperator, env : SparkContext) : (Float, RDD[GRECORD] )= {
     logger.info("----------------ProjectRD executing..")
 
-    val input = executor.implement_rd(inputDataset, env)
-    val metadata = executor.implement_md(inputMeta, env)
+    val input = executor.implement_rd(inputDataset, env)._2
+    val metadata = executor.implement_md(inputMeta, env)._2
+
+    var startTime: Float = EPDAG.getCurrentTime
+
     val meta: Array[(Long, (String, String))]  = if (tupleAggregator.isDefined) {
       val metaaccessors = tupleAggregator.get.flatMap { agg =>
         agg.inputIndexes.flatMap(in =>
@@ -45,12 +49,12 @@ object ProjectRD {
     else input
 
     if(projectedValues.isDefined)
-      extended.map(a  => (a._1,  projectedValues.get.foldLeft(Array[GValue]())((Acc, b) => Acc :+ a._2(b)) ))
+      (startTime, extended.map(a  => (a._1,  projectedValues.get.foldLeft(Array[GValue]())((Acc, b) => Acc :+ a._2(b)) )))
     /*else extended*/
     else if (tupleAggregator.isDefined)
-      extended
+      (startTime, extended)
     else
-      extended.map(a=> (a._1, new Array[GValue](0)))
+      (startTime, extended.map(a=> (a._1, new Array[GValue](0))))
   }
 
   def computeFunction(r : GRECORD, agg : RegionExtension,inputMeta:Array[(Long,(String,String))]) : GValue = {

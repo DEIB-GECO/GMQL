@@ -12,6 +12,7 @@ import org.apache.spark.{SparkConf, SparkContext}
 import org.slf4j.LoggerFactory
 
 import collection.JavaConverters._
+import scala.xml.{Elem, Node}
 
 
 object Executor {
@@ -191,10 +192,33 @@ object Executor {
       new File(destDir).mkdirs()
 
       val destFile = destDir + jobID + ".xml"
-      moveRenameFile(ddagFile.getAbsolutePath, destDir + jobID + ".xml")
+
+      val add = Map("cores" -> cores.toString, "memory" -> memory.toString, "cpu_freq" -> cpu_freq.toString, "job_id" -> jobID, "query" -> query)
 
 
-      val add = Map("cores" -> cores.toString, "memory" -> memory.toString, "cpu_freq" -> cpu_freq.toString, "job_id" -> jobID)
+      // Add info to XML
+      import scala.xml.XML
+      val xml = XML.loadFile(ddagFile.getAbsolutePath)
+
+      def addChild(n: Node, newChild: Node) = n match {
+        case Elem(prefix, label, attribs, scope, child @ _*) =>
+          Elem(prefix, label, attribs, scope, child ++ newChild : _*)
+        case _ => error("Can only add children to elements!")
+      }
+
+      val add_info = <execution>
+        <cores>{add("cores")}</cores>
+        <memory>{add("memory")}</memory>
+        <cpu_freq>{add("cpu_freq")}</cpu_freq>
+        <query>{add("query")}</query>
+      </execution>
+
+      val finalXML = addChild(xml, add_info)
+      XML.save(ddagFile.getAbsolutePath, finalXML, "UTF-8")
+
+
+      moveRenameFile(ddagFile.getAbsolutePath, destFile)
+
 
       if(Utilities().PROFILE_DATA)
         MatrixConverter.convert(destFile, 12, 123, resultDir, add)

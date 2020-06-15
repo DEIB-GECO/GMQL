@@ -2,6 +2,7 @@ package it.polimi.genomics.spark.implementation.MetaOperators
 
 import it.polimi.genomics.core.DataStructures.{MetaGroupOperator, MetaOperator}
 import it.polimi.genomics.core.DataTypes._
+import it.polimi.genomics.core.Debug.EPDAG
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
@@ -17,18 +18,20 @@ object MergeMD {
   private final val logger = LoggerFactory.getLogger(MergeMD.getClass);
 
   @throws[SelectFormatException]
-  def apply(executor : GMQLSparkExecutor, dataset : MetaOperator, groups : Option[MetaGroupOperator], sc : SparkContext) : RDD[MetaType] = {
+  def apply(executor : GMQLSparkExecutor, dataset : MetaOperator, groups : Option[MetaGroupOperator], sc : SparkContext) : (Float, RDD[MetaType]) = {
     logger.info("----------------MergeMD executing..")
 
     val ds : RDD[MetaType] =
-      executor.implement_md(dataset, sc)
+      executor.implement_md(dataset, sc)._2
+
+    val startTime: Float = EPDAG.getCurrentTime
 
       if (groups.isDefined) {
-        val grouping = executor.implement_mgd(groups.get, sc);
-        assignGroups(ds, grouping).distinct
+        val grouping = executor.implement_mgd(groups.get, sc)._2;
+        (startTime, assignGroups(ds, grouping).distinct)
       } else {
         //union of samples
-        ds.map(m => (1L, (m._2._1, m._2._2))).distinct
+        (startTime, ds.map(m => (1L, (m._2._1, m._2._2))).distinct)
       }
   }
 

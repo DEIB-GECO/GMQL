@@ -240,6 +240,7 @@ class EPNode(val iRDebugOperator: IROperator) {
   var globalStartTime: Option[Float] = None
 
   private var outputReadyTime: Option[Float] = None
+  private var executionStartedTime: Option[Float] = None
   private var expectedOutputReadyTime: Option[Float] = None
   private var outputProfileStartTime: Option[Float] = None
   private var outputProfileEndTime: Option[Float] = None
@@ -272,6 +273,11 @@ class EPNode(val iRDebugOperator: IROperator) {
       outputReadyTime = Some(EPDAG.getCurrentTime)
     //else logger.warn("The output ready time was already set.")
   }
+
+  def setExecutionStarted(startTime:Float): Unit = {
+    if(executionStartedTime.isEmpty)
+      executionStartedTime = Some(startTime)
+  }
   def trackProfilingStarted(): Unit =  {
     if(outputProfileStartTime.isEmpty)
       outputProfileStartTime = Some(EPDAG.getCurrentTime)
@@ -294,10 +300,7 @@ class EPNode(val iRDebugOperator: IROperator) {
   }
 
   def getStartedAfter: Float = {
-    if(globalStartTime.isDefined)
       getStartedAt - globalStartTime.get
-    else
-      throw  new Exception("globalStartTime was not set." )
   }
 
   def getFinishedAfter: Float = {
@@ -322,15 +325,19 @@ class EPNode(val iRDebugOperator: IROperator) {
   }
 
   def getStartedAt: Float = {
-    if(parents.nonEmpty &&  !parents.forall(_.outputReadyTime.isDefined))
-      throw new Exception("All parents must have finished executing before calling getStartedAt")
-    else if(parents.isEmpty) {
+    if(parents.isEmpty) {
       if(globalStartTime.isDefined)
         globalStartTime.get
       else
         throw new Exception("Global start time is not set.")
     } else {
-      parents.map(_.outputReadyTime.get).max
+      if(executionStartedTime.isDefined)
+        executionStartedTime.get
+      else if(this.GMQLoperator.name == GMQLOperator.Shutdown) {
+        this.parents.map(_.outputReadyTime.get).max
+      } else
+        throw new Exception("executionStartedTime is not set for "+this.GMQLoperator.name)
+
     }
   }
 
@@ -363,7 +370,7 @@ class EPNode(val iRDebugOperator: IROperator) {
 
 
     try {
-      str += "\n\t"+"Started After: "+getStartedAt
+      str += "\n\t"+"Started After: "+getStartedAfter
     } catch {
       case e: Exception =>  str += "\n\t"+"Started After: N/A"
     }
@@ -408,6 +415,8 @@ class EPNode(val iRDebugOperator: IROperator) {
         </params>
       </GMQLoperator>
       <executionTime>{try{getOperatorExecutionTime} catch{ case e: Exception => "n/a"}}</executionTime>
+      <startedAfter>{try{getStartedAfter} catch{ case e: Exception => "n/a"}}</startedAfter>
+      <finishedAfter>{try{getFinishedAfter} catch{ case e: Exception => "n/a"}}</finishedAfter>
       <profilingTime>{try{getProfilingTime}catch{ case e: Exception => "n/a"}}</profilingTime>
       <inputs>
         {

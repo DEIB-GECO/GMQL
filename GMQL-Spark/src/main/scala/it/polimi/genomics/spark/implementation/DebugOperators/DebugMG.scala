@@ -1,6 +1,7 @@
 package it.polimi.genomics.spark.implementation.DebugOperators
 
 import it.polimi.genomics.core.DataStructures.{IROperator, MetaGroupOperator}
+import it.polimi.genomics.core.Debug.EPDAG
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
@@ -11,15 +12,19 @@ object DebugMG {
   private final val logger = LoggerFactory.getLogger(this.getClass)
 
 
-  def apply(executor : GMQLSparkExecutor, input : MetaGroupOperator,  debugOperator: IROperator, sc : SparkContext) : RDD[(Long, Long)]  = {
+  def apply(executor : GMQLSparkExecutor, input : MetaGroupOperator,  debugOperator: IROperator, sc : SparkContext) : (Float, RDD[(Long, Long)])  = {
     logger.info("----------------DebugMG executing..")
 
-    val res = executor.implement_mgd(input, sc).cache()
-    res.count()
+    val (operatorStartTime,res) = executor.implement_mgd(input, sc)
+
+    val startTime = EPDAG.getCurrentTime
+
+    res.cache().count()
 
     logger.info("Debugging "+input.getClass.getName)
 
     val epnode = executor.ePDAG.getNodeByDebugOperator(debugOperator)
+    epnode.setExecutionStarted(operatorStartTime)
 
     epnode.trackOutputReady()
 
@@ -27,7 +32,7 @@ object DebugMG {
     logger.info("Profiling...")
     epnode.trackProfilingEnded()
 
-    res
+    (startTime, res)
   }
 
 

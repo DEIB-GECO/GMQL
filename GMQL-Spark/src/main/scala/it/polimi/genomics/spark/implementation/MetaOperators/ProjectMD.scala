@@ -3,6 +3,7 @@ package it.polimi.genomics.spark.implementation.MetaOperators
 import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaExtension
 import it.polimi.genomics.core.DataStructures.MetaOperator
 import it.polimi.genomics.core.DataTypes.MetaType
+import it.polimi.genomics.core.Debug.EPDAG
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
@@ -17,12 +18,13 @@ object ProjectMD {
   private final val logger = LoggerFactory.getLogger(ProjectMD.getClass);
 
   @throws[SelectFormatException]
-  def apply(executor: GMQLSparkExecutor, projectedAttributes: Option[List[String]], metaAggregator: Option[List[MetaExtension]], all_but_flag:Boolean, inputDataset: MetaOperator, sc: SparkContext): RDD[MetaType] = {
+  def apply(executor: GMQLSparkExecutor, projectedAttributes: Option[List[String]], metaAggregator: Option[List[MetaExtension]], all_but_flag:Boolean, inputDataset: MetaOperator, sc: SparkContext): (Float, RDD[MetaType]) = {
 
 //    if(metaAggregator.isDefined) println("defined",metaAggregator.get.newAttributeName,metaAggregator.get.inputAttributeNames,metaAggregator.get.inputAttributeNames,metaAggregator.get.fun(Array(List(("abdo","1"),("sam","2")))))
     logger.info("----------------ProjectMD executing..")
 
-    val input = executor.implement_md(inputDataset, sc)
+    val startTime: Float = EPDAG.getCurrentTime
+    val input = executor.implement_md(inputDataset, sc)._2
     val filteredInput =
       if (projectedAttributes.isDefined) {
         val list = projectedAttributes.get
@@ -50,10 +52,10 @@ object ProjectMD {
       }.reduce(_ union _)
 
       val atts = metaAggregator.get.map(_.newAttributeName)
-      filteredInput. filter( in => !atts.foldLeft(false)(_ | in._2._1.endsWith(_))).union(ext)
+      (startTime, filteredInput. filter( in => !atts.foldLeft(false)(_ | in._2._1.endsWith(_))).union(ext))
 
     } else {
-      filteredInput
+      (startTime, filteredInput)
     }
   }
 }

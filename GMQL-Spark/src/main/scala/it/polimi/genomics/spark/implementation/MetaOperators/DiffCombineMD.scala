@@ -1,8 +1,9 @@
 package it.polimi.genomics.spark.implementation.MetaOperators
 
 import com.google.common.hash.Hashing
-import it.polimi.genomics.core.DataStructures.{SomeMetaJoinOperator, OptionalMetaJoinOperator, MetaJoinOperator, MetaOperator}
+import it.polimi.genomics.core.DataStructures.{MetaJoinOperator, MetaOperator, OptionalMetaJoinOperator, SomeMetaJoinOperator}
 import it.polimi.genomics.core.DataTypes.MetaType
+import it.polimi.genomics.core.Debug.EPDAG
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
@@ -20,18 +21,20 @@ object DiffCombineMD{
   private final val logger = LoggerFactory.getLogger(CombineMD.getClass);
 
   @throws[SelectFormatException]
-  def apply(executor : GMQLSparkExecutor, grouping : OptionalMetaJoinOperator, leftDataset : MetaOperator, rightDataset : MetaOperator, leftTag:String = "left", rightTag:String = "right", sc : SparkContext) : RDD[MetaType] = {
+  def apply(executor : GMQLSparkExecutor, grouping : OptionalMetaJoinOperator, leftDataset : MetaOperator, rightDataset : MetaOperator, leftTag:String = "left", rightTag:String = "right", sc : SparkContext) : (Float, RDD[MetaType]) = {
 
     logger.info("----------------CombineMD executing..")
 
-    val left = executor.implement_md(leftDataset, sc)
-    val right = executor.implement_md(rightDataset, sc)
+    val left = executor.implement_md(leftDataset, sc)._2
+    val right = executor.implement_md(rightDataset, sc)._2
+
+    val startTime: Float = EPDAG.getCurrentTime
 
     val ltag = if (!leftTag.isEmpty()){leftTag +"." } else ""
     val rtag = if (!rightTag.isEmpty()){rightTag +"." } else ""
 
     if (grouping.isInstanceOf[SomeMetaJoinOperator]) {
-      val pairs = executor.implement_mjd(grouping, sc).collectAsMap()
+      val pairs = executor.implement_mjd(grouping, sc)._2.collectAsMap()
 
 
       val leftOut = left.flatMap{ l => val pair = pairs.get(l._1)
@@ -48,7 +51,7 @@ object DiffCombineMD{
 //        }
 //      }
 
-      leftOut//.union(rightOut)
+      (startTime, leftOut)//.union(rightOut)
 
     } else {
       val leftIds = left.keys.distinct().collect()
@@ -66,7 +69,7 @@ object DiffCombineMD{
 //        }
 //      }
 
-      leftOut//.union(rightOut)//.sortBy(x=>x._1)
+      (startTime, leftOut)//.union(rightOut)//.sortBy(x=>x._1)
     }
   }
 }

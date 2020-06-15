@@ -2,6 +2,7 @@ package it.polimi.genomics.spark.implementation.MetaOperators
 
 import com.google.common.hash.Hashing
 import it.polimi.genomics.core.DataStructures.MetaOperator
+import it.polimi.genomics.core.Debug.EPDAG
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
@@ -22,10 +23,12 @@ object UnionMD {
 
     //create the datasets
     val left: RDD[(Long, (String, String))] =
-      executor.implement_md(leftDataset, sc)
+      executor.implement_md(leftDataset, sc)._2
 
     val right: RDD[(Long, (String, String))] =
-      executor.implement_md(rightDataset, sc)
+      executor.implement_md(rightDataset, sc)._2
+
+    val startTime: Float = EPDAG.getCurrentTime
 
 //    logger.info("sizes (lef,right):"+left.count+","+right.count+":"+leftTag+","+rightTag)
     //change ID of each region according to previous computation
@@ -49,7 +52,7 @@ object UnionMD {
     //(leftMod.union(rightMod)).distinct()
     //TODO fast fix, get rid of hard-coded attribute name
     val newAtt: RDD[(Long, (String, String))] = leftMod.distinct().groupByKey().map{ x => (x._1, ("_provenance", leftTag))}.union(rightMod.distinct().groupByKey().map{ x => (x._1, ("_provenance", rightTag))})
-    (leftMod.union(rightMod)).distinct().union(newAtt)
+    (startTime, (leftMod.union(rightMod)).distinct().union(newAtt))
 
   }
 }

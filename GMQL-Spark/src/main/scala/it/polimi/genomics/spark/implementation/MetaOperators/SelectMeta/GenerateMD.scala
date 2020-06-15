@@ -2,6 +2,7 @@ package it.polimi.genomics.spark.implementation.MetaOperators.SelectMeta
 
 import it.polimi.genomics.core.DataStructures.RegionOperator
 import it.polimi.genomics.core.DataTypes.MetaType
+import it.polimi.genomics.core.Debug.EPDAG
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
@@ -12,11 +13,12 @@ import org.slf4j.LoggerFactory
   */
 object GenerateMD {
   private final val logger = LoggerFactory.getLogger(GenerateMD.getClass)
-  def apply(executor : GMQLSparkExecutor, regionDataset: RegionOperator, sc : SparkContext) : RDD[MetaType] = {
+  def apply(executor : GMQLSparkExecutor, regionDataset: RegionOperator, sc : SparkContext) : (Float, RDD[MetaType]) = {
     logger.info("----------------GenerateMD executing..")
-    val input = executor.implement_rd(regionDataset, sc)
-    input.map{
+    val input = executor.implement_rd(regionDataset, sc)._2
+    val startTime = EPDAG.getCurrentTime
+    (startTime, input.map{
       case (key, _) => key.id
-    }.distinct().map{ id => (id, ("sampleID", id.toString)) }
+    }.distinct().map{ id => (id, ("sampleID", id.toString)) })
   }
 }

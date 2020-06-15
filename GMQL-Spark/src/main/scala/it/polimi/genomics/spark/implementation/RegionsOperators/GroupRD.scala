@@ -4,6 +4,7 @@ import com.google.common.hash.Hashing
 import it.polimi.genomics.core.DataStructures.GroupRDParameters.FIELD
 import it.polimi.genomics.core.DataStructures.{GroupRDParameters, RegionAggregate, RegionOperator}
 import it.polimi.genomics.core.DataTypes.GRECORD
+import it.polimi.genomics.core.Debug.EPDAG
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.core.{GNull, GValue}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
@@ -19,10 +20,12 @@ object GroupRD {
 
 
   @throws[SelectFormatException]
-  def apply(executor : GMQLSparkExecutor, groupingParameters : Option[List[GroupRDParameters.GroupingParameter]], aggregates : Option[List[RegionAggregate.RegionsToRegion]], regionDataset : RegionOperator, sc : SparkContext) : RDD[GRECORD] = {
+  def apply(executor : GMQLSparkExecutor, groupingParameters : Option[List[GroupRDParameters.GroupingParameter]], aggregates : Option[List[RegionAggregate.RegionsToRegion]], regionDataset : RegionOperator, sc : SparkContext) : (Float,RDD[GRECORD]) = {
     logger.info("----------------GroupRD executing..")
 
-    val ds = executor.implement_rd(regionDataset, sc)
+    val ds = executor.implement_rd(regionDataset, sc)._2
+
+    var startTime: Float = EPDAG.getCurrentTime
 
     val res : RDD[GRECORD] =
       ds.map(r  => (r._1, r._2.map((g : GValue) => List(g))))
@@ -60,7 +63,7 @@ object GroupRD {
 
           (a._1, groupingFields ++ aggregated)
         }
-    res
+    (startTime, res)
   }
 
 }

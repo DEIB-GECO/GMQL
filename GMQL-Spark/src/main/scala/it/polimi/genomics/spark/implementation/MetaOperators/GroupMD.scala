@@ -4,6 +4,7 @@ import it.polimi.genomics.core.DataStructures.MetaAggregate.MetaAggregateFunctio
 import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCondition
 import it.polimi.genomics.core.DataStructures.{MetaOperator, RegionOperator}
 import it.polimi.genomics.core.DataTypes._
+import it.polimi.genomics.core.Debug.EPDAG
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
@@ -18,11 +19,13 @@ object GroupMD {
   private final val logger = LoggerFactory.getLogger(GroupMD.getClass);
 
   @throws[SelectFormatException]
-  def apply(executor: GMQLSparkExecutor, groupingKeys : MetaGroupByCondition, aggregates : Option[List[MetaAggregateFunction]], newGroupNameInMeta : String, inputDataset : MetaOperator, regionDataset : RegionOperator, sc: SparkContext): RDD[MetaType] = {
+  def apply(executor: GMQLSparkExecutor, groupingKeys : MetaGroupByCondition, aggregates : Option[List[MetaAggregateFunction]], newGroupNameInMeta : String, inputDataset : MetaOperator, regionDataset : RegionOperator, sc: SparkContext): (Float, RDD[MetaType]) = {
     logger.info("----------------GroupMD executing..")
     //INPUT
     val ds : RDD[MetaType] =
-      executor.implement_md(inputDataset, sc)
+      executor.implement_md(inputDataset, sc)._2
+
+    val startTime: Float = EPDAG.getCurrentTime
 
     /*val rDs : RDD[GRECORD] =
       executor.implement_rd(regionDataset, sc)*/
@@ -97,10 +100,10 @@ object GroupMD {
 
       //CLOSING
       //merge the 3 meta data sets and output
-      aggregationMeta.union(groupingMeta.map(x => (x._2._1, (x._2._2, x._1.toString)))).union(dsWithoutGroupName)
+      (startTime, aggregationMeta.union(groupingMeta.map(x => (x._2._1, (x._2._2, x._1.toString)))).union(dsWithoutGroupName))
     }
     else {
-      groupingMeta.map(x => (x._2._1, (x._2._2, x._1.toString))).union(dsWithoutGroupName)
+      (startTime, groupingMeta.map(x => (x._2._1, (x._2._2, x._1.toString))).union(dsWithoutGroupName))
     }
   }
 }

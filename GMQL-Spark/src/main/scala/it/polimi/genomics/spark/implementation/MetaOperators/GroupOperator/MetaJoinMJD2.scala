@@ -6,6 +6,7 @@ import com.google.common.hash.Hashing
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition.{Default, Exact, FullName, MetaJoinCondition}
 import it.polimi.genomics.core.DataStructures.MetaOperator
 import it.polimi.genomics.core.DataTypes._
+import it.polimi.genomics.core.Debug.EPDAG
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
@@ -23,11 +24,16 @@ object MetaJoinMJD2 {
   private final val logger = LoggerFactory.getLogger(MetaJoinMJD2.getClass);
 
   @throws[SelectFormatException]
-  def apply(executor: GMQLSparkExecutor, condition: MetaJoinCondition, leftDataset: MetaOperator, rightDataset: MetaOperator, empty: Boolean, sc: SparkContext): RDD[SparkMetaJoinType] = {
+  def apply(executor: GMQLSparkExecutor, condition: MetaJoinCondition, leftDataset: MetaOperator, rightDataset: MetaOperator, empty: Boolean, sc: SparkContext): (Float, RDD[SparkMetaJoinType]) = {
     logger.info("----------------MetaJoinMD2 executing..")
     if (!empty) {
       println("condition atributes: ",condition.attributes)
-      val ref: RDD[MetaType] = executor.implement_md(leftDataset, sc).filter(v =>
+      val ref: RDD[MetaType] = executor.implement_md(leftDataset, sc)._2
+      val exp: RDD[MetaType] = executor.implement_md(rightDataset, sc)._2
+
+      val startTime: Float = EPDAG.getCurrentTime
+
+      ref.filter(v =>
         condition.attributes.foldLeft(false)((r,c) =>
           r |/* v._2._1.endsWith(c.toString())*/
             {
@@ -44,7 +50,7 @@ object MetaJoinMJD2 {
         ))
         .map{x=>
           condition.attributes.flatMap{att=>
-//            if(x._2._1.endsWith(att.toString()))Some((x._1,(att.toString(),x._2._2)))else None
+            //            if(x._2._1.endsWith(att.toString()))Some((x._1,(att.toString(),x._2._2)))else None
             if (att.isInstanceOf[FullName]) {
               if (x._2._1.equals(att.asInstanceOf[FullName].attribute) || x._2._1.endsWith("." + att.asInstanceOf[FullName].attribute))
                 Some((x._1, (x._2._1, x._2._2)))
@@ -62,7 +68,9 @@ object MetaJoinMJD2 {
             }
           }.head
         }
-      val exp: RDD[MetaType] = executor.implement_md(rightDataset, sc).filter(v =>
+
+
+      exp.filter(v =>
         condition.attributes.foldLeft(false)((r,c) =>
           r | /*v._2._1.endsWith(c.toString())*/
             {
@@ -79,7 +87,7 @@ object MetaJoinMJD2 {
         ))
         .map{x=>
           condition.attributes.flatMap{att=>
-//            if(x._2._1.equals(att) || x._2._1.endsWith("."+att))Some((x._1,(att.toString,x._2._2)))else None
+            //            if(x._2._1.equals(att) || x._2._1.endsWith("."+att))Some((x._1,(att.toString,x._2._2)))else None
             if (att.isInstanceOf[FullName]) {
               if (x._2._1.equals(att.asInstanceOf[FullName].attribute) || x._2._1.endsWith("." + att.asInstanceOf[FullName].attribute))
                 Some((x._1, (x._2._1, x._2._2)))
@@ -101,11 +109,14 @@ object MetaJoinMJD2 {
       //ref, Array[exp]
       val sampleWithGroup: RDD[(Long, Array[Long])] =
         MJexecutor(ref, condition).join(MJexecutor(exp, condition)).map(x => x._2).distinct.groupByKey().mapValues(_.toArray)
-      sampleWithGroup
+      (startTime, sampleWithGroup)
     } else {
-      val right = executor.implement_md(rightDataset, sc).keys.distinct.collect
-      val left = executor.implement_md(leftDataset, sc).keys.distinct()
-      left.map(x => (x, right))
+      val right = executor.implement_md(rightDataset, sc)._2.keys.distinct.collect
+      val left = executor.implement_md(leftDataset, sc)._2.keys.distinct()
+
+      val startTime: Float = EPDAG.getCurrentTime
+
+      (startTime, left.map(x => (x, right)))
     }
 
   }
@@ -131,7 +142,7 @@ object MetaJoinMJD2 {
         groupSampleByAtt.foreach(t=> atts.foreach(att=> if(t._1.endsWith(att._1)) atts.update(atts.indexOf(att),(att._1,true))))
 
         if(atts.filter(!_._2).size == 0)
-//        if (groupSampleByAtt.size == condition.attributes.size)
+        //        if (groupSampleByAtt.size == condition.attributes.size)
           splatter(groupSampleByAtt.map(x => (x._1, x._2.map(_._2).toList)).toList).
             map(groupString => (Hashing.md5.newHasher().putString(groupString, StandardCharsets.UTF_8).hash().asLong, x._1))
         else

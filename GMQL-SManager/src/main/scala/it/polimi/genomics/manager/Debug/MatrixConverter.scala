@@ -35,7 +35,7 @@ object MatrixConverter {
     "in_R_num_cols",
     "in_R_tuple_size")
 
-  val outcome = Array("execution_time")
+  val outcome = Array("execution_time", "profiling_time")
 
   val output = Array(
     "out_num_samples",
@@ -168,6 +168,7 @@ object MatrixConverter {
     }
 
     values(schema.indexOf("execution_time")) = (node \\ "executionTime").text
+    values(schema.indexOf("profiling_time")) = (node \\ "profilingTime").text
 
     bw.write(values.mkString(",")+"\n")
 

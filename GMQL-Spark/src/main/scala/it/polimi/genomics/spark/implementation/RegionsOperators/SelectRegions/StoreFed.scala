@@ -2,6 +2,7 @@ package it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions
 
 import it.polimi.genomics.core.DataStructures.{MetaOperator, RegionOperator}
 import it.polimi.genomics.core.DataTypes.{GRECORD, MetaType}
+import it.polimi.genomics.core.Debug.EPDAG
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
@@ -14,9 +15,10 @@ object StoreFed {
   private final val ENCODING = "UTF-8"
 
 
-  def storeRegion(executor: GMQLSparkExecutor, path: String, value: RegionOperator, sc: SparkContext): RDD[GRECORD] = {
-    val regions = executor.implement_rd(value, sc)
+  def storeRegion(executor: GMQLSparkExecutor, path: String, value: RegionOperator, sc: SparkContext): (Float, RDD[GRECORD]) = {
+    val regions = executor.implement_rd(value, sc)._2
 
+    var startTime: Float = EPDAG.getCurrentTime
     regions.saveAsObjectFile(path)
 
     //    val rddReg = sc.objectFile[(GRecordKey, Array[GValue])]("/Users/canakoglu/GMQL-sources/gmql_test_ds/test/")
@@ -29,11 +31,13 @@ object StoreFed {
 //    }
 
 
-    regions
+    (startTime, regions)
   }
 
-  def storeMeta(executor: GMQLSparkExecutor, path: String, value: MetaOperator, sc: SparkContext): RDD[MetaType] = {
-    val meta = executor.implement_md(value, sc)
+  def storeMeta(executor: GMQLSparkExecutor, path: String, value: MetaOperator, sc: SparkContext): (Float, RDD[MetaType]) = {
+    val meta = executor.implement_md(value, sc)._2
+
+    val startTime: Float = EPDAG.getCurrentTime
     meta.saveAsObjectFile(path)
 
     //    val rddReg = sc.objectFile[(GRecordKey, Array[GValue])]("/Users/canakoglu/GMQL-sources/gmql_test_ds/test/")
@@ -46,6 +50,6 @@ object StoreFed {
 //    }
 
 
-    meta
+    (startTime, meta)
   }
 }

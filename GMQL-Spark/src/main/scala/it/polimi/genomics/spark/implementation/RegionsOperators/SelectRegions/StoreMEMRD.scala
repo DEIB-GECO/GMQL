@@ -23,7 +23,7 @@ object StoreMEMRD {
   private final val ENCODING = "UTF-8"
 
   @throws[SelectFormatException]
-  def apply(executor: GMQLSparkExecutor, path: String, value: RegionOperator, associatedMeta:MetaOperator, schema : List[(String, PARSING_TYPE)], sc: SparkContext): RDD[GRECORD] = {
+  def apply(executor: GMQLSparkExecutor, path: String, value: RegionOperator, associatedMeta:MetaOperator, schema : List[(String, PARSING_TYPE)], sc: SparkContext): (Float,RDD[GRECORD]) = {
      executor.implement_rd(value, sc)
   }
 }

@@ -1,6 +1,7 @@
 package it.polimi.genomics.spark.implementation.MetaOperators.SelectMeta
 
 import it.polimi.genomics.core.DataTypes.MetaType
+import it.polimi.genomics.core.Debug.EPDAG
 import it.polimi.genomics.core.{DataTypes, GMQLLoader}
 import it.polimi.genomics.spark.implementation.loaders.Loaders._
 import org.apache.hadoop.conf.Configuration
@@ -14,8 +15,10 @@ import org.slf4j.LoggerFactory
   */
 object ReadMD {
   private final val logger = LoggerFactory.getLogger(ReadMD.getClass);
-  def apply(paths: List[String], loader: GMQLLoader[Any, Any, Any, Any], sc : SparkContext) : RDD[MetaType] = {
+  def apply(paths: List[String], loader: GMQLLoader[Any, Any, Any, Any], sc : SparkContext) : (Float, RDD[MetaType]) = {
     logger.info("----------------ReadMD executing..")
+
+    val startTime: Float = EPDAG.getCurrentTime
 
     def parser(x: (Long, String)) =
       loader
@@ -37,6 +40,6 @@ object ReadMD {
       }
 
     val metaPath = files.map(x=>x+".meta").mkString(",")
-    sc forPath(metaPath) LoadMetaCombineFiles (parser)
+    (startTime, sc forPath(metaPath) LoadMetaCombineFiles (parser))
   }
 }

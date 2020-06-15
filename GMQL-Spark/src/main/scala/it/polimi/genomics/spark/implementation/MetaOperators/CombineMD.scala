@@ -5,6 +5,7 @@ import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder
 import it.polimi.genomics.core.DataStructures.JoinParametersRD.RegionBuilder.RegionBuilder
 import it.polimi.genomics.core.DataStructures.{MetaOperator, OptionalMetaJoinOperator, SomeMetaJoinOperator}
 import it.polimi.genomics.core.DataTypes.MetaType
+import it.polimi.genomics.core.Debug.EPDAG
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
@@ -30,7 +31,7 @@ object CombineMD {
             region_builder: Option[RegionBuilder],
 
             leftTag: String = "left", rightTag: String = "right",
-            sc: SparkContext): RDD[MetaType] = {
+            sc: SparkContext): (Float, RDD[MetaType]) = {
 
     logger.info("----------------CombineMD executing..")
 
@@ -42,8 +43,10 @@ object CombineMD {
           case _ => false
         } else false
 
-    val left = executor.implement_md(leftDataset, sc).repartition(32)
-    val right = executor.implement_md(rightDataset, sc).repartition(32)
+    val left = executor.implement_md(leftDataset, sc)._2.repartition(32)
+    val right = executor.implement_md(rightDataset, sc)._2.repartition(32)
+
+    val startTime: Float = EPDAG.getCurrentTime
 
     val ltag =
       if (!leftTag.isEmpty() && !distinct) {
@@ -57,7 +60,7 @@ object CombineMD {
       else ""
 
     if (grouping.isInstanceOf[SomeMetaJoinOperator]) {
-      val pairs: Broadcast[collection.Map[Long, Array[Long]]] = sc.broadcast(executor.implement_mjd(grouping, sc).collectAsMap())
+      val pairs: Broadcast[collection.Map[Long, Array[Long]]] = sc.broadcast(executor.implement_mjd(grouping, sc)._2.collectAsMap())
 
 
       val mapL = collection.mutable.HashMap[Long, mutable.Set[Long]]()
@@ -92,12 +95,12 @@ object CombineMD {
 
       if (region_builder.isDefined)
         region_builder.get match {
-          case RegionBuilder.LEFT_DISTINCT => leftOut
-          case RegionBuilder.RIGHT_DISTINCT => rightOut
-          case _ => leftOut.union(rightOut)
+          case RegionBuilder.LEFT_DISTINCT => (startTime, leftOut)
+          case RegionBuilder.RIGHT_DISTINCT => (startTime, rightOut)
+          case _ => (startTime, leftOut.union(rightOut))
         }
       else
-        leftOut.union(rightOut)
+        (startTime, leftOut.union(rightOut))
 
     } else { //not grouping.isInstanceOf[SomeMetaJoinOperator]
       val leftIds = sc.broadcast(left.keys.distinct().collect()).value
@@ -136,12 +139,12 @@ object CombineMD {
 
       if (region_builder.isDefined)
         region_builder.get match {
-          case RegionBuilder.LEFT_DISTINCT => leftOut
-          case RegionBuilder.RIGHT_DISTINCT => rightOut
-          case _ => leftOut.union(rightOut)
+          case RegionBuilder.LEFT_DISTINCT => (startTime, leftOut)
+          case RegionBuilder.RIGHT_DISTINCT => (startTime, rightOut)
+          case _ => (startTime, leftOut.union(rightOut))
         }
       else
-        leftOut.union(rightOut) //.sortBy(x=>x._1)
+        (startTime, leftOut.union(rightOut)) //.sortBy(x=>x._1)
     }
   }
 }

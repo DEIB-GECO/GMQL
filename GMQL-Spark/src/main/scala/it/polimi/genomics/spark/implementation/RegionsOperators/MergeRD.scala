@@ -2,6 +2,7 @@ package it.polimi.genomics.spark.implementation.RegionsOperators
 
 import it.polimi.genomics.core.DataStructures.{MetaGroupOperator, RegionOperator}
 import it.polimi.genomics.core.DataTypes._
+import it.polimi.genomics.core.Debug.EPDAG
 import it.polimi.genomics.core.GRecordKey
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
@@ -17,16 +18,19 @@ object MergeRD {
   private final val logger = LoggerFactory.getLogger(this.getClass);
 
   @throws[SelectFormatException]
-  def apply(executor : GMQLSparkExecutor, dataset : RegionOperator, groups : Option[MetaGroupOperator], sc : SparkContext) : RDD[GRECORD] = {
+  def apply(executor : GMQLSparkExecutor, dataset : RegionOperator, groups : Option[MetaGroupOperator], sc : SparkContext) : (Float, RDD[GRECORD])= {
     logger.info("----------------Merge executing..")
 
     val ds : RDD[GRECORD] =
-      executor.implement_rd(dataset, sc)
+      executor.implement_rd(dataset, sc)._2
+
+    var startTime: Float = EPDAG.getCurrentTime
 
     val groupedDs : RDD[GRECORD] =
       if (groups.isDefined) {
         //group
-        val grouping = executor.implement_mgd(groups.get, sc);
+        val grouping = executor.implement_mgd(groups.get, sc)._2;
+        startTime = EPDAG.getCurrentTime
         assignGroups(ds, grouping)
       } else {
         //union of samples
@@ -35,7 +39,7 @@ object MergeRD {
         })
       }
 
-    groupedDs
+    (startTime, groupedDs)
   }
 
   def assignGroups(dataset : RDD[GRECORD], grouping : RDD[FlinkMetaGroupType2]) : RDD[GRECORD] = {

@@ -3,6 +3,7 @@ package it.polimi.genomics.spark.implementation.RegionsOperators
 import com.google.common.hash.Hashing
 import it.polimi.genomics.core.DataStructures.{OptionalMetaJoinOperator, RegionOperator}
 import it.polimi.genomics.core.DataTypes.GRECORD
+import it.polimi.genomics.core.Debug.EPDAG
 import it.polimi.genomics.core.{GRecordKey, GValue}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
@@ -20,17 +21,19 @@ object GenometricDifference {
   private final val BINNING_PARAMETER = 50000
   private final val logger = LoggerFactory.getLogger(this.getClass);
 
-  def apply(executor: GMQLSparkExecutor, grouping: OptionalMetaJoinOperator, leftDataset: RegionOperator, rightDataset: RegionOperator, exact:Boolean, sc: SparkContext): RDD[GRECORD] = {
+  def apply(executor: GMQLSparkExecutor, grouping: OptionalMetaJoinOperator, leftDataset: RegionOperator, rightDataset: RegionOperator, exact:Boolean, sc: SparkContext): (Float, RDD[GRECORD]) = {
     logger.info("----------------Differnce executing..")
 
     //creating the datasets
     val ref: RDD[GRECORD] =
-      executor.implement_rd(leftDataset, sc)
+      executor.implement_rd(leftDataset, sc)._2
     val exp: RDD[GRECORD] =
-      executor.implement_rd(rightDataset, sc)
+      executor.implement_rd(rightDataset, sc)._2
+
+    var startTime: Float = EPDAG.getCurrentTime
 
     val groups: Map[Long, Array[Long]] =
-      executor.implement_mjd(grouping, sc).collectAsMap()
+      executor.implement_mjd(grouping, sc)._2.collectAsMap()
 
     val Bgroups: Broadcast[Map[Long, Array[Long]]] = sc.broadcast(groups)
     //group the datasets
@@ -85,7 +88,7 @@ object GenometricDifference {
       )
 
     //OUTPUT
-    filteredReduceResult
+    (startTime, filteredReduceResult)
 
   }
 

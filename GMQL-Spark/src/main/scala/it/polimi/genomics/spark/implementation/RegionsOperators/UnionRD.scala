@@ -3,6 +3,7 @@ package it.polimi.genomics.spark.implementation.RegionsOperators
 import com.google.common.hash.Hashing
 import it.polimi.genomics.core.DataStructures.RegionOperator
 import it.polimi.genomics.core.DataTypes.GRECORD
+import it.polimi.genomics.core.Debug.EPDAG
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.core.{GNull, GRecordKey, GValue}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
@@ -22,10 +23,12 @@ object UnionRD {
 
     //create the datasets
     val left =
-      executor.implement_rd(rightDataset, sc)
+      executor.implement_rd(rightDataset, sc)._2
 
     val right =
-      executor.implement_rd(leftDataset, sc)
+      executor.implement_rd(leftDataset, sc)._2
+
+    val startTime: Float = EPDAG.getCurrentTime
 
     val leftMod: RDD[GRECORD] =
       left.map((r) => {
@@ -54,6 +57,6 @@ object UnionRD {
       })
 
     //merge datasets
-    leftMod.union(rightMod)
+    (startTime, leftMod.union(rightMod))
   }
 }

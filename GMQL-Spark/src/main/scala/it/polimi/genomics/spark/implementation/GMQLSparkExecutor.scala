@@ -71,30 +71,30 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
 
 
   override def collectIterator(iRVariable: IRVariable): (Iterator[(GRecordKey, Array[GValue])], Iterator[(Long, (String, String))], List[(String, PARSING_TYPE)]) = {
-    val metaRDD = implement_md(iRVariable.metaDag, sc).toLocalIterator
-    val regionRDD = implement_rd(iRVariable.regionDag, sc).toLocalIterator
+    val metaRDD = implement_md(iRVariable.metaDag, sc)._2.toLocalIterator
+    val regionRDD = implement_rd(iRVariable.regionDag, sc)._2.toLocalIterator
 
     (regionRDD, metaRDD, iRVariable.schema)
   }
 
 
   override def collect(variable: IRVariable): (Array[(GRecordKey, Array[GValue])], Array[(Long, (String, String))], List[(String, PARSING_TYPE)]) = {
-    val metaRDD = implement_md(variable.metaDag, sc).collect()
-    val regionRDD = implement_rd(variable.regionDag, sc).collect
+    val metaRDD = implement_md(variable.metaDag, sc)._2.collect()
+    val regionRDD = implement_rd(variable.regionDag, sc)._2.collect
 
     (regionRDD, metaRDD, variable.schema)
   }
 
   override def take(iRVariable: IRVariable, n: Int): (Array[(GRecordKey, Array[GValue])], Array[(Long, (String, String))], List[(String, PARSING_TYPE)]) = {
-    val metaRDD = implement_md(iRVariable.metaDag, sc).collect()
-    val regionRDD = implement_rd(iRVariable.regionDag, sc).groupBy(_._1._1).flatMap(_._2.take(n)).collect()
+    val metaRDD = implement_md(iRVariable.metaDag, sc)._2.collect()
+    val regionRDD = implement_rd(iRVariable.regionDag, sc)._2.groupBy(_._1._1).flatMap(_._2.take(n)).collect()
 
     (regionRDD, metaRDD, iRVariable.schema)
   }
 
   override def takeFirst(iRVariable: IRVariable, n: Int): (Array[(GRecordKey, Array[GValue])], Array[(Long, (String, String))], List[(String, PARSING_TYPE)]) = {
-    val metaRDD = implement_md(iRVariable.metaDag, sc).collect()
-    val regionRDD = implement_rd(iRVariable.regionDag, sc).take(n)
+    val metaRDD = implement_md(iRVariable.metaDag, sc)._2.collect()
+    val regionRDD = implement_rd(iRVariable.regionDag, sc)._2.take(n)
 
     (regionRDD, metaRDD, iRVariable.schema)
   }
@@ -153,8 +153,8 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
     try {
       for (variable <- to_be_materialized) {
 
-        val metaRDD = implement_md(variable.metaDag, sc)
-        val regionRDD = implement_rd(variable.regionDag, sc)
+        val metaRDD = implement_md(variable.metaDag, sc)._2
+        val regionRDD = implement_rd(variable.regionDag, sc)._2
 
         if (variable.metaDag.isInstanceOf[IRStoreMD] || variable.metaDag.getDependencies.exists(_.isInstanceOf[IRStoreMD])) {
 
@@ -211,27 +211,29 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
               if(debugMode) ePDAG.profilerEnded()
 
 
-              if(debugMode) {
-                ePDAG.executionEnded()
-
-                ePDAG.computeCriticalPath()
-
-                logger.info("STORING DDAG XML")
-
-                val ddag = fs.create(new Path(variableDir + "/files/" + "ddag.xml"));
-
-                val ddagos = new java.io.BufferedOutputStream(ddag)
-
-                ddagos.write(ePDAG.toXML().getBytes("UTF-8"))
-                ddagos.close()
-
-              }
 
             } catch {
               case e: Throwable => {
                 logger.error(e.getMessage, e)
               }
             }
+          }
+
+
+          if(debugMode) {
+            ePDAG.executionEnded()
+
+            ePDAG.computeCriticalPath()
+
+            logger.info("STORING DDAG XML")
+
+            val ddag = fs.create(new Path(variableDir + "/files/" + "ddag.xml"));
+
+            val ddagos = new java.io.BufferedOutputStream(ddag)
+
+            ddagos.write(ePDAG.toXML().getBytes("UTF-8"))
+            ddagos.close()
+
           }
 
           fs.deleteOnExit(new Path(RegionOutputPath + "_SUCCESS"))
@@ -267,11 +269,11 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
   }
 
   @throws[SelectFormatException]
-  def implement_md(mo: MetaOperator, sc: SparkContext): RDD[DataTypes.MetaType] = {
+  def implement_md(mo: MetaOperator, sc: SparkContext): (Float, RDD[DataTypes.MetaType]) = {
     if (mo.intermediateResult.isDefined) {
-      mo.intermediateResult.get.asInstanceOf[RDD[MetaType]]
+      mo.intermediateResult.get.asInstanceOf[(Float, RDD[MetaType])]
     } else {
-      val res =
+      val res:  (Float, RDD[DataTypes.MetaType])=
         mo match {
           case IRStoreMD(path, value, _) => StoreMD(this, path, value, sc)
           case IRReadMD(path, loader, _) => if (testingIOFormats) TestingReadMD(path, loader, sc) else ReadMD(path, loader, sc)
@@ -296,7 +298,7 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
           case IRGroupMD(keys: MetaGroupByCondition, aggregates: Option[List[MetaAggregateFunction]], groupName: String, inputDataset: MetaOperator, region_dataset: RegionOperator) => GroupMD(this, keys, aggregates, groupName, inputDataset, region_dataset, sc)
           case IRCollapseMD(grouping: Option[MetaGroupOperator], inputDataset: MetaOperator) => CollapseMD(this, grouping, inputDataset, sc)
 
-          case IRNoopMD() => sc.emptyRDD[DataTypes.MetaType]
+          case IRNoopMD() => (EPDAG.getCurrentTime, sc.emptyRDD[DataTypes.MetaType])
           case IRStoreFedMD(input, _, path) => StoreFed.storeMeta(this, path.get, input, sc)
           case IRReadFedMD(_, path) => ReadFed.readMeta(path.get, sc)
 
@@ -314,11 +316,11 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
   //Region Data methods
 
   @throws[SelectFormatException]
-  def implement_rd(ro: RegionOperator, sc: SparkContext): RDD[DataTypes.GRECORD] = {
+  def implement_rd(ro: RegionOperator, sc: SparkContext): (Float, RDD[DataTypes.GRECORD]) = {
     if (ro.intermediateResult.isDefined) {
-      ro.intermediateResult.get.asInstanceOf[RDD[GRECORD]]
+      ro.intermediateResult.get.asInstanceOf[(Float,RDD[GRECORD])]
     } else {
-      val res =
+      val res :  (Float, RDD[DataTypes.GRECORD]) =
         ro match {
           case IRStoreRD(path, value, meta, schema, _) => if (outputFormat == GMQLSchemaFormat.GTF) StoreGTFRD(this, path, value, meta, schema, outputCoordinateSystem, sc) else if (outputFormat == GMQLSchemaFormat.TAB) StoreTABRD(this, path, value, meta, schema, outputCoordinateSystem, sc) else StoreRD(this, path, value, sc)
           case IRReadRD(path, loader, _) => if (testingIOFormats) TestingReadRD(path, loader, sc) else ReadRD(path, loader, sc)
@@ -343,7 +345,7 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
           case irMap: IRGenometricMap => GenometricMap71(this, irMap.grouping, irMap.aggregates, irMap.reference, irMap.samples, binSize.Map, REF_PARALLILISM, sc)
           case IRDifferenceRD(metaJoin: OptionalMetaJoinOperator, leftDataset: RegionOperator, rightDataset: RegionOperator, exact: Boolean) => GenometricDifference(this, metaJoin, leftDataset, rightDataset, exact, sc)
           case IRProjectRD(projectedValues: Option[List[Int]], tupleAggregator: Option[List[RegionExtension]], inputDataset: RegionOperator, inputDatasetMeta: MetaOperator) => ProjectRD(this, projectedValues, tupleAggregator, inputDataset, inputDatasetMeta, sc)
-          case IRNoopRD() => sc.emptyRDD[DataTypes.GRECORD]
+          case IRNoopRD() => (EPDAG.getCurrentTime, sc.emptyRDD[DataTypes.GRECORD])
           case IRStoreFedRD(input, _, pathOption) => StoreFed.storeRegion(this, pathOption.get, input, sc)
           case IRReadFedRD(_, pathOption) => ReadFed.readRegion(pathOption.get, sc)
 
@@ -358,11 +360,11 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
   }
 
   @throws[SelectFormatException]
-  def implement_mgd(mgo: MetaGroupOperator, sc: SparkContext): RDD[FlinkMetaGroupType2] = {
+  def implement_mgd(mgo: MetaGroupOperator, sc: SparkContext): (Float, RDD[FlinkMetaGroupType2]) = {
     if (mgo.intermediateResult.isDefined) {
-      mgo.intermediateResult.get.asInstanceOf[RDD[FlinkMetaGroupType2]]
+      mgo.intermediateResult.get.asInstanceOf[(Float, RDD[FlinkMetaGroupType2])]
     } else {
-      val res =
+      val res: (Float, RDD[(Long, Long)]) =
         mgo match {
           case IRGroupBy(groupAttributes: MetaGroupByCondition, inputDataset: MetaOperator) => MetaGroupMGD(this, groupAttributes, inputDataset, sc)
           case IRDebugMG(input) => DebugOperators.DebugMG(this, input, mgo, sc)
@@ -374,7 +376,7 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
   }
 
   @throws[SelectFormatException]
-  def implement_mjd(mjo: OptionalMetaJoinOperator, sc: SparkContext): RDD[SparkMetaJoinType] = {
+  def implement_mjd(mjo: OptionalMetaJoinOperator, sc: SparkContext):  (Float, RDD[SparkMetaJoinType]) = {
 
 
     //todo: checl if this is correct
@@ -384,9 +386,9 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
 
     if (mjo.isInstanceOf[NoMetaJoinOperator]) {
       if (mjo.asInstanceOf[NoMetaJoinOperator].operator.intermediateResult.isDefined)
-        mjo.asInstanceOf[NoMetaJoinOperator].operator.intermediateResult.get.asInstanceOf[RDD[SparkMetaJoinType]]
+        mjo.asInstanceOf[NoMetaJoinOperator].operator.intermediateResult.get.asInstanceOf[(Float,RDD[SparkMetaJoinType])]
       else {
-        val res =
+        val res :  (Float, RDD[SparkMetaJoinType]) =
           mjo.asInstanceOf[NoMetaJoinOperator].operator match {
             case IRJoinBy(condition: MetaJoinCondition, left_dataset: MetaOperator, right_dataset: MetaOperator) => MetaJoinMJD2(this, condition, left_dataset, right_dataset, true, sc)
             case IRDebugMJ(inputMetaJoin: MetaJoinOperator) => DebugMJ(this, inputMetaJoin,mjo.asInstanceOf[NoMetaJoinOperator].operator, sc)
@@ -396,7 +398,7 @@ class GMQLSparkExecutor(val binSize: BinSize = BinSize(), val maxBinDistance: In
       }
     } else {
       if (mjo.asInstanceOf[SomeMetaJoinOperator].operator.intermediateResult.isDefined)
-        mjo.asInstanceOf[SomeMetaJoinOperator].operator.intermediateResult.get.asInstanceOf[RDD[SparkMetaJoinType]]
+        mjo.asInstanceOf[SomeMetaJoinOperator].operator.intermediateResult.get.asInstanceOf[(Float, RDD[SparkMetaJoinType])]
       else {
         val res =
           mjo.asInstanceOf[SomeMetaJoinOperator].operator match {

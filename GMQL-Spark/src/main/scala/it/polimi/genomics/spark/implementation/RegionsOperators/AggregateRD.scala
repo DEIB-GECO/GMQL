@@ -3,6 +3,7 @@ package it.polimi.genomics.spark.implementation.RegionsOperators
 import it.polimi.genomics.core.DataStructures.RegionAggregate.RegionsToMeta
 import it.polimi.genomics.core.DataStructures.RegionOperator
 import it.polimi.genomics.core.DataTypes.MetaType
+import it.polimi.genomics.core.Debug.EPDAG
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.core.{GNull, GRecordKey, GValue}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
@@ -18,9 +19,11 @@ object AggregateRD {
   private final val logger = LoggerFactory.getLogger(this.getClass);
 
   @throws[SelectFormatException]
-  def apply(executor: GMQLSparkExecutor, aggregators: List[RegionsToMeta], inputDataset: RegionOperator, sc: SparkContext): RDD[MetaType] = {
+  def apply(executor: GMQLSparkExecutor, aggregators: List[RegionsToMeta], inputDataset: RegionOperator, sc: SparkContext): (Float, RDD[MetaType]) = {
     logger.info("----------------AggregateRD executing..")
-    val ss: RDD[(GRecordKey, Array[GValue])] = executor.implement_rd(inputDataset, sc)
+    val ss: RDD[(GRecordKey, Array[GValue])] = executor.implement_rd(inputDataset, sc)._2
+
+    val startTime: Float = EPDAG.getCurrentTime
 
     val notAssociative = aggregators.flatMap(x => if (!x.associative) Some(x) else None)
     val associative = aggregators.flatMap(x => if (x.associative) Some(x) else None)
@@ -37,7 +40,7 @@ object AggregateRD {
         .flatMap(v => notAssociative.zip(v._2).map(agg => (v._1, (agg._1.newAttributeName, agg._1.fun(agg._2).toString))))
     } else sc.emptyRDD[MetaType]
 
-    rddAssociative.union(rddNotAssociative)
+    (startTime, rddAssociative.union(rddNotAssociative))
 
   }
 

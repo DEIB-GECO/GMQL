@@ -1,6 +1,7 @@
 package it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions
 
 import it.polimi.genomics.core.DataTypes.{GRECORD, MetaType}
+import it.polimi.genomics.core.Debug.EPDAG
 import it.polimi.genomics.core.GMQLLoader
 import it.polimi.genomics.spark.implementation.loaders.Loaders._
 import org.apache.spark.SparkContext
@@ -14,7 +15,10 @@ object TestingReadRD {
 
   private final val logger = LoggerFactory.getLogger(TestingReadRD.getClass);
 
-  def apply(path: List[String], loader: GMQLLoader[Any, Any, Any, Any], sc: SparkContext): RDD[GRECORD] = {
+  def apply(path: List[String], loader: GMQLLoader[Any, Any, Any, Any], sc: SparkContext): (Float, RDD[GRECORD]) = {
+
+    val startTime: Float = EPDAG.getCurrentTime
+
     def parser(x: (Long, String)) = loader.asInstanceOf[GMQLLoader[(Long, String), Option[GRECORD], (Long, String), Option[MetaType]]].region_parser(x)
 
     val files = path.flatMap { dirInput =>
@@ -22,7 +26,7 @@ object TestingReadRD {
         new java.io.File(dirInput).listFiles.filter(x => !(x.getName.endsWith(".meta") || x.isDirectory)).map(x => x.getPath)
       else List(dirInput)
     }
-    sc.forPath(files.mkString(",")).LoadRegionsCombineFiles(parser)
+    (startTime, sc.forPath(files.mkString(",")).LoadRegionsCombineFiles(parser))
 
   }
 }

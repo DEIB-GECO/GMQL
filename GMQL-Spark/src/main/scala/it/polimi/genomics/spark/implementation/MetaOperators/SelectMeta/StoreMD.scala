@@ -16,7 +16,7 @@ object StoreMD {
   private final val logger = LoggerFactory.getLogger(StoreMD.getClass);
 
   @throws[SelectFormatException]
-  def apply(executor : GMQLSparkExecutor, path: String, value: MetaOperator, sc : SparkContext): RDD[MetaType] = {
+  def apply(executor : GMQLSparkExecutor, path: String, value: MetaOperator, sc : SparkContext): (Float,RDD[MetaType]) = {
     logger.info("----------------STOREMD executing..")
     executor.implement_md(value, sc)
   }

@@ -5,6 +5,7 @@ import com.google.common.hash.Hashing
 import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.Direction
 import it.polimi.genomics.core.DataStructures.GroupMDParameters._
 import it.polimi.genomics.core.DataStructures.MetaOperator
+import it.polimi.genomics.core.Debug.EPDAG
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.core.{GDouble, GNull, GString, GValue}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
@@ -22,13 +23,15 @@ object OrderMD {
   private final val logger = LoggerFactory.getLogger(OrderMD.getClass);
 
   @throws[SelectFormatException]
-  def apply(executor: GMQLSparkExecutor, ordering: List[(String, Direction)], newAttribute: String, topParameter: TopParameter, inputDataset: MetaOperator, sc: SparkContext): RDD[(Long, (String, String))] = {
+  def apply(executor: GMQLSparkExecutor, ordering: List[(String, Direction)], newAttribute: String, topParameter: TopParameter, inputDataset: MetaOperator, sc: SparkContext):  (Float, RDD[(Long, (String, String))]) = {
 
     logger.info("----------------OrderMD executing..")
 
 
     val ds: RDD[(Long, (String, String))] =
-      executor.implement_md(inputDataset, sc)
+      executor.implement_md(inputDataset, sc)._2
+
+    val startTime: Float = EPDAG.getCurrentTime
 
     val grouping: Boolean =
       topParameter match {
@@ -181,7 +184,7 @@ object OrderMD {
       ds.filter((m) => filteredId.contains(m._1))
 
     //Create the dataset, merge with input and return as output
-    topDs.union(sc.parallelize(sortedTop))
+    (startTime, topDs.union(sc.parallelize(sortedTop)))
 
   }
 

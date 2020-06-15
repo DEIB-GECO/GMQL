@@ -6,6 +6,7 @@ import it.polimi.genomics.core.DataStructures.JoinParametersRD._
 import it.polimi.genomics.core.DataStructures.RegionAggregate.COORD_POS
 import it.polimi.genomics.core.DataStructures.{OptionalMetaJoinOperator, RegionOperator}
 import it.polimi.genomics.core.DataTypes._
+import it.polimi.genomics.core.Debug.EPDAG
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.core.{GDouble, GRecordKey, GString, GValue}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
@@ -27,18 +28,20 @@ object GenometricJoin {
             joinOnAttributes: Option[List[(Int, Int)]],
             BINNING_PARAMETER: Long,
             MAXIMUM_DISTANCE: Long,
-            sc: SparkContext): RDD[GRECORD] = {
+            sc: SparkContext): (Float, RDD[GRECORD]) = {
     implicit val orderGRECORD: Ordering[(GRecordKey, Array[GValue])] = Ordering.by { ar: GRECORD => ar._1 }
 
     // load datasets
     val ref: RDD[GRECORD] =
-      executor.implement_rd(leftDataset, sc)
+      executor.implement_rd(leftDataset, sc)._2
     val exp =
-      executor.implement_rd(rightDataset, sc)
+      executor.implement_rd(rightDataset, sc)._2
+
+    val startTime: Float = EPDAG.getCurrentTime
 
     val groups =
       executor
-        .implement_mjd(metajoinCondition, sc)
+        .implement_mjd(metajoinCondition, sc)._2
         .flatMap {
           case (refId: Long, expIds: Array[Long]) =>
             expIds.map {
@@ -208,7 +211,7 @@ object GenometricJoin {
     }
 
 
-    distinct_output
+    (startTime, distinct_output)
   }
 
   def distinct(ds: RDD[GRECORD]): RDD[(GRecordKey, Array[GValue])] = {

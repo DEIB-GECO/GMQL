@@ -5,6 +5,7 @@ import it.polimi.genomics.core.DataStructures.CoverParameters._
 import it.polimi.genomics.core.DataStructures.RegionAggregate.RegionsToRegion
 import it.polimi.genomics.core.DataStructures.{MetaGroupOperator, RegionOperator}
 import it.polimi.genomics.core.DataTypes._
+import it.polimi.genomics.core.Debug.EPDAG
 import it.polimi.genomics.core.{GDouble, GValue}
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
@@ -27,15 +28,17 @@ object GenometricCover {
   private final val logger = LoggerFactory.getLogger(GenometricCover.getClass);
 
   @throws[SelectFormatException]
-  def apply(executor: GMQLSparkExecutor, coverFlag: CoverFlag, min: CoverParam, max: CoverParam, aggregators: List[RegionsToRegion], grouping: Option[MetaGroupOperator], inputDataset: RegionOperator, binSize: Long, sc: SparkContext): RDD[GRECORD] = {
+  def apply(executor: GMQLSparkExecutor, coverFlag: CoverFlag, min: CoverParam, max: CoverParam, aggregators: List[RegionsToRegion], grouping: Option[MetaGroupOperator], inputDataset: RegionOperator, binSize: Long, sc: SparkContext): (Float, RDD[GRECORD]) = {
     logger.info("----------------Cover executing..")
 
     // CREATE DATASET RECURSIVELY
-    val ds: RDD[GRECORD] = executor.implement_rd(inputDataset, sc)
+    val ds: RDD[GRECORD] = executor.implement_rd(inputDataset, sc)._2
 
     val groups: Option[Broadcast[Map[Long, Long]]] = if (grouping.isDefined)
-      Some(sc.broadcast(executor.implement_mgd(grouping.get, sc).collectAsMap()))
+      Some(sc.broadcast(executor.implement_mgd(grouping.get, sc)._2.collectAsMap()))
     else None
+
+    val startTime: Float = EPDAG.getCurrentTime
 
     val groupIds = if (groups.isDefined) {
       groups.get.value.toList.map(_._2).distinct
@@ -155,20 +158,15 @@ object GenometricCover {
     val flat: Boolean = coverFlag.equals(CoverFlag.FLAT)
     val summit: Boolean = coverFlag.equals(CoverFlag.SUMMIT)
 
-    GMAP4(aggregators, flat, summit, pureCover, groupedDs, binSize)
+    (startTime, GMAP4(aggregators, flat, summit, pureCover, groupedDs, binSize))
   }
 
   // EXECUTORS
 
   /**
     *
-    * @param start
-    * @param count
-    * @param countMax
-    * @param recording
     * @param minimum
     * @param maximum
-    * @param i
     */
   final def coverHelper(si: Iterator[(Int, Int)], minimum: Map[Long, Int], maximum: Map[Long, Int], id: Long, chr: String, strand: Char, bin: Int, binSize: Long): List[Grecord] = {
     var start = 0L
@@ -221,8 +219,6 @@ object GenometricCover {
   /**
     * Tail recursive helper for histogram
     *
-    * @param start
-    * @param count
     * @param minimum
     * @param maximum
     * @param i
@@ -259,12 +255,8 @@ object GenometricCover {
   }
 
   /**
-    *
-    * @param start
-    * @param count
     * @param minimum
     * @param maximum
-    * @param growing
     * @param i
     */
   final def summitHelper(i: Iterator[(Int, Int)], minimum: Map[Long, Int], maximum: Map[Long, Int], id: Long, chr: String, strand: Char, bin: Int, binSize: Long): List[Grecord] = {

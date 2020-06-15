@@ -7,6 +7,7 @@ import it.polimi.genomics.core.DataStructures.MetaGroupByCondition.MetaGroupByCo
 import it.polimi.genomics.core.DataStructures.MetaJoinCondition.{AttributeEvaluationStrategy, Default, Exact, FullName}
 import it.polimi.genomics.core.DataStructures.MetaOperator
 import it.polimi.genomics.core.DataTypes.{FlinkMetaGroupType2, MetaType}
+import it.polimi.genomics.core.Debug.EPDAG
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
@@ -17,8 +18,8 @@ import org.apache.spark.rdd.RDD
  */
 object MetaGroupMGD {
   @throws[SelectFormatException]
-  def apply(executor: GMQLSparkExecutor, condition: MetaGroupByCondition, inputDataset: MetaOperator, sc: SparkContext): RDD[FlinkMetaGroupType2] = {
-    executor.implement_md(inputDataset, sc).MetaWithGroups(condition.attributes)
+  def apply(executor: GMQLSparkExecutor, condition: MetaGroupByCondition, inputDataset: MetaOperator, sc: SparkContext): (Float, RDD[FlinkMetaGroupType2]) = {
+    (EPDAG.getCurrentTime, executor.implement_md(inputDataset, sc)._2.MetaWithGroups(condition.attributes))
   }
 
   implicit class MetaGroup(rdd: RDD[MetaType]) {

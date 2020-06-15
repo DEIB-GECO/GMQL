@@ -3,6 +3,7 @@ package it.polimi.genomics.spark.implementation.RegionsOperators.GenometricMap
 import com.google.common.hash.Hashing
 import it.polimi.genomics.core.DataStructures._
 import it.polimi.genomics.core.DataTypes._
+import it.polimi.genomics.core.Debug.EPDAG
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.core.{GDouble, GNull, GRecordKey, GValue}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
@@ -25,13 +26,13 @@ object GenometricMap71 {
   private final type groupType = Array[((Long, String), Array[Long])]
 
   @throws[SelectFormatException]
-  def apply(executor: GMQLSparkExecutor, grouping: OptionalMetaJoinOperator, aggregator: List[RegionAggregate.RegionsToRegion], reference: RegionOperator, experiments: RegionOperator, BINNING_PARAMETER: Long, REF_PARALLILISM: Int, sc: SparkContext): RDD[GRECORD] = {
+  def apply(executor: GMQLSparkExecutor, grouping: OptionalMetaJoinOperator, aggregator: List[RegionAggregate.RegionsToRegion], reference: RegionOperator, experiments: RegionOperator, BINNING_PARAMETER: Long, REF_PARALLILISM: Int, sc: SparkContext): (Float, RDD[GRECORD]) = {
     logger.info("----------------MAP71 executing -------------")
     //creating the datasets
     val ref: RDD[(GRecordKey, Array[GValue])] =
-      executor.implement_rd(reference, sc)
+      executor.implement_rd(reference, sc)._2
     val exp: RDD[(GRecordKey, Array[GValue])] =
-      executor.implement_rd(experiments, sc)
+      executor.implement_rd(experiments, sc)._2
 
     val binningParameter =
       if (BINNING_PARAMETER == 0)
@@ -39,7 +40,9 @@ object GenometricMap71 {
       else
         BINNING_PARAMETER
 
-    execute(executor, grouping, aggregator, ref, exp, binningParameter, REF_PARALLILISM, sc)
+    val startTime: Float = EPDAG.getCurrentTime
+
+    (startTime, execute(executor, grouping, aggregator, ref, exp, binningParameter, REF_PARALLILISM, sc))
   }
 
 
@@ -47,7 +50,7 @@ object GenometricMap71 {
 
   @throws[SelectFormatException]
   def execute(executor: GMQLSparkExecutor, grouping: OptionalMetaJoinOperator, aggregator: List[RegionAggregate.RegionsToRegion], ref: RDD[GRECORD], exp: RDD[GRECORD], BINNING_PARAMETER: Long, REF_PARALLILISM: Int, sc: SparkContext): RDD[GRECORD] = {
-    val groups = executor.implement_mjd(grouping, sc).flatMap { x => x._2.map(s => (x._1, s)) }
+    val groups = executor.implement_mjd(grouping, sc)._2.flatMap { x => x._2.map(s => (x._1, s)) }
 
     val refGroups: Broadcast[collection.Map[Long, Iterable[Long]]] = sc.broadcast(groups.groupByKey().collectAsMap())
 

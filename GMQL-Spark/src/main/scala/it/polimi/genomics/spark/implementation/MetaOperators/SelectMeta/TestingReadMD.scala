@@ -1,6 +1,7 @@
 package it.polimi.genomics.spark.implementation.MetaOperators.SelectMeta
 
 import it.polimi.genomics.core.DataTypes.MetaType
+import it.polimi.genomics.core.Debug.EPDAG
 import it.polimi.genomics.core.{DataTypes, GMQLLoader}
 import it.polimi.genomics.spark.implementation.loaders.Loaders._
 import org.apache.spark.SparkContext
@@ -12,10 +13,13 @@ import org.slf4j.LoggerFactory
  */
 object TestingReadMD {
   private final val logger = LoggerFactory.getLogger(TestingReadMD.getClass)
-  def apply(path: List[String], loader: GMQLLoader[Any, Any, Any, Any], sc : SparkContext) : RDD[MetaType] = {
+  def apply(path: List[String], loader: GMQLLoader[Any, Any, Any, Any], sc : SparkContext) : (Float, RDD[MetaType]) = {
     logger.info("----------------TestingReadMD executing..")
 
     def parser(x: (Long, String)) = loader.asInstanceOf[GMQLLoader[(Long, String), Option[DataTypes.GRECORD], (Long, String), Option[DataTypes.MetaType]]].meta_parser(x)
+
+    val startTime: Float = EPDAG.getCurrentTime
+
     val files = path.flatMap { dirInput =>
         if (new java.io.File(dirInput).isDirectory)
           new java.io.File(dirInput).listFiles.filter(x => !(x.getName.endsWith(".meta") || x.isDirectory) ).map(x => x.getPath)
@@ -23,6 +27,7 @@ object TestingReadMD {
       }
 
     val metaPath = files.map(x=>x+".meta").mkString(",")
-    sc forPath(metaPath) LoadMetaCombineFiles (parser)
+
+    (startTime, sc forPath(metaPath) LoadMetaCombineFiles (parser))
   }
 }

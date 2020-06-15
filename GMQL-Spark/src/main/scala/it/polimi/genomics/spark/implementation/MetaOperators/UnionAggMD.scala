@@ -3,6 +3,7 @@ package it.polimi.genomics.spark.implementation.MetaOperators
 import com.google.common.base.Charsets
 import com.google.common.hash.Hashing
 import it.polimi.genomics.core.DataStructures.MetaOperator
+import it.polimi.genomics.core.Debug.EPDAG
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
@@ -23,10 +24,12 @@ object UnionAggMD {
 
     //create the datasets
     val left: RDD[(Long, (String, String))] =
-      executor.implement_md(leftDataset, sc)
+      executor.implement_md(leftDataset, sc)._2
 
     val right: RDD[(Long, (String, String))] =
-      executor.implement_md(rightDataset, sc)
+      executor.implement_md(rightDataset, sc)._2
+
+    val startTime: Float = EPDAG.getCurrentTime
 
     //change ID of each region according to previous computation
     val leftMod  =
@@ -39,7 +42,7 @@ object UnionAggMD {
         (/*Hashing.md5.newHasher.putLong(2L).putLong(*/ m._1/*).hash.asLong*/, (/*rightTag+"."+*/m._2._1,m._2._2))
       })
     //merge datasets
-    (leftMod.union(rightMod)).distinct()
+    (startTime, (leftMod.union(rightMod)).distinct())
   }
 
 

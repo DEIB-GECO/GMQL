@@ -2,6 +2,7 @@ package it.polimi.genomics.spark.implementation.RegionsOperators.SelectRegions
 
 import it.polimi.genomics.core.DataStructures.{MetaOperator, RegionOperator}
 import it.polimi.genomics.core.DataTypes.GRECORD
+import it.polimi.genomics.core.Debug.EPDAG
 import it.polimi.genomics.core.GMQLSchemaCoordinateSystem
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import it.polimi.genomics.core.exception.SelectFormatException
@@ -24,9 +25,11 @@ object StoreGTFRD {
   private final val ENCODING = "UTF-8"
 
   @throws[SelectFormatException]
-  def apply(executor: GMQLSparkExecutor, path: String, value: RegionOperator, associatedMeta:MetaOperator, schema : List[(String, PARSING_TYPE)], coordinateSystem: GMQLSchemaCoordinateSystem.Value, sc: SparkContext): RDD[GRECORD] = {
-    val regions = executor.implement_rd(value, sc)
-    val meta = executor.implement_md(associatedMeta,sc)
+  def apply(executor: GMQLSparkExecutor, path: String, value: RegionOperator, associatedMeta:MetaOperator, schema : List[(String, PARSING_TYPE)], coordinateSystem: GMQLSchemaCoordinateSystem.Value, sc: SparkContext): (Float, RDD[GRECORD]) = {
+    val regions = executor.implement_rd(value, sc)._2
+    val meta = executor.implement_md(associatedMeta,sc)._2
+
+    val startTime: Float = EPDAG.getCurrentTime
 
     val conf = new Configuration();
     val dfsPath = new org.apache.hadoop.fs.Path(path);
@@ -108,6 +111,6 @@ object StoreGTFRD {
 
     writeMultiOutputFiles.fixOutputMetaLocation(MetaOutputPath)
 
-    regions
+    (startTime, regions)
   }
 }

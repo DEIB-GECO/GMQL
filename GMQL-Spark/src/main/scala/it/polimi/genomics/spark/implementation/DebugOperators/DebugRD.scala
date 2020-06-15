@@ -2,6 +2,7 @@ package it.polimi.genomics.spark.implementation.DebugOperators
 
 import it.polimi.genomics.core.DataStructures.{IROperator, RegionOperator}
 import it.polimi.genomics.core.DataTypes.GRECORD
+import it.polimi.genomics.core.Debug.EPDAG
 import it.polimi.genomics.profiling.Profilers.{Feature, Profiler}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
@@ -12,15 +13,20 @@ object DebugRD {
 
   private final val logger = LoggerFactory.getLogger(this.getClass)
 
-  def apply(executor : GMQLSparkExecutor, input : RegionOperator,  debugOperator: IROperator, sc: SparkContext) : RDD[GRECORD] = {
+  def apply(executor : GMQLSparkExecutor, input : RegionOperator,  debugOperator: IROperator, sc: SparkContext) : (Float, RDD[GRECORD]) = {
     logger.info("----------------DebugRD executing..")
 
-    val res = executor.implement_rd(input, sc).cache()
+    val (operatorStartTime,res) = executor.implement_rd(input, sc)
+    res.cache()
+
+    var startTime: Float = EPDAG.getCurrentTime
     val num_rows = res.count()
 
     val epnode = executor.ePDAG.getNodeByDebugOperator(debugOperator)
+    epnode.setExecutionStarted(operatorStartTime)
 
 
+    epnode.trackOutputReady()
 
     // Profile
     if(executor.profileData || epnode.isEntryNode) {
@@ -38,16 +44,11 @@ object DebugRD {
     }
 
 
-    epnode.trackOutputReady()
-
     logger.info("Debugging "+input.getClass.getName)
 
-    epnode.trackProfilingStarted()
-    logger.info("Profiling...")
-    epnode.trackProfilingEnded()
 
 
-    res
+    (startTime, res)
 
   }
 

@@ -2,6 +2,8 @@ package it.polimi.genomics.spark.implementation.RegionsOperators
 
 import it.polimi.genomics.core.DataStructures.RegionOperator
 import it.polimi.genomics.core.DataTypes.GRECORD
+import it.polimi.genomics.core.Debug.EPDAG
+import it.polimi.genomics.core.{GRecordKey, GValue}
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
 import org.apache.spark.SparkContext
@@ -16,8 +18,7 @@ object StoreRD {
   private final val ENCODING = "UTF-8"
 
   @throws[SelectFormatException]
-  def apply(executor: GMQLSparkExecutor, path: String, value: RegionOperator, sc: SparkContext): RDD[GRECORD] = {
-    val input = executor.implement_rd(value, sc)
-    input
+  def apply(executor: GMQLSparkExecutor, path: String, value: RegionOperator, sc: SparkContext): (Float, RDD[GRECORD]) = {
+    executor.implement_rd(value, sc)
   }
 }

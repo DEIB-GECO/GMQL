@@ -40,7 +40,7 @@ object PredicateRD {
 
           case v: MetaAccessor => {
             val meta = executor.implement_md(filteredMeta.get, sc)
-            meta.filter(_._2._1.equals(predicate.value.asInstanceOf[MetaAccessor].attribute_name)).distinct.collect
+            meta._2.filter(_._2._1.equals(predicate.value.asInstanceOf[MetaAccessor].attribute_name)).distinct.collect
           }
 
           case v: Any => {

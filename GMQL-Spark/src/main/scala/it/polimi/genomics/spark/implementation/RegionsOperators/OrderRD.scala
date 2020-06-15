@@ -8,6 +8,7 @@ import it.polimi.genomics.core.DataStructures.GroupMDParameters.Direction.Direct
 import it.polimi.genomics.core.DataStructures.GroupMDParameters._
 import it.polimi.genomics.core.DataStructures.RegionOperator
 import it.polimi.genomics.core.DataTypes._
+import it.polimi.genomics.core.Debug.EPDAG
 import it.polimi.genomics.core.exception.SelectFormatException
 import it.polimi.genomics.core.{GDouble, GNull, GRecordKey, GValue}
 import it.polimi.genomics.spark.implementation.GMQLSparkExecutor
@@ -24,11 +25,13 @@ object OrderRD {
   private final val logger = LoggerFactory.getLogger(this.getClass);
 
   @throws[SelectFormatException]
-  def apply(executor : GMQLSparkExecutor, ordering : List[(Int, Direction)], topParameter : TopParameter, inputDataset : RegionOperator, sc : SparkContext) : RDD[GRECORD] = {
+  def apply(executor : GMQLSparkExecutor, ordering : List[(Int, Direction)], topParameter : TopParameter, inputDataset : RegionOperator, sc : SparkContext) : (Float, RDD[GRECORD]) = {
     logger.info("----------------OrderRD executing..")
 
     val ds:RDD[GRECORD] =
-      executor.implement_rd(inputDataset, sc)
+      executor.implement_rd(inputDataset, sc)._2
+
+    var startTime: Float = EPDAG.getCurrentTime
 
 
     val grouping : Boolean =
@@ -99,7 +102,7 @@ object OrderRD {
           }.iterator
         }
       }
-    sortedGroupsOfRegions
+    (startTime, sortedGroupsOfRegions)
   }
 
   def sort(ds:RDD[(Long,Iterable[GRECORD])],valuesOrdering: Ordering[Array[GValue]],ordering: List[(Int, Direction)],top:Int, topParameter : TopParameter): RDD[GRECORD] ={
