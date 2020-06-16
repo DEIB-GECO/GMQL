@@ -10,6 +10,7 @@ class Query(confFile: String) {
 
   def numSelects : Array[Int] = Main.getExact(xml \\ "conf" \\ "complex" , "num_selects").map(_.toInt)
   def maxQueriesPerNum : Int = (xml \\ "conf" \\ "complex" \\ "max_queries_per_num" text).toInt
+  def topology: String  = xml \\ "conf" \\ "complex" \\ "topology" text
 
   def operatorName: String = (xml \\ "conf" \\ "query" \\ "operator").text
 
@@ -53,19 +54,25 @@ class Query(confFile: String) {
 
           var selects:Array[String] = datasets.zipWithIndex.map{ case (d, i) =>  s"D${i} = SELECT() ${d};"}.toArray[String]
 
-          var maps : Array[String] = (0 to datasets.length-2).map( i => {
-            if(i==0)
-              s"R${i} = MAP() D${i} D${i+1};"
-            else
-              s"R${i} = MAP() R${i-1} D${i+1};"
-          }).toArray[String]
+          var maps: Array[String] =  Array[String]()
+          var joins: Array[String] =  Array[String]()
 
-          var joins : Array[String] = (0 to datasets.length-2).map( i => {
-            if(i==0)
-              s"R${i} = JOIN(DLE($dist)) D${i} D${i+1};"
-            else
-              s"R${i} = JOIN(DLE($dist)) R${i-1} D${i+1};"
-          }).toArray[String]
+
+          if(topology=="linear-right" || topology=="linear-left" ) {
+            maps = (0 to datasets.length - 2).map(i => {
+              if (i == 0)
+                s"R${i} = MAP() D${i} D${i + 1};"
+              else if (topology == "linear-right") s"R${i} = MAP() R${i - 1} D${i + 1};" else s"R${i} = MAP() R${i + 1} D${i - 1};"
+            }).toArray[String]
+
+            joins = (0 to datasets.length - 2).map(i => {
+              if (i == 0)
+                s"R${i} = JOIN(DLE($dist)) D${i} D${i + 1};"
+              else if (topology == "linear-right") s"R${i} = JOIN(DLE($dist)) R${i - 1} D${i + 1};" else s"R${i} = JOIN(DLE($dist)) R${i + 1} D${i - 1};"
+            }).toArray[String]
+          } else {
+            throw new Exception("not supported")
+          }
 
 
 
