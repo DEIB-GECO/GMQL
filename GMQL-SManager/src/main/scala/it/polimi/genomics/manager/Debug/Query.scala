@@ -61,24 +61,18 @@ class Query(confFile: String) {
           if(topology=="linear-right" || topology=="linear-left" ) {
             maps = (0 to datasets.length - 2).map(i => {
 
-              var ref = if(topology=="linear-right" ) i-1 else i+1
-              var exp = if(topology=="linear-right" ) i+1 else i-1
-
               if (i == 0)
                 s"R${i} = MAP() D${i} D${i + 1};"
               else
-                s"R${i} = MAP() R${ref} D${exp};"
+              if(topology=="linear-right" ) s"R${i} = MAP() R${i-1} D${i+1};" else s"R${i} = MAP() D${i+1} R${i-1};"
             }).toArray[String]
 
             joins = (0 to datasets.length - 2).map(i => {
 
-              var ref = if(topology=="linear-right" ) i-1 else i+1
-              var exp = if(topology=="linear-right" ) i+1 else i-1
-
               if (i == 0)
                 s"R${i} = JOIN(DLE($dist)) D${i} D${i + 1};"
               else
-                s"R${i} = JOIN(DLE($dist)) R${ref} D${exp};"
+              if(topology=="linear-right" ) s"R${i} = JOIN(DLE($dist)) R${i-1} D${i+1};" else s"R${i} = JOIN(DLE($dist)) D${i+1} R${i-1};"
             }).toArray[String]
           } else {
             throw new Exception("not supported")
