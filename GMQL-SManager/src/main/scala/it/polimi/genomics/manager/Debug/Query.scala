@@ -32,8 +32,6 @@ class Query(confFile: String) {
 
     if( isComplex ) {
 
-
-
       println("Generating a complex query.")
       println(datasets)
 
@@ -93,12 +91,6 @@ class Query(confFile: String) {
 
         })
       }).toList
-
-
-
-
-
-
 
 
     } else {

@@ -40,7 +40,7 @@ object AutomatedGenerator {
 
         1 until N foreach { _ => {
 
-          NSet = NSet.flatMap(current_tuple => exp.map(e => e :: current_tuple))
+          NSet = NSet.map(current_tuple =>  Random.shuffle(exp).take(1).head :: current_tuple)
 
         }
 
