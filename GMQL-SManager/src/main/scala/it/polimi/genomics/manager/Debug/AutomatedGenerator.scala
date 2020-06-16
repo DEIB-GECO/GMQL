@@ -34,13 +34,13 @@ object AutomatedGenerator {
 
       numDatasets.foreach(N=>{
 
-        var NSet: List[List[DatasetConfig]] = ref.map(r=>List(r))
+        var NSet: List[List[DatasetConfig]] = ref.map(r=>List(r,Random.shuffle(exp).take(1).head))
 
         //finalSet = finalSet.map(r => List(r))
 
-        1 until N foreach { _ => {
+        2 until N foreach { _ => {
 
-          NSet = NSet.map(current_tuple =>  Random.shuffle(exp).take(1).head :: current_tuple)
+          NSet = NSet.map(current_tuple =>  Random.shuffle(ref).take(1).head :: current_tuple)
 
         }
 
