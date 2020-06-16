@@ -115,14 +115,13 @@ object Executor {
       server.execute(executionJob)
       // Wait
       do {
-        logger.info("Waiting for completion")
+        logger.info("Waiting for completion "+executionJob.getJobStatus)
         Thread.sleep(1000)
-      } while (executionJob.getJobStatus != manager.Status.SUCCESS &&
-         executionJob.getJobStatus != manager.Status.EXEC_FAILED &&
-        executionJob.getJobStatus != manager.Status.EXEC_STOPPED &&
-        executionJob.getJobStatus != manager.Status.DS_CREATION_FAILED)
+      } while (executionJob.getJobStatus == manager.Status.PENDING || executionJob.getJobStatus == manager.Status.RUNNING || executionJob.getJobStatus == manager.Status.DS_CREATION_RUNNING)
 
-      if(executionJob.getJobStatus != manager.Status.SUCCESS)
+      if(executionJob.getJobStatus != manager.Status.SUCCESS &&
+        executionJob.getJobStatus != manager.Status.EXEC_SUCCESS &&
+        executionJob.getJobStatus != manager.Status.DS_CREATION_SUCCESS)
         skip = true
     }
 
