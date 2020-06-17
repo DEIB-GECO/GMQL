@@ -431,7 +431,7 @@ object GMQLExecuteCommand {
     //        }
     //
     //      });
-    new GMQLSparkExecutor(binSize = BinSize(bin,bin,bin), testingIOFormats = false, sc = sc, outputFormat = outputFormat, outputCoordinateSystem = outputCoordinateSystem, profileData=profileData)
+    new GMQLSparkExecutor(binSize = BinSize(2*bin,bin,bin), testingIOFormats = false, sc = sc, outputFormat = outputFormat, outputCoordinateSystem = outputCoordinateSystem, profileData=profileData)
     //    }
     //    else /*if(executionType.equals(FLINK)) */ {
     //      new FlinkImplementation()
