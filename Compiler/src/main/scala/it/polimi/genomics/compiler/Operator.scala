@@ -14,7 +14,6 @@ import it.polimi.genomics.core.DataStructures.RegionCondition.REG_OP._
 import it.polimi.genomics.core.DataStructures.RegionCondition.RegionCondition
 import it.polimi.genomics.core.ParsingType.PARSING_TYPE
 import org.slf4j.LoggerFactory
-
 import scala.util.parsing.input.{CharSequenceReader, Position, Positional}
 
 /**
